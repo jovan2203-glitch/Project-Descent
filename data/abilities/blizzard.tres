@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+[ext_resource type="Resource" path="res://data/effects/chilled.tres" id="2_ch"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"blizzard"
+display_name = "Blizzard"
+description = "Place a circle; icicles rain down for 3 s. Every 0.5 s a wave deals {hit} frost damage to every enemy inside and chills them."
+tags = PackedStringArray("Frost", "Spell", "AoE")
+cast_type = 3
+cast_time = 2.0
+requires_target = false
+resource_type = 1
+resource_cost = 4
+damage = 1
+radius = 2.5
+tick_interval = 0.5
+on_hit_effect = ExtResource("2_ch")
+damage_type = &"frost"

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"stormarrow"
+display_name = "Storm Arrow"
+description = "An arrow charged with lightning: {hit} lightning damage, and {flat1} lightning damage to every other enemy within 2 m of the target."
+tags = PackedStringArray("Ability", "Lightning", "Ranged", "Projectile", "AoE")
+cast_type = 0
+cast_time = 0.0
+cooldown = 7.0
+requires_target = true
+weapon_requirement = 2
+resource_type = 2
+resource_cost = 3
+damage = 0
+weapon_damage_multiplier = 1.0
+radius = 2.0
+damage_type = &"lightning"

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+[ext_resource type="Resource" path="res://data/effects/stormfire.tres" id="2_fx"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"stormfire"
+display_name = "Rune of Stormfire"
+description = "Every time you deal lightning damage, your next fire spell deals 20% more damage. Stacks up to 5 times, lasts 10 s, and each new stack refreshes the duration."
+color = Color(1, 0.62, 0.3, 1)
+rarity = 2
+unlock_level = 1
+trigger = 0
+required_damage_types = PackedStringArray("lightning")
+include_dots = true
+include_procs = true
+threshold_mode = 0
+threshold = 1.0
+internal_cooldown = 0.0
+effect = 4
+status_effect = ExtResource("2_fx")
+status_target = 0

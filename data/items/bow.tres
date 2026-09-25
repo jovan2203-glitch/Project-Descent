@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="GearItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/gear_item_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"bow"
+display_name = "Hunting Bow"
+description = "Two-handed bow  •  Ranged (locks Off Hand)"
+color = Color(0.78, 0.55, 0.3, 1)
+slot = 12
+locks_offhand = true
+stats = {"crit_chance": 3}
+weapon_type = 2
+weapon_damage = 1
+attack_range = 10.0
+attack_interval = 1.0

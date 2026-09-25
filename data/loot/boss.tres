@@ -1,0 +1,152 @@
+[gd_resource type="Resource" script_class="LootTableData" load_steps=26 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/loot_table_data.gd" id="1_table"]
+[ext_resource type="Script" path="res://scripts/data/loot_entry_data.gd" id="2_entry"]
+
+[sub_resource type="Resource" id="B_helmet"]
+script = ExtResource("2_entry")
+item_id = &"helmet"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_chest"]
+script = ExtResource("2_entry")
+item_id = &"chestplate"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_bow"]
+script = ExtResource("2_entry")
+item_id = &"bow"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_sword"]
+script = ExtResource("2_entry")
+item_id = &"sword"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_amulet"]
+script = ExtResource("2_entry")
+item_id = &"amulet"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_pauldrons"]
+script = ExtResource("2_entry")
+item_id = &"pauldrons"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_cloak"]
+script = ExtResource("2_entry")
+item_id = &"cloak"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_gloves"]
+script = ExtResource("2_entry")
+item_id = &"gloves"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_leggings"]
+script = ExtResource("2_entry")
+item_id = &"leggings"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_boots"]
+script = ExtResource("2_entry")
+item_id = &"boots"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_ring_focus"]
+script = ExtResource("2_entry")
+item_id = &"ring_focus"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_ring_might"]
+script = ExtResource("2_entry")
+item_id = &"ring_might"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_staff"]
+script = ExtResource("2_entry")
+item_id = &"staff"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_dagger"]
+script = ExtResource("2_entry")
+item_id = &"dagger"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_venom_fang"]
+script = ExtResource("2_entry")
+item_id = &"venom_fang"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_shield"]
+script = ExtResource("2_entry")
+item_id = &"shield"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_storm_idol"]
+script = ExtResource("2_entry")
+item_id = &"storm_idol"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_phoenix_ember"]
+script = ExtResource("2_entry")
+item_id = &"phoenix_ember"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_berserker_tooth"]
+script = ExtResource("2_entry")
+item_id = &"berserker_tooth"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_arcane_clockwork"]
+script = ExtResource("2_entry")
+item_id = &"arcane_clockwork"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_frost_shard"]
+script = ExtResource("2_entry")
+item_id = &"frost_shard"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_sand_hourglass"]
+script = ExtResource("2_entry")
+item_id = &"sand_hourglass"
+weight = 1.0
+min_rarity = 1
+
+[sub_resource type="Resource" id="B_sacred_reliquary"]
+script = ExtResource("2_entry")
+item_id = &"sacred_reliquary"
+weight = 1.0
+min_rarity = 1
+
+[resource]
+script = ExtResource("1_table")
+pool = Array[Resource]([SubResource("B_helmet"), SubResource("B_chest"), SubResource("B_bow"), SubResource("B_sword"), SubResource("B_amulet"), SubResource("B_pauldrons"), SubResource("B_cloak"), SubResource("B_gloves"), SubResource("B_leggings"), SubResource("B_boots"), SubResource("B_ring_focus"), SubResource("B_ring_might"), SubResource("B_staff"), SubResource("B_dagger"), SubResource("B_venom_fang"), SubResource("B_shield"), SubResource("B_storm_idol"), SubResource("B_phoenix_ember"), SubResource("B_berserker_tooth"), SubResource("B_arcane_clockwork"), SubResource("B_frost_shard"), SubResource("B_sand_hourglass"), SubResource("B_sacred_reliquary")])
+pool_rolls = 2
+nothing_weight = 0.0
+rarity_weights = PackedFloat32Array(0, 25, 50, 25)
+rune_chance = 0.8
+item_level_bonus = 1
+use_unlocked_pool = true

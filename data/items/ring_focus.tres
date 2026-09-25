@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GearItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/gear_item_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"ring_focus"
+display_name = "Band of Focus"
+description = "Ring  •  Fits either finger slot"
+color = Color(0.5, 0.7, 1, 1)
+slot = 8
+item_type = &"ring"
+stats = {"crit_chance": 2, "intellect": 1}

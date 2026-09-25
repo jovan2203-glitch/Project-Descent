@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/zombie/Idle.fbx" id="1_rig"]
+[ext_resource type="Script" path="res://scripts/models/goblin_model.gd" id="2_model"]
+
+[node name="GoblinModel" instance=ExtResource("1_rig")]
+script = ExtResource("2_model")

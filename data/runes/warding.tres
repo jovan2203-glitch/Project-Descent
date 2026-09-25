@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"warding"
+display_name = "Rune of Warding"
+description = "Taking damage has a 30% chance to grant +3 Armor for 5 s."
+color = Color(0.95, 0.8, 0.35, 1)
+unlock_level = 5
+trigger = 3
+threshold_mode = 0
+threshold = 0.3
+internal_cooldown = 1.0
+effect = 0
+buff_stat = &"armor"
+buff_amount = 3.0
+buff_duration = 5.0
+max_stacks = 1

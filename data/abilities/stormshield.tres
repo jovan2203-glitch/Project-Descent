@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"stormshield"
+display_name = "Stormshield Slam"
+description = "Slam your charged shield into the target for {hit} lightning damage. The charge arcs to up to 2 nearby enemies for {flat1} lightning damage each."
+tags = PackedStringArray("Ability", "Lightning", "Melee", "Shield")
+cast_type = 0
+cast_time = 0.0
+cooldown = 8.0
+requires_target = true
+weapon_requirement = 1
+requires_shield = true
+resource_type = 3
+resource_cost = 3
+damage = 1
+weapon_damage_multiplier = 1.0
+radius = 4.0
+damage_type = &"lightning"

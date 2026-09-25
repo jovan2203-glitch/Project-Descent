@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+[ext_resource type="Resource" path="res://data/effects/rooted.tres" id="2_fx"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"entanglingroots"
+display_name = "Entangling Roots"
+description = "Roots burst from the ground: {hit} nature damage, and the target can't move for 3 s."
+tags = PackedStringArray("Nature", "Spell", "Projectile", "Root")
+cast_type = 0
+cast_time = 0.0
+cooldown = 10.0
+requires_target = true
+resource_type = 1
+resource_cost = 3
+damage = 1
+cast_range = 30.0
+on_hit_effect = ExtResource("2_fx")
+damage_type = &"nature"

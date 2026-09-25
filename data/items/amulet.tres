@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GearItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/gear_item_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"amulet"
+display_name = "Ember Amulet"
+description = "Amulet"
+color = Color(1, 0.55, 0.3, 1)
+slot = 1
+item_type = &"amulet"
+stats = {"intellect": 1, "spell_power": 1}

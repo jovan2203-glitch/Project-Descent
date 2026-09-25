@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="GearItemData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/gear_item_data.gd" id="1_s"]
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="2_r"]
+
+[sub_resource type="Resource" id="Use"]
+script = ExtResource("2_r")
+id = &"quickened_sand"
+display_name = "Quickened Sand"
+description = "Turn the hourglass: +{buff}% Haste for 10 s."
+color = Color(0.95, 0.8, 0.45, 1)
+internal_cooldown = 60.0
+effect = 0
+buff_stat = &"haste"
+buff_amount = 20.0
+buff_duration = 10.0
+max_stacks = 1
+
+[resource]
+script = ExtResource("1_s")
+id = &"sand_hourglass"
+display_name = "Hourglass of Quickened Sand"
+description = "Trinket"
+color = Color(0.95, 0.8, 0.45, 1)
+slot = 10
+item_type = &"trinket"
+stats = {"haste": 2}
+use_effect = SubResource("Use")

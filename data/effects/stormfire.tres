@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"stormfire"
+display_name = "Stormfire"
+description = "Your next fire spell deals 20% more damage per stack."
+color = Color(1, 0.62, 0.3, 1)
+is_debuff = false
+tags = PackedStringArray("Lightning", "Fire", "Empower")
+duration = 10.0
+stack_mode = 1
+max_stacks = 5
+damage_mod_pct = 20.0
+modifies_incoming = false
+mod_damage_types = PackedStringArray("fire")
+mod_required_tags = PackedStringArray("Spell")
+mod_affects_dots = false
+consume_on_use = true

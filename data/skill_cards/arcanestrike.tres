@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SkillCardData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/skill_card_data.gd" id="1_s"]
+[ext_resource type="Resource" path="res://data/abilities/arcanestrike.tres" id="2_a"]
+
+[resource]
+script = ExtResource("1_s")
+ability = ExtResource("2_a")
+unlock_trigger = 1
+unlock_level = 10
+sort_order = 18

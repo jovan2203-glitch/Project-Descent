@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+[ext_resource type="Resource" path="res://data/effects/chilled.tres" id="2_ch"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"rayoffrost"
+display_name = "Ray of Frost"
+description = "Channel a freezing beam at your target for 3 s, dealing {hit} frost damage every second and chilling it."
+tags = PackedStringArray("Frost", "Spell", "Channel")
+cast_type = 2
+cast_time = 3.0
+requires_target = true
+resource_type = 1
+resource_cost = 2
+damage = 1
+tick_interval = 1.0
+on_hit_effect = ExtResource("2_ch")
+damage_type = &"frost"

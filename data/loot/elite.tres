@@ -1,0 +1,128 @@
+[gd_resource type="Resource" script_class="LootTableData" load_steps=26 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/loot_table_data.gd" id="1_table"]
+[ext_resource type="Script" path="res://scripts/data/loot_entry_data.gd" id="2_entry"]
+
+[sub_resource type="Resource" id="E_helmet"]
+script = ExtResource("2_entry")
+item_id = &"helmet"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_chest"]
+script = ExtResource("2_entry")
+item_id = &"chestplate"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_bow"]
+script = ExtResource("2_entry")
+item_id = &"bow"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_sword"]
+script = ExtResource("2_entry")
+item_id = &"sword"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_amulet"]
+script = ExtResource("2_entry")
+item_id = &"amulet"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_pauldrons"]
+script = ExtResource("2_entry")
+item_id = &"pauldrons"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_cloak"]
+script = ExtResource("2_entry")
+item_id = &"cloak"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_gloves"]
+script = ExtResource("2_entry")
+item_id = &"gloves"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_leggings"]
+script = ExtResource("2_entry")
+item_id = &"leggings"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_boots"]
+script = ExtResource("2_entry")
+item_id = &"boots"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_ring_focus"]
+script = ExtResource("2_entry")
+item_id = &"ring_focus"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_ring_might"]
+script = ExtResource("2_entry")
+item_id = &"ring_might"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_staff"]
+script = ExtResource("2_entry")
+item_id = &"staff"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_dagger"]
+script = ExtResource("2_entry")
+item_id = &"dagger"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_venom_fang"]
+script = ExtResource("2_entry")
+item_id = &"venom_fang"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_shield"]
+script = ExtResource("2_entry")
+item_id = &"shield"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_storm_idol"]
+script = ExtResource("2_entry")
+item_id = &"storm_idol"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_phoenix_ember"]
+script = ExtResource("2_entry")
+item_id = &"phoenix_ember"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_berserker_tooth"]
+script = ExtResource("2_entry")
+item_id = &"berserker_tooth"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_arcane_clockwork"]
+script = ExtResource("2_entry")
+item_id = &"arcane_clockwork"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_frost_shard"]
+script = ExtResource("2_entry")
+item_id = &"frost_shard"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_sand_hourglass"]
+script = ExtResource("2_entry")
+item_id = &"sand_hourglass"
+weight = 1.0
+
+[sub_resource type="Resource" id="E_sacred_reliquary"]
+script = ExtResource("2_entry")
+item_id = &"sacred_reliquary"
+weight = 1.0
+
+[resource]
+script = ExtResource("1_table")
+pool = Array[Resource]([SubResource("E_helmet"), SubResource("E_chest"), SubResource("E_bow"), SubResource("E_sword"), SubResource("E_amulet"), SubResource("E_pauldrons"), SubResource("E_cloak"), SubResource("E_gloves"), SubResource("E_leggings"), SubResource("E_boots"), SubResource("E_ring_focus"), SubResource("E_ring_might"), SubResource("E_staff"), SubResource("E_dagger"), SubResource("E_venom_fang"), SubResource("E_shield"), SubResource("E_storm_idol"), SubResource("E_phoenix_ember"), SubResource("E_berserker_tooth"), SubResource("E_arcane_clockwork"), SubResource("E_frost_shard"), SubResource("E_sand_hourglass"), SubResource("E_sacred_reliquary")])
+pool_rolls = 1
+nothing_weight = 0.0
+rarity_weights = PackedFloat32Array(30, 45, 20, 5)
+rune_chance = 0.5
+use_unlocked_pool = true

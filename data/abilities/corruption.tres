@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+[ext_resource type="Resource" path="res://data/effects/corrupted.tres" id="2_fx"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"corruption"
+display_name = "Corruption"
+description = "Corrupt your target: {hit} shadow damage now and {dot} more every second for 8 s."
+tags = PackedStringArray("Shadow", "Spell", "DoT")
+cast_type = 0
+cast_time = 0.0
+cooldown = 8.0
+requires_target = true
+resource_type = 1
+resource_cost = 2
+damage = 1
+cast_range = 30.0
+on_hit_effect = ExtResource("2_fx")
+damage_type = &"shadow"

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GearItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/gear_item_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"pauldrons"
+display_name = "Iron Pauldrons"
+description = "Plate shoulders"
+color = Color(0.7, 0.72, 0.78, 1)
+slot = 2
+item_type = &"armor"
+stats = {"armor": 1, "strength": 1}

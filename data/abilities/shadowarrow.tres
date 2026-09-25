@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+[ext_resource type="Resource" path="res://data/effects/weakened.tres" id="2_fx"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"shadowarrow"
+display_name = "Shadow Arrow"
+description = "A shadow-wrapped arrow for {hit} shadow damage, and the target is Weakened (deals 25% less damage) for 6 s."
+tags = PackedStringArray("Ability", "Shadow", "Ranged", "Projectile")
+cast_type = 0
+cast_time = 0.0
+cooldown = 8.0
+requires_target = true
+weapon_requirement = 2
+resource_type = 2
+resource_cost = 3
+damage = 0
+weapon_damage_multiplier = 1.0
+on_hit_effect = ExtResource("2_fx")
+damage_type = &"shadow"

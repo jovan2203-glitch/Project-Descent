@@ -1,0 +1,128 @@
+[gd_resource type="Resource" script_class="LootTableData" load_steps=26 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/loot_table_data.gd" id="1_table"]
+[ext_resource type="Script" path="res://scripts/data/loot_entry_data.gd" id="2_entry"]
+
+[sub_resource type="Resource" id="Entry_helmet"]
+script = ExtResource("2_entry")
+item_id = &"helmet"
+chance = 0.9
+
+[sub_resource type="Resource" id="Entry_chest"]
+script = ExtResource("2_entry")
+item_id = &"chestplate"
+chance = 0.9
+
+[sub_resource type="Resource" id="Entry_bow"]
+script = ExtResource("2_entry")
+item_id = &"bow"
+chance = 0.9
+
+[sub_resource type="Resource" id="Entry_sword"]
+script = ExtResource("2_entry")
+item_id = &"sword"
+chance = 0.9
+
+[sub_resource type="Resource" id="P_amulet"]
+script = ExtResource("2_entry")
+item_id = &"amulet"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_pauldrons"]
+script = ExtResource("2_entry")
+item_id = &"pauldrons"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_cloak"]
+script = ExtResource("2_entry")
+item_id = &"cloak"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_gloves"]
+script = ExtResource("2_entry")
+item_id = &"gloves"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_leggings"]
+script = ExtResource("2_entry")
+item_id = &"leggings"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_boots"]
+script = ExtResource("2_entry")
+item_id = &"boots"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_ring_focus"]
+script = ExtResource("2_entry")
+item_id = &"ring_focus"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_ring_might"]
+script = ExtResource("2_entry")
+item_id = &"ring_might"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_staff"]
+script = ExtResource("2_entry")
+item_id = &"staff"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_dagger"]
+script = ExtResource("2_entry")
+item_id = &"dagger"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_venom_fang"]
+script = ExtResource("2_entry")
+item_id = &"venom_fang"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_shield"]
+script = ExtResource("2_entry")
+item_id = &"shield"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_storm_idol"]
+script = ExtResource("2_entry")
+item_id = &"storm_idol"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_phoenix_ember"]
+script = ExtResource("2_entry")
+item_id = &"phoenix_ember"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_berserker_tooth"]
+script = ExtResource("2_entry")
+item_id = &"berserker_tooth"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_arcane_clockwork"]
+script = ExtResource("2_entry")
+item_id = &"arcane_clockwork"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_frost_shard"]
+script = ExtResource("2_entry")
+item_id = &"frost_shard"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_sand_hourglass"]
+script = ExtResource("2_entry")
+item_id = &"sand_hourglass"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_sacred_reliquary"]
+script = ExtResource("2_entry")
+item_id = &"sacred_reliquary"
+weight = 1.0
+
+[resource]
+script = ExtResource("1_table")
+chance_drops = Array[Resource]([SubResource("Entry_helmet"), SubResource("Entry_chest"), SubResource("Entry_bow"), SubResource("Entry_sword")])
+pool = Array[Resource]([SubResource("P_amulet"), SubResource("P_pauldrons"), SubResource("P_cloak"), SubResource("P_gloves"), SubResource("P_leggings"), SubResource("P_boots"), SubResource("P_ring_focus"), SubResource("P_ring_might"), SubResource("P_staff"), SubResource("P_dagger"), SubResource("P_venom_fang"), SubResource("P_shield"), SubResource("P_storm_idol"), SubResource("P_phoenix_ember"), SubResource("P_berserker_tooth"), SubResource("P_arcane_clockwork"), SubResource("P_frost_shard"), SubResource("P_sand_hourglass"), SubResource("P_sacred_reliquary")])
+pool_rolls = 1
+nothing_weight = 12.0
+rarity_weights = PackedFloat32Array(70, 22, 7, 1)
+rune_chance = 0.3

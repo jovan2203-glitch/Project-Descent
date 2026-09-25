@@ -1,0 +1,312 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="rock"]
+albedo_color = Color(0.32, 0.29, 0.26, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="rock_top"]
+albedo_color = Color(0.08, 0.07, 0.07, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="crystal"]
+albedo_color = Color(0.3, 0.85, 1, 1)
+emission_enabled = true
+emission = Color(0.2, 0.8, 1, 1)
+emission_energy_multiplier = 2.5
+roughness = 0.2
+
+[sub_resource type="StandardMaterial3D" id="mushroom"]
+albedo_color = Color(0.5, 1, 0.4, 1)
+emission_enabled = true
+emission = Color(0.4, 1, 0.3, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="StandardMaterial3D" id="orb"]
+albedo_color = Color(1, 0.8, 0.3, 1)
+emission_enabled = true
+emission = Color(1, 0.7, 0.2, 1)
+emission_energy_multiplier = 3.0
+
+[sub_resource type="PrismMesh" id="crystal_mesh"]
+material = SubResource("crystal")
+size = Vector3(0.45, 1.3, 0.45)
+
+[sub_resource type="CylinderMesh" id="stem_mesh"]
+material = SubResource("mushroom")
+top_radius = 0.06
+bottom_radius = 0.08
+height = 0.5
+
+[sub_resource type="SphereMesh" id="cap_mesh"]
+material = SubResource("mushroom")
+radius = 0.25
+height = 0.25
+is_hemisphere = true
+
+[sub_resource type="SphereMesh" id="orb_mesh"]
+material = SubResource("orb")
+radius = 0.3
+height = 0.6
+
+[sub_resource type="Environment" id="env"]
+background_mode = 1
+background_color = Color(0.01, 0.01, 0.015, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.3, 0.33, 0.45, 1)
+ambient_light_energy = 0.35
+tonemap_mode = 2
+glow_enabled = true
+
+[node name="Cave" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Rock" type="CSGCombiner3D" parent="."]
+use_collision = true
+
+[node name="Mass" type="CSGBox3D" parent="Rock"]
+position = Vector3(0, 0.5, 0)
+size = Vector3(46, 3, 46)
+material = SubResource("rock_top")
+
+[node name="StartChamber" type="CSGCylinder3D" parent="Rock"]
+position = Vector3(0, 3, 0)
+operation = 2
+radius = 5.0
+height = 6.0
+sides = 9
+material = SubResource("rock")
+
+[node name="StartBulge" type="CSGCylinder3D" parent="Rock"]
+position = Vector3(-2.5, 3, -3)
+operation = 2
+radius = 3.0
+height = 6.0
+sides = 7
+material = SubResource("rock")
+
+[node name="TunnelEast" type="CSGBox3D" parent="Rock"]
+position = Vector3(8, 3, -1)
+rotation = Vector3(0, 0.124, 0)
+operation = 2
+size = Vector3(16, 6, 3.5)
+material = SubResource("rock")
+
+[node name="PillarHall" type="CSGCylinder3D" parent="Rock"]
+position = Vector3(16, 3, -2)
+operation = 2
+radius = 6.0
+height = 6.0
+sides = 10
+material = SubResource("rock")
+
+[node name="PillarHallBulge" type="CSGCylinder3D" parent="Rock"]
+position = Vector3(19.5, 3, 1.5)
+operation = 2
+radius = 3.2
+height = 6.0
+sides = 7
+material = SubResource("rock")
+
+[node name="Pillar1" type="CSGCylinder3D" parent="Rock"]
+position = Vector3(18, 0.5, 0)
+radius = 0.9
+height = 3.0
+sides = 7
+material = SubResource("rock")
+
+[node name="Pillar2" type="CSGCylinder3D" parent="Rock"]
+position = Vector3(13.5, 0.5, -4.5)
+radius = 0.7
+height = 3.0
+sides = 6
+material = SubResource("rock")
+
+[node name="TunnelNorth" type="CSGBox3D" parent="Rock"]
+position = Vector3(16, 3, -9.5)
+operation = 2
+size = Vector3(3.2, 6, 11)
+material = SubResource("rock")
+
+[node name="TunnelNorthKink" type="CSGCylinder3D" parent="Rock"]
+position = Vector3(17.3, 3, -10)
+operation = 2
+radius = 2.3
+height = 6.0
+sides = 7
+material = SubResource("rock")
+
+[node name="CrystalGrotto" type="CSGCylinder3D" parent="Rock"]
+position = Vector3(16, 3, -16.5)
+operation = 2
+radius = 4.5
+height = 6.0
+sides = 9
+material = SubResource("rock")
+
+[node name="TunnelWest" type="CSGBox3D" parent="Rock"]
+position = Vector3(-6, 3, 4)
+rotation = Vector3(0, 0.588, 0)
+operation = 2
+size = Vector3(14.4, 6, 3.4)
+material = SubResource("rock")
+
+[node name="MushroomCave" type="CSGCylinder3D" parent="Rock"]
+position = Vector3(-12, 3, 8)
+operation = 2
+radius = 5.0
+height = 6.0
+sides = 9
+material = SubResource("rock")
+
+[node name="MushroomBulge" type="CSGCylinder3D" parent="Rock"]
+position = Vector3(-15.5, 3, 5)
+operation = 2
+radius = 2.8
+height = 6.0
+sides = 7
+material = SubResource("rock")
+
+[node name="TunnelSouthWest" type="CSGBox3D" parent="Rock"]
+position = Vector3(-13, 3, 13)
+rotation = Vector3(0, -0.197, 0)
+operation = 2
+size = Vector3(3, 6, 10)
+material = SubResource("rock")
+
+[node name="TreasureNook" type="CSGCylinder3D" parent="Rock"]
+position = Vector3(-14, 3, 18)
+operation = 2
+radius = 3.2
+height = 6.0
+sides = 8
+material = SubResource("rock")
+
+[node name="TunnelSouthEast" type="CSGBox3D" parent="Rock"]
+position = Vector3(14, 3, 6)
+rotation = Vector3(0, -0.245, 0)
+operation = 2
+size = Vector3(3.4, 6, 16.5)
+material = SubResource("rock")
+
+[node name="LowChamber" type="CSGCylinder3D" parent="Rock"]
+position = Vector3(12, 3, 15)
+operation = 2
+radius = 4.0
+height = 6.0
+sides = 8
+material = SubResource("rock")
+
+[node name="Crawlway" type="CSGBox3D" parent="Rock"]
+position = Vector3(-1, 3, 16.5)
+rotation = Vector3(0, 0.12, 0)
+operation = 2
+size = Vector3(24, 6, 2.6)
+material = SubResource("rock")
+
+[node name="Crystals" type="Node3D" parent="."]
+position = Vector3(16, 0, -16.5)
+
+[node name="C1" type="MeshInstance3D" parent="Crystals"]
+position = Vector3(-2.5, 0.6, -1.5)
+rotation = Vector3(0.3, 0.5, 0.2)
+mesh = SubResource("crystal_mesh")
+
+[node name="C2" type="MeshInstance3D" parent="Crystals"]
+position = Vector3(-2, 0.5, -2.2)
+rotation = Vector3(-0.25, 1.2, 0.35)
+scale = Vector3(0.7, 0.8, 0.7)
+mesh = SubResource("crystal_mesh")
+
+[node name="C3" type="MeshInstance3D" parent="Crystals"]
+position = Vector3(2.4, 0.7, -2)
+rotation = Vector3(0.2, -0.4, -0.3)
+scale = Vector3(1.2, 1.2, 1.2)
+mesh = SubResource("crystal_mesh")
+
+[node name="C4" type="MeshInstance3D" parent="Crystals"]
+position = Vector3(3, 0.45, -0.8)
+rotation = Vector3(-0.3, 0.9, -0.2)
+scale = Vector3(0.6, 0.7, 0.6)
+mesh = SubResource("crystal_mesh")
+
+[node name="C5" type="MeshInstance3D" parent="Crystals"]
+position = Vector3(0.3, 0.6, -3.4)
+rotation = Vector3(0.35, 0, 0)
+mesh = SubResource("crystal_mesh")
+
+[node name="CrystalLight" type="OmniLight3D" parent="Crystals"]
+position = Vector3(0, 1.5, -1.5)
+light_color = Color(0.3, 0.8, 1, 1)
+light_energy = 2.0
+omni_range = 7.0
+
+[node name="Mushrooms" type="Node3D" parent="."]
+position = Vector3(-12, 0, 8)
+
+[node name="M1" type="Node3D" parent="Mushrooms"]
+position = Vector3(-3, 0, 1)
+
+[node name="Stem" type="MeshInstance3D" parent="Mushrooms/M1"]
+position = Vector3(0, 0.25, 0)
+mesh = SubResource("stem_mesh")
+
+[node name="Cap" type="MeshInstance3D" parent="Mushrooms/M1"]
+position = Vector3(0, 0.5, 0)
+mesh = SubResource("cap_mesh")
+
+[node name="M2" type="Node3D" parent="Mushrooms"]
+position = Vector3(-2.4, 0, 2)
+scale = Vector3(0.7, 0.7, 0.7)
+
+[node name="Stem" type="MeshInstance3D" parent="Mushrooms/M2"]
+position = Vector3(0, 0.25, 0)
+mesh = SubResource("stem_mesh")
+
+[node name="Cap" type="MeshInstance3D" parent="Mushrooms/M2"]
+position = Vector3(0, 0.5, 0)
+mesh = SubResource("cap_mesh")
+
+[node name="M3" type="Node3D" parent="Mushrooms"]
+position = Vector3(-3.6, 0, -0.8)
+scale = Vector3(1.3, 1.3, 1.3)
+
+[node name="Stem" type="MeshInstance3D" parent="Mushrooms/M3"]
+position = Vector3(0, 0.25, 0)
+mesh = SubResource("stem_mesh")
+
+[node name="Cap" type="MeshInstance3D" parent="Mushrooms/M3"]
+position = Vector3(0, 0.5, 0)
+mesh = SubResource("cap_mesh")
+
+[node name="M4" type="Node3D" parent="Mushrooms"]
+position = Vector3(-1.2, 0, 3.6)
+scale = Vector3(0.9, 0.9, 0.9)
+
+[node name="Stem" type="MeshInstance3D" parent="Mushrooms/M4"]
+position = Vector3(0, 0.25, 0)
+mesh = SubResource("stem_mesh")
+
+[node name="Cap" type="MeshInstance3D" parent="Mushrooms/M4"]
+position = Vector3(0, 0.5, 0)
+mesh = SubResource("cap_mesh")
+
+[node name="MushroomLight" type="OmniLight3D" parent="Mushrooms"]
+position = Vector3(-2.5, 1.2, 1.5)
+light_color = Color(0.45, 1, 0.35, 1)
+light_energy = 1.2
+omni_range = 5.0
+
+[node name="Treasure" type="Node3D" parent="."]
+position = Vector3(-14.5, 0, 19)
+
+[node name="Orb" type="MeshInstance3D" parent="Treasure"]
+position = Vector3(0, 0.5, 0)
+mesh = SubResource("orb_mesh")
+
+[node name="OrbLight" type="OmniLight3D" parent="Treasure"]
+position = Vector3(0, 1.0, 0)
+light_color = Color(1, 0.75, 0.35, 1)
+light_energy = 1.5
+omni_range = 4.5

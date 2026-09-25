@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"weakened"
+display_name = "Weakened"
+description = "Deals 25% less damage."
+color = Color(0.6, 0.4, 0.8, 1)
+is_debuff = true
+tags = PackedStringArray("Shadow")
+duration = 6.0
+stack_mode = 0
+max_stacks = 1
+damage_mod_pct = -25.0

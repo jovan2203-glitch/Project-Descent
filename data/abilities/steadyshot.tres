@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"steadyshot"
+display_name = "Steady Shot"
+description = "A careful shot for {hit} physical damage (weapon damage)."
+tags = PackedStringArray("Ability", "Physical", "Ranged", "Projectile")
+cast_type = 1
+cast_time = 1.0
+can_move_while_casting = true
+requires_target = true
+weapon_requirement = 2
+resource_type = 2
+resource_cost = 3
+damage = 0
+weapon_damage_multiplier = 1.0

@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="GearItemData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/gear_item_data.gd" id="1_s"]
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="2_r"]
+
+[sub_resource type="Resource" id="Equip"]
+script = ExtResource("2_r")
+id = &"arcane_clockwork"
+display_name = "Arcane Clockwork"
+description = "Every 6 s, the clockwork zaps your target for {amount} arcane damage."
+color = Color(0.75, 0.5, 1, 1)
+trigger = 5
+threshold_mode = 4
+threshold = 6.0
+effect = 2
+effect_amount = 2
+damage_type = &"arcane"
+effect_tags = PackedStringArray("Arcane")
+
+[resource]
+script = ExtResource("1_s")
+id = &"arcane_clockwork"
+display_name = "Arcane Clockwork"
+description = "Trinket"
+color = Color(0.75, 0.5, 1, 1)
+slot = 10
+item_type = &"trinket"
+stats = {"intellect": 1}
+equip_effect = SubResource("Equip")

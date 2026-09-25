@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="GearItemData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/gear_item_data.gd" id="1_s"]
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="2_r"]
+
+[sub_resource type="Resource" id="Equip"]
+script = ExtResource("2_r")
+id = &"bloodfrenzy"
+display_name = "Bloodfrenzy"
+description = "Killing an enemy sends you into a Bloodfrenzy: +{buff}% Haste for 8 s, stacking up to 3 times."
+color = Color(0.9, 0.25, 0.2, 1)
+trigger = 2
+threshold_mode = 0
+threshold = 1.0
+effect = 0
+buff_stat = &"haste"
+buff_amount = 8.0
+buff_duration = 8.0
+max_stacks = 3
+
+[resource]
+script = ExtResource("1_s")
+id = &"berserker_tooth"
+display_name = "Berserker's Tooth"
+description = "Trinket"
+color = Color(0.9, 0.3, 0.25, 1)
+slot = 10
+item_type = &"trinket"
+stats = {"strength": 1}
+equip_effect = SubResource("Equip")

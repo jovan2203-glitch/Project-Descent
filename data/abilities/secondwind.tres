@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"secondwind"
+display_name = "Second Wind"
+description = "Catch your breath and restore {heal} health."
+tags = PackedStringArray("Ability", "Heal", "Defensive")
+cast_type = 0
+cast_time = 0.0
+cooldown = 45.0
+requires_target = false
+resource_type = 0
+resource_cost = 0
+damage = 0

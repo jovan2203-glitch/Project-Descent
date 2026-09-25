@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GearItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/gear_item_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"leggings"
+display_name = "Chain Leggings"
+description = "Chain legs"
+color = Color(0.62, 0.64, 0.7, 1)
+slot = 6
+item_type = &"armor"
+stats = {"armor": 1, "constitution": 1}

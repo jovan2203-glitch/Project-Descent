@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"rooted"
+display_name = "Rooted"
+description = "Held by roots: cannot move."
+color = Color(0.45, 0.85, 0.35, 1)
+is_debuff = true
+tags = PackedStringArray("Nature", "Root")
+duration = 3.0
+stack_mode = 0
+max_stacks = 1
+root = true

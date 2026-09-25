@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"frozen"
+display_name = "Frozen"
+description = "Rooted in ice: cannot move."
+color = Color(0.6, 0.9, 1, 1)
+is_debuff = true
+tags = PackedStringArray("Frost", "Root")
+duration = 2.0
+stack_mode = 0
+max_stacks = 1
+root = true

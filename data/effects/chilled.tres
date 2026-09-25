@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"chilled"
+display_name = "Chilled"
+description = "Movement speed reduced by 40%."
+color = Color(0.45, 0.8, 1, 1)
+is_debuff = true
+tags = PackedStringArray("Frost", "Slow")
+duration = 3.0
+stack_mode = 0
+max_stacks = 1
+stat_modifiers = {"move_speed": -40}

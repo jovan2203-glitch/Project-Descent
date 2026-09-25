@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"poisoned"
+display_name = "Poisoned"
+description = "Takes 1 nature damage every second."
+color = Color(0.55, 0.95, 0.3, 1)
+is_debuff = true
+tags = PackedStringArray("Nature", "DoT")
+duration = 5.0
+stack_mode = 0
+max_stacks = 1
+tick_damage = 1
+tick_interval = 1.0
+damage_type = &"nature"

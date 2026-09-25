@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GearItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/gear_item_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"gloves"
+display_name = "Leather Grips"
+description = "Leather gloves"
+color = Color(0.6, 0.42, 0.25, 1)
+slot = 5
+item_type = &"armor"
+stats = {"attack_power": 1, "haste": 2}

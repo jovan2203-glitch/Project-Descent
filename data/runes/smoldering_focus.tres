@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+[ext_resource type="Resource" path="res://data/effects/smoldering_focus.tres" id="2_fx"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"smoldering_focus"
+display_name = "Rune of Smoldering Focus"
+description = "Every fire spell hit that does NOT critically strike builds a stack of Smoldering Focus (up to 20, 20 s, refreshed by each stack). Your next fire spell critical strike spends them all and deals +(critical strike chance x 0.6)% damage per stack."
+color = Color(1, 0.45, 0.1, 1)
+rarity = 3
+unlock_level = 1
+trigger = 0
+required_tags = PackedStringArray("Spell")
+required_damage_types = PackedStringArray("fire")
+include_dots = false
+include_procs = true
+require_non_crit = true
+threshold_mode = 0
+threshold = 1.0
+internal_cooldown = 0.0
+effect = 4
+status_effect = ExtResource("2_fx")
+status_target = 0

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GearItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/gear_item_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"cloak"
+display_name = "Wanderer's Cloak"
+description = "Cloak"
+color = Color(0.35, 0.5, 0.35, 1)
+slot = 3
+item_type = &"cloak"
+stats = {"agility": 1, "move_speed": 3}

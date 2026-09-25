@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"battleshout"
+display_name = "Battle Shout"
+description = "A rallying roar: +2 Attack Power for 10 s."
+tags = PackedStringArray("Ability", "Physical", "Shout")
+cast_type = 0
+cast_time = 0.0
+cooldown = 25.0
+requires_target = false
+resource_type = 3
+resource_cost = 0
+resource_generated = 4
+damage = 0

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GearItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/gear_item_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"ring_might"
+display_name = "Signet of Might"
+description = "Ring  •  Fits either finger slot"
+color = Color(0.95, 0.6, 0.35, 1)
+slot = 8
+item_type = &"ring"
+stats = {"constitution": 1, "strength": 1}

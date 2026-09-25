@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"arcanemissiles"
+display_name = "Arcane Missiles"
+description = "Fire 3 arcane missiles in quick succession at your target, {hit} arcane damage each."
+tags = PackedStringArray("Arcane", "Spell", "Projectile")
+cast_type = 0
+cast_time = 0.0
+cooldown = 5.0
+requires_target = true
+resource_type = 1
+resource_cost = 3
+damage = 1
+cast_range = 30.0
+damage_type = &"arcane"

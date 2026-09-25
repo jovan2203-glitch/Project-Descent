@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"frostbound_insight"
+display_name = "Frostbound Insight"
+description = "+1% Intellect per stack."
+color = Color(0.55, 0.85, 1, 1)
+is_debuff = false
+tags = PackedStringArray("Frost", "Party")
+duration = 15.0
+stack_mode = 1
+max_stacks = 3
+stat_modifiers = {"intellect%": 1.0}

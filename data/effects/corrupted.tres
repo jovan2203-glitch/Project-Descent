@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"corrupted"
+display_name = "Corrupted"
+description = "Takes 1 shadow damage every second."
+color = Color(0.65, 0.35, 0.9, 1)
+is_debuff = true
+tags = PackedStringArray("Shadow", "DoT")
+duration = 8.0
+stack_mode = 0
+max_stacks = 1
+tick_damage = 1
+tick_interval = 1.0
+damage_type = &"shadow"

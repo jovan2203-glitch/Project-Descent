@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+[ext_resource type="Resource" path="res://data/abilities/frostbolt.tres" id="2_fb"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"frost"
+display_name = "Rune of Frost"
+description = "Every 3rd Frost hit instantly fires a free Frost Bolt at the target."
+color = Color(0.45, 0.85, 1, 1)
+rarity = 1
+required_tags = PackedStringArray("Frost")
+trigger = 0
+threshold_mode = 1
+threshold = 3.0
+internal_cooldown = 0.5
+effect = 1
+cast_ability = ExtResource("2_fb")

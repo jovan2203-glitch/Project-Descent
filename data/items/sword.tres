@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="GearItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/gear_item_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"sword"
+display_name = "Iron Sword"
+description = "One-handed sword  •  Melee"
+color = Color(0.85, 0.87, 0.92, 1)
+slot = 12
+stats = {"crit_chance": 2}
+weapon_type = 1
+weapon_damage = 1
+attack_range = 1.0
+attack_interval = 1.0

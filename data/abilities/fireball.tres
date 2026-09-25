@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+[ext_resource type="Resource" path="res://data/effects/burning.tres" id="2_fx"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"fireball"
+display_name = "Fireball"
+description = "Hurl a ball of fire for {hit} fire damage, and the target burns for {dot} fire damage per second for 4 s."
+tags = PackedStringArray("Fire", "Spell", "Projectile")
+cast_type = 0
+cast_time = 0.0
+cooldown = 6.0
+requires_target = true
+resource_type = 1
+resource_cost = 3
+damage = 3
+cast_range = 30.0
+on_hit_effect = ExtResource("2_fx")
+damage_type = &"fire"

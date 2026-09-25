@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="GearItemData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/gear_item_data.gd" id="1_s"]
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="2_r"]
+
+[sub_resource type="Resource" id="Equip"]
+script = ExtResource("2_r")
+id = &"phoenix_ember"
+display_name = "Phoenix Ember"
+description = "When your health drops to 30% or lower, the ember flares and heals you for {amount} (60 s cooldown)."
+color = Color(1, 0.5, 0.2, 1)
+trigger = 4
+threshold_mode = 3
+threshold = 0.3
+internal_cooldown = 60.0
+effect = 3
+effect_amount = 4
+
+[resource]
+script = ExtResource("1_s")
+id = &"phoenix_ember"
+display_name = "Phoenix Ember"
+description = "Trinket"
+color = Color(1, 0.5, 0.2, 1)
+slot = 10
+item_type = &"trinket"
+stats = {"constitution": 1}
+equip_effect = SubResource("Equip")

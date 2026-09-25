@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"fanofknives"
+display_name = "Fan of Knives"
+description = "Throw knives in every direction: {hit} physical damage to every enemy within 3 m."
+tags = PackedStringArray("Ability", "Physical", "Melee", "AoE")
+cast_type = 0
+cast_time = 0.0
+cooldown = 8.0
+requires_target = false
+weapon_requirement = 1
+resource_type = 2
+resource_cost = 4
+damage = 0
+weapon_damage_multiplier = 1.0
+radius = 3.0
+damage_type = &"physical"

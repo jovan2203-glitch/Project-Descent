@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+[ext_resource type="Resource" path="res://data/effects/burning.tres" id="2_fx"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"flamenova"
+display_name = "Flame Nova"
+description = "Erupt in flame: {hit} fire damage to every enemy within 3 m, and they burn for {dot} fire damage per second for 4 s."
+tags = PackedStringArray("Fire", "Spell", "AoE")
+cast_type = 0
+cast_time = 0.0
+cooldown = 10.0
+requires_target = false
+resource_type = 1
+resource_cost = 4
+damage = 2
+radius = 3.0
+on_hit_effect = ExtResource("2_fx")
+damage_type = &"fire"

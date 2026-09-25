@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"trinket_1"
+display_name = "Use Trinket 1"
+description = "Fires the Use: effect of the trinket in your Trinket 1 slot."
+tags = PackedStringArray("Trinket")
+cast_type = 0
+cast_time = 0.0
+cooldown = 0.0
+requires_target = false
+damage = 0

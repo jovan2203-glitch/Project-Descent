@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+[ext_resource type="Resource" path="res://data/effects/stunned.tres" id="2_fx"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"thunderaegis"
+display_name = "Aegis of Thunder"
+description = "Drive your shield into the ground: a thunderclap hits every enemy within 3 m for {hit} lightning damage and stuns them for 1 s."
+tags = PackedStringArray("Ability", "Lightning", "Melee", "Shield", "AoE")
+cast_type = 0
+cast_time = 0.0
+cooldown = 18.0
+requires_target = false
+weapon_requirement = 1
+requires_shield = true
+resource_type = 3
+resource_cost = 5
+damage = 1
+weapon_damage_multiplier = 0.5
+radius = 3.0
+on_hit_effect = ExtResource("2_fx")
+damage_type = &"lightning"

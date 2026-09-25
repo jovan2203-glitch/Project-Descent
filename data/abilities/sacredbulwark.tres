@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"sacredbulwark"
+display_name = "Sacred Bulwark"
+description = "Raise your shield in holy light: +3 Armor for 8 s. While it lasts, every attack against you (hit or blocked) sears enemies within 2.5 m for {flat1} holy damage (at most twice per second)."
+tags = PackedStringArray("Ability", "Holy", "Shield", "Buff")
+cast_type = 0
+cast_time = 0.0
+cooldown = 20.0
+requires_target = false
+weapon_requirement = 1
+requires_shield = true
+resource_type = 3
+resource_cost = 4
+damage = 0
+damage_type = &"holy"

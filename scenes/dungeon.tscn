@@ -1,0 +1,76 @@
+[gd_scene format=3 uid="uid://dpd5wsun6gf22"]
+
+[ext_resource type="Script" uid="uid://bgiu3hfpkwuh1" path="res://scripts/dungeon/dungeon.gd" id="1_dun"]
+[ext_resource type="Script" uid="uid://7xvkmykhnptg" path="res://scripts/player.gd" id="2_ply"]
+[ext_resource type="PackedScene" path="res://scenes/zombie.tscn" id="2_tkjml"]
+[ext_resource type="PackedScene" path="res://scenes/goblin.tscn" id="3_5hkx1"]
+[ext_resource type="PackedScene" uid="uid://4eflsqlvr86i" path="res://assets/player/Idle.fbx" id="3_mdl"]
+[ext_resource type="Script" uid="uid://b1vyayy4aulol" path="res://scripts/camera_rig.gd" id="4_cam"]
+[ext_resource type="Script" uid="uid://buqv0rgabimpy" path="res://scripts/hud.gd" id="5_hud"]
+[ext_resource type="Script" uid="uid://cf12411elg2t4" path="res://scripts/game_ui.gd" id="6_gui"]
+[ext_resource type="Script" uid="uid://dtr7vvoof2bcd" path="res://scripts/nav_region.gd" id="7_nav"]
+
+[sub_resource type="Environment" id="env"]
+background_mode = 1
+background_color = Color(0.01, 0.01, 0.015, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.3, 0.33, 0.45, 1)
+ambient_light_energy = 0.35
+tonemap_mode = 2
+glow_enabled = true
+
+[sub_resource type="CapsuleShape3D" id="player_shape"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="NavigationMesh" id="navmesh"]
+
+[node name="Dungeon" type="Node3D" unique_id=1875360829]
+script = ExtResource("1_dun")
+enemy_pool = Array[PackedScene]([ExtResource("2_tkjml"), ExtResource("3_5hkx1")])
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1737600373]
+environment = SubResource("env")
+
+[node name="Player" type="CharacterBody3D" parent="." unique_id=1957152021]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+script = ExtResource("2_ply")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player" unique_id=679699661]
+shape = SubResource("player_shape")
+
+[node name="Model" parent="Player" unique_id=1749303967 instance=ExtResource("3_mdl")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, -0.9, 0)
+
+[node name="Lantern" type="OmniLight3D" parent="Player" unique_id=471628367]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.3, 0)
+light_color = Color(1, 0.7607843, 0.47843137, 1)
+light_energy = 2.0
+shadow_enabled = true
+omni_range = 10.0
+
+[node name="CameraRig" type="Node3D" parent="." unique_id=1463132863]
+script = ExtResource("4_cam")
+target_path = NodePath("../Player")
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig" unique_id=639091741]
+transform = Transform3D(0.70710677, -0.5254828, 0.47314674, 0, 0.66913056, 0.74314487, -0.70710677, -0.5254828, 0.47314674, 10, 16, 10)
+current = true
+fov = 35.0
+
+[node name="Level" type="Node3D" parent="." unique_id=237488700]
+
+[node name="Enemies" type="Node3D" parent="." unique_id=1531467313]
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1672734133]
+script = ExtResource("5_hud")
+player_path = NodePath("../Player")
+
+[node name="GameUI" type="CanvasLayer" parent="." unique_id=603271086]
+layer = 2
+script = ExtResource("6_gui")
+
+[node name="Navigation" type="NavigationRegion3D" parent="." unique_id=314030691]
+navigation_mesh = SubResource("navmesh")
+script = ExtResource("7_nav")
+auto_bake = false

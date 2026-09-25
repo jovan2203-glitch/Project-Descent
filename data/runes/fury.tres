@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"fury"
+display_name = "Rune of Fury"
+description = "2 melee critical strikes in a row grant +2 Attack Power for 6 s."
+color = Color(1, 0.35, 0.2, 1)
+required_tags = PackedStringArray("Melee")
+trigger = 0
+require_crit = true
+threshold_mode = 2
+threshold = 2.0
+effect = 0
+buff_stat = &"attack_power"
+buff_amount = 2.0
+buff_duration = 6.0
+max_stacks = 1

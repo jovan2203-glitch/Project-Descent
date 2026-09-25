@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://cyuqe3uqqr6op"]
+
+[ext_resource type="Script" uid="uid://bvfacgykom062" path="res://scripts/goblin.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/models/goblin_model.tscn" id="2_model"]
+
+[sub_resource type="CapsuleShape3D" id="shape"]
+radius = 0.3
+height = 1.26
+
+[node name="Goblin" type="CharacterBody3D" unique_id=1752373993]
+collision_layer = 5
+script = ExtResource("1_script")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1245188226]
+shape = SubResource("shape")
+
+[node name="Model" parent="." unique_id=965567238 instance=ExtResource("2_model")]
+transform = Transform3D(-0.7, 0, 0, 0, 0.7, 0, 0, 0, -0.7, 0, -0.63, 0)

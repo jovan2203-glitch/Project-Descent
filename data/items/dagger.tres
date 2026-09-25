@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="GearItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/gear_item_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"dagger"
+display_name = "Steel Dagger"
+description = "One-handed dagger  •  Melee, fast"
+color = Color(0.82, 0.85, 0.9, 1)
+slot = 12
+item_type = &"dagger"
+stats = {"agility": 1, "crit_chance": 2}
+weapon_type = 1
+weapon_damage = 1
+attack_range = 1.0
+attack_interval = 0.7

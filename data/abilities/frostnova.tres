@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+[ext_resource type="Resource" path="res://data/effects/frozen.tres" id="2_fz"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"frostnova"
+display_name = "Frost Nova"
+description = "Blast of cold around you: {hit} frost damage to every enemy within 3.5 m, freezing them in place for 2 s."
+tags = PackedStringArray("Frost", "Spell", "AoE")
+cast_type = 0
+cast_time = 0.0
+cooldown = 10.0
+requires_target = false
+resource_type = 1
+resource_cost = 3
+damage = 1
+radius = 3.5
+on_hit_effect = ExtResource("2_fz")
+damage_type = &"frost"

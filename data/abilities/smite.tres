@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"smite"
+display_name = "Smite"
+description = "Strike your target with holy fire for {hit} holy damage."
+tags = PackedStringArray("Holy", "Spell", "Projectile")
+cast_type = 0
+cast_time = 0.0
+cooldown = 3.0
+requires_target = true
+resource_type = 1
+resource_cost = 2
+damage = 2
+cast_range = 30.0
+damage_type = &"holy"

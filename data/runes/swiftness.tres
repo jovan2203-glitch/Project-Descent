@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"swiftness"
+display_name = "Rune of Swiftness"
+description = "Killing an enemy grants +30% move speed for 4 s."
+color = Color(0.5, 1, 0.45, 1)
+unlock_level = 3
+trigger = 2
+threshold_mode = 0
+threshold = 1.0
+effect = 0
+buff_stat = &"move_speed"
+buff_amount = 30.0
+buff_is_percent = true
+buff_duration = 4.0
+max_stacks = 1
