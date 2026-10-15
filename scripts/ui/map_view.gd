@@ -4,7 +4,10 @@ extends Control
 #   mini = true:  follows the player at a fixed zoom (the minimap)
 #   mini = false: fits the whole floor (the local map, M)
 
-const FLOOR_COL := Color(0.42, 0.40, 0.36)
+const FLOOR_COL := Color(0.46, 0.44, 0.40)
+## Everything you have seen that can't be walked on (rock, walls, pillars) is
+## filled with this: solid wall, clearly neither a room nor unexplored ground.
+const WALL_COL := Color(0.17, 0.16, 0.15)
 const BG_COL := Color(0.03, 0.035, 0.05, 1.0)
 const FOG_TINT := BG_COL   # unexplored = same as the background (no visible edge)
 const MARKER_COLORS := {
@@ -20,8 +23,13 @@ func _ready() -> void:
 	clip_contents = true
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-func _process(_delta: float) -> void:
-	if is_visible_in_tree():
+var _redraw_t := 0.0
+
+func _process(delta: float) -> void:
+	# ~20 redraws a second (plenty for a map; it used to redraw every frame).
+	_redraw_t -= delta
+	if _redraw_t <= 0.0 and is_visible_in_tree():
+		_redraw_t = 0.05
 		queue_redraw()
 
 func _draw() -> void:
@@ -40,10 +48,17 @@ func _draw() -> void:
 		var s := minf(size.x / maxf(ext.x, 1.0), size.y / maxf(ext.y, 1.0)) * 0.95
 		t = data.map_transform(data.bounds.get_center(), size / 2.0, s)
 
-	# Floor, then the fog texture over it (both in world coordinates).
+	# Solid wall everywhere, the floor on top of it, then the fog texture over
+	# both (all in world coordinates): explored rock shows as wall, unexplored
+	# ground stays black.
 	draw_set_transform_matrix(t)
-	for poly in data.polygons:
-		draw_colored_polygon(poly, FLOOR_COL)
+	draw_rect(data.bounds, WALL_COL, true)
+	# The whole floor is one cached mesh (one draw call instead of hundreds of polygons).
+	if data.floor_mesh:
+		draw_mesh(data.floor_mesh, null, Transform2D.IDENTITY, FLOOR_COL)
+	else:
+		for poly in data.polygons:
+			draw_colored_polygon(poly, FLOOR_COL)
 	if data.fog_texture:
 		draw_texture_rect(data.fog_texture, data.bounds, false, FOG_TINT)
 	draw_set_transform_matrix(Transform2D.IDENTITY)

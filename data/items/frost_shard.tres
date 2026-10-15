@@ -8,7 +8,7 @@
 script = ExtResource("2_r")
 id = &"frost_shard"
 display_name = "Shattering Cold"
-description = "Shatter the shard: {amount} frost damage to every enemy within 3.5 m, and they are Chilled."
+description = "Shatter the shard: {amount} Frost damage to every enemy within {radius} m, and they are Chilled."
 color = Color(0.55, 0.9, 1, 1)
 internal_cooldown = 45.0
 effect = 5

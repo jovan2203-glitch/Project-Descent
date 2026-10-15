@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+[ext_resource type="Resource" path="res://data/effects/immolate.tres" id="2_fx"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"immolate"
+display_name = "Blaze"
+description = "Sets the target ablaze, dealing {dot} Fire damage {fx_every} for {fx_time} sec. Casting it on a target that already has your {n:immolate} also spreads it to {b:IMMOLATE_SPREAD_TARGETS} other enemies within {b:IMMOLATE_SPREAD_RADIUS} m of that target. Each of your melee hits on a target with your {n:immolate} builds a stack of Heat (up to {heat_max}): your abilities deal {heat_pct}% more Fire damage per Heat, and all Heat is lost after {heat_time} sec without gaining more."
+tags = PackedStringArray("Fire", "Spell", "Projectile")
+cast_type = 1
+cast_time = 1.5
+cooldown = 0.0
+requires_target = true
+resource_type = 1
+resource_cost = 2
+damage = 0.0
+cast_range = 30.0
+on_hit_effect = ExtResource("2_fx")
+damage_type = &"fire"

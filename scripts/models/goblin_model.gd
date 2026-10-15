@@ -23,6 +23,12 @@ const TOOTH := Color(0.92, 0.88, 0.7)
 const MOUTH := Color(0.14, 0.04, 0.04)
 const PUPIL := Color(0.05, 0.03, 0.02)
 const EYE := Color(1.0, 0.82, 0.2)
+const WOOD := Color(0.42, 0.28, 0.15)
+const STRING := Color(0.85, 0.82, 0.7)
+const FLETCH := Color(0.75, 0.2, 0.15)
+const HOOD := Color(0.24, 0.3, 0.16)
+const HAT := Color(0.3, 0.16, 0.42)
+const HAT_BAND := Color(0.72, 0.55, 0.2)
 
 const REQUIRED := ["Hips", "Spine", "Spine2", "Neck", "Head",
 	"LeftArm", "LeftForeArm", "LeftHand", "RightArm", "RightForeArm", "RightHand",
@@ -30,6 +36,10 @@ const REQUIRED := ["Hips", "Spine", "Spine2", "Neck", "Head",
 	"RightUpLeg", "RightLeg", "RightFoot", "RightToeBase"]
 
 static var _cache := {}   # rig key -> {"mesh": ArrayMesh, "skin": Skin}
+
+## Which goblin to build: "warrior" (dagger), "archer" (bow, quiver, hood) or
+## "wizard" (staff with a glowing orb, pointed hat, robe).
+@export_enum("warrior", "archer", "wizard") var variant: String = "warrior"
 
 func _ready() -> void:
 	var found := find_children("*", "Skeleton3D", true, false)
@@ -39,9 +49,11 @@ func _ready() -> void:
 	var sk: Skeleton3D = found[0]
 	if sk.has_node("GoblinBody"):
 		return
-	var key := "%s|%d" % [scene_file_path, sk.get_bone_count()]
+	var key := "%s|%d|%s" % [scene_file_path, sk.get_bone_count(), variant]
 	if Engine.is_editor_hint() or not _cache.has(key):
-		var built := _Builder.new().build(sk)
+		var builder := _Builder.new()
+		builder.variant = variant
+		var built := builder.build(sk)
 		if built.is_empty():
 			return   # unexpected rig: keep the original model visible
 		_cache[key] = built
@@ -63,6 +75,7 @@ func _ready() -> void:
 
 class _Builder:
 	var sk: Skeleton3D
+	var variant := "warrior"
 	var s := 1.0                       # unit: hips -> head distance
 	var up := Vector3.UP
 	var right := Vector3.RIGHT
@@ -157,17 +170,77 @@ class _Builder:
 			capsule(lr + "Foot", ankle, toe + (toe - ankle) * 0.6, 0.065 * s, SKIN_DARK)
 		sphere("LeftArm", p("LeftArm") + up * 0.035 * s, 0.085 * s, LEATHER, Vector3(1.2, 0.6, 1.1))
 
-		# Crude dagger in the right fist, pointing forward.
+		match variant:
+			"archer":
+				_archer_gear(hc)
+			"wizard":
+				_wizard_gear(hc, hips)
+			_:
+				_dagger()
+
+	# Crude dagger in the right fist, pointing forward.
+	func _dagger() -> void:
 		var rh := p("RightHand") + (p("RightHand") - p("RightForeArm")).normalized() * 0.06 * s
 		cylinder("RightHand", rh, 0.018 * s, 0.11 * s, LEATHER_DARK, Vector3.ONE, fwd)
 		box("RightHand", rh + fwd * 0.065 * s, Vector3(0.1, 0.02, 0.025) * s, LEATHER_DARK, fwd)
 		box("RightHand", rh + fwd * 0.22 * s, Vector3(0.05, 0.28, 0.012) * s, METAL, fwd)
 		cone("RightHand", rh + fwd * 0.36 * s, fwd, 0.06 * s, 0.025 * s, METAL, 0.3)
 
+	# Archer: short bow in the left hand, quiver on the back, a leather hood.
+	func _archer_gear(hc: Vector3) -> void:
+		var lh := p("LeftHand") + (p("LeftHand") - p("LeftForeArm")).normalized() * 0.06 * s
+		# Bow limbs: a bent stave of short capsules, held upright.
+		var pts: Array[Vector3] = []
+		for i in 7:
+			var a := lerpf(-1.0, 1.0, i / 6.0)
+			pts.append(lh + up * a * 0.42 * s + fwd * (0.1 - 0.1 * a * a) * s)
+		for i in pts.size() - 1:
+			capsule("LeftHand", pts[i], pts[i + 1], 0.022 * s, WOOD)
+		capsule("LeftHand", pts[0], pts[pts.size() - 1], 0.006 * s, STRING)   # bowstring
+		cylinder("LeftHand", lh, 0.03 * s, 0.1 * s, LEATHER_DARK)   # grip
+		# Quiver across the back with a few fletched arrows sticking out.
+		var back := p("Spine2") - fwd * 0.17 * s
+		var q_dir := (up + right * 0.35).normalized()
+		cylinder("Spine2", back, 0.065 * s, 0.42 * s, LEATHER, Vector3.ONE, q_dir)
+		cylinder("Spine2", back + q_dir * 0.2 * s, 0.07 * s, 0.03 * s, LEATHER_DARK, Vector3.ONE, q_dir)
+		for i in 3:
+			var off := right * (i - 1) * 0.03 * s
+			capsule("Spine2", back + q_dir * 0.18 * s + off, back + q_dir * 0.34 * s + off, 0.008 * s, WOOD)
+			box("Spine2", back + q_dir * 0.33 * s + off, Vector3(0.04, 0.07, 0.008) * s, FLETCH, q_dir)
+		# Hood over the head (ears poke out through slits).
+		sphere("Head", hc + up * 0.03 * s - fwd * 0.03 * s, 0.215 * s, HOOD, Vector3(1.08, 1.0, 1.05))
+		cone("Head", hc + up * 0.12 * s - fwd * 0.16 * s, (-fwd + up * 0.4).normalized(), 0.2 * s, 0.08 * s, HOOD)
+
+	# Wizard: staff with a glowing orb (right hand), pointed hat, robe skirt.
+	func _wizard_gear(hc: Vector3, hips: Vector3) -> void:
+		var rh := p("RightHand") + (p("RightHand") - p("RightForeArm")).normalized() * 0.06 * s
+		capsule("RightHand", rh - up * 0.55 * s, rh + up * 0.5 * s, 0.022 * s, WOOD)
+		for i in 3:   # twisted head holding the orb
+			var a := TAU * i / 3.0
+			var side := (right * cos(a) + fwd * sin(a)) * 0.05 * s
+			capsule("RightHand", rh + up * 0.48 * s, rh + up * 0.6 * s + side, 0.012 * s, WOOD)
+		# (the orb itself glows: it's added with the eyes, see _eyes)
+		# Pointed, slightly bent hat with a wide brim.
+		var top := hc + up * 0.16 * s
+		cylinder("Head", top, 0.3 * s, 0.025 * s, HAT, Vector3(1.0, 1.0, 1.0))
+		cone("Head", top, (up - fwd * 0.25).normalized(), 0.34 * s, 0.17 * s, HAT)
+		cylinder("Head", top + up * 0.03 * s, 0.175 * s, 0.035 * s, HAT_BAND)
+		# Robe skirt over the legs.
+		cone("Hips", hips + up * 0.1 * s, -up, 0.55 * s, 0.23 * s, HAT.darkened(0.15))
+		# Rope belt.
+		cylinder("Hips", hips + up * 0.09 * s, 0.2 * s, 0.03 * s, HAT_BAND, Vector3(1.1, 1.0, 0.95))
+
+	## Where the wizard's orb sits (skeleton space).
+	func _orb_pos() -> Vector3:
+		var rh := p("RightHand") + (p("RightHand") - p("RightForeArm")).normalized() * 0.06 * s
+		return rh + up * 0.62 * s
+
 	func _eyes(head: Vector3) -> void:
 		var hc := head + up * 0.17 * s + fwd * 0.02 * s
 		for side: float in [-1.0, 1.0]:
 			sphere("Head", hc + fwd * 0.17 * s + right * side * 0.085 * s + up * 0.02 * s, 0.04 * s, EYE)
+		if variant == "wizard":
+			sphere("RightHand", _orb_pos(), 0.075 * s, EYE)   # glowing staff orb (emissive surface)
 
 	# --- Shape helpers (all positions in skeleton space) -----------------------------
 

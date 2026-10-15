@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="DungeonRecipe" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/dungeon_recipe.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/biomes/ruined_fort.tres" id="2_biome"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "fort"
+name_key = "dng_fort"
+desc_key = "dng_fort_desc"
+in_random_pool = true
+biome = ExtResource("2_biome")
+layout = "hub"
+rooms_per_section = 2
+roster = {
+"defender": {"scene": "res://scenes/goblin.tscn", "name": "fort_defender", "weight": 3.0, "tint": Color(0.9, 0.9, 1, 1)},
+"support": {"scene": "res://scenes/goblin_wizard.tscn", "name": "fort_support", "weight": 1.5, "tint": Color(1, 1, 0.8, 1), "cast": "ab_firebolt", "school": "holy", "color": Color(1, 0.95, 0.5, 1)},
+"brute": {"scene": "res://scenes/zombie.tscn", "name": "fort_brute", "weight": 1.0, "tint": Color(0.9, 0.75, 0.6, 1)},
+"archer": {"scene": "res://scenes/goblin_archer.tscn", "name": "fort_archer", "weight": 2.0},
+"swarmer": {"scene": "res://scenes/goblin.tscn", "name": "fort_swarmer", "weight": 1.0}
+}
+pack_min = 2
+pack_max = 4
+elite_chance = 0.6
+bosses = [{
+"name": "boss_fort_1", "role": "defender", "skin": {"scene": "res://scenes/goblin.tscn", "tint": Color(0.85, 0.85, 1, 1), "scale": 1.3}, "hp": 1.2, "dmg": 1.0,
+"abilities": [{"type": "cone", "name": "ab_shield_bash", "range": 5.0, "angle": 100.0, "time": 1.1, "cd": 9.0, "coef": 1.4, "first": 4.0}, {"type": "charge", "name": "ab_charge", "width": 2.2, "time": 1.3, "cd": 12.0, "coef": 1.2, "first": 8.0}, {"type": "enrage", "below": 0.3}]
+}, {
+"name": "boss_fort_2", "role": "caster", "skin": {"scene": "res://scenes/goblin_wizard.tscn", "tint": Color(1, 1, 0.8, 1), "scale": 1.2, "cast": "ab_firebolt", "school": "holy", "color": Color(1, 0.95, 0.5, 1)}, "hp": 1.0, "dmg": 1.0,
+"abilities": [{"type": "heal", "name": "ab_mend", "pct": 0.12, "time": 2.5, "cd": 15.0, "first": 10.0}, {"type": "summon", "name": "ab_call_guards", "role": "defender", "count": 2, "time": 2.5, "cd": 22.0, "interrupt": true, "first": 6.0}, {"type": "nova", "name": "ab_holy_nova", "radius": 8.0, "time": 2.6, "cd": 16.0, "coef": 1.6, "color": Color(1, 0.9, 0.4, 1), "first": 12.0}]
+}, {
+"name": "boss_fort_3", "skin": {"scene": "res://scenes/zombie.tscn", "tint": Color(0.9, 0.75, 0.6, 1), "scale": 1.3}, "hp": 1.5, "dmg": 1.0,
+"abilities": [{"type": "barrage", "name": "ab_artillery", "count": 8, "radius": 2.4, "time": 1.8, "cd": 11.0, "coef": 1.1, "first": 5.0}, {"type": "slam", "name": "ab_ground_pound", "radius": 5.0, "time": 1.6, "cd": 10.0, "coef": 1.3, "first": 8.0}, {"type": "summon", "name": "ab_call_garrison", "role": "archer", "count": 2, "cd": 26.0, "interrupt": false, "first": 15.0}]
+}, {
+"name": "boss_fort_4", "role": "defender", "skin": {"scene": "res://scenes/goblin.tscn", "tint": Color(0.8, 0.85, 1, 1), "scale": 1.5}, "hp": 1.6, "dmg": 1.1,
+"abilities": [{"type": "donut", "name": "ab_ring_of_steel", "inner": 4.0, "time": 2.4, "cd": 17.0, "coef": 1.6, "first": 10.0}, {"type": "charge", "name": "ab_charge", "width": 2.4, "time": 1.3, "cd": 12.0, "coef": 1.2, "first": 6.0}, {"type": "summon", "name": "ab_call_garrison", "role": "defender", "count": 2, "time": 2.5, "cd": 24.0, "interrupt": true, "first": 15.0}, {"type": "cone", "name": "ab_cleave", "range": 6.0, "angle": 90.0, "time": 1.2, "cd": 8.0, "coef": 1.4, "first": 3.0}, {"type": "enrage", "below": 0.3}]
+}]
+objectives = Array[String](["clear_pct", "key_elites", "defend"])
+clear_pct = 75
+defend_time = 25.0
+modifier_pool = Array[String](["frost_touched", "volatile", "bloodthirst", "darkness", "frenzy"])
+modifier_count = 1

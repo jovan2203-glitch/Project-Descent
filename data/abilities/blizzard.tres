@@ -6,15 +6,15 @@
 [resource]
 script = ExtResource("1_s")
 id = &"blizzard"
-display_name = "Blizzard"
-description = "Place a circle; icicles rain down for 3 s. Every 0.5 s a wave deals {hit} frost damage to every enemy inside and chills them."
+display_name = "Whiteout"
+description = "Calls down a whiteout {width} m wide at the target location for {b:BLIZZARD_TIME} sec. Every {b:BLIZZARD_TICK} sec, deals {hit} Frost damage to all enemies inside and Chills them."
 tags = PackedStringArray("Frost", "Spell", "AoE")
 cast_type = 3
 cast_time = 2.0
 requires_target = false
 resource_type = 1
 resource_cost = 4
-damage = 1
+damage = 0.3
 radius = 2.5
 tick_interval = 0.5
 on_hit_effect = ExtResource("2_ch")

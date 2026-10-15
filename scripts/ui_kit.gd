@@ -151,6 +151,52 @@ static func set_slot_item(btn: Button, id: String, locked: bool = false, selecte
 const Stats = preload("res://scripts/core/stats.gd")
 const STAT_ORDER := Stats.ORDER
 
+## Glowing frame on a gear slot while a dragged item / rune would fit there.
+const FIT_GLOW := Color(0.45, 1.0, 0.5)
+static func set_slot_highlight(btn: Control, on: bool) -> void:
+	var glow: Panel = btn.get_node_or_null("FitGlow")
+	if glow == null:
+		if not on:
+			return
+		glow = Panel.new()
+		glow.name = "FitGlow"
+		glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		glow.set_anchors_preset(Control.PRESET_FULL_RECT)
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(FIT_GLOW, 0.12)
+		sb.border_color = FIT_GLOW
+		sb.set_border_width_all(3)
+		sb.set_corner_radius_all(6)
+		glow.add_theme_stylebox_override("panel", sb)
+		btn.add_child(glow)
+	glow.visible = on
+
+## Slots in `buttons` (meta "slot_name") that the item / rune being dragged
+## right now fits into get the glow; everything else loses it.
+static func highlight_drag_targets(vp: Viewport, buttons: Array, pd: Node) -> void:
+	var data: Variant = vp.gui_get_drag_data() if vp.gui_is_dragging() else null
+	var item := ""
+	var is_rune := false
+	if data is Dictionary:
+		match str(data.get("type", "")):
+			"inv":
+				item = str(pd.inventory[int(data["index"])])
+			"bank":
+				var idx: Array = data.get("indices", [])
+				item = str(pd.bank[int(idx[0])]) if idx.size() == 1 else ""
+			"rune":
+				is_rune = true
+	for b in buttons:
+		if not is_instance_valid(b) or not b.has_meta("slot_name"):
+			continue
+		var slot := str(b.get_meta("slot_name"))
+		var fits := false
+		if is_rune:
+			fits = str(pd.equipment.get(slot, "")) != ""
+		elif item != "":
+			fits = pd.fits_slot(item, slot) and not pd.is_slot_locked(slot)
+		set_slot_highlight(b, fits)
+
 static func stat_panel(width: float = 0.0) -> PanelContainer:
 	var p := PanelContainer.new()
 	if width > 0.0:
@@ -177,13 +223,15 @@ static func update_stat_panel(p: PanelContainer, values: Dictionary, bonus: Dict
 		c.queue_free()
 	for stat in STAT_ORDER:
 		var v := float(values.get(stat, 0.0))
-		var text := Stats.panel_line(stat, v)
+		var text := Stats.panel_line(stat, v, values)
 		var extra := float(bonus.get(stat, 0.0))
 		var col := Color(0.55, 1.0, 0.55) if extra > 0.0 else Color(0.9, 0.9, 0.92)
 		var l := label(text, 13, col)
+		var tip := Stats.describe(stat)
 		if extra > 0.0:
-			l.tooltip_text = "Includes +%s from buffs" % _num(extra)
-			l.mouse_filter = Control.MOUSE_FILTER_PASS
+			tip += "\nIncludes +%s from buffs" % _num(extra)
+		l.set_meta("tip_text", tip)   # ItemTooltip: wraps and stays on screen
+		l.mouse_filter = Control.MOUSE_FILTER_PASS
 		rows.add_child(l)
 
 static func _num(v: float) -> String:
@@ -289,13 +337,151 @@ static func draw_item_icon(c: Control, id: String, locked: bool) -> void:
 			c.draw_line(m + Vector2(-11, 1) * k, m + Vector2(-1, 11) * k, Color(0.85, 0.7, 0.3), 3.5 * k, true)
 			c.draw_line(guard, m + Vector2(-12, 12) * k, Color(0.4, 0.25, 0.15), 3.5 * k, true)
 			c.draw_circle(m + Vector2(-13, 13) * k, 2.5 * k, Color(0.85, 0.7, 0.3))
+		"greatsword":
+			# A long two-handed blade, corner to corner, with a wide guard.
+			var long_tip := m + Vector2(16, -16) * k
+			var wide_guard := m + Vector2(-7, 7) * k
+			c.draw_line(wide_guard, long_tip, col, 5.5 * k, true)
+			c.draw_line(wide_guard, long_tip, Color(1, 1, 1, 0.55), 1.4 * k, true)
+			c.draw_line(m + Vector2(-14, 0) * k, m + Vector2(0, 14) * k, Color(0.85, 0.7, 0.3), 3.5 * k, true)
+			c.draw_line(wide_guard, m + Vector2(-15, 15) * k, Color(0.4, 0.25, 0.15), 4.0 * k, true)
+			c.draw_circle(m + Vector2(-16, 16) * k, 2.5 * k, Color(0.85, 0.7, 0.3))
 		"bow":
 			c.draw_arc(m + Vector2(-8, 0) * k, 17.0 * k, -1.25, 1.25, 20, col, 3.5 * k, true)
 			var top := m + Vector2(-8, 0) * k + Vector2(cos(-1.25), sin(-1.25)) * 17.0 * k
 			var bot := m + Vector2(-8, 0) * k + Vector2(cos(1.25), sin(1.25)) * 17.0 * k
 			c.draw_line(top, bot, Color(0.9, 0.9, 0.85), 1.2 * k, true)
 		_:
-			c.draw_circle(m, 10.0 * k, col)
+			_draw_item_shape(c, Items.base_id(id), str(Items.get_item(id).get("slot", "")), col, dark, m, k)
+
+## Icons for every other item (a shape per item type, trinkets get their own).
+static func _draw_item_shape(c: Control, base: String, slot: String, col: Color, dark: Color, m: Vector2, k: float) -> void:
+	var light := col.lightened(0.45)
+	var gold := Color(0.9, 0.75, 0.35)
+	match base:
+		"amulet":
+			c.draw_arc(m + Vector2(0, -6) * k, 11.0 * k, PI * 1.05, PI * 1.95, 14, gold, 2.0 * k, true)
+			c.draw_arc(m + Vector2(0, -6) * k, 11.0 * k, 0.1, PI - 0.1, 14, gold, 2.0 * k, true)
+			var gem := PackedVector2Array([m + Vector2(0, 2) * k, m + Vector2(7, 9) * k, m + Vector2(0, 17) * k, m + Vector2(-7, 9) * k])
+			c.draw_colored_polygon(gem, col)
+			c.draw_circle(m + Vector2(-2, 8) * k, 2.0 * k, light)
+		"pauldrons":
+			for side: float in [-1.0, 1.0]:
+				var pts := PackedVector2Array()
+				for i in 9:
+					var a := PI + PI * i / 8.0
+					pts.append(m + Vector2(side * 8 + cos(a) * 9 * side, sin(a) * 9 - 2) * k)
+				pts.append(m + Vector2(side * 8, 6) * k)
+				c.draw_colored_polygon(pts, col)
+				c.draw_line(m + Vector2(side * 3, 0) * k, m + Vector2(side * 16, 0) * k, dark, 1.5 * k)
+		"cloak":
+			var pts := PackedVector2Array([m + Vector2(-7, -14) * k, m + Vector2(7, -14) * k, m + Vector2(14, 15) * k,
+				m + Vector2(5, 12) * k, m + Vector2(0, 16) * k, m + Vector2(-5, 12) * k, m + Vector2(-14, 15) * k])
+			c.draw_colored_polygon(pts, col)
+			c.draw_line(m + Vector2(-7, -14) * k, m + Vector2(7, -14) * k, gold, 3.0 * k)
+			c.draw_line(m + Vector2(0, -12) * k, m + Vector2(0, 12) * k, dark, 1.2 * k)
+		"gloves":
+			c.draw_rect(Rect2(m + Vector2(-9, -2) * k, Vector2(16, 16) * k), col, true)
+			for i in 4:
+				c.draw_rect(Rect2(m + Vector2(-9 + i * 4, -14) * k, Vector2(3.3, 13) * k), col, true)
+			c.draw_rect(Rect2(m + Vector2(7, 0) * k, Vector2(6, 4) * k), col, true)
+			c.draw_line(m + Vector2(-9, 9) * k, m + Vector2(7, 9) * k, dark, 2.0 * k)
+		"leggings":
+			var pts := PackedVector2Array([m + Vector2(-11, -14) * k, m + Vector2(11, -14) * k, m + Vector2(10, 16) * k,
+				m + Vector2(3, 16) * k, m + Vector2(0, -2) * k, m + Vector2(-3, 16) * k, m + Vector2(-10, 16) * k])
+			c.draw_colored_polygon(pts, col)
+			c.draw_line(m + Vector2(-11, -10) * k, m + Vector2(11, -10) * k, dark, 2.5 * k)
+		"boots":
+			var pts := PackedVector2Array([m + Vector2(-8, -15) * k, m + Vector2(3, -15) * k, m + Vector2(3, 5) * k,
+				m + Vector2(15, 8) * k, m + Vector2(15, 15) * k, m + Vector2(-8, 15) * k])
+			c.draw_colored_polygon(pts, col)
+			c.draw_line(m + Vector2(-8, 11) * k, m + Vector2(15, 11) * k, dark, 2.0 * k)
+			c.draw_line(m + Vector2(-8, -10) * k, m + Vector2(3, -10) * k, dark, 1.5 * k)
+		"ring_focus", "ring_might":
+			c.draw_arc(m + Vector2(0, 4) * k, 10.0 * k, 0, TAU, 24, gold, 3.5 * k, true)
+			var gcol := Color(0.45, 0.6, 1.0) if base == "ring_focus" else Color(0.95, 0.35, 0.3)
+			c.draw_circle(m + Vector2(0, -7) * k, 5.5 * k, gcol)
+			c.draw_circle(m + Vector2(-1.5, -8.5) * k, 1.8 * k, Color(1, 1, 1, 0.8))
+		"staff":
+			c.draw_line(m + Vector2(-12, 15) * k, m + Vector2(8, -8) * k, Color(0.5, 0.33, 0.18), 3.5 * k, true)
+			c.draw_circle(m + Vector2(10, -11) * k, 6.0 * k, Color(col, 0.35))
+			c.draw_circle(m + Vector2(10, -11) * k, 4.0 * k, light)
+		"dagger", "venom_fang":
+			var blade := Color(0.4, 0.95, 0.35) if base == "venom_fang" else col
+			var pts := PackedVector2Array([m + Vector2(-3, 3) * k, m + Vector2(12, -12) * k, m + Vector2(3, 3) * k])
+			c.draw_colored_polygon(pts, blade)
+			c.draw_line(m + Vector2(-6, 0) * k, m + Vector2(3, 9) * k, gold, 3.0 * k, true)
+			c.draw_line(m + Vector2(-1, 5) * k, m + Vector2(-9, 13) * k, Color(0.35, 0.22, 0.12), 3.5 * k, true)
+			if base == "venom_fang":
+				c.draw_circle(m + Vector2(12, -4) * k, 2.0 * k, blade)
+		"shield":
+			var pts := PackedVector2Array([m + Vector2(-12, -13) * k, m + Vector2(12, -13) * k, m + Vector2(11, 3) * k,
+				m + Vector2(0, 15) * k, m + Vector2(-11, 3) * k])
+			c.draw_colored_polygon(pts, col)
+			pts.append(pts[0])
+			c.draw_polyline(pts, gold, 2.0 * k, true)
+			c.draw_circle(m + Vector2(0, -1) * k, 4.0 * k, gold)
+		# --- Trinkets ---
+		"storm_idol":
+			c.draw_rect(Rect2(m + Vector2(-6, -12) * k, Vector2(12, 24) * k), Color(0.45, 0.42, 0.4), true)
+			c.draw_polyline(PackedVector2Array([m + Vector2(2, -9) * k, m + Vector2(-3, 0) * k, m + Vector2(2, 0) * k,
+				m + Vector2(-2, 9) * k]), Color(0.5, 0.8, 1.0), 2.2 * k, true)
+		"phoenix_ember":
+			var f := PackedVector2Array([m + Vector2(0, -15) * k, m + Vector2(8, -2) * k, m + Vector2(6, 10) * k,
+				m + Vector2(0, 14) * k, m + Vector2(-6, 10) * k, m + Vector2(-8, -2) * k])
+			c.draw_colored_polygon(f, Color(1.0, 0.45, 0.1))
+			c.draw_circle(m + Vector2(0, 6) * k, 4.5 * k, Color(1.0, 0.85, 0.3))
+		"berserker_tooth":
+			var t := PackedVector2Array([m + Vector2(-8, -12) * k, m + Vector2(8, -12) * k, m + Vector2(2, 15) * k, m + Vector2(-1, 15) * k])
+			c.draw_colored_polygon(t, Color(0.95, 0.9, 0.78))
+			c.draw_line(m + Vector2(-8, -12) * k, m + Vector2(8, -12) * k, Color(0.75, 0.15, 0.1), 3.0 * k)
+		"arcane_clockwork":
+			c.draw_arc(m, 11.0 * k, 0, TAU, 24, gold, 2.5 * k, true)
+			for i in 8:
+				var a := TAU * i / 8.0
+				c.draw_line(m + Vector2(cos(a), sin(a)) * 11.0 * k, m + Vector2(cos(a), sin(a)) * 15.0 * k, gold, 3.0 * k)
+			c.draw_line(m, m + Vector2(0, -7) * k, Color(0.8, 0.55, 1.0), 2.0 * k)
+			c.draw_line(m, m + Vector2(5, 3) * k, Color(0.8, 0.55, 1.0), 2.0 * k)
+		"frost_shard":
+			var s := PackedVector2Array([m + Vector2(0, -16) * k, m + Vector2(7, 0) * k, m + Vector2(0, 16) * k, m + Vector2(-7, 0) * k])
+			c.draw_colored_polygon(s, Color(0.55, 0.85, 1.0))
+			c.draw_line(m + Vector2(0, -16) * k, m + Vector2(0, 16) * k, Color(0.9, 0.98, 1.0), 1.5 * k)
+		"sand_hourglass":
+			c.draw_line(m + Vector2(-9, -14) * k, m + Vector2(9, -14) * k, gold, 3.0 * k)
+			c.draw_line(m + Vector2(-9, 14) * k, m + Vector2(9, 14) * k, gold, 3.0 * k)
+			c.draw_colored_polygon(PackedVector2Array([m + Vector2(-7, -12) * k, m + Vector2(7, -12) * k, m]), Color(0.85, 0.9, 1.0, 0.5))
+			c.draw_colored_polygon(PackedVector2Array([m, m + Vector2(7, 12) * k, m + Vector2(-7, 12) * k]), Color(0.95, 0.8, 0.45))
+		"sacred_reliquary":
+			c.draw_rect(Rect2(m + Vector2(-10, -6) * k, Vector2(20, 18) * k), gold, true)
+			c.draw_rect(Rect2(m + Vector2(-12, -9) * k, Vector2(24, 4) * k), gold.darkened(0.2), true)
+			c.draw_rect(Rect2(m + Vector2(-1.5, -2) * k, Vector2(3, 11) * k), Color(1, 1, 0.85), true)
+			c.draw_rect(Rect2(m + Vector2(-5, 1) * k, Vector2(10, 3) * k), Color(1, 1, 0.85), true)
+		"mystery_rune_0", "mystery_rune_1", "mystery_rune_2", "mystery_rune_3":
+			# Rune stone with a "?" - framed and pipped by its rune rarity
+			# (1 pip Common ... 4 pips Legendary) so the rarity reads at a glance.
+			var r := int(base.trim_prefix("mystery_rune_"))
+			c.draw_rect(Rect2(m - Vector2(21, 21) * k, Vector2(42, 42) * k), Color(col, 0.18), true)
+			c.draw_rect(Rect2(m - Vector2(21, 21) * k, Vector2(42, 42) * k), col, false, 2.5 * k)
+			var stone := PackedVector2Array([m + Vector2(0, -15) * k, m + Vector2(11, 0) * k, m + Vector2(0, 15) * k, m + Vector2(-11, 0) * k])
+			c.draw_colored_polygon(stone, col.darkened(0.55))
+			stone.append(stone[0])
+			c.draw_polyline(stone, col, 2.0 * k, true)
+			var f := ThemeDB.fallback_font
+			var fs := int(18 * k)
+			var tw := f.get_string_size("?", HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+			c.draw_string_outline(f, m + Vector2(-tw / 2.0, 6 * k), "?", HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3, Color.BLACK)
+			c.draw_string(f, m + Vector2(-tw / 2.0, 6 * k), "?", HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col.lightened(0.4))
+			for i in r + 1:
+				c.draw_circle(m + Vector2(-15 + i * 5.5, 17) * k, 2.0 * k, col.lightened(0.3))
+		_:
+			# Unknown item: a generic shape for its slot.
+			if slot.begins_with("Trinket"):
+				c.draw_circle(m, 10.0 * k, col)
+				c.draw_arc(m, 13.0 * k, 0, TAU, 24, gold, 2.0 * k, true)
+			else:
+				var r := Rect2(m - Vector2(11, 11) * k, Vector2(22, 22) * k)
+				c.draw_rect(r, col, true)
+				c.draw_rect(r, dark, false, 2.0 * k)
 
 # 300-slot bank: counter + scrollable grid. interactable=false shows the bank
 # as view-only (slots can be scrolled and hovered but not clicked).
@@ -363,22 +549,33 @@ static func trash_can() -> Button:
 
 # --- Right-click item menu + delete confirmation ---------------------------------
 
-## Right-click menu at the mouse: [Equip] [Delete]. `delete_label` lets the
+## Right-click menu at the mouse: [Equip] [extras...] [Delete]. `delete_label` lets the
 ## caller say e.g. "Delete 3 selected items". Delete always asks to confirm.
+## `extras`: [[label, Callable, disabled(bool)], ...] shown between Equip and Delete
+## (Reveal a Mysterious Rune, Salvage...). Equip is hidden for items that can't be equipped.
 static func item_menu(host: Node, item: String, on_equip: Callable, on_delete: Callable,
-		delete_label: String = "Delete", confirm_text: String = "") -> void:
+		delete_label: String = "Delete", confirm_text: String = "", extras: Array = []) -> void:
 	var pm := PopupMenu.new()
 	pm.add_theme_font_size_override("font_size", 15)
 	pm.add_theme_stylebox_override("panel", box(PANEL_BG, BORDER, 2, 6))
 	pm.add_theme_color_override("font_hover_color", ACCENT)
-	pm.add_item("Equip", 0)
-	if str(Items.get_item(item).get("slot", "")) == "":
-		pm.set_item_disabled(0, true)
+	var equippable := str(Items.get_item(item).get("slot", "")) != ""
+	if equippable:
+		pm.add_item("Equip", 0)
+	for i in extras.size():
+		var e: Array = extras[i]
+		pm.add_item(str(e[0]), 10 + i)
+		if e.size() > 2 and bool(e[2]):
+			pm.set_item_disabled(pm.item_count - 1, true)
 	pm.add_separator()
 	pm.add_item(delete_label, 1)
 	pm.id_pressed.connect(func(id: int):
 		if id == 0:
 			on_equip.call()
+		elif id >= 10:
+			var cb: Callable = extras[id - 10][1]
+			if cb.is_valid():
+				cb.call()
 		elif id == 1:
 			var text := confirm_text
 			if text == "":

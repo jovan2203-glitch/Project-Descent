@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"weakened"
 display_name = "Weakened"
-description = "Deals 25% less damage."
+description = "Deals {pct}% less damage."
 color = Color(0.6, 0.4, 0.8, 1)
 is_debuff = true
 tags = PackedStringArray("Shadow")

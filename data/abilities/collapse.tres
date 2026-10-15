@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"collapse"
+display_name = "Collapse"
+description = "Opens a rift over an area {width} m wide. After {b:COLLAPSE_DELAY} sec it implodes, dealing {hit} Arcane damage to all enemies inside and pulling them up to {collapse_pull} m toward its centre. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, that damage is split evenly between all of them."
+tags = PackedStringArray("Arcane", "Spell", "AoE")
+cast_type = 3
+cast_time = 2.0
+cooldown = 10.0
+requires_target = false
+resource_type = 1
+resource_cost = 3
+damage = 1.4
+cast_range = 30.0
+radius = 6.0
+damage_type = &"arcane"

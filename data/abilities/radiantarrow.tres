@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"radiantarrow"
 display_name = "Radiant Arrow"
-description = "A blessed arrow for {hit} holy damage, and you heal for 1."
+description = "Fires a blessed arrow that deals {hit} Holy damage and heals you for {heal}."
 tags = PackedStringArray("Ability", "Holy", "Ranged", "Projectile")
 cast_type = 0
 cast_time = 0.0
@@ -14,7 +14,7 @@ cooldown = 6.0
 requires_target = true
 weapon_requirement = 2
 resource_type = 2
-resource_cost = 3
+resource_cost = 30
 damage = 0
 weapon_damage_multiplier = 1.0
 damage_type = &"holy"

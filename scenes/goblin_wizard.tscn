@@ -1,0 +1,19 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/goblin_wizard.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/models/goblin_model.tscn" id="2_model"]
+
+[sub_resource type="CapsuleShape3D" id="shape"]
+radius = 0.3
+height = 1.26
+
+[node name="GoblinWizard" type="CharacterBody3D"]
+collision_layer = 5
+script = ExtResource("1_script")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("shape")
+
+[node name="Model" parent="." instance=ExtResource("2_model")]
+transform = Transform3D(-0.7, 0, 0, 0, 0.7, 0, 0, 0, -0.7, 0, -0.63, 0)
+variant = "wizard"

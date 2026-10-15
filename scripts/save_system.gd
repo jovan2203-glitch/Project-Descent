@@ -20,7 +20,7 @@ extends Node
 const PATH := "user://profile.cfg"
 const TMP_PATH := "user://profile.cfg.tmp"
 const BAK_PATH := "user://profile.cfg.bak"
-const VERSION := 4
+const VERSION := 7
 const AUTOSAVE_DELAY := 0.5
 
 const Items = preload("res://scripts/items.gd")
@@ -29,10 +29,12 @@ const Runes = preload("res://scripts/runes.gd")
 const Abilities = preload("res://scripts/abilities.gd")
 const Talents = preload("res://scripts/talents.gd")
 const SkillCards = preload("res://scripts/skill_cards.gd")
+const Pacts = preload("res://scripts/pacts.gd")
 
 var _dirty := false
 var _timer := 0.0
 var _loading := false
+var _wiped := false   # set by wipe_and_restart(): never write the profile again this run
 var last_load_source := ""   # "main", "backup" or "" (fresh profile)
 
 func _ready() -> void:
@@ -40,6 +42,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	load_profile()
 	_pd().changed.connect(_mark_dirty)
+	_pd().give_starter_weapons()   # every character gets each basic weapon once (sword, bow, staff, greatsword)
 	get_node("/root/SignalBus").game_state_changed.connect(func(_s): save_profile())
 	get_tree().auto_accept_quit = false   # let us save before quitting
 
@@ -91,13 +94,18 @@ func _build_config() -> ConfigFile:
 	cfg.set_value("progress", "draft_boons", pd.draft_boons)
 	cfg.set_value("progress", "pending_drafts", Array(pd.pending_drafts))
 	cfg.set_value("progress", "card_reoffer", pd.card_reoffer)
+	cfg.set_value("progress", "pact", pd.pact)             # the Pact held (scripts/pacts.gd)
+	cfg.set_value("progress", "pact_book", pd.pact_book)   # ... and the Purist's book
 
 	cfg.set_value("abilities", "action_bar", Array(pd.action_bar))
 
 	cfg.set_value("runes", "known", Array(pd.known_runes))
+	cfg.set_value("runes", "shards", pd.rune_shards)
 	cfg.set_value("talents", "ranks", pd.talents)
 	cfg.set_value("progress", "attribute_points", pd.attribute_points)
 	cfg.set_value("progress", "checkpoints", pd.checkpoints)
+	cfg.set_value("progress", "starter_weapons", pd.starter_weapons_given)
+	cfg.set_value("progress", "starter_weapons_have", pd.starter_weapons_have)
 
 	cfg.set_value("stats", "kills", gm.kills)
 	cfg.set_value("stats", "deaths", gm.deaths)
@@ -105,6 +113,9 @@ func _build_config() -> ConfigFile:
 	return cfg
 
 func save_profile() -> Error:
+	if _wiped:
+		return OK
+	_save_macros()
 	var cfg := _build_config()
 	# 1. Write the temp file.
 	var err := cfg.save(TMP_PATH)
@@ -137,6 +148,7 @@ func save_profile() -> Error:
 # --- Load ------------------------------------------------------------------------
 
 func load_profile() -> bool:
+	_load_macros()   # before the action bar (it may hold macros); kept by "Wipe Save"
 	var cfg := ConfigFile.new()
 	last_load_source = ""
 	if FileAccess.file_exists(PATH) and cfg.load(PATH) == OK:
@@ -165,7 +177,7 @@ func load_profile() -> bool:
 	_load_items(pd.bank, cfg.get_value("items", "bank", []), pd.BANK_SIZE)
 	pd.equipment = _valid_equipment(cfg.get_value("items", "equipment", {}))
 
-	_load_abilities(pd.action_bar, cfg.get_value("abilities", "action_bar", []), pd.ACTION_SLOTS)
+	_load_abilities(pd.action_bar, cfg.get_value("abilities", "action_bar", []), pd.ACTION_SLOTS_TOTAL)
 
 	var known: Variant = cfg.get_value("runes", "known", Array(pd.known_runes))
 	var runes: Array = []
@@ -174,6 +186,7 @@ func load_profile() -> bool:
 			if Runes.get_resource(str(r)) != null and not runes.has(str(r)):
 				runes.append(str(r))
 	pd.known_runes.assign(runes)
+	pd.rune_shards = maxi(int(cfg.get_value("runes", "shards", 0)), 0)
 
 	pd.level = clampi(int(cfg.get_value("progress", "level", 1)), 1, pd.MAX_LEVEL)
 	pd.xp = clampi(int(cfg.get_value("progress", "xp", 0)), 0, maxi(pd.xp_to_next(pd.level) - 1, 0))
@@ -215,6 +228,13 @@ func load_profile() -> bool:
 				pending.append(int(lv))
 	pd.pending_drafts = pending
 	pd.card_reoffer = bool(cfg.get_value("progress", "card_reoffer", false))
+	# The Pact held: one that no longer exists, or a Purist without a real book, is dropped.
+	var saved_pact := str(cfg.get_value("progress", "pact", ""))
+	var saved_book := str(cfg.get_value("progress", "pact_book", ""))
+	var pact_ok: bool = Pacts.exists(saved_pact) and (not Pacts.needs_book(saved_pact) or Pacts.valid_book(saved_book))
+	pd.pact = saved_pact if pact_ok else ""
+	pd.pact_book = saved_book if pact_ok and Pacts.needs_book(saved_pact) else ""
+	pd.pact_broken = false
 
 	pd.talents = _valid_talents(cfg.get_value("talents", "ranks", {}))
 	if not pd.validate_talents():
@@ -225,6 +245,14 @@ func load_profile() -> bool:
 		for s in attrs:
 			if pd.ATTRIBUTE_VALUES.has(str(s)) and int(attrs[s]) > 0:
 				pd.attribute_points[str(s)] = int(attrs[s])
+	pd.starter_weapons_given = bool(cfg.get_value("progress", "starter_weapons", false))
+	# (has_section_key first: asking ConfigFile for a missing key without a default logs an error.)
+	var have: Variant = cfg.get_value("progress", "starter_weapons_have") \
+		if cfg.has_section_key("progress", "starter_weapons_have") else null
+	if have is Array:
+		pd.starter_weapons_have = Array(have).map(func(x): return str(x))
+	else:   # saved before each weapon was tracked on its own: the first kit, if it was given
+		pd.starter_weapons_have = pd.STARTER_WEAPONS_V1.duplicate() if pd.starter_weapons_given else []
 	pd.checkpoints = {}
 	var cps: Variant = cfg.get_value("progress", "checkpoints", {})
 	if cps is Dictionary:
@@ -259,6 +287,12 @@ func _migrate(cfg: ConfigFile, from_version: int) -> void:
 				_migrate_2_to_3(cfg)
 			3:
 				_migrate_3_to_4(cfg)
+			4:
+				_migrate_4_to_5(cfg)
+			5:
+				_migrate_5_to_6(cfg)
+			6:
+				_migrate_6_to_7(cfg)
 		v += 1
 		cfg.set_value("meta", "version", v)
 
@@ -311,6 +345,33 @@ func _migrate_3_to_4(cfg: ConfigFile) -> void:
 	cfg.set_value("progress", "level_lock", 0)
 	_log(1, "Migrated profile to v4 (Skill Card collection)")
 
+# v4 -> v5: the Frost talent book was rearranged to put the bow talents together.
+# Points in the three removed talents are refunded; the five talents that
+# changed slot keep theirs (Talents.FROST_BOW_MOVED).
+func _migrate_4_to_5(cfg: ConfigFile) -> void:
+	var ranks: Variant = cfg.get_value("talents", "ranks", {})
+	if ranks is Dictionary:
+		cfg.set_value("talents", "ranks", Talents.rearranged(ranks, Talents.FROST_BOW_MOVED, Talents.FROST_BOW_REMOVED))
+	_log(1, "Migrated profile to v5 (Frost talents rearranged)")
+
+# v5 -> v6: talents changed slot in the Fire, Frost and Lightning books so that an
+# ability's talents line up and can be linked (Talents.LINKS_MOVED). Nothing was
+# removed: every talent keeps its points in its new slot. Rows changed, so if the
+# points no longer satisfy the unlock rules PlayerData.validate_talents refunds them.
+func _migrate_5_to_6(cfg: ConfigFile) -> void:
+	var ranks: Variant = cfg.get_value("talents", "ranks", {})
+	if ranks is Dictionary:
+		cfg.set_value("talents", "ranks", Talents.rearranged(ranks, Talents.LINKS_MOVED, []))
+	_log(1, "Migrated profile to v6 (talents rearranged and linked)")
+
+# v6 -> v7: Small Change moved from row 8 to row 5 of the Shadow book
+# (Talents.SHADOW_MIDDLE_MOVED); its old slot holds a new talent. It keeps its points.
+func _migrate_6_to_7(cfg: ConfigFile) -> void:
+	var ranks: Variant = cfg.get_value("talents", "ranks", {})
+	if ranks is Dictionary:
+		cfg.set_value("talents", "ranks", Talents.rearranged(ranks, Talents.SHADOW_MIDDLE_MOVED, []))
+	_log(1, "Migrated profile to v7 (Shadow talents rearranged)")
+
 # --- Validation --------------------------------------------------------------------
 
 # Slot value -> valid item instance id (or "").
@@ -348,9 +409,45 @@ func _load_items(target: Array[String], saved: Variant, size: int) -> void:
 
 func _load_abilities(target: Array[String], saved: Variant, size: int) -> void:
 	var src: Array = saved if saved is Array else []
+	if target.size() < size:
+		target.resize(size)
 	for i in size:
 		var id := str(src[i]) if i < src.size() and src[i] != null else ""
-		target[i] = id if id != "" and Abilities.get_resource(id) != null else ""
+		var ok: bool = id != "" and (Abilities.get_resource(id) != null \
+			or (Macros.is_macro(id) and not _pd().macro_by_uid(Macros.uid_of(id)).is_empty()))
+		target[i] = id if ok else ""
+
+const Macros = preload("res://scripts/core/macros.gd")
+## Macros have a file of their own (like settings): "Wipe Save" keeps them.
+const MACRO_PATH := "user://macros.cfg"
+
+func _save_macros() -> void:
+	var pd := _pd()
+	if pd.macros.is_empty() and not FileAccess.file_exists(MACRO_PATH):
+		return
+	var cfg := ConfigFile.new()
+	cfg.set_value("macros", "list", pd.macros)
+	cfg.save(MACRO_PATH)
+
+func _load_macros() -> void:
+	var cfg := ConfigFile.new()
+	if FileAccess.file_exists(MACRO_PATH) and cfg.load(MACRO_PATH) == OK:
+		_pd().macros = _valid_macros(cfg.get_value("macros", "list", []))
+
+## Saved macros, cleaned up (each needs a uid; texts and names are capped).
+func _valid_macros(saved: Variant) -> Array:
+	var out: Array = []
+	var seen := {}
+	if not (saved is Array):
+		return out
+	for m in saved:
+		if not (m is Dictionary) or not m.has("uid") or seen.has(int(m["uid"])) or out.size() >= Macros.MAX_MACROS:
+			continue
+		seen[int(m["uid"])] = true
+		out.append({"uid": int(m["uid"]), "name": str(m.get("name", "")).left(Macros.MAX_NAME),
+			"icon": str(m.get("icon", "")), "link": str(m.get("link", "")),
+			"text": str(m.get("text", "")).left(Macros.MAX_TEXT)})
+	return out
 
 func _valid_equipment(saved: Variant) -> Dictionary:
 	var out := {}
@@ -365,15 +462,26 @@ func _valid_talents(saved: Variant) -> Dictionary:
 	var out := {}
 	if saved is Dictionary:
 		for id in saved:
-			var t := Talents.get_talent(str(id))
+			var tid := Talents.current_id(str(id))   # a talent that changed slot keeps its points
+			var t := Talents.get_talent(tid)
 			if t.is_empty():
 				continue
 			var rank := clampi(int(saved[id]), 0, int(t.get("max_rank", 1)))
 			if rank > 0:
-				out[str(id)] = rank
+				out[tid] = rank
 	return out
 
 func delete_profile() -> void:
 	for p in [PATH, TMP_PATH, BAK_PATH]:
 		if FileAccess.file_exists(p):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(p))
+
+## Main menu "Wipe Save": deletes the profile (level, gear, bank, runes, talents,
+## cards, checkpoints, stats) but keeps settings.cfg, then restarts the game so
+## every system starts from a clean slate. Nothing is saved after this call.
+func wipe_and_restart() -> void:
+	_wiped = true
+	_dirty = false
+	delete_profile()
+	OS.set_restart_on_exit(true, OS.get_cmdline_args())
+	get_tree().quit()

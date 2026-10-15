@@ -33,6 +33,8 @@ static func all_ids() -> Array:
 
 static func get_effect(id: String) -> Resource:
 	_scan()
+	if not _paths.has(id) and id != "" and ResourceLoader.exists(DIR + id + ".tres"):
+		_paths[id] = DIR + id + ".tres"   # added since the folder was read (an editor session)
 	if not _paths.has(id):
 		return null
 	if not _cache.has(id):
@@ -50,9 +52,16 @@ static func apply(target: Node, id: String, source: Node = null) -> bool:
 	var res := get_effect(id)
 	return st.apply(res, source) if st and res else false
 
+## Any copy of the effect, whoever applied it. Game rules must not ask this
+## about an effect on an enemy: everything is own only, so use has_from().
 static func has(target: Node, id: String) -> bool:
 	var st := _status(target)
 	return st != null and st.has(id)
+
+## Is effect `id` applied by `source` on `target`? The "own only" check.
+static func has_from(target: Node, id: String, source: Node) -> bool:
+	var st := _status(target)
+	return st != null and st.has_from(id, source)
 
 static func stacks(target: Node, id: String) -> int:
 	var st := _status(target)

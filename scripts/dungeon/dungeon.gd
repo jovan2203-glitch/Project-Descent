@@ -1,6 +1,9 @@
 extends Node3D
 
-# Procedural dungeon instance ("The Crypt").
+
+# LEGACY procedural dungeon ("Old Crypt"): endless floors. Replaced by the
+# recipe-driven dungeons (dungeon_run.gd); kept playable from the Play screen's
+# "specific dungeon" list for testing, never in the random pool.
 # Each floor is built from GameManager.dungeon_seed:
 #   start room -> 5-8 combat rooms (random walk on a grid) -> boss room,
 #   plus 1-2 side rooms. Rooms and corridors are carved out of solid rock with
@@ -46,6 +49,7 @@ var _gate_shape: CollisionShape3D
 var _exit_mat: StandardMaterial3D
 var _exit_light: OmniLight3D
 var _complete := false
+var _boss_icons: HFlowContainer
 var _exit_pos := Vector3.ZERO
 
 # Floor stats for the clear screen
@@ -68,6 +72,14 @@ func _ready() -> void:
 	player.global_position = rooms[0]["center"] + Vector3(0, 1.0, 0) + offset
 	nav.bake_half_extent = _extent() + 12.0
 	nav.bake_from(rock)
+	# Performance: once the navmesh is baked, split the rock into per-cell meshes.
+	var start_chunker := func():
+		var ch := Node.new()
+		ch.set_script(preload("res://scripts/dungeon/rock_chunker.gd"))
+		ch.rock = rock
+		ch.cell = CELL
+		add_child(ch)
+	nav.bake_finished.connect(start_chunker, CONNECT_ONE_SHOT)
 	_build_ui()
 	var bus := get_node("/root/SignalBus")
 	bus.enemy_died.connect(_on_enemy_died)
@@ -116,7 +128,7 @@ func _generate_layout() -> void:
 			size = Vector2(10, 10)
 		elif i == cells.size() - 1:
 			kind = "boss"
-			size = Vector2(16, 16)
+			size = Vector2(21, 21)
 		rooms.append({"cell": cells[i], "center": Vector3(cells[i].x * CELL, 0, cells[i].y * CELL),
 			"size": size, "kind": kind})
 		if i > 0:
@@ -153,12 +165,9 @@ func _build_geometry() -> CSGCombiner3D:
 	rock.use_collision = true
 	level_root.add_child(rock)
 
-	var wall := StandardMaterial3D.new()
-	wall.albedo_color = Color(0.26, 0.26, 0.3)
-	wall.roughness = 1.0
-	var top := StandardMaterial3D.new()
-	top.albedo_color = Color(0.07, 0.07, 0.08)
-	top.roughness = 1.0
+	# Textured stone (see crypt_decor.gd).
+	var wall := CryptDecor.wall_material()
+	var top := CryptDecor.top_material()
 
 	var mn := Vector2(INF, INF)
 	var mx := Vector2(-INF, -INF)
@@ -199,16 +208,26 @@ func _build_geometry() -> CSGCombiner3D:
 				p.position = r["center"] + off + Vector3(0, 0.5, 0)
 				rock.add_child(p)
 
-	# Lighting: a dim torch light per room (red in the boss room).
+	# Crypt dressing: chamfered corners, wall columns, alcoves, sarcophagi,
+	# braziers (part of the rock: collision + navmesh), then torches, clutter,
+	# flagstone floors, dust and the boss room's summoning circle (visual only).
+	_decor = CryptDecor.new(seed_used, rooms, links, CORRIDOR_W)
+	_decor.shape(rock)
+	_decor.dress(level_root)
+
+	# Fill light: a dim glow per room (torches do most of the lighting now).
 	for r in rooms:
 		var light := OmniLight3D.new()
 		var is_boss: bool = r["kind"] == "boss"
-		light.light_color = Color(1.0, 0.35, 0.25) if is_boss else Color(1.0, 0.7, 0.45)
-		light.light_energy = 1.6 if is_boss else 0.9
+		light.light_color = Color(1.0, 0.35, 0.25) if is_boss else Color(0.75, 0.6, 0.5)
+		light.light_energy = 0.8 if is_boss else 0.35
 		light.omni_range = maxf(r["size"].x, r["size"].y) * 0.85
 		light.position = r["center"] + Vector3(0, 4.2, 0)
 		level_root.add_child(light)
 	return rock
+
+const CryptDecor = preload("res://scripts/dungeon/crypt_decor.gd")
+var _decor: RefCounted
 
 func _carve(rock: CSGCombiner3D, center: Vector3, size: Vector3, mat: Material) -> void:
 	var box := CSGBox3D.new()
@@ -402,6 +421,10 @@ func _set_exit_active(active: bool) -> void:
 	_exit_light.light_color = col
 	_exit_light.light_energy = 2.0 if active else 0.0
 
+## No-drawback death: revive at the floor's entrance.
+func respawn_point() -> Vector3:
+	return rooms[0]["center"] + Vector3(0, 1.0, 0)
+
 # --- Multiplayer ------------------------------------------------------------------------
 # The host (or single player) runs the boss trigger and the exit gate and tells
 # the party through Net.dungeon_event(); party members react in net_event().
@@ -421,6 +444,11 @@ func net_event(ev: String, _data: Dictionary) -> void:
 			_spawn_boss()
 		"complete":
 			_complete_floor()
+		"adds":
+			var names: Array = _data.get("names", [])
+			var pts: Array = _data.get("pts", [])
+			for i in mini(names.size(), pts.size()):
+				_spawn_add(str(names[i]), pts[i])
 
 func _in_boss_room(b: Node3D) -> bool:
 	var r: Dictionary = rooms[_boss_index]
@@ -458,6 +486,12 @@ func _spawn_boss() -> void:
 	boss.rotation.y = atan2(_boss_dir.x, _boss_dir.z)   # face the door
 	enemies_root.add_child(boss)
 	boss.died.connect(_on_boss_died)
+	# Moveset: Grave Slam, Bone Eruption, Raise Dead, Enrage (host / solo runs it).
+	var kit := Node.new()
+	kit.name = "BossAbilities"
+	kit.set_script(BOSS_ABILITIES)
+	kit.dungeon = self
+	boss.add_child(kit)
 	get_node("/root/SignalBus").boss_engaged.emit(boss)
 	var gl := get_node_or_null("/root/GameLog")
 	if gl:
@@ -465,7 +499,54 @@ func _spawn_boss() -> void:
 	_announce("The %s awakens!" % boss.display_name, Color(1.0, 0.4, 0.3))
 	_boss_bar.visible = true
 
+const BOSS_ABILITIES = preload("res://scripts/dungeon/boss_abilities.gd")
+var _add_serial := 0
+
+## Raise Dead (host / solo): servants claw out of the floor around the room's
+## edge and go for the nearest player. Party members spawn the same named adds.
+func summon_boss_adds(count: int) -> void:
+	if _net_client() or boss_dead:
+		return
+	var c: Vector3 = rooms[_boss_index]["center"]
+	var names: Array = []
+	var pts: Array = []
+	var start := randf() * TAU
+	for i in count:
+		_add_serial += 1
+		var ang := start + TAU * float(i) / float(count)
+		names.append("BossAdd_%d" % _add_serial)
+		pts.append(c + Vector3(cos(ang), 0, sin(ang)) * 7.0)
+	for i in names.size():
+		var e := _spawn_add(names[i], pts[i])
+		var tgt: Node3D = null
+		var best := INF
+		for b in _party():
+			if is_instance_valid(b) and b.is_alive():
+				var d: float = b.global_position.distance_to(e.global_position)
+				if d < best:
+					best = d
+					tgt = b
+		if tgt:
+			e.add_threat(tgt, 1.0)
+	if _net():
+		_net().dungeon_event("adds", {"names": names, "pts": pts})
+
+func _spawn_add(add_name: String, at: Vector3) -> Node3D:
+	var e: Node3D = DEFAULT_ENEMY.instantiate()
+	e.name = add_name
+	SPAWN_ZONE.tune(e, "normal", depth)
+	e.display_name = "Risen Servant"
+	e.position = enemies_root.to_local(at + Vector3(0, e.ground_offset(), 0))
+	e.rotation.y = randf() * TAU
+	enemies_root.add_child(e)
+	BOSS_ABILITIES.burst(self, at, 1.6, Color(0.7, 0.5, 1.0))
+	return e
+
 func _on_boss_died() -> void:
+	# Servants crumble with their master.
+	for e in enemies_root.get_children():
+		if str(e.name).begins_with("BossAdd_") and e.has_method("is_alive") and e.is_alive() and not _net_client():
+			e.take_damage(e.health)
 	boss_dead = true
 	_set_gate(false)
 	_set_exit_active(true)
@@ -558,6 +639,11 @@ func _build_ui() -> void:
 	_boss_fill.add_theme_stylebox_override("fill", fill)
 	_boss_fill.add_theme_stylebox_override("background", back)
 	_boss_bar.add_child(_boss_fill)
+	# The boss's buffs / debuffs (mouse over for details).
+	_boss_icons = preload("res://scripts/ui/status_icons.gd").new()
+	_boss_icons.icon_size = 24.0
+	_boss_icons.alignment = FlowContainer.ALIGNMENT_CENTER
+	_boss_bar.add_child(_boss_icons)
 	_boss_bar.visible = false
 
 	_announce_label = UI.label("", 26, UI.ACCENT)
@@ -573,7 +659,9 @@ func _build_ui() -> void:
 
 func _update_header() -> void:
 	if _header:
-		_header.text = "The Crypt — Floor %d   •   Rooms cleared %d / %d" % [depth, rooms_cleared, zones.size()]
+		var gm := get_node_or_null("/root/GameManager")
+		var mode: String = gm.difficulty_label(gm.difficulty) if gm else "Singleplayer"
+		_header.text = "The Crypt — Floor %d  (%s)   •   Rooms cleared %d / %d" % [depth, mode, rooms_cleared, zones.size()]
 
 func _announce(text: String, color: Color = Color(0.6, 0.95, 0.6)) -> void:
 	_announce_label.text = text
@@ -604,6 +692,8 @@ func _process(_delta: float) -> void:
 		_boss_fill.max_value = float(boss.max_health)
 		_boss_fill.value = float(boss.health)
 		_boss_name.text = "%s  —  %d / %d" % [boss.display_name, boss.health, boss.max_health]
+		var bst: Node = boss.get_node_or_null("Status")
+		_boss_icons.show_effects(bst.list() if bst else [])
 
 func _show_clear_screen(s: Dictionary) -> void:
 	var shade := ColorRect.new()

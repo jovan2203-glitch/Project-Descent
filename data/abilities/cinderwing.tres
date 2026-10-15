@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"cinderwing"
+display_name = "Cinderwing"
+description = "Summons a phoenix that follows you. Every {phoenix_interval} sec it casts a heal on the ally with the lowest health within {phoenix_range} m of you (you count too), restoring {heal}. It leaves after {phoenix_casts} casts."
+tags = PackedStringArray("Fire", "Spell", "Heal")
+cast_type = 0
+cast_time = 0.0
+cooldown = 60.0
+requires_target = false
+resource_type = 0
+resource_cost = 0
+damage = 0.0
+cast_range = 30.0
+damage_type = &"fire"

@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"trinket_2"
 display_name = "Use Trinket 2"
-description = "Fires the Use: effect of the trinket in your Trinket 2 slot."
+description = "Activates the Use effect of the trinket in your Trinket 2 slot."
 tags = PackedStringArray("Trinket")
 cast_type = 0
 cast_time = 0.0

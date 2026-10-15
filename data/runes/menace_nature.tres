@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"menace_nature"
+display_name = "Rune of Nature Menace"
+description = "Your Nature damage (including poisons) generates {threat}% more threat."
+color = Color(0.5, 0.95, 0.35, 1)
+rarity = 0
+unlock_level = 1
+trigger = 6
+required_damage_types = PackedStringArray("nature")
+threat_bonus_pct = 30.0

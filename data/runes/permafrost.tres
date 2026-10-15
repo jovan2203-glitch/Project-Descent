@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"permafrost"
+display_name = "Rune of Permafrost"
+description = "Your Frost spells can no longer critically strike. Instead, each of their hits deals extra Frost damage over {b:PERMAFROST_TIME} sec: a share of the hit equal to {b%:PERMAFROST_CRIT_FACTOR}% of your critical strike chance."
+color = Color(0.5, 0.8, 1, 1)
+rarity = 2
+unlock_level = 10
+trigger = 6

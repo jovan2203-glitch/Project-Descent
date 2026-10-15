@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"unravel"
+display_name = "Unravel"
+description = "Pulls the target's weave apart, dealing {hit} Arcane damage, and takes {b:UNRAVEL_SECONDS} sec off the remaining cooldown of your other Arcane spells. Interrupts are not affected."
+tags = PackedStringArray("Arcane", "Spell", "Projectile")
+cast_type = 1
+cast_time = 2.0
+cooldown = 0.0
+requires_target = true
+resource_type = 1
+resource_cost = 1
+damage = 1.1
+cast_range = 30.0
+damage_type = &"arcane"

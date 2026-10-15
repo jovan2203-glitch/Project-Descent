@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"bottled_lightning"
+display_name = "Rune of Bottled Lightning"
+description = "Taking your Energy back out of {n:capacitor} makes your next {n:discharge} within {b:BOTTLED_LIGHTNING_TIME} sec instant."
+color = Color(0.6, 0.75, 1, 1)
+rarity = 1
+max_equipped = 1
+unlock_level = 28
+trigger = 6

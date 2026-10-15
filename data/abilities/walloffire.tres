@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"walloffire"
+display_name = "Wall of Fire"
+description = "Raises a wall of fire {width} m wide for {b:FIRE_WALL_TIME} sec, across your target if you have one, otherwise {b:FIRE_WALL_DISTANCE} m in front of you. Enemies standing in the flames take {hit} Fire damage every {b:FIRE_WALL_TICK} sec."
+tags = PackedStringArray("Fire", "Spell", "AoE")
+cast_type = 1
+cast_time = 1.5
+cooldown = 20.0
+requires_target = false
+resource_type = 1
+resource_cost = 4
+damage = 0.25
+cast_range = 30.0
+radius = 4.0
+tick_interval = 0.5
+damage_type = &"fire"

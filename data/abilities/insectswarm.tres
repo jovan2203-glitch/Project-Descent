@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1_s")
 id = &"insectswarm"
-display_name = "Insect Swarm"
-description = "A stinging swarm: {hit} nature damage now, and the target is Poisoned for {dot} nature damage per second for 5 s."
+display_name = "Stinging Cloud"
+description = "Sends a stinging cloud of insects at the target, dealing {hit} Nature damage and Poisoning it for {dot} Nature damage {fx_every} for {fx_time} sec."
 tags = PackedStringArray("Nature", "Spell", "DoT")
 cast_type = 0
 cast_time = 0.0
@@ -15,7 +15,7 @@ cooldown = 8.0
 requires_target = true
 resource_type = 1
 resource_cost = 2
-damage = 1
+damage = 0.4
 cast_range = 30.0
 on_hit_effect = ExtResource("2_fx")
 damage_type = &"nature"

@@ -13,6 +13,11 @@ var camera: Camera3D
 var base_offset: Vector3
 var zoom: float = 1.0
 var target_zoom: float = 1.0
+## How fast the rig follows the target's HEIGHT (ramps, lower floors). The rig
+## never turns or tilts: the camera keeps the angle it was given on every floor.
+@export var height_smoothing: float = 12.0
+var _height_offset := 0.0   # rig height minus target height, as placed in the scene
+var _has_height := false
 
 func _ready() -> void:
 	if target_path != NodePath():
@@ -39,7 +44,25 @@ func _process(delta: float) -> void:
 	if target:
 		global_position.x = target.global_position.x
 		global_position.z = target.global_position.z
+		# Follow the target down ramps and onto lower floors. Without this the rig
+		# stayed at the height of the first floor, so on a ramp the character slid
+		# out of the centre of the view and the camera seemed to change its angle.
+		if not _has_height:
+			_has_height = true
+			_height_offset = follow_offset(global_position.y, target.global_position.y)
+		global_position.y = follow_height(global_position.y, target.global_position.y + _height_offset,
+			height_smoothing, delta)
 
 	if camera:
 		zoom = lerpf(zoom, target_zoom, 1.0 - exp(-zoom_smoothing * delta))
 		camera.position = base_offset * zoom
+
+## Rig height minus target height when the level starts (the rig keeps it).
+static func follow_offset(rig_y: float, target_y: float) -> float:
+	return rig_y - target_y
+
+## The rig's next height: eased toward `wanted` (a big jump, like a teleport, snaps).
+static func follow_height(current: float, wanted: float, smoothing: float, delta: float) -> float:
+	if absf(wanted - current) > 6.0:
+		return wanted
+	return lerpf(current, wanted, 1.0 - exp(-smoothing * delta))

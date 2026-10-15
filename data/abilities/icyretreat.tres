@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"icyretreat"
+display_name = "Icy Retreat"
+description = "Leap up to {b:ICY_RETREAT_DISTANCE} m backward, stopping short of walls. The ground you left stays iced over for {b:ICY_RETREAT_TIME} sec, Chilling enemies within {radius} m of it. Resets the cooldown of {n:frostarrow}."
+tags = PackedStringArray("Ability", "Frost", "Movement")
+cast_type = 0
+cast_time = 0.0
+cooldown = 15.0
+requires_target = false
+weapon_requirement = 2
+resource_type = 2
+resource_cost = 15
+damage = 0
+weapon_damage_multiplier = 0.0
+radius = 4.0
+damage_type = &"frost"

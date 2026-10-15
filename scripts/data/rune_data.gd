@@ -22,6 +22,8 @@ enum Trigger {
 	ON_DAMAGE_TAKEN,   ## the player takes damage
 	ON_LOW_HEALTH,     ## player health falls to/below threshold (fraction 0-1)
 	PERIODIC,          ## every `threshold` seconds
+	PASSIVE,           ## never fires: always on while equipped (e.g. threat_bonus_pct, or
+	                   ## a rule change the game code checks with RuneListener.has_rune(id))
 }
 enum ThresholdMode {
 	CHANCE,            ## threshold = probability 0-1 per trigger
@@ -93,7 +95,8 @@ enum StatusTarget {
 ## For INSTANT_CAST.
 @export var cast_ability: AbilityData
 ## For BONUS_DAMAGE / HEAL / AOE_DAMAGE.
-@export var effect_amount: int = 1
+## Coefficient: 1.0 = a standard hit's worth of damage / healing (Stats.level_hit).
+@export var effect_amount: float = 1.0
 ## For BONUS_DAMAGE / AOE_DAMAGE: damage type of the hit (\"\" = physical).
 @export var damage_type: StringName = &""
 ## For BONUS_DAMAGE / AOE_DAMAGE: tags the hit carries (lets runes / talents react,
@@ -105,6 +108,10 @@ enum StatusTarget {
 @export var status_effect: Resource
 @export var status_target: StatusTarget = StatusTarget.SELF
 
+@export_group("Passive")
+## PASSIVE runes: % more threat from your damage (of `required_damage_types`, empty = any).
+@export var threat_bonus_pct: float = 0.0
+
 func applies_to_tags(tags: PackedStringArray) -> bool:
 	for t in required_tags:
 		if not tags.has(t):
@@ -112,7 +119,25 @@ func applies_to_tags(tags: PackedStringArray) -> bool:
 	return true
 
 func applies_to_ability(ability_id: String) -> bool:
-	return required_abilities.is_empty() or required_abilities.has(ability_id)
+	if required_abilities.is_empty() or required_abilities.has(ability_id):
+		return true
+	# Abilities that count as another one (Frostfire Bolt is a Frost Bolt and a Firebolt).
+	for base in load("res://scripts/abilities.gd").COUNTS_AS.get(ability_id, []):
+		if required_abilities.has(str(base)):
+			return true
+	return false
 
-func applies_to_damage_type(damage_type: String) -> bool:
-	return required_damage_types.is_empty() or required_damage_types.has(damage_type)
+const SCHOOL_TAGS := ["Frost", "Fire", "Lightning", "Arcane", "Shadow", "Nature", "Holy", "Physical"]
+
+## Does this rune only react to one school (a school tag or a damage type)?
+## Such a rune also sees the second half of a hit split over two schools.
+func is_school_specific() -> bool:
+	if not required_damage_types.is_empty():
+		return true
+	for t in required_tags:
+		if SCHOOL_TAGS.has(str(t)):
+			return true
+	return false
+
+func applies_to_damage_type(dtype: String) -> bool:
+	return required_damage_types.is_empty() or required_damage_types.has(dtype)

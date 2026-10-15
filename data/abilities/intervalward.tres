@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"intervalward"
+display_name = "Interval Ward"
+description = "Shields you for {heal} damage for {b:INTERVAL_WARD_TIME} sec. While the shield holds, the cooldowns of your Arcane spells recover {b:INTERVAL_WARD_RATE_PCT}% faster (interrupts are not affected). If the shield is broken early, the time it had left is taken off this spell's cooldown."
+tags = PackedStringArray("Arcane", "Spell")
+cast_type = 0
+cast_time = 0.0
+cooldown = 20.0
+requires_target = false
+resource_type = 1
+resource_cost = 2
+damage = 0.0
+cast_range = 0.0
+damage_type = &"arcane"

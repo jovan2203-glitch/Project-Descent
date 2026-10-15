@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"stoneguard"
+display_name = "Stoneguard"
+description = "Slams the ground, dealing {hit} Physical damage to all enemies within {radius} m with {threat}x threat, and reduces your damage taken by {e:stoneguard.pct}% for {e:stoneguard.time} sec."
+tags = PackedStringArray("Spell", "Physical", "AoE", "Tank")
+cast_type = 0
+cast_time = 0.0
+cooldown = 10.0
+requires_target = false
+damage = 0.3
+radius = 5.0
+threat_multiplier = 5.0
+damage_type = &"physical"

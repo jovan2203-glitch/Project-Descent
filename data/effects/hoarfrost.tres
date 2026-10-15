@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"hoarfrost"
+display_name = "Hoarfrost"
+description = "Takes Frost damage {every}. When it runs out, the frost bursts for heavy Frost damage."
+color = Color(0.7, 0.92, 1, 1)
+is_debuff = true
+tags = PackedStringArray("Frost", "DoT")
+duration = 10.0
+stack_mode = 0
+max_stacks = 1
+tick_damage = 0.1
+tick_interval = 1.0
+damage_type = &"frost"
+expire_damage = 2.5

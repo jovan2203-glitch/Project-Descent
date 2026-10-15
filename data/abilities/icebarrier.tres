@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_s")
 id = &"icebarrier"
-display_name = "Ice Barrier"
-description = "Encase yourself in ice: +3 Armor for 8 s."
+display_name = "Glacial Plate"
+description = "Encases you in ice, increasing your Armor by {barrier_armor} for {b:ICE_BARRIER_TIME} sec."
 tags = PackedStringArray("Frost", "Spell", "Defensive")
 cast_type = 0
 cast_time = 0.0

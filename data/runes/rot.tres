@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"rot"
+display_name = "Rune of Invitation"
+description = "Your spells that are not Shadow spells add {b:ROT_RUNE_PCT}% of the direct damage they deal to your Breach under the target while it is open. Each one of these runes you have equipped adds that much."
+color = Color(0.66, 0.4, 0.92, 1)
+rarity = 1
+max_equipped = 3
+unlock_level = 14
+trigger = 6

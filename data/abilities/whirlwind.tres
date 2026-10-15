@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_s")
 id = &"whirlwind"
-display_name = "Whirlwind"
-description = "Spin with your weapon, hitting every enemy within 2.2 m for {hit} physical damage."
+display_name = "Reaping Spin"
+description = "Spins with your weapon like a reaper, dealing {hit} Physical damage to all enemies within {radius} m."
 tags = PackedStringArray("Ability", "Physical", "Melee", "AoE")
 cast_type = 0
 cast_time = 0.0
@@ -14,7 +14,7 @@ cooldown = 4.0
 requires_target = false
 weapon_requirement = 1
 resource_type = 3
-resource_cost = 4
+resource_cost = 40
 damage = 0
 weapon_damage_multiplier = 1.0
 radius = 2.2

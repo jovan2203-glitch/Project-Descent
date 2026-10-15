@@ -7,7 +7,7 @@
 script = ExtResource("1_s")
 id = &"frost"
 display_name = "Rune of Frost"
-description = "Every 3rd Frost hit instantly fires a free Frost Bolt at the target."
+description = "Every {nth} Frost hit instantly fires a free {n:frostbolt} at the target."
 color = Color(0.45, 0.85, 1, 1)
 rarity = 1
 required_tags = PackedStringArray("Frost")

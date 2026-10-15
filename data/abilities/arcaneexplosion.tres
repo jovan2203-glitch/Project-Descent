@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_s")
 id = &"arcaneexplosion"
-display_name = "Arcane Explosion"
-description = "A burst of raw magic: {hit} arcane damage to every enemy within 2.5 m."
+display_name = "Aether Burst"
+description = "Releases a burst of aether, dealing {hit} Arcane damage to all enemies within {radius} m. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, that damage is split evenly between all of them."
 tags = PackedStringArray("Arcane", "Spell", "AoE")
 cast_type = 0
 cast_time = 0.0
@@ -14,6 +14,6 @@ cooldown = 5.0
 requires_target = false
 resource_type = 1
 resource_cost = 3
-damage = 2
+damage = 1.2
 radius = 2.5
 damage_type = &"arcane"

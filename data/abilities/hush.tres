@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"hush"
+display_name = "Hush"
+description = "Hushes the target, dealing {hit} Shadow damage, interrupting the spell it is casting and preventing it from casting again for {lockout} sec. If it interrupts a cast while your Breach under the target is open, {hush_add} is added to it. Does not trigger the global cooldown."
+tags = PackedStringArray("Shadow", "Spell", "Interrupt")
+cast_type = 0
+cast_time = 0.0
+cooldown = 20.0
+requires_target = true
+resource_type = 1
+resource_cost = 2
+damage = 0.3
+cast_range = 25.0
+damage_type = &"shadow"

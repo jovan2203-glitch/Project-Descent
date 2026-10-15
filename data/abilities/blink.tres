@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_s")
 id = &"blink"
-display_name = "Blink"
-description = "Teleport up to 6 m forward (stops at walls)."
+display_name = "Phase Step"
+description = "Steps you out of phase and up to {blink_dist} m forward. Stops short of walls."
 tags = PackedStringArray("Arcane", "Spell", "Movement")
 cast_type = 0
 cast_time = 0.0

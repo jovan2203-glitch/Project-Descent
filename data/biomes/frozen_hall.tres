@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="BiomeKit" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/biome_kit.gd" id="1_kit"]
+
+[resource]
+script = ExtResource("1_kit")
+name_key = "biome_frozen_hall"
+wall_dark = Color(0.2, 0.26, 0.33, 1)
+wall_light = Color(0.62, 0.74, 0.85, 1)
+top_color = Color(0.1, 0.13, 0.17, 1)
+corner_piece = "column"
+doorway_piece = "arch"
+piece_color = Color(0.55, 0.68, 0.8, 1)
+floor_pattern = "ice"
+floor_dark = Color(0.35, 0.45, 0.55, 1)
+floor_light = Color(0.7, 0.82, 0.92, 1)
+background = Color(0.02, 0.03, 0.05, 1)
+ambient = Color(0.45, 0.55, 0.75, 1)
+ambient_energy = 0.45
+fill_color = Color(0.55, 0.75, 1, 1)
+fill_energy = 0.4
+boss_fill_color = Color(0.4, 0.7, 1, 1)
+torches = true
+torch_color = Color(0.45, 0.75, 1, 1)
+fog = true
+fog_color = Color(0.3, 0.4, 0.55, 1)
+fog_density = 0.008
+props = Array[String](["ice_spike", "crystal", "pillar", "rubble", "brazier"])
+prop_density = 5.0
+glow_color = Color(0.5, 0.85, 1, 1)
+music_tag = "frozen"
+wall_style = "ice"
+chunk_density = 0.75
+big_props = Array[String](["ice_block", "statue", "bone_pile", "boulder"])
+wall_decor = Array[String](["icicles", "chains", "banner"])
+decal_colors = Array[Color]([Color(0.92, 0.96, 1, 0.5), Color(0.55, 0.75, 0.95, 0.35), Color(0.8, 0.88, 0.95, 0.4)])
+centerpiece = "ice_statues"

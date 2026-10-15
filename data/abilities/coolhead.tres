@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"coolhead"
+display_name = "Cool Head"
+description = "For {b:COOL_HEAD_TIME} sec your Fire spells and abilities cannot critically strike, and each one that deals damage grants a stack of Concentrated Fire. When {n:coolhead} ends, your next Fire spells and abilities with a cast time are instant, one cast per stack, for {b:CONCENTRATED_FIRE_WINDOW} sec."
+tags = PackedStringArray("Fire", "Spell")
+cast_type = 0
+cast_time = 0.0
+cooldown = 120.0
+requires_target = false
+resource_type = 1
+resource_cost = 0
+damage = 0.0
+cast_range = 0.0
+damage_type = &"fire"

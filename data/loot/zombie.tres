@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="LootTableData" load_steps=26 format=3]
+[gd_resource type="Resource" script_class="LootTableData" load_steps=27 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/loot_table_data.gd" id="1_table"]
 [ext_resource type="Script" path="res://scripts/data/loot_entry_data.gd" id="2_entry"]
@@ -68,6 +68,11 @@ script = ExtResource("2_entry")
 item_id = &"staff"
 weight = 1.0
 
+[sub_resource type="Resource" id="P_greatsword"]
+script = ExtResource("2_entry")
+item_id = &"greatsword"
+weight = 1.0
+
 [sub_resource type="Resource" id="P_dagger"]
 script = ExtResource("2_entry")
 item_id = &"dagger"
@@ -121,7 +126,7 @@ weight = 1.0
 [resource]
 script = ExtResource("1_table")
 chance_drops = Array[Resource]([SubResource("Entry_helmet"), SubResource("Entry_chest"), SubResource("Entry_bow"), SubResource("Entry_sword")])
-pool = Array[Resource]([SubResource("P_amulet"), SubResource("P_pauldrons"), SubResource("P_cloak"), SubResource("P_gloves"), SubResource("P_leggings"), SubResource("P_boots"), SubResource("P_ring_focus"), SubResource("P_ring_might"), SubResource("P_staff"), SubResource("P_dagger"), SubResource("P_venom_fang"), SubResource("P_shield"), SubResource("P_storm_idol"), SubResource("P_phoenix_ember"), SubResource("P_berserker_tooth"), SubResource("P_arcane_clockwork"), SubResource("P_frost_shard"), SubResource("P_sand_hourglass"), SubResource("P_sacred_reliquary")])
+pool = Array[Resource]([SubResource("P_amulet"), SubResource("P_pauldrons"), SubResource("P_cloak"), SubResource("P_gloves"), SubResource("P_leggings"), SubResource("P_boots"), SubResource("P_ring_focus"), SubResource("P_ring_might"), SubResource("P_staff"), SubResource("P_greatsword"), SubResource("P_dagger"), SubResource("P_venom_fang"), SubResource("P_shield"), SubResource("P_storm_idol"), SubResource("P_phoenix_ember"), SubResource("P_berserker_tooth"), SubResource("P_arcane_clockwork"), SubResource("P_frost_shard"), SubResource("P_sand_hourglass"), SubResource("P_sacred_reliquary")])
 pool_rolls = 1
 nothing_weight = 12.0
 rarity_weights = PackedFloat32Array(70, 22, 7, 1)

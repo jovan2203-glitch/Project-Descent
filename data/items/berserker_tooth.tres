@@ -7,14 +7,14 @@
 script = ExtResource("2_r")
 id = &"bloodfrenzy"
 display_name = "Bloodfrenzy"
-description = "Killing an enemy sends you into a Bloodfrenzy: +{buff}% Haste for 8 s, stacking up to 3 times."
+description = "Killing an enemy sends you into a Bloodfrenzy: +{buff}% Haste for {time} sec, stacking up to {stacks} times."
 color = Color(0.9, 0.25, 0.2, 1)
 trigger = 2
 threshold_mode = 0
 threshold = 1.0
 effect = 0
 buff_stat = &"haste"
-buff_amount = 8.0
+buff_amount = 4.55
 buff_duration = 8.0
 max_stacks = 3
 

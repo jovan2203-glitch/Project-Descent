@@ -5,7 +5,7 @@ extends RefCounted
 #   var choices = DraftRules.make_choices(level, learned, equipped_cards, rng)
 #
 # A choice is a Dictionary:
-#   {"type": "ability", "id": "icelance", "guaranteed": bool, "card": card_id}
+#   {"type": "ability", "id": "frostnova", "guaranteed": bool, "card": card_id}
 #   {"type": "boon", "id": "vitality", "stat": "max_health", "amount": 1.0, ...}
 #
 # Drafts are offered every PlayerData.DRAFT_EVERY levels (2, 4, 6...).
@@ -20,13 +20,14 @@ const SkillCards = preload("res://scripts/skill_cards.gd")
 
 const CHOICES := 3
 const BOONS := [
-	{"id": "vitality", "name": "Vitality", "stat": "constitution", "amount": 1.0, "desc": "+1 Constitution"},
-	{"id": "might", "name": "Might", "stat": "strength", "amount": 1.0, "desc": "+1 Strength"},
-	{"id": "insight", "name": "Insight", "stat": "intellect", "amount": 1.0, "desc": "+1 Intellect"},
-	{"id": "finesse", "name": "Finesse", "stat": "agility", "amount": 1.0, "desc": "+1 Agility"},
+	# Flat boons are in flat units (x Stats.flat_unit(level) = 1.75 per level each).
+	{"id": "vitality", "name": "Vitality", "stat": "constitution", "amount": 2.0, "desc": "+3.5 Constitution per level"},
+	{"id": "might", "name": "Might", "stat": "strength", "amount": 2.0, "desc": "+3.5 Strength per level"},
+	{"id": "insight", "name": "Insight", "stat": "intellect", "amount": 2.0, "desc": "+3.5 Intellect per level"},
+	{"id": "finesse", "name": "Finesse", "stat": "agility", "amount": 2.0, "desc": "+3.5 Agility per level"},
 	{"id": "precision", "name": "Precision", "stat": "crit_chance", "amount": 2.0, "desc": "+2% Critical Strike"},
-	{"id": "fortitude", "name": "Fortitude", "stat": "armor", "amount": 1.0, "desc": "+1 Armor"},
-	{"id": "haste", "name": "Haste", "stat": "haste", "amount": 3.0, "desc": "+3% Haste"},
+	{"id": "fortitude", "name": "Fortitude", "stat": "armor", "amount": 2.0, "desc": "+3.5 Armor per level"},
+	{"id": "haste", "name": "Haste", "stat": "haste", "amount": 2.1, "desc": "+2.1% Haste"},
 	{"id": "fleetness", "name": "Fleetness", "stat": "move_speed", "amount": 3.0, "desc": "+3% Move Speed"},
 ]
 
@@ -53,7 +54,7 @@ static func make_choices(level: int, learned: Array, equipped_cards: Array,
 			taken[aid] = true
 			if choices.size() >= CHOICES:
 				return choices
-	# 2. Random unlearned abilities from the pool
+	# 2. Random unlearned abilities from the pool (Abilities.DRAFT_POOL)
 	var pool: Array = []
 	for aid in Abilities.DRAFT_POOL:
 		if not cards_only and not learned.has(aid) and not taken.has(aid):

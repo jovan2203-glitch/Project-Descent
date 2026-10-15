@@ -150,8 +150,10 @@ func _on_damage(info_obj: RefCounted) -> void:
 	var src_name := _who(src)
 	var what := _ability(str(info_obj.ability_id))
 	var to_player := tgt != null and is_instance_valid(tgt) and tgt.is_in_group("player")
-	if info_obj.blocked:
-		event("%s blocked %s's %s" % [tgt_name, src_name, what], C_STATUS)
+	if info_obj.avoided():
+		var verb: String = {"dodge": "dodged", "parry": "parried",
+			"reflection": "let a Reflection take"}.get(info_obj.avoid_kind(), "blocked")
+		event("%s %s %s's %s" % [tgt_name, verb, src_name, what], C_STATUS)
 		return
 	if int(info_obj.amount) <= 0:
 		return
@@ -193,11 +195,5 @@ func _who(n: Node) -> String:
 func _ability(id: String) -> String:
 	if id == "enemy_melee":
 		return "attack"
-	if id.begins_with("rune_"):
-		return Runes.rune_name(id.trim_prefix("rune_"))
-	if id.begins_with("item_"):   # item Equip: / Use: effect hits
-		return id.trim_prefix("item_").capitalize()
-	if id.begins_with("dot_"):
-		return id.trim_prefix("dot_").capitalize()
-	var n := Abilities.ability_name(id)
-	return n if n != "" else id.capitalize()
+	# Same names as the Details meter (runes, item effects, talents, DoT ticks, bursts).
+	return preload("res://scripts/core/details.gd").spell_name(id)

@@ -74,8 +74,32 @@ func _refresh_layout() -> void:
 		if poly.size() >= 3:
 			polygons.append(poly)
 	bounds = Rect2(mn, mx - mn).grow(REVEAL_RADIUS)
+	_build_floor_mesh()
 	_build_fog()
 	layout_changed.emit()
+
+## All floor polygons as one 2D mesh (navmesh polygons are convex: fan them).
+var floor_mesh: ArrayMesh
+
+func _build_floor_mesh() -> void:
+	var verts := PackedVector2Array()
+	for poly in polygons:
+		for k in range(1, poly.size() - 1):
+			verts.append(poly[0])
+			verts.append(poly[k])
+			verts.append(poly[k + 1])
+	floor_mesh = null
+	if verts.is_empty():
+		return
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	var cols := PackedColorArray()
+	cols.resize(verts.size())
+	cols.fill(Color.WHITE)
+	arrays[Mesh.ARRAY_COLOR] = cols
+	floor_mesh = ArrayMesh.new()
+	floor_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 
 func _build_fog() -> void:
 	var w := maxi(int(ceil(bounds.size.x / CELL)), 1)

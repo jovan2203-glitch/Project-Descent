@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"weakened_soul"
+display_name = "Frostworn"
+description = "Can't be targeted by {n:rimeshell} (or anything else that applies {ne:weakened_soul})."
+color = Color(0.75, 0.7, 0.85, 1)
+is_debuff = true
+tags = PackedStringArray("Lockout")
+duration = 15.0
+stack_mode = 0
+max_stacks = 1

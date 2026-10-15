@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"everlasting_rime"
+display_name = "Rune of Everlasting Rime"
+description = "Your Rime Shells have no cooldown and absorb {b:EVERLASTING_RIME_MULT} times as much, but no longer deal damage when they break and can't be placed on enemies. {n:shatteringwave} can still shatter them."
+color = Color(0.8, 0.95, 1, 1)
+rarity = 2
+unlock_level = 10
+trigger = 6

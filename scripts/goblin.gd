@@ -3,6 +3,7 @@ extends "res://scripts/enemy.gd"
 # Goblin: small, fast and fragile. Quick jabs for low damage - dangerous in
 # groups, easy to pick off alone. Everything else (AI, pathing, threat,
 # animation, elite/boss ranks, loot, networking) comes from enemy.gd.
+# Variants: goblin_archer.gd, goblin_wizard.gd.
 #
 # Look: a procedural low-poly goblin on a Mixamo rig (scenes/models/
 # goblin_model.tscn), at goblin height (~1.25 m). Swap that model scene for
@@ -18,7 +19,7 @@ func _init() -> void:
 	attack_cooldown = 0.7    # quick jabs (zombie: 1.0)
 	attack_range = 0.9
 	aggro_radius = 6.5       # sharper senses than a zombie (5.0)
-	leash_radius = 16.0
+	leash_radius = 32.0
 	turn_speed = 14.0
 	xp_reward = 8
 	health_bar_height = 0.95

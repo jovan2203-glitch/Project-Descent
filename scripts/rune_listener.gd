@@ -20,7 +20,7 @@ const Runes = preload("res://scripts/runes.gd")
 const Abilities = preload("res://scripts/abilities.gd")
 
 # RuneData enums (mirrored so this works even before class_names are registered).
-enum Trigger { ON_HIT, ON_CAST, ON_KILL, ON_DAMAGE_TAKEN, ON_LOW_HEALTH, PERIODIC }
+enum Trigger { ON_HIT, ON_CAST, ON_KILL, ON_DAMAGE_TAKEN, ON_LOW_HEALTH, PERIODIC, PASSIVE }
 enum ThresholdMode { CHANCE, COUNT, CONSECUTIVE, HEALTH_FRACTION, SECONDS }
 enum Effect { STAT_BUFF, INSTANT_CAST, BONUS_DAMAGE, HEAL, APPLY_STATUS, AOE_DAMAGE }
 enum StatusTarget { SELF, TARGET, PARTY }
@@ -79,11 +79,40 @@ func _entry(res: Resource, scale: float, item_name: String) -> Dictionary:
 func registered_runes() -> Array:
 	return active.values().map(func(e): return e["res"].id)
 
+## Is rune `id` equipped and active (within the rune limits)? Rule-changing
+## PASSIVE runes (Permafrost, Everlasting Rime...) are checked with this.
+func has_rune(id: String) -> bool:
+	for key in active:
+		if not str(key).contains(":item:") and str(active[key]["res"].id) == id:
+			return true
+	return false
+
+## How many copies of rune `id` are equipped and active (within the rune limits):
+## for a PASSIVE rune that counts for each copy (Rune of Rot).
+func rune_count(id: String) -> int:
+	var n := 0
+	for key in active:
+		if not str(key).contains(":item:") and str(active[key]["res"].id) == id:
+			n += 1
+	return n
+
+## PASSIVE threat runes (Menace): total % extra threat for damage of `damage_type`.
+func passive_threat_pct(damage_type: String) -> float:
+	var total := 0.0
+	for e in active.values():
+		var res: Resource = e["res"]
+		if int(res.trigger) != Trigger.PASSIVE:
+			continue
+		var pct: Variant = res.get("threat_bonus_pct")
+		if pct != null and float(pct) != 0.0 and res.applies_to_damage_type(damage_type):
+			total += float(pct)
+	return total
+
 # --- 2. Events -----------------------------------------------------------------------
 
-# Every damage event; only hits dealt by THIS player (not blocked) count.
+# Every damage event; only hits dealt by THIS player (not dodged, parried or blocked) count.
 func _on_damage_dealt(info: RefCounted) -> void:
-	if info.source != player or info.blocked:
+	if info.source != player or info.avoided():
 		return
 	var tags: PackedStringArray = info.tags if not info.tags.is_empty() else Abilities.tags_of(str(info.ability_id))
 	var target: Node = info.target
@@ -96,6 +125,8 @@ func _on_damage_dealt(info: RefCounted) -> void:
 			continue
 		if info.is_proc and not res.include_procs:
 			continue   # proc hits (runes, chain jumps, splash) only feed runes that opt in
+		if int(info.part) == 2 and not res.is_school_specific():
+			continue   # second half of a split hit (Frostfire Bolt): only its own school's runes see it
 		if not res.applies_to_tags(tags) or not res.applies_to_damage_type(str(info.damage_type)) \
 				or not res.applies_to_ability(str(info.ability_id)):
 			continue   # non-matching hits neither count nor break a streak
@@ -114,7 +145,10 @@ func _on_cast_finished(ability_id: String) -> void:
 				and res.applies_to_ability(ability_id) and _condition_met(e):
 			_fire(e, _current_target())
 
-func _on_enemy_died(_enemy: Node) -> void:
+## On-kill runes (Swiftness...) only fire on YOUR killing blows, not a party member's.
+func _on_enemy_died(enemy: Node) -> void:
+	if enemy and is_instance_valid(enemy) and enemy.has_method("killed_by_me") and not enemy.killed_by_me():
+		return
 	for e in active.values():
 		if e["res"].trigger == Trigger.ON_KILL and _condition_met(e):
 			_fire(e, _current_target())
@@ -186,7 +220,7 @@ func _fire(e: Dictionary, target: Node) -> void:
 ## Run a RuneData effect. `scale` multiplies amounts (item level scaling).
 ## Returns false if nothing happened (e.g. a damage effect with no target).
 func apply_effect(res: Resource, target: Node, scale: float = 1.0) -> bool:
-	var amount := maxi(int(round(float(res.effect_amount) * scale)), 1)
+	var amount := float(res.effect_amount) * scale   # coefficient (1.0 = a standard hit)
 	# Hit ids name the source in the combat log: "rune_frost", "item_storm_idol".
 	var hit_id := ("rune_" if Runes.PATHS.has(str(res.id)) else "item_") + str(res.id)
 	match int(res.effect):
@@ -202,16 +236,16 @@ func apply_effect(res: Resource, target: Node, scale: float = 1.0) -> bool:
 				return false
 			player.deal_damage(target, amount, hit_id, true, str(res.damage_type), res.effect_tags)
 			if res.status_effect and int(res.status_target) == StatusTarget.TARGET:
-				_apply_to(target, res.status_effect)
+				_apply_to(target, res.status_effect, hit_id)
 		Effect.HEAL:
-			player.heal(amount)
+			player.heal(amount, hit_id)   # named after the rune / item effect in logs and Details
 		Effect.APPLY_STATUS:
 			if res.status_effect == null:
 				return false
 			elif int(res.status_target) == StatusTarget.TARGET:
 				if target == null:
 					return false
-				_apply_to(target, res.status_effect)
+				_apply_to(target, res.status_effect, hit_id)
 			else:
 				_apply_to(player, res.status_effect)
 				if int(res.status_target) == StatusTarget.PARTY:
@@ -223,15 +257,14 @@ func apply_effect(res: Resource, target: Node, scale: float = 1.0) -> bool:
 			for enemy in player.enemies_within(r):
 				player.deal_damage(enemy, amount, hit_id, true, str(res.damage_type), res.effect_tags)
 				if res.status_effect:
-					_apply_to(enemy, res.status_effect)
+					_apply_to(enemy, res.status_effect, hit_id)
 			player.ring_effect(r, res.color)
 	return true
 
-func _apply_to(who: Node, eff: Resource) -> void:
+## (Through CombatSystem: in a party an enemy's effects live on the host.)
+func _apply_to(who: Node, eff: Resource, hit_id: String = "") -> void:
 	if who and is_instance_valid(who):
-		var st: Node = who.get_node_or_null("Status")
-		if st:
-			st.apply(eff, player)
+		get_node("/root/CombatSystem").apply_effect(player, who, eff, hit_id)
 
 func _current_target() -> Node:
 	if player.has_method("has_valid_target") and player.has_valid_target():

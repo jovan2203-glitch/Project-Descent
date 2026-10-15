@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"chargededge"
+display_name = "Charged Edge"
+description = "Strikes with a charged edge, dealing {hit} Lightning damage."
+tags = PackedStringArray("Ability", "Lightning", "Melee")
+cast_type = 0
+cast_time = 0.0
+cooldown = 4.0
+requires_target = true
+weapon_requirement = 1
+resource_type = 2
+resource_cost = 0
+resource_generated = 20
+damage = 0
+weapon_damage_multiplier = 1.2
+cast_range = 0.0
+radius = 0.0
+damage_type = &"lightning"

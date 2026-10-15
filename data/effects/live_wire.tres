@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"live_wire"
+display_name = "Live Wire"
+description = "Tethered by a live current: takes Lightning damage {every}."
+color = Color(0.45, 0.55, 1, 1)
+is_debuff = true
+tags = PackedStringArray("Lightning", "DoT")
+duration = 10.0
+stack_mode = 0
+max_stacks = 1
+tick_damage = 0.2
+tick_interval = 1.0
+damage_type = &"lightning"

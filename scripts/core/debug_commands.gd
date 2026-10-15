@@ -5,10 +5,11 @@ extends RefCounted
 
 const Items = preload("res://scripts/items.gd")
 const ItemDB = preload("res://scripts/core/item_db.gd")
+const Balance = preload("res://scripts/balance.gd")
 
 const HELP := [
 	"/help — this list",
-	"/give <item> [rarity 0-3] [item level] — items: helmet, chestplate, sword, bow",
+	"/give <item> [rarity] [item level] — e.g. /give storm idol epic 30  (type /give alone for the item list)",
 	"/level <n> — set your level",
 	"/xp <n> — gain experience",
 	"/god — toggle god mode (no damage taken)",
@@ -18,7 +19,8 @@ const HELP := [
 	"/fps — toggle the FPS / stats overlay (also F3)",
 	"/pool — object pool statistics",
 	"/draft — open a level-up draft now",
-	"/learn <ability> — learn a draftable ability (e.g. icelance)",
+	"/learn <ability> — learn a draftable ability (e.g. rimeshell)",
+	"/learn all (or /learnall) — learn every ability",
 	"/descend — jump to the next dungeon floor",
 	"/card <id|all|random> — add Skill Card(s) to your collection",
 	"/die — die now (applies the death penalty)",
@@ -42,15 +44,7 @@ static func run(tree: SceneTree, line: String) -> Array:
 		"help", "?":
 			return HELP
 		"give":
-			if args.is_empty() or not Items.PATHS.has(args[0]):
-				return ["Usage: /give <%s> [rarity 0-3] [item level]" % "|".join(Items.ALL)]
-			var rarity := clampi(int(args[1]), 0, 3) if args.size() > 1 else 0
-			var ilvl := maxi(int(args[2]), 1) if args.size() > 2 else maxi(int(pd.level), 1)
-			var id := ItemDB.create_rolled(args[0], ilvl, rarity)
-			if not pd.add_item(id):
-				ItemDB.destroy(id)
-				return ["Inventory full"]
-			return ["Gave %s (%s, item level %d)" % [Items.item_name(id), ItemDB.RARITY_NAMES[rarity], ilvl]]
+			return _give(tree, pd, args)
 		"level":
 			if args.is_empty():
 				return ["Usage: /level <1-%d>" % pd.MAX_LEVEL]
@@ -71,7 +65,7 @@ static func run(tree: SceneTree, line: String) -> Array:
 		"heal":
 			if player == null:
 				return ["No player in this scene"]
-			player.receive_heal(9999)
+			player.receive_heal(9999999)
 			return ["Healed to full"]
 		"killall":
 			var n := 0
@@ -96,9 +90,17 @@ static func run(tree: SceneTree, line: String) -> Array:
 		"draft":
 			pd.pending_drafts.append(maxi(int(pd.level), 2))
 			return ["Draft queued (opens in a moment)"]
-		"learn":
-			if args.is_empty() or not preload("res://scripts/abilities.gd").DRAFT_POOL.has(args[0]):
-				return ["Usage: /learn <%s>" % "|".join(preload("res://scripts/abilities.gd").DRAFT_POOL)]
+		"learn", "learnall":
+			var Abilities = preload("res://scripts/abilities.gd")
+			if cmd == "learnall" or (not args.is_empty() and args[0] == "all"):
+				var n := 0
+				for id in Abilities.DRAFT_POOL:
+					if not pd.has_ability(id):
+						pd.learn_ability(id)
+						n += 1
+				return ["Learned %d abilities — you now know all %d (open the Spellbook, P)" % [n, Abilities.DRAFT_POOL.size()]]
+			if args.is_empty() or not Abilities.DRAFT_POOL.has(args[0]):
+				return ["Usage: /learn <all|%s>" % "|".join(Abilities.DRAFT_POOL)]
 			pd.learn_ability(args[0])
 			return ["Learned %s" % args[0]]
 		"rune":
@@ -148,6 +150,8 @@ static func run(tree: SceneTree, line: String) -> Array:
 			player.god_mode = was_god
 			return ["You died"]
 		"descend":
+			if player == null:
+				return ["Only works inside a dungeon"]
 			root.get_node("GameManager").descend()
 			return ["Descending…"]
 		"pool":
@@ -159,3 +163,133 @@ static func run(tree: SceneTree, line: String) -> Array:
 				out.append("%s: created %d, reused %d, idle %d" % [key, pool.stats[key]["created"], pool.stats[key]["reused"], pool.free_count(key)])
 			return out if not out.is_empty() else ["Pool is empty"]
 	return ["Unknown command: /%s  (try /help)" % cmd]
+
+# --- /give -----------------------------------------------------------------------------
+# /give <item> [rarity] [item level]
+#   item      its name or id, or any part of either ("storm", "Storm Idol", "storm_idol")
+#   rarity    common / uncommon / rare / epic, or 0-3 (default: common)
+#   level     the item level (default: your level)
+# In a dungeon the item goes into your bag; in the main menu (where the bag is
+# not shown) it goes straight into your bank.
+
+## What `/give` alone prints: how to use it, and every item by kind.
+static func give_help() -> Array:
+	var kinds := {}   # heading -> names
+	for id in Items.ALL:
+		var d := Items.get_item(str(id))
+		var head := "Other"
+		if d.has("weapon"):
+			head = "Weapons"
+		elif str(d.get("slot", "")).begins_with("Trinket"):
+			head = "Trinkets"
+		elif str(d.get("slot", "")) != "":
+			head = "Armor and jewelry"
+		if not kinds.has(head):
+			kinds[head] = []
+		(kinds[head] as Array).append(Items.item_name(str(id)))
+	var out := [
+		"/give <item> [armor type] [rarity] [item level]",
+		"  item: its name, or part of it.  rarity: common, uncommon, rare or epic (default common).  item level: default is your level.",
+		"  armor type (armor pieces only): cloth, light, medium or heavy (default: a random one).",
+		"  Examples:  /give sword     /give storm idol epic     /give helmet rare 30     /give chestplate heavy epic 50",
+	]
+	for head in ["Weapons", "Armor and jewelry", "Trinkets", "Other"]:
+		if kinds.has(head):
+			out.append("  %s: %s" % [head, ", ".join(kinds[head])])
+	return out
+
+## Item ids that `text` could mean: an exact id or name wins, otherwise every
+## item whose id or name contains it.
+static func find_items(text: String) -> Array:
+	var want := text.strip_edges().to_lower()
+	var loose: Array = []
+	if want == "":
+		return loose
+	for id in Items.ALL:
+		var sid := str(id)
+		var name := Items.item_name(sid).to_lower()
+		if want == sid or want == name or want == sid.replace("_", " "):
+			return [sid]
+		if sid.contains(want.replace(" ", "_")) or name.contains(want):
+			loose.append(sid)
+	return loose
+
+## Split "/give" arguments into {"item": text, "rarity": 0-3, "level": n (0 = yours)}.
+## Trailing words that are a rarity or a number are options; the rest is the item.
+static func parse_give(args: Array) -> Dictionary:
+	var words: Array = []
+	for a in args:
+		words.append(str(a))
+	var rarity := -1
+	var armor_type := ItemDB.ROLL_ARMOR_TYPE
+	var numbers: Array = []
+	while not words.is_empty():
+		var last := str(words[words.size() - 1]).to_lower()
+		var named := -1
+		for i in ItemDB.RARITY_NAMES.size():
+			if str(ItemDB.RARITY_NAMES[i]).to_lower() == last:
+				named = i
+		# An armor type (cloth, light, medium, heavy), as long as it is not the whole item name.
+		var typed := -1
+		for i in Balance.ARMOR_TYPE_NAMES.size():
+			if str(Balance.ARMOR_TYPE_NAMES[i]).to_lower() == last:
+				typed = i
+		if named >= 0 and rarity < 0:
+			rarity = named
+		elif typed >= 0 and armor_type < 0 and words.size() > 1:
+			armor_type = typed
+		elif last.is_valid_int():
+			numbers.push_front(int(last))
+		else:
+			break
+		words.pop_back()
+	var level := 0
+	if numbers.size() >= 2:
+		# The old form: /give sword 3 30 = rarity 3, item level 30.
+		if rarity < 0:
+			rarity = clampi(int(numbers[0]), 0, 3)
+		level = int(numbers[numbers.size() - 1])
+	elif numbers.size() == 1:
+		# One number: 0-3 is a rarity (unless one was named), anything else a level.
+		if rarity < 0 and int(numbers[0]) <= 3:
+			rarity = clampi(int(numbers[0]), 0, 3)
+		else:
+			level = int(numbers[0])
+	var out := {"item": " ".join(words), "rarity": maxi(rarity, 0), "level": maxi(level, 0)}
+	if armor_type >= 0:
+		out["armor_type"] = armor_type   # (only when one was named: otherwise the piece rolls its own)
+	return out
+
+static func _give(tree: SceneTree, pd: Node, args: Array) -> Array:
+	if args.is_empty():
+		return give_help()
+	var want := parse_give(args)
+	var found := find_items(str(want["item"]))
+	if found.is_empty():
+		return ["No item called \"%s\". Type /give on its own to see every item." % str(want["item"])]
+	if found.size() > 1:
+		var names: Array = []
+		for id in found:
+			names.append(Items.item_name(str(id)))
+		return ["\"%s\" could be: %s. Type more of the name." % [str(want["item"]), ", ".join(names)]]
+	var rarity := int(want["rarity"])
+	var ilvl := int(want["level"]) if int(want["level"]) > 0 else maxi(int(pd.level), 1)
+	var id := ItemDB.create_rolled(str(found[0]), ilvl, rarity, "", int(want.get("armor_type", ItemDB.ROLL_ARMOR_TYPE)))
+	# In a dungeon: the bag. In the main menu: the bank (the bag isn't shown there).
+	var in_game := tree.get_first_node_in_group("player") != null
+	var where := "bag"
+	if in_game:
+		if not pd.add_item(id):
+			ItemDB.destroy(id)
+			return ["Your bag is full: nothing was given."]
+	else:
+		where = "bank"
+		var free: int = pd.bank.find("")
+		if free == -1:
+			ItemDB.destroy(id)
+			return ["Your bank is full: nothing was given."]
+		pd.bank[free] = id
+		pd.changed.emit()
+	var need := Items.required_level(id)
+	return ["Gave %s %s (item level %d) - it is in your %s.%s" % [ItemDB.RARITY_NAMES[rarity], Items.item_name(id), ilvl, where,
+		"  Needs level %d to wear." % need if need > int(pd.level) else ""]]

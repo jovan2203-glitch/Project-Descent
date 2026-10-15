@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"calldue"
+display_name = "Call Due"
+description = "The demons at your Breach under the target take all they came for at once: deals all that is left in it as Shadow damage, plus {call_due_pct}% more, and ends the Breach. This hit cannot critically strike."
+tags = PackedStringArray("Shadow", "Spell")
+cast_type = 0
+cast_time = 0.0
+cooldown = 15.0
+requires_target = true
+resource_type = 1
+resource_cost = 2
+damage = 0.0
+cast_range = 30.0
+damage_type = &"shadow"

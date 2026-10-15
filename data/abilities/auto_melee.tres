@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"auto_melee"
 display_name = "Melee Attack"
-description = "Weapon auto-attack."
+description = "Automatically attacks your target with your equipped weapon while it is in range."
 tags = PackedStringArray("Physical", "Melee", "AutoAttack")
 cast_type = 0
 requires_target = true

@@ -33,7 +33,10 @@ func _can_open() -> bool:
 	if gm == null or int(gm.state) != 1 or gm.is_loading():   # 1 = GameManager.State.PLAYING
 		return false
 	var player := get_tree().get_first_node_in_group("player")
-	return player != null and player.has_method("is_alive") and player.is_alive()
+	if player == null or not player.has_method("is_alive") or not player.is_alive():
+		return false
+	# Never mid-fight: the draft waits until combat ends.
+	return not (player.has_method("is_in_combat") and player.is_in_combat())
 
 func _process(delta: float) -> void:
 	if is_open:
@@ -121,18 +124,14 @@ func _build() -> void:
 	shade.color = Color(0, 0, 0, 0.6)
 	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(shade)
+	# Centered column that grows with the cards (tall cards push it, never clip).
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(center)
 	var v := VBoxContainer.new()
-	v.set_anchors_preset(Control.PRESET_CENTER)
-	v.anchor_left = 0.5
-	v.anchor_right = 0.5
-	v.anchor_top = 0.5
-	v.anchor_bottom = 0.5
-	v.offset_left = -380
-	v.offset_right = 380
-	v.offset_top = -210
-	v.offset_bottom = 210
-	v.add_theme_constant_override("separation", 16)
-	_root.add_child(v)
+	v.add_theme_constant_override("separation", 14)
+	center.add_child(v)
 	_title = UI.label("", 28, UI.ACCENT)
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(_title)
@@ -141,38 +140,41 @@ func _build() -> void:
 	v.add_child(sub)
 	_cards = HBoxContainer.new()
 	_cards.alignment = BoxContainer.ALIGNMENT_CENTER
-	_cards.add_theme_constant_override("separation", 18)
+	_cards.add_theme_constant_override("separation", 16)
 	v.add_child(_cards)
 
+const CARD_WIDTH := 240.0
+const CARD_MIN_HEIGHT := 300.0
+
+## A card grows to fit its text (a Button can't, so it's a clickable panel).
 func _make_card(index: int, choice: Dictionary) -> Control:
 	var is_ability: bool = choice["type"] == "ability"
-	var b := Button.new()
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(230, 300)
+	var b := PanelContainer.new()
+	b.mouse_filter = Control.MOUSE_FILTER_STOP
+	b.custom_minimum_size = Vector2(CARD_WIDTH, CARD_MIN_HEIGHT)
 	var border := UI.ACCENT if choice.get("guaranteed", false) else UI.BORDER
-	b.add_theme_stylebox_override("normal", UI.box(UI.PANEL_BG, border, 2, 10))
-	b.add_theme_stylebox_override("hover", UI.box(Color(0.1, 0.1, 0.14, 0.98), UI.ACCENT, 3, 10))
-	b.add_theme_stylebox_override("pressed", UI.box(Color(0.12, 0.12, 0.16, 0.98), UI.ACCENT, 3, 10))
-	b.pressed.connect(pick.bind(index))
+	var normal := _card_box(UI.PANEL_BG, border, 2)
+	var hover := _card_box(Color(0.1, 0.1, 0.14, 0.98), UI.ACCENT, 3)
+	b.add_theme_stylebox_override("panel", normal)
+	b.mouse_entered.connect(func(): b.add_theme_stylebox_override("panel", hover))
+	b.mouse_exited.connect(func(): b.add_theme_stylebox_override("panel", normal))
+	b.gui_input.connect(func(ev: InputEvent):
+		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			pick(index))
 
 	var v := VBoxContainer.new()
-	v.set_anchors_preset(Control.PRESET_FULL_RECT)
-	v.offset_left = 14
-	v.offset_right = -14
-	v.offset_top = 12
-	v.offset_bottom = -12
-	v.add_theme_constant_override("separation", 8)
+	v.add_theme_constant_override("separation", 6)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(v)
 
-	var key := UI.label("[%d]" % (index + 1), 12, UI.TEXT_DIM)
+	var key := UI.label("[%d]" % (index + 1), 11, UI.TEXT_DIM)
 	var settings := get_node_or_null("/root/Settings")
 	if settings:
 		key.text = "[%s]" % settings.key_text("ability_%d" % (index + 1))
 	v.add_child(key)
 
 	var icon := Control.new()
-	icon.custom_minimum_size = Vector2(72, 72)
+	icon.custom_minimum_size = Vector2(64, 64)
 	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if is_ability:
@@ -184,38 +186,50 @@ func _make_card(index: int, choice: Dictionary) -> Control:
 	else:
 		icon.draw.connect(func():
 			var m := icon.size / 2.0
-			icon.draw_circle(m, 30.0, Color(0.25, 0.18, 0.35))
-			icon.draw_rect(Rect2(m + Vector2(-5, -20), Vector2(10, 40)), Color(0.85, 0.7, 1.0), true)
-			icon.draw_rect(Rect2(m + Vector2(-20, -5), Vector2(40, 10)), Color(0.85, 0.7, 1.0), true))
+			icon.draw_circle(m, 28.0, Color(0.25, 0.18, 0.35))
+			icon.draw_rect(Rect2(m + Vector2(-5, -18), Vector2(10, 36)), Color(0.85, 0.7, 1.0), true)
+			icon.draw_rect(Rect2(m + Vector2(-18, -5), Vector2(36, 10)), Color(0.85, 0.7, 1.0), true))
 	v.add_child(icon)
 
 	var name_text := Abilities.ability_name(str(choice["id"])) if is_ability else str(choice["name"])
-	var name_l := UI.label(name_text, 20, Color.WHITE)
-	name_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var name_l := _wrapped(name_text, 18, Color.WHITE)
 	v.add_child(name_l)
 
-	var kind := UI.label("New ability" if is_ability else "Bonus (until death)", 12, UI.TEXT_DIM)
-	kind.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var kind := _wrapped("New ability" if is_ability else "Bonus (until death)", 11, UI.TEXT_DIM)
 	v.add_child(kind)
 
 	var desc_text := ""
 	if is_ability:
+		# Description + cost / cast / cooldown + requirements (no name, no tag list).
 		var tip := Abilities.tooltip(str(choice["id"])).split("\n")
-		desc_text = "\n".join(tip.slice(1))   # skip the name line
+		var keep: Array[String] = []
+		for i in range(1, tip.size()):
+			if not tip[i].begins_with("Tags:"):
+				keep.append(tip[i])
+		desc_text = "\n".join(keep)
 	else:
 		desc_text = str(choice["desc"])
-	var desc := UI.label(desc_text, 13, Color(0.85, 0.85, 0.9))
-	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.custom_minimum_size = Vector2(200, 0)
-	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(desc)
+	v.add_child(_wrapped(desc_text, 12, Color(0.85, 0.85, 0.9)))
 	if is_ability:
-		var hint := UI.label("Hold Shift for details", 11, UI.TEXT_DIM)
-		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		v.add_child(hint)
+		v.add_child(_wrapped("Hold Shift for details", 10, UI.TEXT_DIM))
 
 	if choice.get("guaranteed", false):
-		var tag := UI.label("★ Skill Card", 13, UI.ACCENT)
-		tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		v.add_child(tag)
+		v.add_child(_wrapped("★ Skill Card", 12, UI.ACCENT))
 	return b
+
+func _card_box(bg: Color, border: Color, width: int) -> StyleBoxFlat:
+	var sb := UI.box(bg, border, width, 10)
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 10
+	sb.content_margin_bottom = 12
+	return sb
+
+## Centered label that wraps inside the card instead of spilling out of it.
+func _wrapped(text: String, size: int, color: Color) -> Label:
+	var l := UI.label(text, size, color)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.custom_minimum_size = Vector2(CARD_WIDTH - 24.0, 0)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l

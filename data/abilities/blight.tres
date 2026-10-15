@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"blight"
+display_name = "Break Ground"
+description = "Breaks the ground under the target, dealing {hit} Shadow damage, and opens your Breach there for {b:DECAY_OPEN_TIME} sec. {b:BLIGHT_FEED_PCT}% of this damage is added to it. While your Breach under a target is open, your other Shadow spells add {b:DECAY_FEED_PCT}% of the direct damage they deal to it. Casting this again on a target opens its Breach for {b:DECAY_OPEN_TIME} sec again and keeps what is left in it."
+tags = PackedStringArray("Shadow", "Spell", "Projectile")
+cast_type = 1
+cast_time = 1.5
+cooldown = 0.0
+requires_target = true
+resource_type = 1
+resource_cost = 2
+damage = 0.5
+cast_range = 30.0
+damage_type = &"shadow"

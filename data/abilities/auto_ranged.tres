@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"auto_ranged"
 display_name = "Ranged Attack"
-description = "Weapon auto-attack."
+description = "Automatically fires at your target with your equipped bow while it is in range."
 tags = PackedStringArray("Physical", "Ranged", "Projectile", "AutoAttack")
 cast_type = 0
 requires_target = true

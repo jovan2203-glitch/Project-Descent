@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"menace_holy"
+display_name = "Rune of Holy Menace"
+description = "Your Holy damage generates {threat}% more threat."
+color = Color(1, 0.92, 0.55, 1)
+rarity = 0
+unlock_level = 1
+trigger = 6
+required_damage_types = PackedStringArray("holy")
+threat_bonus_pct = 30.0

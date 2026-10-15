@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_s")
 id = &"smite"
-display_name = "Smite"
-description = "Strike your target with holy fire for {hit} holy damage."
+display_name = "Sunlance"
+description = "Strikes the target with a lance of sunlight, dealing {hit} Holy damage."
 tags = PackedStringArray("Holy", "Spell", "Projectile")
 cast_type = 0
 cast_time = 0.0
@@ -14,6 +14,6 @@ cooldown = 3.0
 requires_target = true
 resource_type = 1
 resource_cost = 2
-damage = 2
+damage = 1.3
 cast_range = 30.0
 damage_type = &"holy"

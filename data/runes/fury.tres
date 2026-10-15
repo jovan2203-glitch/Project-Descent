@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"fury"
 display_name = "Rune of Fury"
-description = "2 melee critical strikes in a row grant +2 Attack Power for 6 s."
+description = "{n} melee critical strikes in a row grant +{buff} Attack Power for {time} sec."
 color = Color(1, 0.35, 0.2, 1)
 required_tags = PackedStringArray("Melee")
 trigger = 0

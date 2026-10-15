@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"heatsink"
+display_name = "Heat Sink"
+description = "For {b:HEAT_SINK_TIME} sec you take {b:HEAT_SINK_PCT}% less damage, and what you were spared is stored as heat. When it ends the heat bursts out, dealing {hit} Fire damage to all enemies within {radius} m, growing to as much as {heat_sink_max} the more you stored (the most once {b:HEAT_SINK_FULL_AT}% of your health is stored)."
+tags = PackedStringArray("Fire", "Spell", "AoE")
+cast_type = 0
+cast_time = 0.0
+cooldown = 60.0
+requires_target = false
+resource_type = 1
+resource_cost = 0
+damage = 1.0
+cast_range = 0.0
+radius = 6.0
+damage_type = &"fire"

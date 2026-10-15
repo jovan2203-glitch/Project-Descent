@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"stormfire"
 display_name = "Stormfire"
-description = "Your next fire spell deals 20% more damage per stack."
+description = "Your next Fire spell deals {pct}% more damage per stack."
 color = Color(1, 0.62, 0.3, 1)
 is_debuff = false
 tags = PackedStringArray("Lightning", "Fire", "Empower")

@@ -7,13 +7,13 @@
 script = ExtResource("2_r")
 id = &"arcane_clockwork"
 display_name = "Arcane Clockwork"
-description = "Every 6 s, the clockwork zaps your target for {amount} arcane damage."
+description = "Every {every_s} sec, the clockwork zaps your target for {amount} Arcane damage."
 color = Color(0.75, 0.5, 1, 1)
 trigger = 5
 threshold_mode = 4
 threshold = 6.0
 effect = 2
-effect_amount = 2
+effect_amount = 1.0
 damage_type = &"arcane"
 effect_tags = PackedStringArray("Arcane")
 

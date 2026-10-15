@@ -136,20 +136,47 @@ func _raw(d: Dictionary) -> Callable:
 
 func test_primary_stats_convert() -> void:
 	var raw := _raw({"intellect": 10.0, "agility": 10.0, "strength": 4.0, "constitution": 3.0})
-	assert_eq(Stats.resolve(Stats.MAX_MANA, raw), 20.0, "10 base + 10 from intellect")
-	assert_eq(Stats.resolve(Stats.SPELL_CRIT, raw), 5.0, "0.5% per intellect")
-	assert_eq(Stats.resolve(Stats.SPELL_POWER, raw), 0.0, "intellect gives no spell power")
-	assert_eq(Stats.resolve(Stats.ATTACK_POWER, raw), 9.0, "4 from strength + 5 from agility")
-	assert_eq(Stats.resolve(Stats.CRIT, raw), 10.0, "5 base + 5 from agility")
-	assert_eq(Stats.resolve(Stats.MAX_HEALTH, raw), 13.0, "10 base + 3 from constitution")
+	var pv: float = Stats.POINT_VALUE   # stat squish: each point is worth 1 / 0.7
+	_near(Stats.resolve(Stats.MAX_MANA, raw), 40.0 * pv, 0.001, "4 mana per (old) intellect (base mana comes from level)")
+	_near(Stats.resolve(Stats.SPELL_CRIT, raw), 0.2 * pv, 0.001, "0.02% per (old) intellect")
+	_near(Stats.resolve(Stats.SPELL_POWER, raw), 5.0, 0.001, "0.5 spell power per intellect")
+	_near(Stats.resolve(Stats.ATTACK_POWER, raw), 9.0, 0.001, "4 from strength + 5 from agility")
+	_near(Stats.resolve(Stats.CRIT, raw), 5.0 + 0.2 * pv, 0.001, "5 base + 0.02 per (old) agility")
+	_near(Stats.resolve(Stats.MAX_HEALTH, raw), 12.0 * pv, 0.001, "4 per (old) constitution (base health comes from level)")
 	var stat_of := func(s): return Stats.resolve(s, raw)
-	_near(Stats.crit_chance(PackedStringArray(["Spell"]), stat_of), 15.0, 0.001, "spells add spell crit")
-	_near(Stats.crit_chance(PackedStringArray(["Ability"]), stat_of), 10.0, 0.001, "abilities don't")
+	_near(Stats.crit_chance(PackedStringArray(["Spell"]), stat_of), 5.0 + 0.4 * pv, 0.001, "spells add spell crit")
+	_near(Stats.crit_chance(PackedStringArray(["Ability"]), stat_of), 5.0 + 0.2 * pv, 0.001, "abilities don't")
 
 func test_percent_stat_modifier() -> void:
 	var raw := _raw({"intellect": 10.0, "intellect%": 10.0})
 	assert_eq(Stats.resolve(Stats.INTELLECT, raw), 11.0)
-	assert_eq(Stats.resolve(Stats.MAX_MANA, raw), 21.0, "mana follows the boosted intellect")
+	_near(Stats.resolve(Stats.SPELL_POWER, raw), 5.5, 0.001, "spell power follows the boosted intellect")
+
+func test_absorb_shield_soaks_and_breaks() -> void:
+	var st := _status()
+	var fx: Resource = StatusEffectScript.new()
+	fx.id = &"test_shell"
+	fx.duration = 10.0
+	st.apply(fx)
+	var broke := [false]
+	st.set_absorb("test_shell", 100, func(): broke[0] = true)
+	assert_eq(st.absorb_damage(60), 0, "fully soaked")
+	assert_eq(st.absorb_left("test_shell"), 40)
+	assert_eq(st.absorb_damage(70), 30, "30 gets through")
+	assert_true(broke[0], "breaking runs on_break")
+	assert_false(st.has("test_shell"), "the effect ends with its shield")
+
+func test_absorb_silent_removal_does_not_break() -> void:
+	var st := _status()
+	var fx: Resource = StatusEffectScript.new()
+	fx.id = &"test_shell"
+	fx.duration = 10.0
+	st.apply(fx)
+	var broke := [false]
+	st.set_absorb("test_shell", 100, func(): broke[0] = true)
+	assert_true(st.break_absorb("test_shell", true))
+	assert_false(broke[0])
+	assert_eq(st.total_absorb(), 0)
 
 func test_legacy_damage_counts_as_both_powers() -> void:
 	var raw := _raw({"damage": 2.0})
@@ -158,9 +185,9 @@ func test_legacy_damage_counts_as_both_powers() -> void:
 
 func test_spell_and_ability_power_split() -> void:
 	var stat_of := func(s): return 10.0 if s == Stats.SPELL_POWER else 0.0
-	_near(Stats.power_bonus(PackedStringArray(["Fire", "Spell"]), stat_of), 6.0, 0.001)
-	_near(Stats.power_bonus(PackedStringArray(["Fire", "Ability", "Melee"]), stat_of), 2.0, 0.001)
-	_near(Stats.power_bonus(PackedStringArray(["AutoAttack"]), stat_of), 2.0, 0.001)
+	_near(Stats.power_bonus(PackedStringArray(["Fire", "Spell"]), stat_of), 6.0 * Stats.POINT_VALUE, 0.001)
+	_near(Stats.power_bonus(PackedStringArray(["Fire", "Ability", "Melee"]), stat_of), 2.0 * Stats.POINT_VALUE, 0.001)
+	_near(Stats.power_bonus(PackedStringArray(["AutoAttack"]), stat_of), 2.0 * Stats.POINT_VALUE, 0.001)
 	assert_eq(Stats.power_bonus(PackedStringArray(["Melee"]), stat_of), 0.0, "enemy attacks get no power")
 
 func test_haste_multiplier() -> void:
@@ -176,19 +203,33 @@ func test_every_player_ability_is_spell_or_ability() -> void:
 	assert_true(Abilities.tags_of("searingstrike").has("Ability"), "Searing Strike is an ability")
 	assert_true(Abilities.tags_of("fireball").has("Spell"))
 
+## Design rule: anything that needs a weapon (or shield) is an Ability, anything
+## that doesn't is a Spell.
+func test_weapon_means_ability_no_weapon_means_spell() -> void:
+	const Abilities = preload("res://scripts/abilities.gd")
+	for id in Abilities.ALL:
+		if Abilities.is_trinket_slot(id):
+			continue
+		var r := Abilities.get_resource(id)
+		var needs_weapon: bool = int(r.weapon_requirement) != 0 or bool(r.get("requires_shield"))
+		var tags: PackedStringArray = r.tags
+		if needs_weapon:
+			assert_true(tags.has("Ability"), "%s needs a weapon, so it's an Ability" % id)
+		else:
+			assert_true(tags.has("Spell"), "%s needs no weapon, so it's a Spell" % id)
+
 # --- Rune rarity & limits --------------------------------------------------------------------
 
 func test_rune_rarities() -> void:
-	assert_eq(Runes.rarity("smoldering_focus"), Runes.LEGENDARY)
+	assert_false(Runes.PATHS.has("smoldering_focus"), "Smoldering Focus is a Fire talent now, not a rune")
 	assert_eq(Runes.rarity("stormfire"), Runes.EPIC)
 	assert_eq(Runes.rarity("frostbound_insight"), Runes.RARE)
 	assert_eq(Runes.rarity("fury"), Runes.COMMON)
 
 func test_rune_limits() -> void:
-	assert_eq(Runes.check_limits(["fury", "fury", "fury", "frost", "", "stormfire", "smoldering_focus"]), "")
+	assert_eq(Runes.check_limits(["fury", "fury", "fury", "frost", "", "stormfire"]), "")
 	assert_ne(Runes.check_limits(["fury", "fury", "fury", "fury"]), "", "max 3 of a common")
 	assert_ne(Runes.check_limits(["stormfire", "stormfire"]), "", "epics don't stack")
-	assert_ne(Runes.check_limits(["smoldering_focus", "smoldering_focus"]), "", "1 legendary")
 	assert_ne(Runes.check_limits(["frostbound_insight", "frostbound_insight"]), "", "unique rare")
 
 func test_equip_refused_over_rune_limit() -> void:
@@ -211,6 +252,7 @@ func test_smoldering_focus_only_boosts_fire_spell_crits() -> void:
 	carrier_script.reload()
 	st.get_parent().set_script(carrier_script)
 	var fx := _fx("smoldering_focus")
+	fx.mod_scale_factor = 0.5   # the Smoldering Focus talent at rank 5 (player.gd sets it from the rank)
 	for i in 3:
 		st.apply(fx)
 	var normal := _hit(CK.FIRE, [CK.TAG_SPELL])
@@ -219,7 +261,7 @@ func test_smoldering_focus_only_boosts_fire_spell_crits() -> void:
 	var crit := _hit(CK.FIRE, [CK.TAG_SPELL])
 	crit.crit = true
 	st.collect_damage_mods(crit, false)
-	_near(crit.bonus_pct, 36.0, 0.001, "3 stacks x (20% crit x 0.6)")
+	_near(crit.bonus_pct, 30.0, 0.001, "3 stacks x (20% crit x 0.5)")
 	var ability_crit := _hit(CK.FIRE, [CK.TAG_ABILITY])
 	ability_crit.crit = true
 	st.collect_damage_mods(ability_crit, false)

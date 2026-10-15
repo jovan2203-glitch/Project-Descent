@@ -9,17 +9,36 @@ extends RefCounted
 
 const DIR := "res://data/skill_cards/"
 const MAX_EQUIPPED := 5
-const ALL := ["icelance", "battleshout", "frostnova", "whirlwind", "poisonarrow",
+const ALL := ["battleshout", "frostnova", "whirlwind", "poisonarrow",
 	"icebarrier", "multishot", "blink", "secondwind",
-	"fireball", "searingstrike", "flamingarrow", "flamenova",
+	"rimeshell", "shatteringwave", "flashfreeze", "hoarfrost", "shatteringslam", "rimeslash", "iceshards",
+	"searingstrike", "flamingarrow", "flamenova", "ventflames", "coolhead", "furnacebreath", "slagskin", "stoke", "embervolley", "immolate", "walloffire",
+	"kilnblast", "slowfuse", "rekindle",
+	"brand", "anvil", "cinderstep", "cinderguard", "crucible", "heatsink", "quench", "flare",
+	"pitcharrow", "cinderrain", "cinderwing",
 	"chainlightning", "thunderstrike", "stormarrow",
+	"discharge", "groundout", "balllightning", "groundingsurge",
+	"forkedbolt", "arcflash", "livewire", "jolt", "thunderhead", "flicker", "capacitor",
+	"chargededge", "whiplash", "arccleave", "cadence", "twincurrent", "staticstep", "backcurrent", "overdrive",
+	"reflexarc", "faradayguard", "splitsecond",
 	"arcanemissiles", "arcanestrike", "arcaneshot", "arcaneexplosion",
-	"shadowbolt", "corruption", "shadowstrike", "shadowarrow",
+	"unravel", "glint", "scatter", "countdown", "collapse", "intervalward", "convergence", "mirrorsigil", "rewind", "lapse",
+	"doubleup", "ripple", "missedbeat", "fullset", "standin", "tradeplaces", "decoy", "crowdofone",
+	"swiftcut", "deepcut", "encore", "latecut", "widecut", "doubletime",
+	"corruption", "shadowstrike", "shadowarrow",
+	"blight", "erode", "gnaw", "calldue", "spill", "pall", "hush", "takeitback", "bottomless",
+	"sic", "openup", "bothatonce", "runthemdown", "guarddogs", "bringitdown", "offthechain",
+	"puppetstring", "patchup", "hoist", "tug", "catscradle", "wrench", "pulltaut", "cuppedhands", "stringup", "restring",
+	"knot", "tangle", "yank", "doublethread", "behinditsback", "slack", "stillstanding", "cutthestrings", "notfinished",
 	"holylight", "smite", "crusaderstrike", "radiantarrow",
 	"froststrike", "frostarrow",
+	"coldspike", "sleetwave", "deepwinter", "rimelock", "snowward", "winterhide", "rimeedge", "icebreaker", "icepin",
+	"shattershot", "glacialdraw", "rimefletch", "coldmark", "icyretreat",
 	"wrath", "insectswarm", "entanglingroots", "regrowth",
 	"sinisterstrike", "rupture", "fanofknives", "eviscerate",
-	"shieldofdawn", "stormshield", "sacredbulwark", "thunderaegis"]
+	"shieldofdawn", "stormshield", "sacredbulwark", "thunderaegis",
+	"returnstroke", "shockring", "crossguard", "drawthestorm", "reelin", "recharge",
+	"counterspell", "kick", "pummel"]
 
 static var _cache := {}
 

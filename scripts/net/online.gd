@@ -569,9 +569,9 @@ func _on_persona_change(..._a: Array) -> void:
 func sync_owner() -> void:
 	if backend != Backend.STEAM or lobby_id == 0 or not _net().online:
 		return
-	var owner := int(steam.getLobbyOwner(lobby_id))
+	var lobby_owner := int(steam.getLobbyOwner(lobby_id))
 	var host: int = _net().host_member
-	if owner != my_id:
+	if lobby_owner != my_id:
 		return
 	if host != my_id and host != 0:
 		steam.setLobbyOwner(lobby_id, host)

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"cinderguard"
+display_name = "Cinder Guard"
+description = "Raises your shield for {b:CINDER_GUARD_TIME} sec, increasing your chance to block by {b:CINDER_GUARD_BLOCK}%. Each attack you block burns the attacker for {hit} Fire damage and extends your {n:slagskin} by {b:CINDER_GUARD_EXTEND} sec (up to its full {b:SLAG_SKIN_TIME} sec)."
+tags = PackedStringArray("Ability", "Fire", "Shield", "Buff")
+cast_type = 0
+cast_time = 0.0
+cooldown = 12.0
+requires_target = false
+weapon_requirement = 1
+requires_shield = true
+resource_type = 3
+resource_cost = 40
+damage = 0.3
+threat_multiplier = 3.0
+damage_type = &"fire"

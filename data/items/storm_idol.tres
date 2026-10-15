@@ -7,14 +7,14 @@
 script = ExtResource("2_r")
 id = &"storm_idol"
 display_name = "Stormcaller's Idol"
-description = "Your hits have a 15% chance to call lightning down on the target for {amount} lightning damage (2 s cooldown). Counts as lightning damage for runes like Stormfire."
+description = "Your hits have a {chance}% chance to call lightning down on the target for {amount} Lightning damage ({cd} sec cooldown). Counts as Lightning damage for runes like Stormfire."
 color = Color(0.6, 0.75, 1, 1)
 trigger = 0
 threshold_mode = 0
 threshold = 0.15
 internal_cooldown = 2.0
 effect = 2
-effect_amount = 2
+effect_amount = 0.8
 damage_type = &"lightning"
 effect_tags = PackedStringArray("Lightning")
 
@@ -26,5 +26,5 @@ description = "Trinket"
 color = Color(0.6, 0.75, 1, 1)
 slot = 10
 item_type = &"trinket"
-stats = {"haste": 2}
+stats = {"haste": 1.12}
 equip_effect = SubResource("Equip")

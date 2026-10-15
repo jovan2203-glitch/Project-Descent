@@ -1,0 +1,4 @@
+.godot/
+_test_install/
+*.exe
+*.pck

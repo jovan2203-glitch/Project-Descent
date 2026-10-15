@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"carried_sigil"
+display_name = "Rune of the Carried Sigil"
+description = "Your {n:mirrorsigil} follows you instead of standing on the ground, but it repeats your Arcane spells at {b:CARRIED_SIGIL_PCT}% of their damage instead of {b:MIRROR_SIGIL_PCT}%."
+color = Color(0.75, 0.5, 1, 1)
+rarity = 2
+unlock_level = 20
+trigger = 6

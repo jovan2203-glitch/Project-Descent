@@ -7,7 +7,7 @@
 script = ExtResource("1_s")
 id = &"frostbound_insight"
 display_name = "Rune of Frostbound Insight"
-description = "Whenever you cast Frost Bolt, your party gains +1% Intellect for 15 s, stacking up to 3 times."
+description = "Whenever you cast {n:frostbolt}, your party gains +{fx_mod}% Intellect for {fx_time} sec, stacking up to {fx_stacks} times."
 color = Color(0.55, 0.85, 1, 1)
 rarity = 1
 max_equipped = 1

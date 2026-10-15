@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"two_way_mirror"
+display_name = "Rune of the Two-Way Mirror"
+description = "{n:mirrorsigil} also repeats the damage of your Reflections when they shatter, at the same share it repeats your Arcane spells at."
+color = Color(0.75, 0.5, 1, 1)
+rarity = 1
+max_equipped = 1
+unlock_level = 26
+trigger = 6

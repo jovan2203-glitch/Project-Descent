@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"shatteringwave"
+display_name = "Shattering Wave"
+description = "Shatters every Rime Shell of yours and every enemy you have Frozen within {radius} m. A Rime Shell shatters for {hit} Frost damage to all enemies within {a:rimeshell.radius} m of it, a Frozen enemy for {shatter_frozen}. Those Rime Shells lose their remaining absorb and those enemies thaw."
+tags = PackedStringArray("Frost", "Spell", "AoE")
+cast_type = 0
+cast_time = 0.0
+cooldown = 8.0
+requires_target = false
+resource_type = 1
+resource_cost = 2
+damage = 1.0
+radius = 20.0
+damage_type = &"frost"

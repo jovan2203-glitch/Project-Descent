@@ -9,7 +9,26 @@ extends Node3D
 
 const SkillCards = preload("res://scripts/skill_cards.gd")
 const Abilities = preload("res://scripts/abilities.gd")
+const Runes = preload("res://scripts/runes.gd")
 const OPEN_RADIUS := 1.4
+## Chance a chest also holds a Mysterious Rune (rarity weighted like rune drops).
+const MYSTERY_RUNE_CHANCE := 0.7
+
+## Rarities that have no rune at all are never rolled.
+static func _roll_rune_rarity() -> int:
+	var weights: Array = []
+	var total := 0.0
+	for i in Runes.DROP_WEIGHTS.size():
+		weights.append(float(Runes.DROP_WEIGHTS[i]) if Runes.any_of_rarity(i) else 0.0)
+		total += float(weights[i])
+	var roll := randf() * total
+	for i in weights.size():
+		if float(weights[i]) <= 0.0:
+			continue
+		roll -= float(weights[i])
+		if roll <= 0.0:
+			return i
+	return 0
 
 var locked := false
 var opened := false
@@ -132,6 +151,19 @@ func _open() -> void:
 		color = Color(0.7, 0.7, 0.75)
 	else:
 		text = "Skill Card%s: %s!" % ["s" if names.size() > 1 else "", " & ".join(names)]
+	# Mysterious Rune: reveal it in the main menu to pick 1 of 3 runes of its rarity.
+	if randf() < MYSTERY_RUNE_CHANCE:
+		var r := _roll_rune_rarity()
+		var where: String = pd.add_mystery_rune(r)
+		if where != "":
+			var rname := "Mysterious %s Rune" % Runes.RARITY_NAMES[r]
+			text += "\n+ %s" % rname
+			var gl2 := get_node_or_null("/root/GameLog")
+			if gl2:
+				gl2.event("Found a %s%s (reveal it in the main menu)" % [rname, " - bag full, sent to your bank" if where == "bank" else ""],
+					Runes.RARITY_COLORS[r])
+			if names.is_empty():
+				color = Runes.RARITY_COLORS[r]
 	_float(text, color)
 	var tw := create_tween()
 	tw.tween_property(_lid_pivot, "rotation:x", deg_to_rad(-110.0), 0.35) \

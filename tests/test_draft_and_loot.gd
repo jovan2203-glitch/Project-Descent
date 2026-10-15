@@ -2,7 +2,7 @@
 extends McpTestSuite
 
 # Phase 4 rules: level-up draft choices, Skill Card guarantees, learned
-# abilities, the rune "unlocked pool" and elite/boss loot tables.
+# abilities, the rune "unlocked pool" and elite / boss loot tables.
 
 const DraftRules = preload("res://scripts/core/draft_rules.gd")
 const Abilities = preload("res://scripts/abilities.gd")
@@ -86,19 +86,23 @@ func test_skill_card_files_match_registry() -> void:
 
 # --- Learning / boons ----------------------------------------------------------------
 
-func test_learn_ability_goes_on_bar_and_is_available() -> void:
+func test_learn_ability_is_available_but_not_put_on_bar() -> void:
 	var pd := _pd()
-	assert_false(pd.has_ability("icelance"))
-	pd.learn_ability("icelance")
-	assert_true(pd.has_ability("icelance"))
-	assert_true(pd.action_bar.has("icelance"), "placed in the first empty bar slot")
-	assert_true(pd.available_abilities().has("icelance"))
+	assert_false(pd.has_ability("frostnova"))
+	pd.learn_ability("frostnova")
+	assert_true(pd.has_ability("frostnova"))
+	assert_false(pd.action_bar.has("frostnova"), "learning only learns it: the bar is set up in game (Spellbook, P)")
+	assert_true(pd.available_abilities().has("frostnova"))
 	assert_true(pd.available_abilities().has("frostbolt"), "base kit still available")
 
 func test_boon_adds_permanent_stat() -> void:
 	var pd := _pd()
+	const Stats = preload("res://scripts/core/stats.gd")
 	DraftRules.apply_choice(pd, {"type": "boon", "stat": "strength", "amount": 1.0})
-	assert_eq(float(pd.total_stats().get("strength", 0.0)), 1.0)
+	# Flat boons are in flat units: they grow with your level.
+	assert_eq(float(pd.total_stats().get("strength", 0.0)), Stats.flat_unit(pd.level))
+	DraftRules.apply_choice(pd, {"type": "boon", "stat": "haste", "amount": 3.0})
+	assert_eq(float(pd.total_stats().get("haste", 0.0)), 3.0, "percent boons don't scale")
 
 func test_boons_use_real_stats() -> void:
 	const Stats = preload("res://scripts/core/stats.gd")
@@ -154,11 +158,12 @@ func test_requested_books_have_abilities() -> void:
 	const Categories = preload("res://scripts/categories.gd")
 	for cat in Categories.ORDER:   # every book has abilities
 		assert_gt(Abilities.in_category(cat).size(), 0, "%s has abilities" % cat)
-	for cat in ["fire", "lightning", "arcane", "shadow", "holy", "nature", "rogue"]:
+	for cat in ["fire", "lightning", "arcane", "shadow", "holy", "nature", "martial"]:
 		assert_gt(Abilities.in_category(cat).size(), 2, "%s has abilities" % cat)
 	var frost_weapon := Abilities.in_category("frost").filter(func(id):
 		return int(Abilities.get_resource(id).weapon_requirement) != 0)
-	assert_eq(frost_weapon.size(), 2, "frost has a melee and a bow ability")
+	assert_true(frost_weapon.any(func(id): return int(Abilities.get_resource(id).weapon_requirement) == 1), "frost has melee abilities")
+	assert_true(frost_weapon.any(func(id): return int(Abilities.get_resource(id).weapon_requirement) == 2), "frost has a bow ability")
 
 # --- New gear: paired slots, item effects, shield abilities ------------------------
 
@@ -194,17 +199,19 @@ func test_trinkets_have_effects() -> void:
 func test_item_effect_scaling() -> void:
 	var low := ItemDB.create("sand_hourglass", "", 1)
 	var high := ItemDB.create("sand_hourglass", "", 21)
+	# Effect amounts are coefficients that already grow with your level.
 	assert_eq(Items.effect_scale(low), 1.0)
-	assert_eq(Items.effect_scale(high), 3.0, "+10% per item level")
+	assert_eq(Items.effect_scale(high), 1.0)
 	var use := Items.use_effect_of(high)
-	assert_eq(Items.scaled_buff(use, 3.0), 20.0, "percent buffs (haste) never scale")
+	assert_eq(Items.scaled_buff(use, 1.0), 11.2, "percent buffs (haste) never scale")
 
 func test_shield_abilities_need_a_shield() -> void:
-	for id in ["shieldofdawn", "sacredbulwark", "stormshield", "thunderaegis"]:
+	for id in ["shieldofdawn", "sacredbulwark"]:
 		var r := Abilities.get_resource(id)
 		assert_true(bool(r.requires_shield), "%s needs a shield" % id)
 		assert_true(Abilities.DRAFT_POOL.has(id) and SkillCards.ALL.has(id))
 	assert_eq(Abilities.category_of("shieldofdawn"), "holy")
+	# (The Lightning tank's abilities need a two-handed weapon now: test_lightning_tank.gd.)
 	assert_eq(Abilities.category_of("stormshield"), "lightning")
 	assert_eq(Items.item_type(ItemDB.create("shield")), "shield")
 

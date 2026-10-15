@@ -17,6 +17,13 @@ var _tabs := {}          # "Chat"/"Logs" -> Button
 var _views := {}         # "Chat"/"Logs" -> RichTextLabel
 var _entry: LineEdit
 var _current := "Chat"
+var _grip: Control
+var _collapse_btn: Button
+## Collapsed = only the tab header shows (shared by the game and the main menu,
+## kept while the game runs). New chat lines mark the Chat tab with a dot.
+static var collapsed := false
+var _unread := false
+const COLLAPSED_HEIGHT := 30.0
 
 func _ready() -> void:
 	anchor_top = 1.0
@@ -24,6 +31,8 @@ func _ready() -> void:
 	offset_left = 16
 	_fit_width()
 	get_viewport().size_changed.connect(_fit_width)
+	if is_instance_valid(avoid_above):
+		avoid_above.item_rect_changed.connect(_fit_width)
 	var sb := UI.box(Color(0, 0, 0, 0.45), Color(0.3, 0.3, 0.32, 0.6), 1, 6)
 	sb.content_margin_left = 6
 	sb.content_margin_right = 6
@@ -49,7 +58,13 @@ func _ready() -> void:
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(spacer)
-	header.add_child(_make_grip())
+	_collapse_btn = UI.button("–", 12, Vector2(22, 22))
+	_collapse_btn.tooltip_text = "Hide / show the chat"
+	_collapse_btn.focus_mode = Control.FOCUS_NONE
+	_collapse_btn.pressed.connect(func(): _set_collapsed(not collapsed))
+	header.add_child(_collapse_btn)
+	_grip = _make_grip()
+	header.add_child(_grip)
 
 	for tab in ["Chat", "Logs"]:
 		var rt := RichTextLabel.new()
@@ -76,7 +91,10 @@ func _ready() -> void:
 	_entry.text_submitted.connect(_on_submit)
 	v.add_child(_entry)
 
-	_show_tab("Chat")
+	_current = "Chat"
+	_tabs["Chat"].set_pressed_no_signal(true)
+	var was_collapsed := collapsed
+	collapsed = false
 	_system("Welcome! Type /help for debug commands.")
 
 	# Party chat + party/leader messages.
@@ -98,6 +116,7 @@ func _ready() -> void:
 			_append("Logs", "[color=#%s]%s[/color]" % [Color(e["color"]).to_html(false), _esc(e["text"])])
 		gl.event_logged.connect(func(text, color):
 			_append("Logs", "[color=#%s]%s[/color]" % [color.to_html(false), _esc(text)]))
+	_set_collapsed(was_collapsed)   # keep it hidden if it was hidden in the last scene
 
 ## Size comes from Settings.chat_size (dragged with the grip in the top-right
 ## corner), limited so it never reaches under the centered action bar or the
@@ -105,18 +124,32 @@ func _ready() -> void:
 const ACTION_BAR_HALF := 237.0 + 8.0
 const MIN_SIZE := Vector2(220, 90)
 const BOTTOM_GAP := 70.0
+## Where the box sits: gap under it, and an optional height cap (the main menu
+## sets these before adding the box so it fits under the party cards).
+var bottom_gap := BOTTOM_GAP
+var max_height := -1.0
+## Main menu: never reach above this control's bottom edge (the party cards),
+## and always use all the height between it and the bottom gap.
+var avoid_above: Control
+var fill_height := false
 
 func _max_size() -> Vector2:
 	var vp := get_viewport().get_visible_rect().size
-	return Vector2(maxf(vp.x * 0.5 - ACTION_BAR_HALF - 16.0, MIN_SIZE.x),
-		maxf(vp.y - BOTTOM_GAP - 190.0, MIN_SIZE.y))
+	var h := maxf(vp.y - bottom_gap - 190.0, MIN_SIZE.y)
+	if max_height > 0.0:
+		h = maxf(minf(h, max_height), MIN_SIZE.y)
+	if is_instance_valid(avoid_above) and avoid_above.is_inside_tree():
+		h = maxf(minf(h, vp.y - bottom_gap - avoid_above.get_global_rect().end.y - 10.0), MIN_SIZE.y)
+	return Vector2(maxf(vp.x * 0.5 - ACTION_BAR_HALF - 16.0, MIN_SIZE.x), h)
 
 func _fit_width() -> void:
 	var s: Vector2 = get_node("/root/Settings").chat_size
 	s = s.clamp(MIN_SIZE, _max_size())
+	if fill_height:
+		s.y = _max_size().y
 	offset_right = 16 + s.x
-	offset_top = -BOTTOM_GAP - s.y
-	offset_bottom = -BOTTOM_GAP
+	offset_top = -bottom_gap - (COLLAPSED_HEIGHT if collapsed else s.y)
+	offset_bottom = -bottom_gap
 
 # --- Resize grip ---------------------------------------------------------------------
 
@@ -150,14 +183,31 @@ func _make_grip() -> Control:
 func _show_tab(tab: String) -> void:
 	_current = tab
 	for t in _views:
-		_views[t].visible = t == tab
+		_views[t].visible = t == tab and not collapsed
 	_tabs[tab].set_pressed_no_signal(true)
+	if collapsed:
+		_set_collapsed(false)   # clicking a tab opens the chat back up
+
+func _set_collapsed(c: bool) -> void:
+	collapsed = c
+	for t in _views:
+		_views[t].visible = t == _current and not c
+	_entry.visible = not c
+	_grip.visible = not c
+	_collapse_btn.text = "+" if c else "–"
+	if not c:
+		_unread = false
+	_tabs["Chat"].text = "Chat •" if _unread else "Chat"
+	_fit_width()
 
 func _append(tab: String, bbcode: String) -> void:
 	var rt: RichTextLabel = _views[tab]
 	rt.append_text(bbcode + "\n")
 	while rt.get_paragraph_count() > MAX_LINES:
 		rt.remove_paragraph(0)
+	if collapsed and tab == "Chat" and not _unread:
+		_unread = true
+		_tabs["Chat"].text = "Chat •"
 
 func _system(text: String) -> void:
 	_append("Chat", "[color=#e6c068]%s[/color]" % _esc(text))
@@ -168,8 +218,10 @@ func _esc(t: String) -> String:
 # --- Input -------------------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("chat") and not _entry.has_focus():
+	if event.is_action_pressed("chat") and not _entry.has_focus() and is_visible_in_tree():
 		get_viewport().set_input_as_handled()
+		if collapsed:
+			_set_collapsed(false)
 		_entry.grab_focus()
 
 ## Runs before any GUI: Esc always leaves the chat (without opening the Esc

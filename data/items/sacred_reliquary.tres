@@ -7,7 +7,7 @@
 script = ExtResource("2_r")
 id = &"divine_ward"
 display_name = "Divine Ward"
-description = "Taking damage has a 15% chance to grant Divine Ward: +{buff} Armor for 5 s (10 s cooldown)."
+description = "Taking damage has a {chance}% chance to grant Divine Ward: +{buff} Armor for {time} sec ({cd} sec cooldown)."
 color = Color(1, 0.92, 0.55, 1)
 trigger = 3
 threshold_mode = 0
@@ -27,7 +27,7 @@ description = "Open the reliquary: heal yourself for {amount}."
 color = Color(1, 0.92, 0.55, 1)
 internal_cooldown = 45.0
 effect = 3
-effect_amount = 5
+effect_amount = 3.5
 
 [resource]
 script = ExtResource("1_s")

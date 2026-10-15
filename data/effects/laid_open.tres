@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"laid_open"
+display_name = "Laid Open"
+description = "The Hounds of the one who tore it open bite it for {b:LAID_OPEN_PCT}% more damage."
+color = Color(0.8, 0.16, 0.3, 1)
+is_debuff = true
+tags = PackedStringArray("Shadow")
+duration = 8.0
+stack_mode = 0
+max_stacks = 1
+per_caster = true

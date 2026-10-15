@@ -16,6 +16,17 @@ var member_id := 0
 var display_name := ""
 var health := 10
 var max_health := 10
+## Mirrored from the owner (Net.send_support_state): a Rime Shell is up, and
+## lockout effects (Weakened Soul...) -> time they end.
+var has_rime_shell := false
+## Member id of whoever cast that Rime Shell (0 = unknown / none).
+var rime_shell_by := 0
+var lockouts := {}
+## Knocked down (0 health, not dead yet): stand next to them and press F to revive.
+var downed := false
+
+func has_lockout(effect_id: String) -> bool:
+	return float(lockouts.get(effect_id, 0.0)) > Time.get_ticks_msec() / 1000.0
 
 var _net_pos := Vector3.ZERO
 var _net_yaw := 0.0
@@ -83,14 +94,19 @@ func apply_state(pos: Vector3, yaw: float, anim_state: String, hp: int, mhp: int
 		_has_state = true
 		global_position = pos
 		rotation.y = yaw
-	var changed := hp != health or mhp != max_health
+	var now_downed := hp <= 0 and anim_state == "downed"
+	var changed := hp != health or mhp != max_health or now_downed != downed
 	health = hp
 	max_health = mhp
+	downed = now_downed
 	if changed:
 		_update_labels()
+	_update_downed_ring()
 	if health <= 0:
 		_show_dead()
 	else:
+		if _dead_shown:
+			_show_alive()   # revived (or respawned): stand back up
 		_play(anim_state if anim_state in ["idle", "walk", "cast"] else "idle")
 
 func _physics_process(delta: float) -> void:
@@ -105,7 +121,42 @@ func _physics_process(delta: float) -> void:
 func _update_labels() -> void:
 	if _hp_label == null:
 		return
-	_hp_label.text = "Dead" if health <= 0 else "%d / %d" % [health, max_health]
+	if downed:
+		_hp_label.text = "DOWNED - revive (%s)" % get_node("/root/Settings").key_text("interact")
+		_hp_label.modulate = Color(1.0, 0.6, 0.3)
+	else:
+		_hp_label.text = "Dead" if health <= 0 else "%d / %d" % [health, max_health]
+		_hp_label.modulate = Color(1.0, 0.4, 0.35)
+
+## Pulsing orange circle under a downed ally so they're easy to find.
+var _downed_ring: MeshInstance3D
+
+func _update_downed_ring() -> void:
+	if downed and _downed_ring == null:
+		_downed_ring = MeshInstance3D.new()
+		var quad := QuadMesh.new()
+		quad.size = Vector2(1, 1)
+		quad.orientation = PlaneMesh.FACE_Y
+		_downed_ring.mesh = quad
+		var mat := ShaderMaterial.new()
+		mat.shader = preload("res://shaders/aoe_circle.gdshader")
+		mat.set_shader_parameter("color", Color(1.0, 0.6, 0.25))
+		mat.set_shader_parameter("fill_alpha", 0.15)
+		mat.set_shader_parameter("rim_width", 0.15)
+		_downed_ring.material_override = mat
+		_downed_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_downed_ring.position.y = -0.85
+		add_child(_downed_ring)
+		var r: float = preload("res://scripts/balance.gd").REVIVE_RANGE * 2.0   # stand inside to revive
+		_downed_ring.scale = Vector3(r, 1, r)
+		var t := _downed_ring.create_tween().set_loops()
+		t.tween_property(_downed_ring, "transparency", 0.5, 0.6)
+		t.tween_property(_downed_ring, "transparency", 0.0, 0.6)
+	elif not downed and _downed_ring != null:
+		_downed_ring.queue_free()
+		_downed_ring = null
+
+var _death_tween: Tween
 
 func _show_dead() -> void:
 	if _dead_shown:
@@ -113,9 +164,23 @@ func _show_dead() -> void:
 	_dead_shown = true
 	if _anim:
 		_anim.pause()
-	var t := create_tween()
-	t.tween_property(_model, "rotation:x", deg_to_rad(-85.0), 0.6) \
+	if _death_tween:
+		_death_tween.kill()
+	_death_tween = create_tween()
+	_death_tween.tween_property(_model, "rotation:x", deg_to_rad(-85.0), 0.6) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+
+## Back on their feet after a revive: undo the fall and restart the animation.
+func _show_alive() -> void:
+	_dead_shown = false
+	if _death_tween:
+		_death_tween.kill()
+		_death_tween = null
+	if _model:
+		_model.rotation.x = 0.0
+	_anim_state = ""   # force _play to start the animation again
+	if _anim:
+		_anim.play()
 
 # --- Visual effects this player triggers (sent by their machine through Net) --------
 
@@ -176,55 +241,6 @@ func play_ring(radius: float, color: Color, at: Vector3) -> void:
 	t.tween_property(mat, "albedo_color:a", 0.0, 0.45)
 	t.chain().tween_callback(ring.queue_free)
 
-var _ray_target: Node3D
-var _ray_left := 0.0
-var _beam: MeshInstance3D
-
-## Ray of Frost beam to `tgt` while the channel lasts (ends early if they stop casting).
-func play_ray(tgt: Node3D, duration: float) -> void:
-	_ray_target = tgt
-	_ray_left = duration
-	if _beam == null:
-		_beam = MeshInstance3D.new()
-		var cyl := CylinderMesh.new()
-		cyl.top_radius = 0.07
-		cyl.bottom_radius = 0.07
-		cyl.height = 1.0
-		cyl.radial_segments = 8
-		cyl.rings = 1
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(0.7, 0.95, 1.0, 0.85)
-		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		mat.emission_enabled = true
-		mat.emission = Color(0.35, 0.85, 1.0)
-		mat.emission_energy_multiplier = 4.0
-		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		cyl.material = mat
-		_beam.mesh = cyl
-		_beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		_beam.top_level = true
-		add_child(_beam)
-
-func _process(delta: float) -> void:
-	if _beam == null:
-		return
-	_ray_left -= delta
-	var on: bool = _ray_left > 0.0 and is_instance_valid(_ray_target) and _ray_target.is_alive() \
-		and _anim_state == "cast" and health > 0
-	_beam.visible = on
-	if not on:
-		return
-	var from := global_position + (-global_basis.z) * 0.5 + Vector3(0, 0.45, 0)
-	var to := _ray_target.global_position + Vector3(0, 0.3, 0)
-	var length := from.distance_to(to)
-	if length < 0.01:
-		return
-	var t := Transform3D(Basis(), (from + to) * 0.5).looking_at(to, Vector3.UP)
-	t.basis = t.basis * Basis(Vector3.RIGHT, deg_to_rad(90))
-	var pulse := 1.0 + 0.25 * sin(Time.get_ticks_msec() * 0.02)
-	t.basis = t.basis.scaled_local(Vector3(pulse, length, pulse))
-	_beam.global_transform = t
-
 # --- Combatant interface (so enemies / CombatSystem can treat it as a player) ------
 
 func is_alive() -> bool:
@@ -236,9 +252,19 @@ func is_dead() -> bool:
 func get_stat(_stat: String) -> float:
 	return 0.0
 
+## Their level (from the party roster): sizes the DoTs they put on enemies here.
+func combat_level() -> int:
+	var net := get_node_or_null("/root/Net")
+	var m: Variant = net.members.get(member_id) if net else null
+	return int(m.get("level", 1)) if m is Dictionary else 1
+
+func damage_unit() -> float:
+	return preload("res://scripts/core/stats.gd").level_hit(combat_level())
+
 ## Projectiles / Blizzards spawned for this puppet are visuals only: the real
 ## damage is dealt on its owner's machine and reported to the host from there.
-func deal_damage(_enemy: Node, _base: int, _ability_id: String, _is_proc: bool = false) -> int:
+func deal_damage(_enemy: Node, _base: float, _ability_id: String, _is_proc: bool = false,
+		_damage_type: String = "", _tags: PackedStringArray = PackedStringArray()) -> int:
 	return 0
 
 func take_damage(_amount: int) -> void:

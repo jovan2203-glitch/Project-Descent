@@ -39,12 +39,16 @@ func _ready() -> void:
 	add_child(_root)
 
 const Abilities = preload("res://scripts/abilities.gd")
+const Keywords = preload("res://scripts/core/keywords.gd")
 
 func _process(delta: float) -> void:
 	var vp := get_viewport()
 	var c := _tip_owner(vp.gui_get_hovered_control())
 	if c and c.has_meta("tip_ability"):
 		_process_ability(c, delta)
+		return
+	if c and not c.has_meta("tip_item") and _plain_tip(c) != "":
+		_process_text(c, delta)
 		return
 	var item := str(c.get_meta("tip_item", "")) if c else ""
 	if item == "" or vp.gui_is_dragging() or not Items.exists(item) or not c.is_visible_in_tree():
@@ -113,16 +117,96 @@ func _process_ability(c: Control, delta: float) -> void:
 	_root.visible = true
 	_place()
 
-## The hovered control, or the nearest parent carrying an item / ability tooltip.
+## The hovered control, or the nearest parent carrying a tooltip: an item, an
+## ability, meta "tip_text", or a plain `tooltip_text`. Plain tooltips are drawn
+## here too, so every tooltip in the game wraps its text and stays on screen.
+## (Godot's built-in tooltip is switched off in Project Settings:
+## gui/timers/tooltip_delay_sec is set very high.)
 func _tip_owner(c: Control) -> Control:
 	var n: Node = c
 	for i in 3:
 		if n == null or not (n is Control):
 			return null
-		if n.has_meta("tip_item") or n.has_meta("tip_ability"):
+		if n.has_meta("tip_item") or n.has_meta("tip_ability") or _plain_tip(n as Control) != "":
 			return n
 		n = n.get_parent()
 	return null
+
+## Plain tooltip text of `c`: meta "tip_text", else its tooltip_text.
+func _plain_tip(c: Control) -> String:
+	if c.has_meta("tip_text"):
+		return str(c.get_meta("tip_text"))
+	return c.tooltip_text
+
+const TEXT_MAX_WIDTH := 340.0
+const TEXT_FONT_SIZE := 13
+
+## Plain tooltips (meta "tip_text", or a control's former tooltip_text).
+func _process_text(c: Control, delta: float) -> void:
+	var text := _plain_tip(c)
+	if text == "" or get_viewport().gui_is_dragging() or not c.is_visible_in_tree():
+		_hide()
+		return
+	var key_item := "text:" + text
+	if c != _hover or key_item != _item:
+		_hover = c
+		_item = key_item
+		_wait = DELAY
+		_shown_key = ""
+		_root.visible = false
+	if _wait > 0.0:
+		_wait -= delta
+		if _wait > 0.0:
+			return
+	# Shift explains the keywords in the text (talents, runes, buffs...).
+	var shift := Input.is_key_pressed(KEY_SHIFT)
+	var shown := "%s|%s" % [key_item, shift]
+	if _shown_key != shown:
+		_shown_key = shown
+		for ch in _root.get_children():
+			_root.remove_child(ch)
+			ch.queue_free()
+		var explained := keyword_lines(text)
+		var p := _panel(text_bbcode(text, shift, explained))
+		# As wide as the longest line needs, wrapping past TEXT_MAX_WIDTH.
+		var f := ThemeDB.fallback_font
+		var w := 40.0
+		for line in text.split("\n"):
+			w = maxf(w, f.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, TEXT_FONT_SIZE).x + 4.0)
+		if shift and not explained.is_empty():
+			w = TEXT_MAX_WIDTH
+		(p.get_child(0) as Control).custom_minimum_size.x = minf(w, TEXT_MAX_WIDTH)
+		_root.add_child(p)
+		_root.reset_size()
+	_root.visible = true
+	_place()
+
+## The title line of a plain tooltip (its first line, when it has more than one).
+static func _title_of(text: String) -> String:
+	var nl := text.find("\n")
+	return text.substr(0, nl) if nl > 0 else ""
+
+## What Shift explains under a plain tooltip: the keywords and names in its
+## body. The thing the tooltip is about (named in its title line) is left out.
+static func keyword_lines(text: String) -> Array[String]:
+	var title := _title_of(text)
+	var own := ""
+	for key in Keywords.mentions(title):
+		own = str(key)
+		break
+	return Keywords.explain(text.substr(title.length()), own)
+
+## A plain tooltip as rich text: keywords and names in orange (the title line
+## keeps its colour), and their explanations underneath while Shift is held.
+static func text_bbcode(text: String, shift: bool, explained: Array[String]) -> String:
+	var safe := text.replace("[", "[lb]")
+	var title := _title_of(safe)
+	var out := title + Keywords.paint(safe.substr(title.length()))
+	if explained.is_empty():
+		return out
+	if not shift:
+		return out + "\n[color=#%s][font_size=11]Hold Shift to explain keywords[/font_size][/color]" % DIM.to_html(false)
+	return out + "\n\n" + "\n".join(explained)
 
 func _hide() -> void:
 	_hover = null
@@ -162,17 +246,22 @@ func _rebuild(item: String, compare: bool, slot: String, replaced: Array) -> voi
 		_root.add_child(_panel(text))
 	_root.reset_size()
 
-# Keep the tooltip beside the mouse and on screen.
+# Keep the tooltip beside the mouse and fully on screen.
 func _place() -> void:
 	var vp := get_viewport().get_visible_rect().size
 	var mouse := get_viewport().get_mouse_position()
-	var sz := _root.get_combined_minimum_size()
+	_root.reset_size()
+	var sz := _root.get_combined_minimum_size().max(_root.size)
 	var pos := mouse + MOUSE_OFFSET
-	if pos.x + sz.x > vp.x:
-		pos.x = mouse.x - sz.x - 8.0
-	if pos.y + sz.y > vp.y:
-		pos.y = vp.y - sz.y
-	_root.position = pos.max(Vector2.ZERO)
+	if pos.x + sz.x > vp.x - SCREEN_PAD:
+		pos.x = mouse.x - sz.x - 8.0   # flip to the left of the mouse
+	if pos.y + sz.y > vp.y - SCREEN_PAD:
+		pos.y = mouse.y - sz.y - 8.0   # flip above the mouse
+	pos.x = clampf(pos.x, SCREEN_PAD, maxf(vp.x - sz.x - SCREEN_PAD, SCREEN_PAD))
+	pos.y = clampf(pos.y, SCREEN_PAD, maxf(vp.y - sz.y - SCREEN_PAD, SCREEN_PAD))
+	_root.position = pos
+
+const SCREEN_PAD := 4.0
 
 func _panel(bbcode: String) -> PanelContainer:
 	var p := PanelContainer.new()
@@ -207,6 +296,14 @@ static func item_bbcode(item: String) -> String:
 	if d.is_empty():
 		return ""
 	var lines: Array[String] = []
+	var mr := Items.mystery_rarity(item)
+	if mr >= 0:
+		# Mysterious Rune: its RUNE rarity is what matters.
+		lines.append("[font_size=16]%s[/font_size]" % _c(Runes.RARITY_COLORS[mr], Items.item_name(item)))
+		lines.append(_c(Runes.RARITY_COLORS[mr], "%s  •  Mysterious Rune" % Runes.RARITY_NAMES[mr]))
+		lines.append(str(d.get("desc", "")))
+		lines.append(_c(DIM, "Or salvage it for Rune Shards."))
+		return "\n".join(lines)
 	lines.append("[font_size=16]%s[/font_size]" % _c(d["rarity_color"], Items.item_name(item)))
 	var rune := Items.rune_of(item)
 	if rune != "":
@@ -220,16 +317,16 @@ static func item_bbcode(item: String) -> String:
 		lines.append(_c(Color.WHITE if ok else RED, "Requires Level %d" % req))
 	lines.append(_c(DIM, Items.slot_line(item)))
 	if d.has("weapon"):
-		lines.append("%d damage  •  %.1f s  •  %s m range" % [d["damage"], d["attack_interval"], str(d["attack_range"])])
+		lines.append("%d damage  •  %.1f s  •  %s m range" % [Items.real_weapon_damage(float(d["damage"])), d["attack_interval"], str(d["attack_range"])])
 	for stat in d["stats"]:
 		lines.append(Stats.bonus_line(str(stat), float(d["stats"][stat])))
 	for l in Items.effect_lines(item):
 		lines.append(_c(EFFECT_COLOR, l))
-	if d.has("durability"):
-		lines.append(_c(DIM, "Durability %d / %d" % [d["durability"], d["max_durability"]]))
+	if Items.use_effect_of(item) != null:
+		lines.append(_c(DIM, "[font_size=11]In a dungeon: drag it onto an action-bar slot to use it from there.[/font_size]"))
 	var e := Items.rune_of(item)
 	if e != "":
-		lines.append("%s — %s" % [_c(Runes.rarity_color(e), "%s rune" % Runes.rarity_name(e)), Runes.description(e)])
+		lines.append("%s — %s" % [_c(Runes.rarity_color(e), "%s rune" % Runes.rarity_name(e)), Keywords.paint(Runes.description(e))])
 	return "\n".join(lines)
 
 ## "If you equip this:" + one green/red line per stat that changes.

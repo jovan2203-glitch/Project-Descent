@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"icebreaker"
+display_name = "Icebreaker"
+description = "A heavy finishing blow that deals {hit} Frost damage. On a target you have Frozen it deals {ice_frozen} instead and ends the Freeze."
+tags = PackedStringArray("Ability", "Frost", "Melee")
+cast_type = 0
+cast_time = 0.0
+cooldown = 8.0
+requires_target = true
+weapon_requirement = 1
+resource_type = 3
+resource_cost = 30
+damage = 0
+weapon_damage_multiplier = 2.0
+damage_type = &"frost"

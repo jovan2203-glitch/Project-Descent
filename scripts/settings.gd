@@ -39,6 +39,8 @@ const ACTIONS := [
 	["ability_7", "Action Bar 7", [KEY_7]],
 	["ability_8", "Action Bar 8", [KEY_8]],
 	["target_next", "Target Nearest Enemy", [KEY_TAB]],
+	["interact", "Revive Downed Ally", [KEY_F]],
+	["ping", "Ping (under the mouse)", [KEY_G]],
 	["zoom_in", "Zoom In", [KEY_EQUAL, KEY_KP_ADD]],
 	["zoom_out", "Zoom Out", [KEY_MINUS, KEY_KP_SUBTRACT]],
 	["restart", "Restart (when dead)", [KEY_R]],
@@ -46,11 +48,52 @@ const ACTIONS := [
 	["open_character", "Character", [KEY_C]],
 	["open_inventory", "Inventory", [KEY_I]],
 	["open_bank", "Bank", [KEY_B]],
-	["open_talents", "Talents & Abilities", [KEY_P]],
+	["open_talents", "Spellbook", [KEY_P]],
 	["open_map", "Map", [KEY_M]],
+	["open_details", "Details (Damage / Healing Meter)", [KEY_K]],
 	["debug_overlay", "FPS / Stats Overlay", [KEY_F3]],
 ]
 const AUDIO_BUSES := ["Master", "Music", "SFX"]
+
+# --- Extra action bars (Interface tab; all off by default) -------------------------
+# Bar 1 is the main bar (actions "ability_1".."ability_8"). The extra bars each
+# have BAR_SLOTS slots with keybinds of their own (unbound until you set them).
+## [action prefix, name, where it sits]
+const EXTRA_BARS := [
+	["bar2", "Top bar", "above the main bar"],
+	["bar3", "Left bar", "left side of the screen"],
+	["bar4", "Right bar", "right side of the screen"],
+]
+const BAR_SLOTS := 8
+const BAR_OPACITY_MIN := 0.2
+var extra_bars: Array = [false, false, false]
+var extra_bar_opacity: Array = [1.0, 1.0, 1.0]
+
+## The Input Map action of action-bar slot `slot` (1 = the main bar's first slot;
+## 9 = the top bar's first, 17 = the left bar's, 25 = the right bar's).
+static func slot_action(slot: int) -> String:
+	var bar := (slot - 1) / BAR_SLOTS
+	var n := (slot - 1) % BAR_SLOTS + 1
+	if bar <= 0:
+		return "ability_%d" % n
+	return "%s_%d" % [EXTRA_BARS[mini(bar, EXTRA_BARS.size()) - 1][0], n]
+
+static var _all_actions: Array = []
+
+## Every rebindable action: ACTIONS plus one per extra-bar slot (no default key).
+static func actions() -> Array:
+	if _all_actions.is_empty():
+		_all_actions = ACTIONS.duplicate()
+		for bar in EXTRA_BARS:
+			for n in range(1, BAR_SLOTS + 1):
+				_all_actions.append(["%s_%d" % [bar[0], n], "%s %d" % [bar[1], n], []])
+	return _all_actions
+
+func is_bar_on(bar: int) -> bool:
+	return bar == 0 or (bar - 1 < extra_bars.size() and bool(extra_bars[bar - 1]))
+
+func bar_opacity(bar: int) -> float:
+	return 1.0 if bar == 0 or bar - 1 >= extra_bar_opacity.size() else float(extra_bar_opacity[bar - 1])
 
 var window_mode := 0
 var resolution := 0
@@ -96,7 +139,7 @@ func build_interface_ui() -> Control:
 	var size_s := _slider(UI_SCALE_MIN, UI_SCALE_MAX, 0.05, ui_scale)
 	var size_l := UI.label("%d%%" % int(round(ui_scale * 100)), 14, Color.WHITE)
 	size_s.value_changed.connect(func(val): size_l.text = "%d%%" % int(round(val * 100)))
-	size_s.drag_ended.connect(func(_changed):
+	size_s.drag_ended.connect(func(_value_changed):
 		ui_scale = size_s.value
 		apply_interface()
 		save())
@@ -108,9 +151,48 @@ func build_interface_ui() -> Control:
 		ui_opacity = val
 		op_l.text = "%d%%" % int(round(val * 100))
 		apply_interface())
-	op_s.drag_ended.connect(func(_changed): save())
+	op_s.drag_ended.connect(func(_value_changed): save())
 	_row(grid, "HUD opacity", op_s)
 	grid.add_child(op_l)
+	# Extra action bars: on / off and how see-through each one is.
+	v.add_child(UI.label("Extra action bars", 15, UI.ACCENT))
+	var bars := GridContainer.new()
+	bars.columns = 4
+	bars.add_theme_constant_override("h_separation", 10)
+	bars.add_theme_constant_override("v_separation", 6)
+	v.add_child(bars)
+	var bar_checks: Array = []
+	var bar_sliders: Array = []
+	var bar_labels: Array = []
+	for i in EXTRA_BARS.size():
+		var idx: int = i
+		var name_l := UI.label(str(EXTRA_BARS[i][1]), 14, Color.WHITE)
+		name_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		name_l.set_meta("tip_text", "%s: %d more slots, %s. Bind its keys in the Controls tab." % [EXTRA_BARS[i][1], BAR_SLOTS, EXTRA_BARS[i][2]])
+		name_l.mouse_filter = Control.MOUSE_FILTER_PASS
+		bars.add_child(name_l)
+		var on := CheckButton.new()
+		on.focus_mode = Control.FOCUS_NONE
+		on.button_pressed = bool(extra_bars[i])
+		bars.add_child(on)
+		var o_s := _slider(BAR_OPACITY_MIN, 1.0, 0.05, float(extra_bar_opacity[i]))
+		o_s.custom_minimum_size = Vector2(150, 24)
+		o_s.tooltip_text = "Opacity of the %s" % str(EXTRA_BARS[i][1]).to_lower()
+		bars.add_child(o_s)
+		var o_l := UI.label("%d%%" % int(round(float(extra_bar_opacity[i]) * 100)), 14, Color.WHITE)
+		bars.add_child(o_l)
+		on.toggled.connect(func(pressed: bool):
+			extra_bars[idx] = pressed
+			apply_interface()
+			save())
+		o_s.value_changed.connect(func(val: float):
+			extra_bar_opacity[idx] = val
+			o_l.text = "%d%%" % int(round(val * 100))
+			apply_interface())
+		o_s.drag_ended.connect(func(_value_changed): save())
+		bar_checks.append(on)
+		bar_sliders.append(o_s)
+		bar_labels.append(o_l)
 	var reset := UI.button("Reset interface", 14, Vector2(0, 30))
 	reset.pressed.connect(func():
 		ui_scale = 1.0
@@ -119,10 +201,16 @@ func build_interface_ui() -> Control:
 		size_l.text = "100%"
 		op_s.set_value_no_signal(1.0)
 		op_l.text = "100%"
+		for i in EXTRA_BARS.size():
+			extra_bars[i] = false
+			extra_bar_opacity[i] = 1.0
+			bar_checks[i].set_pressed_no_signal(false)
+			bar_sliders[i].set_value_no_signal(1.0)
+			bar_labels[i].text = "100%"
 		apply_interface()
 		save())
 	v.add_child(reset)
-	var note := UI.label("Size scales every menu and the HUD. Opacity fades the in-game HUD: bars, action bar, chat, minimap and windows.", 12, UI.TEXT_DIM)
+	var note := UI.label("Size scales every menu and the HUD. Opacity fades the in-game HUD: bars, action bar, chat, minimap and windows. Extra action bars show in game; their keys are set in the Controls tab.", 12, UI.TEXT_DIM)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(note)
 	return v
@@ -169,6 +257,13 @@ func _load() -> void:
 		volumes[bus] = clampf(float(cfg.get_value("audio", bus, volumes[bus])), 0.0, 1.0)
 	ui_scale = clampf(float(cfg.get_value("ui", "scale", ui_scale)), UI_SCALE_MIN, UI_SCALE_MAX)
 	ui_opacity = clampf(float(cfg.get_value("ui", "opacity", ui_opacity)), UI_OPACITY_MIN, 1.0)
+	var eb: Variant = cfg.get_value("ui", "extra_bars", [])
+	var eo: Variant = cfg.get_value("ui", "extra_bar_opacity", [])
+	for i in EXTRA_BARS.size():
+		if eb is Array and i < eb.size():
+			extra_bars[i] = bool(eb[i])
+		if eo is Array and i < eo.size():
+			extra_bar_opacity[i] = clampf(float(eo[i]), BAR_OPACITY_MIN, 1.0)
 	var cs: Variant = cfg.get_value("ui", "chat_size", chat_size)
 	if cs is Vector2:
 		chat_size = cs
@@ -192,6 +287,8 @@ func save() -> void:
 	cfg.set_value("ui", "chat_size", chat_size)
 	cfg.set_value("ui", "scale", ui_scale)
 	cfg.set_value("ui", "opacity", ui_opacity)
+	cfg.set_value("ui", "extra_bars", extra_bars)
+	cfg.set_value("ui", "extra_bar_opacity", extra_bar_opacity)
 	cfg.save(PATH)
 
 func apply() -> void:
@@ -237,7 +334,7 @@ func _apply_window_size() -> void:
 	size = size.min(usable.size)   # never bigger than the screen
 	win.size = size
 	# Keep the window centered on its screen.
-	win.position = usable.position + (usable.size - size) / 2
+	win.position = usable.position + Vector2i((Vector2(usable.size - size) * 0.5).floor())
 
 func _changed() -> void:
 	apply()
@@ -331,7 +428,7 @@ func apply_audio() -> void:
 # --- Controls (Input Map) ------------------------------------------------------------
 
 func _register_actions() -> void:
-	for a in ACTIONS:
+	for a in actions():
 		var action: String = a[0]
 		if InputMap.has_action(action):
 			InputMap.action_erase_events(action)
@@ -342,16 +439,19 @@ func _register_actions() -> void:
 
 func _key_event(keycode: int) -> InputEventKey:
 	var ev := InputEventKey.new()
-	ev.keycode = keycode
+	ev.keycode = keycode as Key
 	return ev
 
 func _apply_keybinds() -> void:
 	for action in keybinds:
 		_set_primary(action, int(keybinds[action]))
 
+## Make `keycode` the action's primary key (0 = no key at all: unbound).
 func _set_primary(action: String, keycode: int) -> void:
 	var events := InputMap.action_get_events(action)
 	InputMap.action_erase_events(action)
+	if keycode == 0:
+		return
 	InputMap.action_add_event(action, _key_event(keycode))
 	for i in range(1, events.size()):
 		if not (events[i] is InputEventKey and events[i].keycode == keycode):
@@ -372,9 +472,9 @@ func key_text(action: String) -> String:
 ## it as its primary key, the two swap keys.
 func rebind(action: String, keycode: int) -> void:
 	var old := primary_key(action)
-	for a in ACTIONS:
+	for a in actions():
 		var other: String = a[0]
-		if other != action and primary_key(other) == keycode:
+		if keycode != 0 and other != action and primary_key(other) == keycode:
 			_set_primary(other, old)
 			keybinds[other] = old
 	_set_primary(action, keycode)
@@ -397,7 +497,9 @@ func _input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 	var action := _capture_action
 	_capture_action = ""
-	if event.keycode != KEY_ESCAPE:
+	if event.keycode == KEY_DELETE or event.keycode == KEY_BACKSPACE:
+		rebind(action, 0)   # clear: the action has no key
+	elif event.keycode != KEY_ESCAPE:
 		rebind(action, event.keycode)
 	if is_instance_valid(_capture_button):
 		_capture_button.text = key_text(action)
@@ -453,7 +555,7 @@ func build_audio_ui() -> Control:
 func build_controls_ui() -> Control:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 6)
-	v.add_child(UI.label("Click a key, then press the new key (Esc cancels).", 12, UI.TEXT_DIM))
+	v.add_child(UI.label("Click a key, then press the new key (Esc cancels, Delete clears it).", 12, UI.TEXT_DIM))
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.custom_minimum_size = Vector2(0, 230)
@@ -466,7 +568,7 @@ func build_controls_ui() -> Control:
 	grid.add_theme_constant_override("v_separation", 4)
 	scroll.add_child(grid)
 	var buttons := {}
-	for a in ACTIONS:
+	for a in actions():
 		var action: String = a[0]
 		var b := UI.button(key_text(action), 14, Vector2(120, 28))
 		b.pressed.connect(func():

@@ -7,13 +7,16 @@ signal changed
 signal item_looted(id: String)
 
 const Items = preload("res://scripts/items.gd")
+const Stats = preload("res://scripts/core/stats.gd")
 const ItemDB = preload("res://scripts/core/item_db.gd")
 const INVENTORY_SIZE := 20
 const OFF_HAND := "Off Hand"
 const MAIN_HAND := "Main Hand"
 
 const BANK_SIZE := 300
-const ACTION_SLOTS := 8
+const ACTION_SLOTS := 8            # slots per action bar
+const ACTION_BARS := 4             # the main bar + three optional ones
+const ACTION_SLOTS_TOTAL := ACTION_SLOTS * ACTION_BARS
 
 # --- Runes --------------------------------------------------------------
 # Runes live on items ("sword|frost"). Extracting/transferring an rune
@@ -144,6 +147,139 @@ func all_item_ids() -> Array:
 				out.append(str(id))
 	return out
 
+# --- Rune Shards (salvage -> Runecrafting) and Mysterious Runes -----------------------
+# Two ways to get the rune you actually want:
+#   - Salvage items (and Mysterious Runes) for Rune Shards, then craft any rune
+#     you like at the Runecrafting screen (main menu, Character tab).
+#   - Mysterious Runes (70% from Skill Card chests) reveal in the main menu as a
+#     choice of 3 runes of their rarity; you learn the one you pick.
+# Everything learned goes into known_runes (permanent, survives death).
+
+var rune_shards := 0
+## Shards to craft a rune of each rarity (Common, Rare, Epic, Legendary).
+const RUNE_CRAFT_COST := [20, 60, 150, 400]
+## Salvaging a runed item gives this much extra for its rune (by rune rarity).
+const RUNE_SALVAGE_BONUS := [5, 15, 40, 100]
+## A Mysterious Rune salvaged - or revealed into a rune you already know - gives this.
+const MYSTERY_SHARDS := [10, 30, 75, 200]
+
+## Rune Shards for salvaging `item`: more for higher item rarity and level,
+## plus a bonus if it carries a rune.
+static func salvage_value(item: String) -> int:
+	if item == "":
+		return 0
+	var mr := Items.mystery_rarity(item)
+	if mr >= 0:
+		return MYSTERY_SHARDS[mr]
+	var v := int(round((1 + Items.rarity_of(item) * 2) * (1.0 + Items.required_level(item) / 10.0)))
+	var r := Items.rune_of(item)
+	if r != "":
+		v += RUNE_SALVAGE_BONUS[Runes.rarity(r)]
+	return maxi(v, 1)
+
+## Salvage bank items. Returns the shards gained.
+func salvage_bank_items(indices: Array) -> int:
+	var total := 0
+	for i in indices:
+		var idx := int(i)
+		if idx >= 0 and idx < BANK_SIZE and bank[idx] != "":
+			total += salvage_value(bank[idx])
+			ItemDB.destroy(bank[idx])
+			bank[idx] = ""
+	if total > 0:
+		rune_shards += total
+		changed.emit()
+	return total
+
+## Salvage one bag item. Returns the shards gained.
+func salvage_inventory_item(index: int) -> int:
+	if index < 0 or index >= INVENTORY_SIZE or inventory[index] == "":
+		return 0
+	var v := salvage_value(inventory[index])
+	ItemDB.destroy(inventory[index])
+	inventory[index] = ""
+	rune_shards += v
+	changed.emit()
+	return v
+
+static func craft_cost(rune_id: String) -> int:
+	return RUNE_CRAFT_COST[Runes.rarity(rune_id)]
+
+## Learn a rune with Rune Shards. Returns an error message or "".
+func craft_rune(rune_id: String) -> String:
+	if not Runes.PATHS.has(rune_id):
+		return "Unknown rune"
+	if known_runes.has(rune_id):
+		return "You already know %s" % Runes.rune_name(rune_id)
+	var cost := craft_cost(rune_id)
+	if rune_shards < cost:
+		return "Not enough Rune Shards (%d / %d)" % [rune_shards, cost]
+	rune_shards -= cost
+	learn_rune(rune_id)
+	changed.emit()
+	return ""
+
+## Up to 3 different runes of `rarity` for a Mysterious Rune reveal (ones you
+## don't know yet come first; a known one pays out Rune Shards instead).
+static func mystery_choices(rarity: int, known: Array, rng: RandomNumberGenerator = null) -> Array[String]:
+	var r := rng if rng else RandomNumberGenerator.new()
+	if rng == null:
+		r.randomize()
+	var fresh: Array[String] = []
+	var old: Array[String] = []
+	for id in Runes.ALL:
+		if Runes.rarity(id) != rarity:
+			continue
+		if known.has(id):
+			old.append(id)
+		else:
+			fresh.append(id)
+	for arr in [fresh, old]:
+		for i in range(arr.size() - 1, 0, -1):
+			var j := r.randi_range(0, i)
+			var tmp = arr[i]
+			arr[i] = arr[j]
+			arr[j] = tmp
+	var out: Array[String] = []
+	for id in fresh + old:
+		if out.size() >= 3:
+			break
+		out.append(id)
+	return out
+
+## A new Mysterious Rune of rune rarity `rarity`: into the bag, or the bank if
+## the bag is full. Returns "bag", "bank" or "" (nowhere to put it).
+func add_mystery_rune(rarity: int) -> String:
+	var id := ItemDB.create(Items.mystery_rune_base(rarity))
+	if add_item(id):
+		return "bag"
+	var free := bank.find("")
+	if free != -1:
+		bank[free] = id
+		changed.emit()
+		return "bank"
+	ItemDB.destroy(id)
+	return ""
+
+## Use the Mysterious Rune at `ref` ({"where": "bank"/"inv", "index": i}) to
+## learn `rune_id` (one of its choices). A rune you already know gives Rune
+## Shards instead. Returns an error message or "".
+func reveal_mystery(ref: Dictionary, rune_id: String) -> String:
+	var item := get_item_at(ref)
+	var r := Items.mystery_rarity(item)
+	if r < 0:
+		return "That isn't a Mysterious Rune"
+	if not Runes.PATHS.has(rune_id) or Runes.rarity(rune_id) != r:
+		return "That rune can't come from this Mysterious Rune"
+	_set_item_at(ref, "")
+	ItemDB.destroy(item)
+	if known_runes.has(rune_id):
+		rune_shards += MYSTERY_SHARDS[r]
+	else:
+		learn_rune(rune_id)
+	changed.emit()
+	return ""
+
 # --- Progression: XP and levels ----------------------------------------------------
 # Kill XP comes in through GameManager (enemy_died -> add_xp). Levels raise base
 # stats (level_stats) and give talent points (Talents.points_for_level).
@@ -158,6 +294,7 @@ var xp := 0
 
 # --- Draft build: abilities learned from level-up drafts + Skill Card loadout ------
 const Abilities = preload("res://scripts/abilities.gd")
+const Macros = preload("res://scripts/core/macros.gd")
 const SkillCards = preload("res://scripts/skill_cards.gd")
 var learned_abilities: Array[String] = []   # drafted abilities (permanent)
 var equipped_cards: Array[String] = []      # Skill Card loadout (card ids)
@@ -167,25 +304,77 @@ var pending_drafts: Array[int] = []         # levels still waiting for a draft p
 ## without a normal draft) offers it again.
 var card_reoffer := false
 
-## Abilities the player can use / put on the bar: base kit + drafted ones.
+# --- Pacts (scripts/pacts.gd) -------------------------------------------------------
+# One Pact at a time, taken in the main menu and locked while in a dungeon.
+const Pacts = preload("res://scripts/pacts.gd")
+var pact := ""          # the Pact held ("" = none); saved
+var pact_book := ""     # Pact of the Purist: the one book it allows; saved
+## The vow was broken in this dungeon: the Pact works against you until the run
+## ends. Not saved; GameManager clears it when a run starts from the menu.
+var pact_broken := false
+
+## Are Pacts locked right now? (In a dungeon or the Training Room: only the main menu changes them.)
+func pact_locked() -> bool:
+	var gm := get_node_or_null("/root/GameManager") if is_inside_tree() else null
+	return gm != null and int(gm.state) != 0   # 0 = GameManager.State.MENU
+
+## Take Pact `id` ("" = give up the one you hold). `book`: the Purist's book.
+## Returns "" or why not.
+func set_pact(id: String, book: String = "") -> String:
+	if pact_locked():
+		return "Pacts can only be changed in the main menu"
+	if id != "" and not Pacts.exists(id):
+		return "Unknown Pact"
+	if Pacts.needs_book(id) and not Pacts.valid_book(book):
+		return "Choose the book this Pact allows"
+	pact = id
+	pact_book = book if Pacts.needs_book(id) else ""
+	pact_broken = false
+	_stats_dirty = true
+	changed.emit()
+	return ""
+
+## A run starts from the menu: whatever was broken last time is whole again.
+func start_pact_run() -> void:
+	pact_broken = false
+
+## The vow was broken: until the run ends the Pact works against you.
+func break_pact() -> void:
+	if pact == "" or pact_broken:
+		return
+	pact_broken = true
+	changed.emit()
+
+## Abilities the player can use / put on the bar: base kit + drafted ones +
+## spells taught by runes on equipped gear.
 func available_abilities() -> Array[String]:
 	var out: Array[String] = []
 	for id in Abilities.ALL:
-		if Abilities.BASE.has(id) or learned_abilities.has(id):
+		if has_ability(id):
 			out.append(id)
 	return out
 
 func has_ability(id: String) -> bool:
-	return Abilities.BASE.has(id) or learned_abilities.has(id)
+	if Abilities.BASE.has(id) or learned_abilities.has(id):
+		return true
+	return Runes.rune_for_spell(id) != "" and rune_spells().has(id)
 
-## Learn a drafted ability; it goes into the first empty action bar slot.
+## Spells taught by the runes on equipped gear (Rune of Frostfire Bolt ->
+## Frostfire Bolt). Known only while the rune is worn.
+func rune_spells() -> Array[String]:
+	var out: Array[String] = []
+	for slot in equipment:
+		var spell := Runes.spell_of(Items.rune_of(str(equipment[slot])))
+		if spell != "" and not out.has(spell):
+			out.append(spell)
+	return out
+
+## Learn a drafted ability. It's only learned: put it on the action bar in game
+## from the Spellbook (P).
 func learn_ability(id: String) -> void:
 	if id == "" or has_ability(id):
 		return
 	learned_abilities.append(id)
-	var free := action_bar.find("")
-	if free != -1:
-		action_bar[free] = id
 	var bus := _bus()
 	if bus:
 		bus.ability_learned.emit(id)
@@ -326,13 +515,20 @@ func apply_death() -> Dictionary:
 	if not KEEP_BAG_ON_DEATH:
 		for i in INVENTORY_SIZE:
 			if inventory[i] != "":
+				# Mysterious Runes are safe: they go to the bank instead of being lost.
+				if Items.is_mystery_rune(inventory[i]):
+					var free := bank.find("")
+					if free != -1:
+						bank[free] = inventory[i]
+						inventory[i] = ""
+						continue
 				_lose_item(inventory[i], lost, runes_learned)
 				inventory[i] = ""
 	# Abilities: drafted ones are gone (the base kit stays).
 	var lost_abilities := learned_abilities.size()
 	learned_abilities.clear()
 	for i in action_bar.size():
-		if action_bar[i] != "" and not Abilities.BASE.has(action_bar[i]):
+		if not keeps_bar_slot(action_bar[i]):
 			action_bar[i] = ""
 	draft_boons.clear()
 	# Level + XP.
@@ -352,6 +548,52 @@ func apply_death() -> Dictionary:
 		bus.xp_changed.emit(level, xp, xp_to_next(level))
 	changed.emit()
 	return last_death
+
+## Prestige (Character sheet): start over at level 1. Every learned ability is
+## forgotten except the starter kit everyone has (Abilities.BASE); talents and
+## attribute points are refunded down to level 1's budget; the level lock is
+## cleared. Gear you can't wear at level 1 moves to the bank (or the bag).
+## Bank, runes, Rune Shards and Skill Cards are kept. Returns a summary.
+func prestige() -> Dictionary:
+	var old_level := level
+	var forgotten := learned_abilities.size()
+	learned_abilities.clear()
+	for i in action_bar.size():
+		if not keeps_bar_slot(action_bar[i]):
+			action_bar[i] = ""
+	draft_boons.clear()
+	pending_drafts.clear()
+	card_reoffer = false
+	level_lock = 0
+	level = 1
+	xp = 0
+	var moved: Array = []
+	var stuck: Array = []
+	for slot in equipment.keys():
+		var it: String = equipment[slot]
+		if it == "" or level_ok(it, 1):
+			continue
+		var free := bank.find("")
+		if free != -1:
+			bank[free] = it
+		else:
+			free = inventory.find("")
+			if free == -1:
+				stuck.append(Items.item_name(it))
+				continue
+			inventory[free] = it
+		equipment.erase(slot)
+		moved.append(Items.item_name(it))
+	validate_talents()
+	validate_attributes()
+	var bus := _bus()
+	if bus:
+		bus.xp_changed.emit(level, xp, xp_to_next(level))
+	changed.emit()
+	var save := get_node_or_null("/root/SaveSystem") if is_inside_tree() else null
+	if save:
+		save.save_profile()
+	return {"old_level": old_level, "forgotten": forgotten, "moved": moved, "stuck": stuck}
 
 static func xp_to_next(lv: int) -> int:
 	return 0 if lv >= MAX_LEVEL else 20 + (lv - 1) * 15
@@ -389,20 +631,27 @@ func set_level(lv: int) -> void:
 		bus.xp_changed.emit(level, xp, xp_to_next(level))
 	changed.emit()
 
-# --- Attribute points: 1 per level gained, spent on Intellect / Agility / Strength /
-# Health / Mana. In game (level-up screen) points can only be added; in the main
+# --- Attribute points: 1 per level gained, spent on Strength / Agility / Intellect /
+# Constitution. In game (level-up screen) points can only be added; in the main
 # menu's Character tab they can be moved around freely.
+# (Health and Mana used to be choices; points saved in them are simply unspent again.)
 const ATTRIBUTE_POINTS_PER_LEVEL := 1
-## Stat -> how much one point gives. Primaries are 1:1 (they also feed derived
-## stats, see Stats.DERIVED); straight Health / Mana points give more.
+## Stat -> how much one point gives. All are in flat units (x Stats.flat_unit(level),
+## so points keep up as you level: at level 50 a point is about +4.4 of the stat;
+## a point of Constitution is +25 Health).
 const ATTRIBUTE_VALUES := {
-	"intellect": 1.0,
-	"agility": 1.0,
-	"strength": 1.0,
-	"max_health": 3.0,
-	"max_mana": 3.0,
+	"intellect": 0.05,
+	"agility": 0.05,
+	"strength": 0.05,
+	"constitution": 0.05,
 }
-const ATTRIBUTE_ORDER := ["strength", "agility", "intellect", "max_health", "max_mana"]
+const ATTRIBUTE_FLAT_SCALED := ["intellect", "agility", "strength", "constitution"]
+
+## What one attribute point in `stat` gives at your current level.
+func attribute_value(stat: String) -> float:
+	var v := float(ATTRIBUTE_VALUES.get(stat, 0.0))
+	return v * Stats.flat_unit(level) if ATTRIBUTE_FLAT_SCALED.has(stat) else v
+const ATTRIBUTE_ORDER := ["strength", "agility", "intellect", "constitution"]
 var attribute_points := {}   # stat -> points spent
 
 func attribute_points_total() -> int:
@@ -456,13 +705,21 @@ func validate_attributes() -> bool:
 func attribute_stats() -> Dictionary:
 	var out := {}
 	for s in attribute_points:
-		out[s] = float(attribute_points[s]) * float(ATTRIBUTE_VALUES.get(s, 0.0))
+		out[s] = float(attribute_points[s]) * attribute_value(str(s))
 	return out
 
-## Base stats that grow with level (added to gear + talents).
+## Base stats that grow with level (added to gear + talents). Damage grows with
+## level on its own (Stats.level_hit), so there's no free power here.
 func level_stats() -> Dictionary:
-	var every4 := float((level - 1) / 4)
-	return {"max_health": float(level - 1), "spell_power": every4, "attack_power": every4}
+	return {"max_health": Stats.player_base_health(level), "max_mana": Stats.player_base_mana(level)}
+
+## Draft boons: flat ones are in flat units (grow with your level), percent ones as-is.
+func boon_stats() -> Dictionary:
+	var out := {}
+	for s in draft_boons:
+		var v := float(draft_boons[s])
+		out[s] = v if Stats.is_percent(str(s)) else v * Stats.unit_for(str(s), level)
+	return out
 
 
 # --- Talents -----------------------------------------------------------------------
@@ -471,15 +728,44 @@ var talents := {}   # talent id -> rank
 func talent_points_total() -> int:
 	return Talents.points_for_level(level)
 
-## Refund everything if more points are spent than the level allows.
+## Refund everything if more points are spent than the level allows, or the
+## ranks break the unlock rules (e.g. a tree layout changed). Unknown ids are dropped.
 func validate_talents() -> bool:
-	if talent_points_spent() > talent_points_total():
+	for id in talents.keys():
+		if not Talents.exists(str(id)):
+			talents.erase(id)
+		elif int(talents[id]) > Talents.max_rank(str(id)):
+			talents[id] = Talents.max_rank(str(id))   # a slot now holds a talent with fewer ranks
+	if talent_points_spent() > talent_points_total() or not talents_valid(talents):
 		talents.clear()
 		return false
 	return true
 
 func talent_rank(id: String) -> int:
 	return int(talents.get(id, 0))
+
+## A talent's current number by its key (e.g. talent_value("frost_slow") -> 10.0
+## at rank 2), 0 if not taken. `field` "values2" = the talent's second number.
+## A talent that "requires" an ability you don't know gives 0.
+func talent_value(key: String, field: String = "values") -> float:
+	var id := Talents.id_for_key(key)
+	if id == "":
+		return 0.0
+	var req := str(Talents.get_talent(id).get("requires", ""))
+	if req != "" and not has_ability(req):
+		return 0.0
+	return Talents.value_at(id, talent_rank(id), field)
+
+## Is a talent's capstone active (talent maxed out, and its required abilities known)?
+func talent_capstone(key: String) -> bool:
+	var id := Talents.id_for_key(key)
+	if id == "" or not Talents.has_capstone(id):
+		return false
+	var t := Talents.get_talent(id)
+	for req in [str(t.get("requires", "")), str(t.get("capstone_requires", ""))]:
+		if req != "" and not has_ability(req):
+			return false
+	return talent_rank(id) >= Talents.max_rank(id)
 
 func talent_points_spent() -> int:
 	var n := 0
@@ -497,10 +783,15 @@ func tier_points(tier: int) -> int:
 			n += int(talents[id])
 	return n
 
-## Rows are global: row N opens in every tree once POINTS_TO_UNLOCK_NEXT points
-## are spent in row N-1 across all trees combined.
+## Rows are global and open IN ORDER: row N opens in every tree once row N-1 is
+## itself open and has POINTS_TO_UNLOCK_NEXT points (across all trees). Points
+## in a talent opened early by a link still count for its row, but can't open
+## the next row until that row is reached normally.
 func tier_unlocked(tier: int) -> bool:
-	return tier == 0 or tier_points(tier - 1) >= Talents.POINTS_TO_UNLOCK_NEXT
+	for t in range(1, tier + 1):
+		if tier_points(t - 1) < Talents.POINTS_TO_UNLOCK_NEXT:
+			return false
+	return true
 
 ## Points spent in one category's tree.
 func tree_points(category: String) -> int:
@@ -509,6 +800,51 @@ func tree_points(category: String) -> int:
 		if Talents.category_of(id) == category:
 			n += int(talents[id])
 	return n
+
+## A linked talent that's maxed out unlocks this one regardless of its row.
+func unlocked_by_link(id: String) -> bool:
+	for src in Talents.sources_of(id):
+		if talent_rank(src) >= Talents.max_rank(src):
+			return true
+	return false
+
+## Can points go into this talent: its row is open, or a linked talent is maxed.
+func talent_unlocked(id: String) -> bool:
+	return tier_unlocked(Talents.tier_of(id)) or unlocked_by_link(id)
+
+## Is a set of ranks legal? Every invested talent must be reachable: starting from
+## nothing, accept talents whose row is opened by points in already-accepted
+## talents, or whose link source is accepted and maxed; repeat until stable. So
+## links can't hold each other up in a loop.
+static func talents_valid(ranks: Dictionary) -> bool:
+	var accepted := {}
+	var row_pts := {}   # row -> points in accepted talents
+	var progress := true
+	while progress:
+		progress = false
+		for id in ranks:
+			if accepted.has(id) or int(ranks[id]) <= 0:
+				continue
+			var tier := Talents.tier_of(id)
+			# Row open in order: every row above it has 3+ accepted points.
+			var ok := true
+			for t in range(1, tier + 1):
+				if int(row_pts.get(t - 1, 0)) < Talents.POINTS_TO_UNLOCK_NEXT:
+					ok = false
+					break
+			if not ok:
+				for src in Talents.sources_of(id):
+					if accepted.has(src) and int(ranks[src]) >= Talents.max_rank(src):
+						ok = true
+						break
+			if ok:
+				accepted[id] = true
+				row_pts[tier] = int(row_pts.get(tier, 0)) + int(ranks[id])
+				progress = true
+	for id in ranks:
+		if int(ranks[id]) > 0 and not accepted.has(id):
+			return false
+	return true
 
 # Returns "" if allowed, otherwise the reason.
 func can_invest(id: String) -> String:
@@ -519,20 +855,25 @@ func can_invest(id: String) -> String:
 		return "No talent points left"
 	if talent_rank(id) >= int(t["max_rank"]):
 		return "Already at max rank"
-	if not tier_unlocked(int(t["tier"])):
-		return "Requires %d points in row %d (any tree)" % [Talents.POINTS_TO_UNLOCK_NEXT, int(t["tier"])]
+	if not talent_unlocked(id):
+		return "Requires %d points in row %d (any book)" % [Talents.POINTS_TO_UNLOCK_NEXT, int(t["tier"])]
+	# A talent that only works with one ability needs that ability first.
+	var req := Talents.required_ability(id)
+	if req != "" and not has_ability(req):
+		return Talents.requires_line(req)
 	return ""
 
 func can_refund(id: String) -> String:
 	if talent_rank(id) <= 0:
 		return "No points to refund"
-	var tier := Talents.tier_of(id)
-	# Would removing a point starve a lower row that already has points?
-	for later in range(tier + 1, Talents.ROWS):
-		if tier_points(later) > 0:
-			var after := tier_points(later - 1) - (1 if later - 1 == tier else 0)
-			if after < Talents.POINTS_TO_UNLOCK_NEXT:
-				return "Points in row %d depend on this row" % (later + 1)
+	# Would removing a point leave another invested talent locked (a lower row
+	# losing its 3 points, or a link-unlocked talent losing its maxed source)?
+	var after := talents.duplicate()
+	after[id] = int(after[id]) - 1
+	if int(after[id]) <= 0:
+		after.erase(id)
+	if not talents_valid(after):
+		return "Other talents depend on this one"
 	return ""
 
 func invest_talent(id: String) -> String:
@@ -590,23 +931,68 @@ var _stats_dirty := true
 
 func _compute_total_stats() -> Dictionary:
 	var out := gear_stats()
-	for extra in [talent_stats(), level_stats(), draft_boons, attribute_stats()]:
+	for extra in [talent_stats(), level_stats(), boon_stats(), attribute_stats()]:
 		for stat in extra:
 			out[stat] = float(out.get(stat, 0.0)) + float(extra[stat])
+	# Frozen Mind: Spell Power equal to a % of your Intellect.
+	var int_sp := talent_value("frost_int_sp")
+	if int_sp > 0.0:
+		out[Stats.SPELL_POWER] = float(out.get(Stats.SPELL_POWER, 0.0)) \
+			+ Stats.from_totals(Stats.INTELLECT, out) * int_sp / 100.0
+	# Long Reach: Parry while a two-handed weapon is in your Main Hand.
+	var reach := talent_value("lightning_long_reach")
+	if reach > 0.0 and has_two_hander():
+		out[Stats.PARRY] = float(out.get(Stats.PARRY, 0.0)) + reach
+	# Light Feet: Dodge while a melee weapon is in each hand.
+	var feet := talent_value("arcane_light_feet")
+	if feet > 0.0 and has_dual_wield():
+		out[Stats.DODGE] = float(out.get(Stats.DODGE, 0.0)) + feet
+	# Forge-Hardened: Attack Power equal to a % of your Strength.
+	var str_ap := talent_value("fire_forge_hardened")
+	if str_ap > 0.0:
+		out[Stats.ATTACK_POWER] = float(out.get(Stats.ATTACK_POWER, 0.0)) \
+			+ Stats.from_totals(Stats.STRENGTH, out) * str_ap / 100.0
+	# Storm-Tempered: Attack Power equal to a % of your Agility.
+	var agi_ap := talent_value("lightning_storm_tempered")
+	if agi_ap > 0.0:
+		out[Stats.ATTACK_POWER] = float(out.get(Stats.ATTACK_POWER, 0.0)) \
+			+ Stats.from_totals(Stats.AGILITY, out) * agi_ap / 100.0
+	# Two Minds: the lower of Spell Power and Attack Power gains a share of the
+	# higher (last, so it counts what the talents above added).
+	var minds := talent_value("arcane_two_minds")
+	if minds > 0.0:
+		var sp := Stats.from_totals(Stats.SPELL_POWER, out)
+		var ap := Stats.from_totals(Stats.ATTACK_POWER, out)
+		var lower: String = Stats.SPELL_POWER if sp < ap else Stats.ATTACK_POWER
+		out[lower] = float(out.get(lower, 0.0)) + two_minds_gain(sp, ap, minds)
 	return out
+
+## What Two Minds adds to the lower of Spell Power `sp` and Attack Power `ap`:
+## `pct` % of the higher.
+static func two_minds_gain(sp: float, ap: float, pct: float) -> float:
+	return maxf(maxf(sp, ap), 0.0) * maxf(pct, 0.0) / 100.0
 
 func _invalidate_stats() -> void:
 	_stats_dirty = true
 
-# Action bar layout: ability id per slot ("" = empty). Keys 1-8 use this.
-var action_bar: Array[String] = ["frostbolt", "blizzard", "rayoffrost", "", "", "", "", ""]
+# Action bar layout: ability (or macro) id per slot ("" = empty). Slots 0-7 are
+# the main bar (keys 1-8); 8-15, 16-23 and 24-31 are the three extra bars
+# (Settings > Interface: above the main bar, left side, right side).
+var action_bar: Array[String] = default_action_bar()
+
+static func default_action_bar() -> Array[String]:
+	var bar: Array[String] = ["frostbolt", "fireball", "lightningbolt", "heal"]
+	bar.resize(ACTION_SLOTS_TOTAL)
+	for i in range(4, ACTION_SLOTS_TOTAL):
+		bar[i] = ""
+	return bar
 
 # Put ability `id` in bar slot `to`. `from` = the bar slot it was dragged from
 # (swap), or -1 when it came from the unplaced list.
 func set_action_slot(to: int, id: String, from: int) -> void:
-	if to < 0 or to >= ACTION_SLOTS:
+	if to < 0 or to >= ACTION_SLOTS_TOTAL:
 		return
-	if from >= 0 and from < ACTION_SLOTS:
+	if from >= 0 and from < ACTION_SLOTS_TOTAL:
 		var tmp := action_bar[to]
 		action_bar[to] = action_bar[from]
 		action_bar[from] = tmp
@@ -618,13 +1004,69 @@ func set_action_slot(to: int, id: String, from: int) -> void:
 	changed.emit()
 
 func clear_action_slot(slot: int) -> void:
-	if slot >= 0 and slot < ACTION_SLOTS:
+	if slot >= 0 and slot < ACTION_SLOTS_TOTAL:
 		action_bar[slot] = ""
 		changed.emit()
+
+## Is `id` something a bar slot keeps when abilities are lost (death, prestige)?
+static func keeps_bar_slot(id: String) -> bool:
+	return id == "" or Abilities.BASE.has(id) or Macros.is_macro(id)
+
+# --- Macros (Esc menu > Macros; see scripts/core/macros.gd) ---------------------------
+## [{"uid": int, "name": String, "icon": String, "link": String, "text": String}]
+var macros: Array = []
+
+func macro_by_uid(uid: int) -> Dictionary:
+	for m in macros:
+		if int(m.get("uid", -1)) == uid:
+			return m
+	return {}
+
+## Make a new, empty macro. Returns its uid (-1 if there are too many).
+func add_macro() -> int:
+	if macros.size() >= Macros.MAX_MACROS:
+		return -1
+	var uid := 1
+	for m in macros:
+		uid = maxi(uid, int(m.get("uid", 0)) + 1)
+	macros.append({"uid": uid, "name": "Macro %d" % uid, "icon": "", "link": "", "text": ""})
+	changed.emit()
+	return uid
+
+## Change a macro's "name" / "icon" / "link" / "text".
+func update_macro(uid: int, fields: Dictionary) -> void:
+	var m := macro_by_uid(uid)
+	if m.is_empty():
+		return
+	for k in ["name", "icon", "link", "text"]:
+		if fields.has(k):
+			m[k] = str(fields[k])
+	m["name"] = str(m["name"]).strip_edges().left(Macros.MAX_NAME)
+	if str(m["name"]) == "":
+		m["name"] = "Macro %d" % uid
+	m["text"] = str(m["text"]).left(Macros.MAX_TEXT)
+	changed.emit()
+
+## Delete a macro (and take it off the action bars).
+func delete_macro(uid: int) -> void:
+	for i in macros.size():
+		if int(macros[i].get("uid", -1)) == uid:
+			macros.remove_at(i)
+			break
+	var id := Macros.bar_id(uid)
+	for i in action_bar.size():
+		if action_bar[i] == id:
+			action_bar[i] = ""
+	changed.emit()
 
 var inventory: Array[String] = []      # "" = empty slot
 var equipment := {}                    # slot name -> item id
 var bank: Array[String] = []
+
+# First autoload: move saves from the old "New Game Project" folder before
+# anything reads user://.
+func _init() -> void:
+	preload("res://scripts/core/user_dir_migration.gd").run()
 
 func _ready() -> void:
 	# Connected first, so every other listener reads fresh stats.
@@ -635,6 +1077,43 @@ func _ready() -> void:
 	bank.resize(BANK_SIZE)
 	for i in BANK_SIZE:
 		bank[i] = ""
+
+## Basic weapons every character gets in the bank (once per character).
+## (The dagger goes in the Off Hand next to the sword: dual wield, for the Arcane tank.)
+const STARTER_WEAPONS := ["sword", "bow", "staff", "greatsword", "dagger"]
+## The first starter kit: characters saved before each weapon was tracked on
+## its own already have these.
+const STARTER_WEAPONS_V1 := ["sword", "bow", "staff"]
+var starter_weapons_given := false
+var starter_weapons_have: Array = []   # base ids this character was already given
+
+## Put every basic weapon this character never got in the bank (new characters
+## and existing saves alike: a weapon added to the list later is given once
+## too). Needs free bank slots.
+func give_starter_weapons() -> void:
+	var given := 0
+	for base in STARTER_WEAPONS:
+		if starter_weapons_have.has(base):
+			continue
+		var free := bank.find("")
+		if free == -1:
+			break
+		bank[free] = ItemDB.create(base)
+		starter_weapons_have.append(base)
+		given += 1
+	starter_weapons_given = STARTER_WEAPONS.all(func(b): return starter_weapons_have.has(b))
+	if given > 0:
+		changed.emit()
+
+## Is a two-handed weapon in the Main Hand?
+func has_two_hander() -> bool:
+	var main: String = equipment.get(MAIN_HAND, "")
+	return main != "" and bool(Items.get_item(main).get("locks_offhand", false))
+
+## Dual wield: is a one-handed melee weapon in the Main Hand and another in the Off Hand?
+func has_dual_wield() -> bool:
+	return Items.is_one_handed_melee(str(equipment.get(MAIN_HAND, ""))) \
+		and Items.is_one_handed_melee(str(equipment.get(OFF_HAND, "")))
 
 # Leaving the game: bag contents go to the bank (equipped gear stays on).
 # Items that don't fit stay in the inventory. Returns how many moved.
@@ -854,7 +1333,12 @@ const SLOT_PAIRS := {"Finger 1": "Finger 2", "Finger 2": "Finger 1",
 ## Can `item` go into equipment slot `slot`?
 static func fits_slot(item: String, slot: String) -> bool:
 	var s: String = Items.get_item(item).get("slot", "")
-	return s != "" and (s == slot or SLOT_PAIRS.get(s, "") == slot)
+	if s == "":
+		return false
+	if s == slot or SLOT_PAIRS.get(s, "") == slot:
+		return true
+	# Dual wield: a one-handed melee weapon can be held in the Off Hand too.
+	return slot == OFF_HAND and Items.is_one_handed_melee(item)
 
 ## The slot `item` goes into when equipped without choosing one: its own slot,
 ## or the paired slot when its own is taken and the other one is free.
@@ -862,6 +1346,11 @@ func target_slot_for(item: String) -> String:
 	var s: String = Items.get_item(item).get("slot", "")
 	if SLOT_PAIRS.has(s) and equipment.get(s, "") != "" and equipment.get(SLOT_PAIRS[s], "") == "":
 		return SLOT_PAIRS[s]
+	# Dual wield: with a one-handed melee weapon already in the Main Hand and the
+	# Off Hand free, a second one goes to the Off Hand.
+	if s == MAIN_HAND and Items.is_one_handed_melee(item) and str(equipment.get(OFF_HAND, "")) == "" \
+			and Items.is_one_handed_melee(str(equipment.get(MAIN_HAND, ""))):
+		return OFF_HAND
 	return s
 
 func _pick_slot(item: String, to_slot: String) -> String:

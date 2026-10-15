@@ -5,11 +5,12 @@ extends Node3D
 
 const CIRCLE_SHADER: Shader = preload("res://shaders/aoe_circle.gdshader")
 const Combat = preload("res://scripts/combat_utils.gd")
+const Balance = preload("res://scripts/balance.gd")
 
 @export var radius: float = 2.5
-@export var duration: float = 3.0
-@export var wave_interval: float = 0.5
-@export var damage: int = 1
+@export var duration: float = Balance.BLIZZARD_TIME
+@export var wave_interval: float = Balance.BLIZZARD_TICK
+@export var damage: float = 0.3   # coefficient per wave (1.0 = a standard hit)
 @export var icicles_per_wave: int = 7
 var source: Node = null   # the player; damage goes through source.deal_damage()
 
@@ -133,4 +134,4 @@ func _damage_wave() -> void:
 			if is_instance_valid(source) and source.has_method("deal_damage"):
 				source.deal_damage(e, damage, "blizzard")
 			else:
-				e.take_damage(damage)
+				pass

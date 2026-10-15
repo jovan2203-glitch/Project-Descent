@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="BiomeKit" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/biome_kit.gd" id="1_kit"]
+
+[resource]
+script = ExtResource("1_kit")
+name_key = "biome_stone_crypt"
+wall_dark = Color(0.13, 0.13, 0.15, 1)
+wall_light = Color(0.36, 0.35, 0.37, 1)
+top_color = Color(0.05, 0.05, 0.06, 1)
+corner_piece = "column"
+doorway_piece = "arch"
+piece_color = Color(0.32, 0.31, 0.32, 1)
+floor_pattern = "flagstone"
+floor_dark = Color(0.12, 0.115, 0.11, 1)
+floor_light = Color(0.31, 0.3, 0.29, 1)
+background = Color(0.01, 0.01, 0.015, 1)
+ambient = Color(0.3, 0.33, 0.45, 1)
+ambient_energy = 0.35
+fill_color = Color(0.75, 0.6, 0.5, 1)
+fill_energy = 0.35
+boss_fill_color = Color(1, 0.35, 0.25, 1)
+torches = true
+torch_color = Color(1, 0.62, 0.3, 1)
+fog = false
+props = Array[String](["pillar", "bones", "skull", "rubble", "candles", "urn", "brazier"])
+prop_density = 5.0
+glow_color = Color(0.7, 0.5, 1, 1)
+music_tag = "crypt"
+wall_style = "masonry"
+chunk_density = 0.7
+big_props = Array[String](["sarcophagus", "coffin", "statue", "bone_pile", "altar", "urn_group"])
+wall_decor = Array[String](["chains", "banner", "candles_ledge", "cobweb"])
+decal_colors = Array[Color]([Color(0.08, 0.07, 0.06, 0.45), Color(0.18, 0.22, 0.12, 0.35), Color(0.3, 0.05, 0.05, 0.3)])
+centerpiece = "summoning_circle"

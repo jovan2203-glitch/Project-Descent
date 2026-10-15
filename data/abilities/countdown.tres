@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"countdown"
+display_name = "Countdown"
+description = "Marks the target. After {b:COUNTDOWN_TIME} sec the mark detonates for {hit} Arcane damage plus {b:COUNTDOWN_SHARE_PCT}% of the Arcane damage you dealt to the target while it was marked."
+tags = PackedStringArray("Arcane", "Spell")
+cast_type = 1
+cast_time = 1.5
+cooldown = 12.0
+requires_target = true
+resource_type = 1
+resource_cost = 2
+damage = 1.0
+cast_range = 30.0
+damage_type = &"arcane"

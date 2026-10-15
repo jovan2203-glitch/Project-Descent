@@ -52,8 +52,8 @@ func _connect() -> void:
 
 func _on_damage(info: RefCounted) -> void:
 	var tgt: Node = info.target
-	if info.blocked:
-		play_sfx("block")
+	if info.avoided():
+		play_sfx(info.avoid_kind())   # "dodge" / "parry" / "block"
 	elif tgt and is_instance_valid(tgt) and tgt.is_in_group("player"):
 		play_sfx("hurt")
 	else:

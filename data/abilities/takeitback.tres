@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"takeitback"
+display_name = "Take It Back"
+description = "Calls back {b:TAKE_IT_BACK_PCT}% of what is left in your Breach under the target: it comes out of the Breach and shields you for that much damage for {b:TAKE_IT_BACK_TIME} sec."
+tags = PackedStringArray("Shadow", "Spell")
+cast_type = 0
+cast_time = 0.0
+cooldown = 45.0
+requires_target = true
+resource_type = 1
+resource_cost = 2
+damage = 0.0
+cast_range = 30.0
+damage_type = &"shadow"

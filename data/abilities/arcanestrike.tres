@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"arcanestrike"
 display_name = "Arcane Strike"
-description = "A spell-charged swing for {hit} arcane damage (weapon damage + 1), and restores 2 mana."
+description = "Strikes the target with a spell-charged weapon, dealing {hit} Arcane damage and restoring {arcane_mana} mana."
 tags = PackedStringArray("Ability", "Arcane", "Melee")
 cast_type = 0
 cast_time = 0.0
@@ -15,7 +15,7 @@ requires_target = true
 weapon_requirement = 1
 resource_type = 3
 resource_cost = 0
-resource_generated = 2
+resource_generated = 20
 damage = 1
 weapon_damage_multiplier = 1.0
 damage_type = &"arcane"

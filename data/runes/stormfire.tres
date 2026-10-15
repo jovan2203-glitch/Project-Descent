@@ -7,7 +7,7 @@
 script = ExtResource("1_s")
 id = &"stormfire"
 display_name = "Rune of Stormfire"
-description = "Every time you deal lightning damage, your next fire spell deals 20% more damage. Stacks up to 5 times, lasts 10 s, and each new stack refreshes the duration."
+description = "Every time you deal Lightning damage, your next Fire spell deals {fx_pct}% more damage. Stacks up to {fx_stacks} times, lasts {fx_time} sec, and each new stack refreshes the duration."
 color = Color(1, 0.62, 0.3, 1)
 rarity = 2
 unlock_level = 1

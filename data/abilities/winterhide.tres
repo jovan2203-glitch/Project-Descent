@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"winterhide"
+display_name = "Winter Hide"
+description = "For {hide_time} sec you take {hide_pct}% less damage, and enemies that hit you in melee are Chilled."
+tags = PackedStringArray("Frost", "Spell", "Defensive")
+cast_type = 0
+cast_time = 0.0
+cooldown = 60.0
+requires_target = false
+resource_type = 0
+resource_cost = 0
+damage = 0.0
+cast_range = 0.0
+damage_type = &"frost"

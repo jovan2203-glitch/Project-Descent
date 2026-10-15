@@ -5,9 +5,9 @@
 [resource]
 script = ExtResource("1_s")
 id = &"secondwind"
-display_name = "Second Wind"
-description = "Catch your breath and restore {heal} health."
-tags = PackedStringArray("Ability", "Heal", "Defensive")
+display_name = "Grit"
+description = "You grit your teeth and recover, healing yourself for {heal}."
+tags = PackedStringArray("Spell", "Heal", "Defensive")
 cast_type = 0
 cast_time = 0.0
 cooldown = 45.0

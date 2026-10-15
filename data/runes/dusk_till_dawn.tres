@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"dusk_till_dawn"
+display_name = "Dusk till Dawn"
+description = "Dealing Shadow damage gives you Dusk: you deal {b:DUSK_DAMAGE_PCT}% more Shadow damage for {b:DUSK_TIME} sec. Dusk cannot be refreshed. When it ends you gain Dawn: you deal {b:DAWN_DAMAGE_PCT}% more Holy damage for {b:DAWN_TIME} sec. A new Dusk cannot start until Dawn has ended."
+color = Color(0.62, 0.45, 0.85, 1)
+rarity = 3
+unlock_level = 10
+trigger = 6

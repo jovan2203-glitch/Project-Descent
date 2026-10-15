@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="LootTableData" load_steps=26 format=3]
+[gd_resource type="Resource" script_class="LootTableData" load_steps=27 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/loot_table_data.gd" id="1_table"]
 [ext_resource type="Script" path="res://scripts/data/loot_entry_data.gd" id="2_entry"]
@@ -81,6 +81,12 @@ item_id = &"staff"
 weight = 1.0
 min_rarity = 1
 
+[sub_resource type="Resource" id="B_greatsword"]
+script = ExtResource("2_entry")
+item_id = &"greatsword"
+weight = 1.0
+min_rarity = 1
+
 [sub_resource type="Resource" id="B_dagger"]
 script = ExtResource("2_entry")
 item_id = &"dagger"
@@ -143,7 +149,7 @@ min_rarity = 1
 
 [resource]
 script = ExtResource("1_table")
-pool = Array[Resource]([SubResource("B_helmet"), SubResource("B_chest"), SubResource("B_bow"), SubResource("B_sword"), SubResource("B_amulet"), SubResource("B_pauldrons"), SubResource("B_cloak"), SubResource("B_gloves"), SubResource("B_leggings"), SubResource("B_boots"), SubResource("B_ring_focus"), SubResource("B_ring_might"), SubResource("B_staff"), SubResource("B_dagger"), SubResource("B_venom_fang"), SubResource("B_shield"), SubResource("B_storm_idol"), SubResource("B_phoenix_ember"), SubResource("B_berserker_tooth"), SubResource("B_arcane_clockwork"), SubResource("B_frost_shard"), SubResource("B_sand_hourglass"), SubResource("B_sacred_reliquary")])
+pool = Array[Resource]([SubResource("B_helmet"), SubResource("B_chest"), SubResource("B_bow"), SubResource("B_sword"), SubResource("B_amulet"), SubResource("B_pauldrons"), SubResource("B_cloak"), SubResource("B_gloves"), SubResource("B_leggings"), SubResource("B_boots"), SubResource("B_ring_focus"), SubResource("B_ring_might"), SubResource("B_staff"), SubResource("B_greatsword"), SubResource("B_dagger"), SubResource("B_venom_fang"), SubResource("B_shield"), SubResource("B_storm_idol"), SubResource("B_phoenix_ember"), SubResource("B_berserker_tooth"), SubResource("B_arcane_clockwork"), SubResource("B_frost_shard"), SubResource("B_sand_hourglass"), SubResource("B_sacred_reliquary")])
 pool_rolls = 2
 nothing_weight = 0.0
 rarity_weights = PackedFloat32Array(0, 25, 50, 25)

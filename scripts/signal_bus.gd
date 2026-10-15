@@ -4,13 +4,18 @@ extends Node
 # Emit from anywhere:   SignalBus.enemy_died.emit(self)
 # Listen from anywhere: SignalBus.enemy_died.connect(_on_enemy_died)
 # Emitters and listeners never need references to each other.
+# (Signals here are only emitted from OTHER scripts, so Godot's "declared but
+# never used" check doesn't apply to this file.)
+@warning_ignore_start("unused_signal")
 
 # --- Player ---
 signal player_health_changed(current: int, maximum: int)
 signal player_damaged(amount: int)
 signal player_died
+signal player_revived                          # got back up after dying (no-drawback death)
 signal action_error(message: String)          # "Not enough mana", "Out of range", ...
-signal player_blocked                          # armor blocked a hit
+signal player_blocked                          # the player blocked a hit
+signal player_avoided(kind: String)            # the player dodged, parried or blocked a hit: "dodge" / "parry" / "block"
 ## Every hit the player lands. ability_id is e.g. "frostbolt", "auto_melee".
 ## is_proc = caused by an rune (runes ignore these to avoid chains).
 signal player_hit(ability_id: String, target: Node, amount: int, crit: bool, is_proc: bool)
@@ -24,6 +29,9 @@ signal damage_modify(info: RefCounted)
 ## An enemy's state machine changed state (GameManager/AI debugging, UI).
 signal enemy_state_changed(enemy: Node, state: String)
 signal buffs_changed
+## The local player entered / left combat (an enemy is fighting you or a party
+## member; ends 1 s after the last one dies, 2 s after one evades).
+signal combat_state_changed(in_combat: bool)
 
 # --- Abilities / casting ---
 signal ability_used(ability_id: String)
@@ -42,6 +50,9 @@ signal status_applied(target: Node, effect_name: String, is_debuff: bool, stacks
 signal status_consumed(target: Node, effect_id: String, effect_name: String, stacks: int)
 ## CombatSystem.heal() restored HP.
 signal healed(source: Node, target: Node, amount: int)
+## Same heal with details for the Details meter: `effective` = health actually
+## restored (the rest is overheal), `ability_id` = the heal's spell ("" if none).
+signal heal_done(source: Node, target: Node, amount: int, effective: int, ability_id: String, crit: bool)
 
 # --- Progression ---
 signal xp_changed(level: int, xp: int, xp_to_next: int)

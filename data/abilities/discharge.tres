@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"discharge"
+display_name = "Discharge"
+description = "Spends all your Energy to hurl a bolt at the target, dealing {discharge_per} Lightning damage per {b:ENERGY_STEP} Energy spent (up to {discharge_max}). Requires {b:SPEND_ALL_MIN_ENERGY} Energy."
+tags = PackedStringArray("Lightning", "Spell", "Projectile")
+cast_type = 1
+cast_time = 2.0
+cooldown = 6.0
+requires_target = true
+resource_type = 2
+resource_cost = 0
+damage = 0.0
+cast_range = 30.0
+damage_type = &"lightning"

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"kilnblast"
+display_name = "Kiln Blast"
+description = "Hurls a blast of kiln fire at the target, dealing {hit} Fire damage. Deals {kiln_pct}% more if the target has your {n:immolate}."
+tags = PackedStringArray("Fire", "Spell", "Projectile")
+cast_type = 1
+cast_time = 3.5
+cooldown = 3.0
+requires_target = true
+resource_type = 1
+resource_cost = 3
+damage = 3.0
+cast_range = 30.0
+damage_type = &"fire"

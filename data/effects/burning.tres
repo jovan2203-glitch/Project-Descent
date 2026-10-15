@@ -6,13 +6,13 @@
 script = ExtResource("1_s")
 id = &"burning"
 display_name = "Burning"
-description = "Takes 1 fire damage every second."
+description = "Takes Fire damage {every}."
 color = Color(1, 0.5, 0.15, 1)
 is_debuff = true
 tags = PackedStringArray("Fire", "DoT")
 duration = 4.0
 stack_mode = 0
 max_stacks = 1
-tick_damage = 1
+tick_damage = 0.1
 tick_interval = 1.0
 damage_type = &"fire"

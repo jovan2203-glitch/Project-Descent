@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"smoldering_focus"
 display_name = "Smoldering Focus"
-description = "Your next fire spell critical strike deals (critical strike chance x 0.6)% more damage per stack."
+description = "Your next Fire spell critical strike deals more damage for each stack. The higher your critical strike chance, the more."
 color = Color(1, 0.45, 0.1, 1)
 is_debuff = false
 tags = PackedStringArray("Fire", "Empower")
@@ -21,4 +21,4 @@ mod_affects_dots = false
 consume_on_use = true
 mod_crit_only = true
 mod_scale_stat = &"crit_chance"
-mod_scale_factor = 0.6
+mod_scale_factor = 0.1

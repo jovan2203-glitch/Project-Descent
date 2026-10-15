@@ -4,16 +4,18 @@ extends Node3D
 # breaks on walls.
 
 const Combat = preload("res://scripts/combat_utils.gd")
+const Balance = preload("res://scripts/balance.gd")
+const ImpactFX = preload("res://scripts/core/impact_fx.gd")
 
 var target: Node3D
-var damage := 1
+var damage := 1.0   # coefficient (1.0 = a standard hit)
 var source: Node = null      # the player; damage goes through source.deal_damage()
 var ability_id := "auto_ranged"
-var speed := 24.0
+var speed := Balance.ARROW_SPEED
 var _done := false
 
 # Pooled (see Pool): visuals are built once in _ready; spawn() resets state.
-static func spawn(scene: Node, at: Vector3, tgt: Node3D, src: Node, dmg: int, id: String) -> Node3D:
+static func spawn(scene: Node, at: Vector3, tgt: Node3D, src: Node, dmg: float, id: String) -> Node3D:
 	var pool := scene.get_node_or_null("/root/Pool")
 	var factory := func():
 		var n := Node3D.new()
@@ -25,9 +27,12 @@ static func spawn(scene: Node, at: Vector3, tgt: Node3D, src: Node, dmg: int, id
 	arrow.damage = dmg
 	arrow.ability_id = id
 	arrow._done = false
+	arrow._last_aim = tgt.global_position + Vector3(0, 0.3, 0) if is_instance_valid(tgt) else at
 	scene.add_child(arrow)
 	arrow.global_position = at
 	arrow._tint(id)
+	if arrow._streak:
+		arrow._streak.restart()
 	# Party members see my arrow too (as a harmless visual).
 	if src and is_instance_valid(src) and src.is_in_group("player"):
 		var net := scene.get_node_or_null("/root/Net")
@@ -54,7 +59,7 @@ func _tint(id: String) -> void:
 	if _tip_mat == null:
 		return
 	var cat: String = preload("res://scripts/abilities.gd").category_of(id)
-	var magic := cat != "" and cat != "ranger" and cat != "warrior"
+	var magic := cat != "" and cat != "martial"
 	if magic:
 		var c: Color = preload("res://scripts/categories.gd").color(cat)
 		_tip_mat.albedo_color = c.lightened(0.3)
@@ -62,9 +67,11 @@ func _tint(id: String) -> void:
 		_tip_mat.emission = c
 		_tip_mat.emission_energy_multiplier = 3.0
 		_glow.light_color = c
+		_streak_color(c.lightened(0.3), 0.8)
 	else:
 		_tip_mat.albedo_color = Color(0.85, 0.87, 0.9)
 		_tip_mat.emission_enabled = false
+		_streak_color(Color(0.9, 0.92, 1.0), 0.35)
 	_glow.visible = magic
 
 func _ready() -> void:
@@ -114,26 +121,65 @@ func _ready() -> void:
 	tail.position.z = 0.3
 	tail.rotation.z = PI / 4.0
 	add_child(tail)
+	# A faint air streak behind it (tinted for magic arrows in _tint).
+	_streak_mat = StandardMaterial3D.new()
+	_streak_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_streak_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_streak_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_streak_mat.vertex_color_use_as_albedo = true
+	_streak_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	_streak = CPUParticles3D.new()
+	_streak.amount = 24
+	_streak.lifetime = 0.16
+	_streak.local_coords = false
+	_streak.gravity = Vector3.ZERO
+	_streak.initial_velocity_min = 0.0
+	_streak.initial_velocity_max = 0.05
+	var q := QuadMesh.new()
+	q.size = Vector2(0.07, 0.07)
+	_streak.mesh = q
+	_streak.material_override = _streak_mat
+	_streak.position.z = 0.25
+	add_child(_streak)
+	_tint(ability_id)
+
+var _streak: CPUParticles3D
+var _streak_mat: StandardMaterial3D
+
+func _streak_color(c: Color, a: float) -> void:
+	if _streak == null:
+		return
+	var g := Gradient.new()
+	g.set_color(0, Color(c, a))
+	g.set_color(1, Color(c, 0.0))
+	_streak.color_ramp = g
 
 func _physics_process(delta: float) -> void:
 	if _done:
 		return
-	if not is_instance_valid(target) or not target.is_alive():
-		_finish()
-		return
-	var aim := target.global_position + Vector3(0, 0.3, 0)
+	var alive: bool = is_instance_valid(target) and target.is_alive()
+	if alive:
+		_last_aim = target.global_position + Vector3(0, 0.3, 0)
+	var aim := _last_aim
 	var to_target := aim - global_position
 	var step := speed * delta
 	if to_target.length() <= step + 0.2:
-		if is_instance_valid(source) and source.has_method("deal_damage"):
-			source.deal_damage(target, damage, ability_id)
+		if alive and is_instance_valid(source) and source.has_method("deal_damage"):
+			source.deal_damage(target, damage, ability_id)   # impact comes with the hit
 		else:
-			target.take_damage(damage)
+			# Visual-only arrow (a party member's), or the target died on the way.
+			ImpactFX.spawn_color(get_tree().current_scene, aim, _impact_color(), false, false, true)
 		_finish()
 		return
 	var next := global_position + to_target.normalized() * step
 	if not Combat.line_of_sight(get_world_3d(), global_position, next):
+		ImpactFX.spawn_color(get_tree().current_scene, global_position, _impact_color(), false, false, true)
 		_finish()
 		return
 	look_at(aim, Vector3.UP)
 	global_position = next
+
+var _last_aim := Vector3.ZERO
+
+func _impact_color() -> Color:
+	return _glow.light_color if _glow and _glow.visible else Color(1.0, 0.9, 0.75)

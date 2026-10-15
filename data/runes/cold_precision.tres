@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"cold_precision"
+display_name = "Rune of Cold Precision"
+description = "Every {bth:COLD_PRECISION_EVERY} Frost spell or ability you use is a guaranteed critical strike."
+color = Color(0.75, 0.92, 1, 1)
+rarity = 2
+unlock_level = 10
+trigger = 6

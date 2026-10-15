@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"anvil"
+display_name = "Anvil"
+description = "Slams your shield down, dealing {hit} Fire damage to all enemies within {radius} m with {threat}x threat. It never critically strikes, so it always adds Slag."
+tags = PackedStringArray("Ability", "Fire", "Melee", "Shield", "AoE")
+cast_type = 0
+cast_time = 0.0
+cooldown = 8.0
+requires_target = false
+weapon_requirement = 1
+requires_shield = true
+resource_type = 3
+resource_cost = 0
+resource_generated = 10
+damage = 0.3
+weapon_damage_multiplier = 0.5
+radius = 4.0
+threat_multiplier = 4.0
+damage_type = &"fire"

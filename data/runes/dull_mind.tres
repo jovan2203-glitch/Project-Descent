@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"dull_mind"
+display_name = "Rune of the Dull Mind"
+description = "Your critical strike chance cannot go above {b:DULL_EDGE_CRIT_CAP}%. All critical strike chance beyond that becomes Spell Power instead. Effects that always critically strike still do."
+color = Color(0.62, 0.66, 0.78, 1)
+rarity = 2
+unlock_level = 10
+trigger = 6

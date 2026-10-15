@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_s")
 id = &"regrowth"
-display_name = "Regrowth"
-description = "Living vines knit your wounds, healing {heal} health."
+display_name = "Sapmend"
+description = "Mends your wounds with living sap, healing you for {heal}."
 tags = PackedStringArray("Nature", "Spell", "Heal")
 cast_type = 0
 cast_time = 0.0

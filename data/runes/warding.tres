@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"warding"
 display_name = "Rune of Warding"
-description = "Taking damage has a 30% chance to grant +3 Armor for 5 s."
+description = "Taking damage has a {chance}% chance to grant +{buff} Armor for {time} sec."
 color = Color(0.95, 0.8, 0.35, 1)
 unlock_level = 5
 trigger = 3

@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"afterburn"
+display_name = "Afterburn"
+description = "Your next Fire spell hit that does not critically strike deals more damage for each stack. The lower your critical strike chance, the more."
+color = Color(1, 0.75, 0.25, 1)
+is_debuff = false
+tags = PackedStringArray("Fire", "Empower")
+duration = 20.0
+stack_mode = 1
+max_stacks = 20
+damage_mod_pct = 0.0
+modifies_incoming = false
+mod_damage_types = PackedStringArray("fire")
+mod_required_tags = PackedStringArray("Spell")
+mod_affects_dots = false
+consume_on_use = true
+mod_crit_only = false
+mod_non_crit_only = true
+mod_scale_stat = &"crit_chance"
+mod_scale_factor = 0.1
+mod_scale_inverse = true

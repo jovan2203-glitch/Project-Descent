@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+[ext_resource type="Resource" path="res://data/effects/frozen.tres" id="2_fx"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"flashfreeze"
+display_name = "Flash Freeze"
+description = "Blasts a {radius} m cone of frost in front of you, Freezing every enemy hit. Frozen enemies move {fx_slow}% slower for {fx_time} sec."
+tags = PackedStringArray("Frost", "Spell", "AoE", "Cone")
+cast_type = 1
+cast_time = 1.0
+cooldown = 12.0
+requires_target = false
+resource_type = 1
+resource_cost = 2
+damage = 0.0
+radius = 12.0
+on_hit_effect = ExtResource("2_fx")
+damage_type = &"frost"

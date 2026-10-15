@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+[ext_resource type="Resource" path="res://data/effects/pitched.tres" id="2_fx"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"pitcharrow"
+display_name = "Pitch Arrow"
+description = "Fires an arrow dipped in pitch that deals {hit} Fire damage and coats the target for {fx_time} sec. Your Burning and {n:immolate} on a coated target tick {pitch_pct}% faster."
+tags = PackedStringArray("Ability", "Fire", "Ranged", "Projectile")
+cast_type = 0
+cast_time = 0.0
+cooldown = 12.0
+requires_target = true
+weapon_requirement = 2
+resource_type = 2
+resource_cost = 20
+damage = 0
+weapon_damage_multiplier = 0.8
+on_hit_effect = ExtResource("2_fx")
+damage_type = &"fire"

@@ -7,14 +7,14 @@
 script = ExtResource("2_r")
 id = &"phoenix_ember"
 display_name = "Phoenix Ember"
-description = "When your health drops to 30% or lower, the ember flares and heals you for {amount} (60 s cooldown)."
+description = "When your health drops to {health}% or lower, the ember flares and heals you for {amount} ({cd} sec cooldown)."
 color = Color(1, 0.5, 0.2, 1)
 trigger = 4
 threshold_mode = 3
 threshold = 0.3
 internal_cooldown = 60.0
 effect = 3
-effect_amount = 4
+effect_amount = 3.0
 
 [resource]
 script = ExtResource("1_s")

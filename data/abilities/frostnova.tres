@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1_s")
 id = &"frostnova"
-display_name = "Frost Nova"
-description = "Blast of cold around you: {hit} frost damage to every enemy within 3.5 m, freezing them in place for 2 s."
+display_name = "Frostburst"
+description = "Blasts the area around you with frost, dealing {hit} Frost damage to all enemies within {radius} m and Freezing them. Frozen enemies move {fx_slow}% slower for {fx_time} sec."
 tags = PackedStringArray("Frost", "Spell", "AoE")
 cast_type = 0
 cast_time = 0.0
@@ -15,7 +15,7 @@ cooldown = 10.0
 requires_target = false
 resource_type = 1
 resource_cost = 3
-damage = 1
+damage = 0.8
 radius = 3.5
 on_hit_effect = ExtResource("2_fz")
 damage_type = &"frost"

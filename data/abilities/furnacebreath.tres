@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"furnacebreath"
+display_name = "Furnace Breath"
+description = "Breathes a cone of fire {radius} m in front of you (toward your target, if you have one), dealing {hit} Fire damage to every enemy in it, interrupting their spellcasting and preventing them from casting again for {lockout} sec. Does not trigger the global cooldown."
+tags = PackedStringArray("Fire", "Spell", "AoE", "Interrupt")
+cast_type = 0
+cast_time = 0.0
+cooldown = 15.0
+requires_target = false
+resource_type = 1
+resource_cost = 3
+damage = 1.0
+cast_range = 0.0
+radius = 6.0
+damage_type = &"fire"

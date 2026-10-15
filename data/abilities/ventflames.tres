@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"ventflames"
+display_name = "Vent Flames"
+description = "Vents your flames into the target, dealing {hit} Fire damage. Always critically strikes, and deals increased damage equal to {b%:VENT_FLAMES_CRIT_DAMAGE}% of your critical strike chance."
+tags = PackedStringArray("Fire", "Spell")
+cast_type = 0
+cast_time = 0.0
+cooldown = 10.0
+requires_target = true
+resource_type = 1
+resource_cost = 3
+damage = 2.0
+cast_range = 30.0
+damage_type = &"fire"

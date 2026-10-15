@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"branded"
+display_name = "Branded"
+description = "Deals less damage to the one who branded it."
+color = Color(1, 0.45, 0.15, 1)
+is_debuff = true
+tags = PackedStringArray("Fire")
+duration = 10.0
+stack_mode = 0
+max_stacks = 1
+per_caster = true

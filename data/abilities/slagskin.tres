@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"slagskin"
+display_name = "Slag Skin"
+description = "Your skin hardens into molten slag for {b:SLAG_SKIN_TIME} sec: every enemy that attacks you takes {hit} Fire damage. While it lasts, each melee hit of yours that does not critically strike adds a stack of Slag (up to {b:SLAG_MAX_STACKS}), each increasing your Armor by {slag}. A melee critical strike shatters all your Slag, dealing {flat1} Fire damage per stack to enemies within {b:SLAG_SHATTER_RADIUS} m."
+tags = PackedStringArray("Fire", "Spell")
+cast_type = 0
+cast_time = 0.0
+cooldown = 13.0
+requires_target = false
+resource_type = 1
+resource_cost = 0
+damage = 0.3
+threat_multiplier = 3.0
+cast_range = 0.0
+damage_type = &"fire"

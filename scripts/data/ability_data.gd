@@ -26,6 +26,12 @@ enum WeaponRequirement { NONE, MELEE, RANGED }
 @export var weapon_requirement: WeaponRequirement = WeaponRequirement.NONE
 ## Needs a shield equipped in the Off Hand.
 @export var requires_shield: bool = false
+## Needs a two-handed weapon in the Main Hand (with weapon_requirement MELEE: a
+## two-handed melee weapon).
+@export var requires_two_hand: bool = false
+## Needs a one-handed melee weapon in the Main Hand and another in the Off Hand
+## (dual wield): the Arcane tank's abilities.
+@export var requires_dual_wield: bool = false
 
 @export_group("Cost")
 @export var resource_type: ResourceType = ResourceType.NONE
@@ -34,7 +40,11 @@ enum WeaponRequirement { NONE, MELEE, RANGED }
 @export var resource_generated: int = 0
 
 @export_group("Base stats")
-@export var damage: int = 1
+## Damage as a coefficient: 1.0 = one standard hit (a Frost Bolt), see
+## Stats.level_hit. The real number also adds Spell / Attack Power.
+@export var damage: float = 1.0
+## Threat per point of damage (tank abilities make much more).
+@export var threat_multiplier: float = 1.0
 ## Multiplier applied to equipped weapon damage (0 = not weapon based).
 @export var weapon_damage_multiplier: float = 0.0
 @export_range(0.0, 100.0, 0.1, "suffix:m") var cast_range: float = 30.0
@@ -46,6 +56,9 @@ enum WeaponRequirement { NONE, MELEE, RANGED }
 @export_group("Effects")
 ## Status effect (StatusEffectData) applied to whatever this ability hits.
 @export var on_hit_effect: Resource
+## Applied to ALLY targets (e.g. Weakened Soul). While an ally carries it, no
+## ability that applies the same effect can target them.
+@export var ally_lockout_effect: Resource
 ## Damage type used for resistances, e.g. "physical", "frost".
 @export var damage_type: StringName = &"physical"
 

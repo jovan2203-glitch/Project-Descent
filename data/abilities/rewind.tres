@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"rewind"
+display_name = "Rewind"
+description = "Resets the cooldown of the last Arcane spell you cast whose cooldown is shorter than {b:REWIND_MAX_COOLDOWN} sec. Interrupts cannot be reset. Does not trigger the global cooldown."
+tags = PackedStringArray("Arcane", "Spell")
+cast_type = 0
+cast_time = 0.0
+cooldown = 45.0
+requires_target = false
+resource_type = 1
+resource_cost = 0
+damage = 0.0
+cast_range = 0.0
+damage_type = &"arcane"

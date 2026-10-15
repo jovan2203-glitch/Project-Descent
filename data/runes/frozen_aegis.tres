@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"frozen_aegis"
+display_name = "Rune of the Frozen Aegis"
+description = "Whenever you Freeze an enemy, you and every ally within {b:FROZEN_AEGIS_RADIUS} m gain a shield that absorbs {h:FROZEN_AEGIS_ON_FREEZE} damage. Dealing damage to an enemy you have Frozen shields the lowest-health ally within {b:FROZEN_AEGIS_RADIUS} m for {h:FROZEN_AEGIS_ON_HIT}. The shields add up to at most {h:FROZEN_AEGIS_CAP} and last {b:FROZEN_AEGIS_TIME} sec."
+color = Color(0.6, 0.9, 1, 1)
+rarity = 2
+unlock_level = 10
+trigger = 6

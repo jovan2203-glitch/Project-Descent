@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"coldspike"
+display_name = "Coldspike"
+description = "Hurls a great spike of ice at the target, dealing {hit} Frost damage. Deals {cold_pct}% more to a target you have Frozen."
+tags = PackedStringArray("Frost", "Spell", "Projectile")
+cast_type = 1
+cast_time = 3.0
+cooldown = 3.0
+requires_target = true
+resource_type = 1
+resource_cost = 3
+damage = 3.0
+cast_range = 30.0
+damage_type = &"frost"

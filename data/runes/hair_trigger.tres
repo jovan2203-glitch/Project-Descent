@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"hair_trigger"
+display_name = "Rune of the Hair Trigger"
+description = "{n:ventflames} has {b:HAIR_TRIGGER_CHARGES} charges. Each charge recharges on its own, one after the other."
+color = Color(1, 0.55, 0.2, 1)
+rarity = 2
+unlock_level = 10
+trigger = 6

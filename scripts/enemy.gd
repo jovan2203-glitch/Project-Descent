@@ -1,5 +1,6 @@
 extends CharacterBody3D
 
+
 # Base class for ALL enemies.
 #   - State machine: IDLE -> CHASE -> ATTACK, RETURN (leash/evade), DEAD
 #   - Threat table: every damage/heal source builds threat; the enemy fights
@@ -31,18 +32,24 @@ const STATE_NAMES := ["Idle", "Chase", "Attack", "Return", "Dead"]
 const OUTLINE_SHADER: Shader = preload("res://shaders/outline.gdshader")
 const Combat = preload("res://scripts/combat_utils.gd")
 const STATUS_CONTAINER = preload("res://scripts/core/status_container.gd")
+const BREACH_FX = preload("res://scripts/breach_fx.gd")
 const DamageInfo = preload("res://scripts/core/damage_info.gd")
 const Items = preload("res://scripts/items.gd")
 const Runes = preload("res://scripts/runes.gd")
 const LOOT_DROP = preload("res://scripts/loot_drop.gd")
 const ItemDB = preload("res://scripts/core/item_db.gd")
 
+## Health in "hits" (x Stats.enemy_health_unit(level) when the enemy spawns).
 @export var max_health: int = 3
 @export var move_speed: float = 2.2
 @export var aggro_radius: float = 5.0
-## Max distance from the spawn point before the enemy gives up and returns.
-@export var leash_radius: float = 14.0
-@export var contact_damage: int = 1
+## How far its target may get from the enemy (measured from where the enemy IS,
+## not from its spawn) before it drops that target. It then turns on the next
+## player on its threat table, or evades home if there's nobody left.
+@export var leash_radius: float = 28.0
+## Damage per swing as a coefficient (x Stats.enemy_hit(level) = 10% of a
+## same-level player's base health per 1.0).
+@export var contact_damage: float = 1.0
 @export var attack_range: float = 1.0
 @export var attack_cooldown: float = 1.0
 @export var armor: float = 0.0
@@ -77,6 +84,18 @@ const ItemDB = preload("res://scripts/core/item_db.gd")
 @export var in_place: bool = true
 @export var anim_blend_time: float = 0.25
 
+@export_group("Ranged")
+## "" = melee (swings in reach). "arrow" or "bolt" = shoots that projectile
+## from up to attack_range away (needs line of sight), e.g. goblin archers and
+## wizards. Damage is still contact_damage (as a coefficient).
+@export var projectile: String = ""
+## Seconds of casting before a ranged attack fires (0 = instant). The shot is
+## lost if its target runs out of range or line of sight meanwhile.
+@export var attack_windup: float = 0.0
+@export var projectile_color: Color = Color(1.0, 0.45, 0.15)
+@export var projectile_damage_type: String = "physical"
+@export var projectile_tags: PackedStringArray = PackedStringArray(["Physical", "Ranged"])
+
 @export_group("Elite / Boss")
 ## Shown for the elite / boss version. Empty = "Elite <name>" / "<name> Lord".
 @export var elite_name: String = ""
@@ -100,6 +119,26 @@ const ItemDB = preload("res://scripts/core/item_db.gd")
 @export var model_tint: Color = Color.WHITE
 @export_group("")
 
+# --- Dungeon role (scripts/dungeon/roles.gd sets these) ---------------------------
+var role := ""
+## Defender: share of damage blocked from hits coming from the front (0..1).
+var frontal_block := 0.0
+## Archer: backs away when a target gets this close (0 = never).
+var kite_distance := 0.0
+## Name of this enemy's own spell (a Support's Mend / Summoner's Summon
+## borrow cast_name for their cast; the normal bolts switch back to this).
+var base_cast_name := ""
+## Explodes when it dies like a Volatile elite (dungeon modifier "Volatile").
+var death_explode := false
+var _kite_until := 0.0
+var _kite_ready_at := 0.0
+var _frenzied := false
+const KITE_TIME := 1.1
+const KITE_COOLDOWN := 4.0
+const FRENZY_AT := 0.3          # "Frenzy" modifier: enrage below this share of health
+const FRENZY_DAMAGE := 1.3
+const FRENZY_ATTACK := 1.3
+
 var health: int
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var state: State = State.IDLE
@@ -119,10 +158,6 @@ var _outline_mat: ShaderMaterial
 static var _shared_outline: ShaderMaterial
 static var _shared_bar_mats: Array[StandardMaterial3D] = []   # [background, full, empty]
 var _health_bar: Node3D
-var _segments: Array[MeshInstance3D] = []
-var _seg_full: StandardMaterial3D
-var _seg_empty: StandardMaterial3D
-var _status_label: Label3D
 
 # Each entry rolls independently: [{"id": "sword", "chance": 0.15}, ...]
 var loot_table: Array = []
@@ -144,10 +179,17 @@ func _replica() -> bool:
 func _ready() -> void:
 	_net = get_node_or_null("/root/Net")
 	add_to_group("enemies")
+	Combat.setup_walker(self)   # sticks to ramps, same speed up and down them
 	# Enemies don't physically block each other (they're only on the enemy
 	# layer, not the world layer 1); crowding is handled softly by _crowd_velocity().
 	collision_layer &= ~1
 	collision_layer |= 4
+	if not _stats_scaled:
+		# Placed straight into a scene (no spawner): scale for its level now.
+		_stats_scaled = true
+		max_health = maxi(int(round(max_health * Stats.enemy_health_unit(level))), 1)
+	# 5 Player difficulty: tougher enemies (training dummies always run on Singleplayer).
+	max_health = maxi(int(round(max_health * _gm_mult("enemy_health_mult"))), 1)
 	health = max_health
 	spawn_position = global_position
 
@@ -165,7 +207,8 @@ func _ready() -> void:
 	status.name = "Status"
 	status.set_script(STATUS_CONTAINER)
 	add_child(status)
-	status.changed.connect(_update_status_label)
+	status.changed.connect(_update_health_bar)
+	status.changed.connect(_sync_breach_fx)
 
 	_bus().player_died.connect(_on_player_died)
 	_setup_animations()
@@ -174,6 +217,12 @@ func _ready() -> void:
 
 func _bus() -> Node:
 	return get_node("/root/SignalBus")
+
+## My debuffs changed. A Breach (the Shadow caster's) shows itself as a hole
+## under me with hands clawing out of it: scripts/breach_fx.gd makes that from
+## the debuffs, on every machine. It removes itself when the Breach is gone.
+func _sync_breach_fx() -> void:
+	BREACH_FX.sync(self)
 
 # Tinted copies of the model's materials, shared per (material, tint): every
 # goblin uses the same green materials instead of each making its own.
@@ -337,12 +386,21 @@ func _play(state: String) -> void:
 # --- Rank (normal / elite / boss) ------------------------------------------------------
 # Works for every enemy type: scales from that type's own base stats.
 
+const ELITE_DAMAGE_MULT := 2.0
+const BOSS_DAMAGE_MULT := 3.0
+const Stats = preload("res://scripts/core/stats.gd")
 const ELITE_LOOT := "res://data/loot/elite.tres"
 const BOSS_LOOT := "res://data/loot/boss.tres"
 
 ## Scale for rank and level. Call BEFORE adding the enemy to the tree.
+## Health and damage become real numbers here: max_health (hits) x
+## Stats.enemy_health_unit(level), contact damage x rank (the level part is
+## applied per swing through damage_unit()).
+var _stats_scaled := false
+
 func apply_rank(new_rank: String, lvl: int) -> void:
-	var mult := 1.0 + 0.25 * (maxi(lvl, 1) - 1)
+	var mult := Stats.enemy_health_unit(lvl)
+	_stats_scaled = true
 	var base_hp := max_health
 	var base_dmg := contact_damage
 	var base_xp := float(xp_reward)
@@ -353,7 +411,7 @@ func apply_rank(new_rank: String, lvl: int) -> void:
 		"elite":
 			make_bigger(elite_scale)
 			max_health = maxi(int(round(base_hp * elite_health_mult * mult)), 1)
-			contact_damage = base_dmg + 1 + (lvl - 1) / 3
+			contact_damage = base_dmg * ELITE_DAMAGE_MULT
 			armor += 1.0
 			move_speed *= 1.1
 			xp_reward = int(round(base_xp * (3.0 + 0.5 * lvl)))
@@ -364,11 +422,11 @@ func apply_rank(new_rank: String, lvl: int) -> void:
 		"boss":
 			make_bigger(boss_scale)
 			max_health = maxi(int(round(base_hp * boss_health_mult * mult)), 1)
-			contact_damage = base_dmg + 2 + (lvl - 1) / 2
+			contact_damage = base_dmg * BOSS_DAMAGE_MULT
 			attack_cooldown *= 1.4
 			armor += 2.0
 			aggro_radius *= 1.8
-			leash_radius = maxf(leash_radius, 40.0)
+			leash_radius = maxf(leash_radius, 80.0)
 			xp_reward = int(round(base_xp * (10.0 + 2.0 * lvl)))
 			display_name = boss_name if boss_name != "" else base_name + " Lord"
 			show_name = true
@@ -376,11 +434,58 @@ func apply_rank(new_rank: String, lvl: int) -> void:
 			_add_glow(boss_glow, 2.5)
 		_:
 			max_health = maxi(int(round(base_hp * mult)), 1)
-			contact_damage = base_dmg + (lvl - 1) / 3
 			xp_reward = int(round(base_xp * (0.8 + 0.2 * lvl)))
 			if not normal_drops_loot:
 				loot = null
 				loot_table = []
+
+## Elite trait (elite_traits.gd): "" for none. Rolled by the spawner for elites.
+var elite_trait := ""
+const ELITE_TRAITS = preload("res://scripts/core/elite_traits.gd")
+const EB = preload("res://scripts/balance.gd")
+
+## Give this elite a trait. Call AFTER apply_rank and BEFORE adding it to the tree.
+func apply_elite_trait(t: String) -> void:
+	if not ELITE_TRAITS.TRAITS.has(t):
+		return
+	elite_trait = t
+	display_name = "%s %s" % [ELITE_TRAITS.title(t), display_name]
+	match t:
+		"hasted":
+			move_speed *= 1.0 + EB.ELITE_HASTE_MOVE / 100.0
+			attack_cooldown /= 1.0 + EB.ELITE_HASTE_ATTACK / 100.0
+			attack_windup /= 1.0 + EB.ELITE_HASTE_ATTACK / 100.0
+		"shielded", "berserker":
+			var comp := Node.new()
+			comp.name = "EliteTrait"
+			comp.set_script(ELITE_TRAITS)
+			comp.trait_id = t
+			add_child(comp)
+
+## StatusContainer asks before applying an effect (Unstoppable ignores CC).
+var _immune_text_at := 0.0
+
+func resists_effect(res: Resource) -> bool:
+	if elite_trait == "" or not ELITE_TRAITS.resists(elite_trait, res):
+		return false
+	if _now_s() >= _immune_text_at:
+		_immune_text_at = _now_s() + 1.0
+		_cs().float_text(self, "Immune", ELITE_TRAITS.color(elite_trait), false)
+	return true
+
+## Vampiric: heal for part of an attack's damage (host / solo only).
+func _vampiric_heal(dmg: float) -> void:
+	if elite_trait != "vampiric" or _replica() or dmg <= 0.0 or state == State.DEAD:
+		return
+	var amount := int(round(dmg * EB.ELITE_VAMPIRIC_PCT / 100.0))
+	if amount > 0 and health < max_health:
+		receive_heal(amount)
+		_cs().float_text(self, "+%d" % amount, Color(0.85, 0.25, 0.4), false)
+
+## Rough size of a hit of `coef` from this enemy (for Vampiric when the hit
+## lands on another machine and we never see the real number).
+func _hit_estimate(coef: float) -> float:
+	return coef * damage_unit()
 
 ## How much bigger this enemy is for `r` (spawners use it to place it on the floor).
 func rank_scale(r: String) -> float:
@@ -415,10 +520,22 @@ func _add_glow(color: Color, energy: float) -> void:
 
 # --- Stats (used by CombatSystem) -----------------------------------------------
 
+## Real damage of a 1.0 coefficient for this enemy (CombatSystem).
+func damage_unit() -> float:
+	return Stats.enemy_hit(level) * _gm_mult("enemy_damage_mult") * (FRENZY_DAMAGE if _frenzied else 1.0)
+
+## Difficulty multiplier from GameManager (1.0 in Singleplayer / without it).
+func _gm_mult(fn: String) -> float:
+	var gm := get_node_or_null("/root/GameManager")
+	return float(gm.call(fn)) if gm and gm.has_method(fn) else 1.0
+
+func combat_level() -> int:
+	return level
+
 func get_stat(stat: String) -> float:
 	var v := 0.0
 	match stat:
-		"armor": v = armor
+		"armor": v = armor * Stats.flat_unit(level)   # armor is in flat units
 		"max_health": v = max_health
 	if status:
 		v += status.stat_mod(stat)
@@ -471,7 +588,7 @@ func _exit_state(s: State) -> void:
 			_update_health_bar()
 
 func _physics_process(delta: float) -> void:
-	if state == State.DEAD:
+	if state == State.DEAD or (_dormant and state == State.IDLE):
 		return
 	if _replica():
 		_net_follow(delta)
@@ -482,7 +599,8 @@ func _physics_process(delta: float) -> void:
 		velocity.y = 0.0
 	_attack_timer = max(_attack_timer - delta, 0.0)
 
-	var stunned: bool = status.has_flag("stun")
+	# busy_until: boss abilities hold the boss in place while they wind up.
+	var stunned: bool = status.has_flag("stun") or _now_s() < busy_until
 	var rooted: bool = status.has_flag("root")
 	var moving := false
 
@@ -494,16 +612,23 @@ func _physics_process(delta: float) -> void:
 			if _aggro_scan_timer <= 0.0:
 				_aggro_scan_timer = AGGRO_SCAN_INTERVAL
 				_look_for_players()
+			# Roaming packs (open caverns) wander around their spot until they see you.
+			if state == State.IDLE and roam_radius > 0.0 and not stunned and not rooted:
+				var rdir := _roam(delta)
+				if rdir != Vector3.ZERO:
+					velocity.x = rdir.x * _current_speed() * 0.45
+					velocity.z = rdir.z * _current_speed() * 0.45
+					moving = true
 			# Standing still on the ground: nothing to simulate this frame.
-			if state == State.IDLE and is_on_floor():
+			if state == State.IDLE and is_on_floor() and not moving:
 				velocity = Vector3.ZERO
 				_play("idle")
 				return
 		State.CHASE:
-			var tgt := top_threat()
-			if tgt == null or _flat_dist(spawn_position) > leash_radius:
+			var tgt := _leashed_target()
+			if tgt == null:
 				change_state(State.RETURN)
-			elif _dist_to(tgt) <= attack_range:
+			elif _in_reach(tgt):
 				change_state(State.ATTACK)
 			elif not stunned and not rooted:
 				var dir := _path_direction(tgt.global_position, delta)
@@ -511,11 +636,18 @@ func _physics_process(delta: float) -> void:
 				velocity.z = dir.z * _current_speed()
 				moving = true
 		State.ATTACK:
-			var tgt2 := top_threat()
+			var tgt2 := _leashed_target()
 			if tgt2 == null:
 				change_state(State.RETURN)
-			elif _dist_to(tgt2) > attack_range * 1.15:
+			elif not _still_in_reach(tgt2):
 				change_state(State.CHASE)
+			elif _kiting(tgt2, stunned, rooted):
+				var away := global_position - tgt2.global_position
+				away.y = 0.0
+				var kdir := _path_direction(global_position + away.normalized() * 3.0, delta)
+				velocity.x = kdir.x * _current_speed()
+				velocity.z = kdir.z * _current_speed()
+				moving = true
 			elif not stunned:
 				_face(tgt2.global_position - global_position, delta)
 				if _attack_timer <= 0.0:
@@ -546,6 +678,69 @@ func _physics_process(delta: float) -> void:
 		if moved.length() > 0.3:
 			_face(moved, delta)
 
+## Roaming (dungeon layouts with roaming packs): wander near the spawn point.
+var roam_radius := 0.0
+var _roam_goal := Vector3.INF
+var _roam_wait := 0.0
+
+func _roam(delta: float) -> Vector3:
+	if _roam_goal == Vector3.INF:
+		_roam_wait -= delta
+		if _roam_wait > 0.0:
+			return Vector3.ZERO
+		var a := randf() * TAU
+		_roam_goal = spawn_position + Vector3(cos(a), 0, sin(a)) * randf_range(1.5, roam_radius)
+	if _flat_dist(_roam_goal) < 0.6:
+		_roam_goal = Vector3.INF
+		_roam_wait = randf_range(2.0, 5.0)
+		return Vector3.ZERO
+	return _path_direction(_roam_goal, delta)
+
+## Archers step back when you close in (a short burst, then they shoot again).
+func _kiting(tgt: Node3D, stunned: bool, rooted: bool) -> bool:
+	if kite_distance <= 0.0 or stunned or rooted or is_casting():
+		return false
+	var now := _now_s()
+	if now < _kite_until:
+		return true
+	if now >= _kite_ready_at and _dist_to(tgt) < kite_distance:
+		_kite_until = now + KITE_TIME
+		_kite_ready_at = now + KITE_COOLDOWN
+		return true
+	return false
+
+## CombatSystem: % damage change for a hit on this enemy (Defender's shield
+## blocks most of a hit that comes from the front; flank it).
+func incoming_damage_pct(info: RefCounted) -> float:
+	if frontal_block <= 0.0 or info.is_dot or info.source == null or not is_instance_valid(info.source) \
+			or not (info.source is Node3D):
+		return 0.0
+	var to_src: Vector3 = (info.source as Node3D).global_position - global_position
+	to_src.y = 0.0
+	if to_src.length() < 0.01:
+		return 0.0
+	var fwd := -global_basis.z   # enemies face -Z
+	fwd.y = 0.0
+	if fwd.normalized().dot(to_src.normalized()) > 0.35:
+		return -frontal_block * 100.0
+	return 0.0
+
+## "Frenzy" dungeon modifier: enrage once below 30% health (host / solo).
+func _check_frenzy() -> void:
+	if _frenzied or health <= 0 or float(health) > float(max_health) * FRENZY_AT:
+		return
+	var gm := get_node_or_null("/root/GameManager")
+	if gm == null or not gm.has_method("has_modifier") or not gm.has_modifier("frenzy"):
+		return
+	_frenzied = true
+	attack_cooldown /= FRENZY_ATTACK
+	attack_windup /= FRENZY_ATTACK
+	move_speed *= 1.15
+	BOSS_ABILITIES.apply_enrage_look(self)
+	_cs().float_text(self, "Frenzy!", Color(1.0, 0.3, 0.2), false)
+	if _net and _net.is_host():
+		_net.enemy_fx(self, "enrage", null, {})
+
 func _look_for_players() -> void:
 	# "remote_player" = other party members' characters (on the host).
 	for p in get_tree().get_nodes_in_group("player") + get_tree().get_nodes_in_group("remote_player"):
@@ -557,19 +752,384 @@ func _look_for_players() -> void:
 
 func _attack(tgt: Node3D) -> void:
 	_attack_timer = attack_cooldown
+	if projectile != "":
+		_ranged_attack(_pick_ranged_target(tgt))
+		return
 	play_once("attack")
+	if _hits_decoy(tgt):
+		return
 	if tgt.is_in_group("remote_player"):
 		# Another player's character: they take the hit on their own machine.
 		if _net:
 			_net.send_enemy_hit(self, tgt, contact_damage, PackedStringArray(["Physical", "Melee"]), "physical")
+		_vampiric_heal(_hit_estimate(contact_damage))
 		return
 	var info := DamageInfo.make(self, tgt, contact_damage, "enemy_melee")
 	info.tags = PackedStringArray(["Physical", "Melee"])
 	_cs().deal(info)
+	_vampiric_heal(float(info.amount) if not info.blocked else 0.0)
+
+# --- Ranged attacks (archers, casters) ---------------------------------------------------
+# Melee enemies attack in reach; ranged ones (projectile != "") from up to
+# attack_range away while they can see their target, and chase otherwise.
+
+const ARROW = preload("res://scripts/arrow.gd")
+const BOLT = preload("res://scripts/frost_bolt.gd")
+const RANGED_LOS_INTERVAL := 0.25
+var _los_timer := 0.0
+var _los_ok := true
+
+func _in_reach(tgt: Node3D) -> bool:
+	if _dist_to(tgt) > attack_range:
+		return false
+	return projectile == "" or _sees_target(tgt)
+
+func _still_in_reach(tgt: Node3D) -> bool:
+	if _dist_to(tgt) > attack_range * 1.15:
+		return false
+	return projectile == "" or _sees_target(tgt)
+
+## Line of sight to the target, re-checked a few times per second (raycast).
+func _sees_target(tgt: Node3D) -> bool:
+	var now := Time.get_ticks_msec() / 1000.0
+	if now >= _los_timer:
+		_los_timer = now + RANGED_LOS_INTERVAL
+		_los_ok = _can_see(tgt)
+	return _los_ok
+
+var _cast_light: OmniLight3D
+var _cast_tween: Tween
+var _cast_label: Label3D
+## Seconds of casting lockout left after an interrupt (Counterspell, Kick, Pummel).
+var _silenced_until := 0.0
+var busy_until := 0.0        # boss abilities: stands still, no auto-attacks until then
+## Name shown above the enemy while it casts (so players know what to interrupt).
+@export var cast_name: String = ""
+
+func _now_s() -> float:
+	return Time.get_ticks_msec() / 1000.0
+
+## Mid-cast right now (can be interrupted)?
+func is_casting() -> bool:
+	return _cast_tween != null and _cast_tween.is_valid() and _cast_tween.is_running()
+
+func is_silenced() -> bool:
+	return _now_s() < _silenced_until
+
+## 5 Player difficulty: archers and casters sometimes ignore the tank and shoot
+## someone else in range they can see (no threat change), so the healer has
+## work beyond the tank. Solo there is nobody else, so nothing changes.
+func _pick_ranged_target(tgt: Node3D) -> Node3D:
+	if randf() >= _gm_mult("off_target_chance"):
+		return tgt
+	var bodies: Array = _net.party_bodies() if _net else get_tree().get_nodes_in_group("player")
+	var options: Array = []
+	for b in bodies:
+		if b != tgt and is_instance_valid(b) and b.is_alive() and _dist_to(b) <= attack_range and _can_see(b):
+			options.append(b)
+	return options.pick_random() if not options.is_empty() else tgt
+
+func _ranged_attack(tgt: Node3D) -> void:
+	if attack_windup <= 0.0:
+		play_once("attack")
+		_shoot(tgt)
+		return
+	if is_silenced():
+		_attack_timer = maxf(_silenced_until - _now_s(), 0.1)   # locked out: try again when it ends
+		return
+	if base_cast_name != "":
+		cast_name = base_cast_name
+	# Cast: a glow in the hands and the spell name overhead, then the bolt -
+	# unless the target got away or someone interrupted it.
+	_show_cast(true, attack_windup)
+	if _net and _net.is_host():
+		_net.enemy_fx(self, "cast", tgt, {"d": attack_windup})
+	_cast_tween = create_tween()
+	_cast_tween.tween_interval(attack_windup)
+	_cast_tween.tween_callback(func():
+		_cast_tween = null
+		_show_cast(false)
+		if state != State.ATTACK or status.has_flag("stun") or not is_instance_valid(tgt) or _is_dead(tgt):
+			return
+		if _dist_to(tgt) > attack_range * 1.25 or not _can_see(tgt):
+			return
+		play_once("attack")
+		_shoot(tgt))
+
+## Interrupt the current cast (host / solo). Casting is locked out for
+## `lockout` seconds. Returns true if a cast was actually stopped.
+func interrupt(_source: Node, lockout: float) -> bool:
+	if _replica() or state == State.DEAD or not is_casting():
+		return false
+	_cast_tween.kill()
+	_cast_tween = null
+	busy_until = 0.0
+	_silenced_until = _now_s() + lockout
+	_attack_timer = maxf(_attack_timer, lockout)
+	show_interrupted()
+	if _net and _net.is_host():
+		_net.enemy_fx(self, "interrupted", null, {})
+	return true
+
+## "Interrupted" feedback (also played on party members' machines).
+func show_interrupted() -> void:
+	_show_cast(false)
+	_cs().float_text(self, "Interrupted!", Color(0.7, 0.85, 1.0), true)
+
+## Cast bar: when the current cast started and how long it takes.
+var _cast_start := 0.0
+var _cast_len := 0.0
+var _cast_bar: Node3D
+var _cast_bar_fill: MeshInstance3D
+static var _cast_bar_mat: StandardMaterial3D
+
+## 0..1 through the current cast, or -1 when not casting (HUD target frame).
+func cast_progress() -> float:
+	if _cast_label == null or not _cast_label.visible or _cast_len <= 0.0:
+		return -1.0
+	return clampf((_now_s() - _cast_start) / _cast_len, 0.0, 1.0)
+
+func cast_display_name() -> String:
+	return cast_name if cast_name != "" else "a spell"
+
+## Seconds left on the current cast (0 when not casting).
+func cast_time_left() -> float:
+	return maxf(_cast_start + _cast_len - _now_s(), 0.0) if cast_progress() >= 0.0 else 0.0
+
+## A thin bar above the health bar that fills while the enemy casts.
+func _build_cast_bar() -> void:
+	if _health_bar == null:
+		return
+	if _cast_bar_mat == null:
+		_cast_bar_mat = _flat_mat(Color(1.0, 0.72, 0.15), 12)
+	_cast_bar = Node3D.new()
+	_cast_bar.name = "CastBar"
+	_cast_bar.position = Vector3(0, 0.15, 0)
+	_health_bar.add_child(_cast_bar)
+	var bg := MeshInstance3D.new()
+	var bg_mesh := QuadMesh.new()
+	bg_mesh.size = Vector2(_bar_w, 0.09)
+	bg.mesh = bg_mesh
+	bg.material_override = _shared_bar_mats[0] if not _shared_bar_mats.is_empty() else _flat_mat(Color(0.05, 0.05, 0.05), 10)
+	bg.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_cast_bar.add_child(bg)
+	_cast_bar_fill = MeshInstance3D.new()
+	var fill_mesh := QuadMesh.new()
+	fill_mesh.size = Vector2(_bar_w - BAR_PAD * 2.0, 0.05)
+	_cast_bar_fill.mesh = fill_mesh
+	_cast_bar_fill.material_override = _cast_bar_mat
+	_cast_bar_fill.position.z = 0.001
+	_cast_bar_fill.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_cast_bar.add_child(_cast_bar_fill)
+	# Bright spark riding the fill's leading edge (WoW cast bar).
+	if _cast_spark_mat == null:
+		_cast_spark_mat = _flat_mat(Color(1.0, 0.97, 0.85), 13)
+		_cast_ok_mat = _flat_mat(Color(1.0, 1.0, 1.0), 12)
+		_cast_fail_mat = _flat_mat(Color(0.95, 0.2, 0.15), 12)
+	_cast_spark = MeshInstance3D.new()
+	var spark_mesh := QuadMesh.new()
+	spark_mesh.size = Vector2(0.035, 0.1)
+	_cast_spark.mesh = spark_mesh
+	_cast_spark.material_override = _cast_spark_mat
+	_cast_spark.position.z = 0.002
+	_cast_spark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_cast_bar.add_child(_cast_spark)
+	_cast_bar.visible = false
+
+var _cast_spark: MeshInstance3D
+static var _cast_spark_mat: StandardMaterial3D
+static var _cast_ok_mat: StandardMaterial3D
+static var _cast_fail_mat: StandardMaterial3D
+var _cast_ending := false   # showing the end flash (white = cast went off, red = interrupted)
+
+## The cast ended: flash the bar white (it went off) or red (interrupted) for a moment.
+func _end_cast_bar(ok: bool) -> void:
+	if _cast_bar == null or not _cast_bar.visible:
+		return
+	_cast_ending = true
+	_cast_bar_fill.scale.x = 1.0
+	_cast_bar_fill.position.x = 0.0
+	_cast_bar_fill.material_override = _cast_ok_mat if ok else _cast_fail_mat
+	_cast_spark.visible = false
+	var hold := 0.25 if ok else 0.5
+	get_tree().create_timer(hold).timeout.connect(func():
+		if not is_instance_valid(self) or not _cast_ending:
+			return
+		_cast_ending = false
+		_cast_bar.visible = false
+		_cast_bar_fill.material_override = _cast_bar_mat)
+
+func _update_cast_bar() -> void:
+	if _cast_bar == null or not _cast_bar.visible or _cast_ending:
+		return
+	var p := cast_progress()
+	if p < 0.0:
+		_cast_bar.visible = false
+		return
+	var inner := _bar_w - BAR_PAD * 2.0
+	_cast_bar_fill.scale.x = maxf(p, 0.001)
+	_cast_bar_fill.position.x = -inner / 2.0 + inner * p / 2.0
+	if _cast_spark:
+		_cast_spark.visible = true
+		_cast_spark.position.x = -inner / 2.0 + inner * p
+
+func _show_cast(on: bool, duration: float = 0.0) -> void:
+	_show_cast_glow(on)
+	if _cast_bar == null:
+		_build_cast_bar()
+	if on:
+		_cast_start = _now_s()
+		_cast_len = duration
+	if _cast_bar:
+		if on:
+			_cast_ending = false
+			_cast_bar_fill.material_override = _cast_bar_mat
+			_cast_bar.visible = true
+			_update_cast_bar()
+		elif state == State.DEAD:
+			_cast_ending = false
+			_cast_bar.visible = false
+		elif _cast_bar.visible and not _cast_ending:
+			# Went off (reached the end) = white flash; stopped early = red.
+			_end_cast_bar(_cast_len > 0.0 and _now_s() >= _cast_start + _cast_len - 0.1)
+	if _cast_label == null:
+		_cast_label = Label3D.new()
+		_cast_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_cast_label.no_depth_test = true
+		_cast_label.font_size = 30
+		_cast_label.pixel_size = 0.006
+		_cast_label.outline_size = 8
+		_cast_label.modulate = projectile_color.lightened(0.35)
+		_cast_label.position = Vector3(0, health_bar_height + 0.5, 0)
+		add_child(_cast_label)
+	_cast_label.visible = on
+	if on:
+		_cast_label.text = "Casting %s" % (cast_name if cast_name != "" else "a spell")
+		_cast_label.set_meta("until", _now_s() + duration)
+
+## Party member's machine: the host says this enemy did something visible.
+func net_fx(kind: String, tgt: Node3D, extra: Dictionary) -> void:
+	var scene := get_tree().current_scene
+	match kind:
+		"telegraph":
+			BOSS_ABILITIES.telegraph(scene, extra.get("at", global_position), float(extra.get("r", 3.0)), float(extra.get("d", 1.5)), extra.get("c", Color.RED))
+		"burst":
+			BOSS_ABILITIES.burst(scene, extra.get("at", global_position), float(extra.get("r", 3.0)), extra.get("c", Color.RED))
+		"cone":
+			BOSS_KIT.cone_telegraph(scene, extra.get("at", global_position), extra.get("dir", Vector3.FORWARD),
+				float(extra.get("r", 8.0)), float(extra.get("a", 70.0)), float(extra.get("d", 1.3)), extra.get("c", Color.RED))
+		"line":
+			BOSS_KIT.line_telegraph(scene, extra.get("at", global_position), extra.get("to", global_position),
+				float(extra.get("w", 2.0)), float(extra.get("d", 1.4)), extra.get("c", Color.RED))
+		"announce":
+			if scene and scene.has_method("_announce"):
+				scene._announce(str(extra.get("t", "")), extra.get("c", Color(1.0, 0.45, 0.35)))
+		"enrage":
+			BOSS_ABILITIES.apply_enrage_look(self)
+		"elite_shield":
+			var comp := get_node_or_null("EliteTrait")
+			if comp:
+				comp.set_bubble(bool(extra.get("on", false)))
+		"cast":
+			if extra.has("n"):
+				cast_name = str(extra["n"])
+			var d := float(extra.get("d", attack_windup))
+			_show_cast(true, d)
+			get_tree().create_timer(d + 0.1).timeout.connect(func():
+				if is_instance_valid(self) and _cast_label and _now_s() >= float(_cast_label.get_meta("until", 0.0)):
+					_show_cast(false))
+		"interrupted":
+			show_interrupted()
+		"arrow", "bolt":
+			if tgt == null or scene == null:
+				return
+			_show_cast(false)
+			var at: Vector3 = extra.get("at", global_position + Vector3(0, health_bar_height * 0.55, 0))
+			# Visual only (no source): the host already deals the damage.
+			if kind == "arrow":
+				ARROW.spawn(scene, at, tgt, null, 0.0, "enemy_arrow")
+			else:
+				_tint_bolt(BOLT.spawn(scene, at, tgt, null, false, "enemy_bolt", 0.0))
+
+func _show_cast_glow(on: bool) -> void:
+	if _cast_light == null:
+		_cast_light = OmniLight3D.new()
+		_cast_light.light_color = projectile_color
+		_cast_light.omni_range = 2.5
+		_cast_light.position = Vector3(0, health_bar_height * 0.6, -0.35)
+		add_child(_cast_light)
+	_cast_light.visible = on
+	if on:
+		_cast_light.light_energy = 0.4
+		create_tween().tween_property(_cast_light, "light_energy", 3.0, attack_windup)
+
+func _shoot(tgt: Node3D) -> void:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	var fwd := -global_basis.z
+	fwd.y = 0.0
+	var from := global_position + Vector3(0, health_bar_height * 0.55, 0) + fwd.normalized() * 0.4
+	var id := "enemy_" + projectile
+	if _net and _net.is_host():
+		_net.enemy_fx(self, projectile, tgt, {"at": from})   # party members see the shot too
+	match projectile:
+		"arrow":
+			ARROW.spawn(scene, from, tgt, self, contact_damage, id)
+		_:
+			_tint_bolt(BOLT.spawn(scene, from, tgt, self, false, id, contact_damage))
+
+## Recolor a (pooled) bolt to this caster's color (Firebolt orange for goblin wizards).
+func _tint_bolt(b: Node3D) -> void:
+	if b.has_method("set_color"):
+		b.set_color(projectile_color)   # core, light, trail and impact all match
+		return
+	var mat: StandardMaterial3D = b.get("_mat")
+	if mat:
+		mat.albedo_color = projectile_color.lightened(0.4)
+		mat.emission = projectile_color
+	var light: OmniLight3D = b.get("_light")
+	if light:
+		light.light_color = projectile_color
+
+const BOSS_ABILITIES = preload("res://scripts/dungeon/boss_abilities.gd")
+const BOSS_KIT = preload("res://scripts/dungeon/boss_kit.gd")
+
+## Physical area hit (boss slams / eruptions). `amount` is the raw damage.
+func deal_melee_hit(tgt: Node, amount: float, ability_id: String) -> void:
+	if tgt == null or not is_instance_valid(tgt):
+		return
+	if _hits_decoy(tgt):
+		return
+	if tgt.is_in_group("remote_player"):
+		if _net:
+			_net.send_enemy_hit(self, tgt, amount, PackedStringArray(["Physical", "Melee"]), "physical", ability_id)
+		return
+	var info := DamageInfo.make(self, tgt, amount, ability_id)
+	info.tags = PackedStringArray(["Physical", "Melee"])
+	_cs().deal(info)
+
+## Projectiles (arrow.gd / frost_bolt.gd) call this on their source when they land.
+func deal_damage(tgt: Node, coef: float, ability_id: String, _is_proc: bool = false) -> void:
+	if tgt == null or not is_instance_valid(tgt):
+		return
+	if _hits_decoy(tgt):
+		return
+	if tgt.is_in_group("remote_player"):
+		if _net:
+			_net.send_enemy_hit(self, tgt, coef, projectile_tags, projectile_damage_type, ability_id)
+		_vampiric_heal(_hit_estimate(coef))
+		return
+	var info := DamageInfo.make(self, tgt, coef, ability_id)
+	info.tags = projectile_tags
+	info.damage_type = projectile_damage_type
+	_cs().deal(info)
+	_vampiric_heal(float(info.amount) if not info.blocked else 0.0)
 
 # --- Threat ----------------------------------------------------------------------------
 
 func add_threat(source: Node, amount: float) -> void:
+	_wake()
 	if _replica():
 		return   # threat lives on the host (clients report their hits there)
 	if state == State.DEAD or state == State.RETURN:
@@ -610,6 +1170,32 @@ func force_target(source: Node, duration: float) -> void:
 	_taunt_target = source
 	_taunt_until = Time.get_ticks_msec() / 1000.0 + duration
 
+## Decoys (scripts/decoy.gd) are in this group.
+const DECOY_GROUP := "decoys"
+
+## Decoy: attack `decoy` for `duration` seconds, whoever has threat. `whose` =
+## the player it belongs to: an enemy that was not fighting yet joins the fight
+## against them, so it has someone to turn on once the decoy is gone. An enemy
+## with nobody to fight afterwards stays where it is. Host / solo only.
+func distract(decoy: Node3D, duration: float, whose: Node = null) -> void:
+	if _replica() or state == State.DEAD or state == State.RETURN or decoy == null or not is_instance_valid(decoy):
+		return
+	if whose != null and is_instance_valid(whose):
+		add_threat(whose, 0.0)
+	if state == State.IDLE:
+		return
+	_taunt_target = decoy
+	_taunt_until = Time.get_ticks_msec() / 1000.0 + duration
+
+## A blow aimed at a Decoy lands on nothing: it has no health, so nothing is
+## dealt, healed or reported. True if `tgt` was one.
+func _hits_decoy(tgt: Node) -> bool:
+	if tgt == null or not is_instance_valid(tgt) or not tgt.is_in_group(DECOY_GROUP):
+		return false
+	if tgt.has_method("struck"):
+		tgt.struck(self)
+	return true
+
 func is_fighting(node: Node) -> bool:
 	return node != null and threat.has(node.get_instance_id())
 
@@ -629,6 +1215,63 @@ func top_threat() -> Node3D:
 			best_v = float(threat[key]["value"])
 			best = n
 	return best
+
+## Top threat, dropping anyone who got more than leash_radius away from the
+## enemy (from its CURRENT position): it turns on the next player on its threat
+## table, and only evades (null) when nobody that hit it is left in reach.
+func _leashed_target() -> Node3D:
+	var tgt := top_threat()
+	while tgt != null and _dist_to(tgt) > leash_radius:
+		threat.erase(tgt.get_instance_id())
+		if _taunt_target == tgt:
+			_taunt_target = null
+		tgt = top_threat()
+	return tgt
+
+## Taunt: `source` jumps to the top of the threat table and is attacked for
+## `duration` seconds no matter what.
+func taunt(source: Node, duration: float) -> void:
+	if _replica() or state == State.DEAD or state == State.RETURN:
+		return
+	add_threat(source, 0.0)
+	var key := source.get_instance_id()
+	if not threat.has(key):
+		return
+	var top := 0.0
+	for k in threat:
+		top = maxf(top, float(threat[k]["value"]))
+	threat[key]["value"] = top * 1.1 + 1.0
+	force_target(source, duration)
+
+## Reel In: dragged to `to` (next to whoever lashed it) and made to attack them
+## for `taunt_time` seconds. Bosses are too heavy to drag: they are only made to
+## attack. Returns true if it was dragged. Host / solo only (party members see
+## it move through the usual snapshots).
+func pull_to(source: Node, to: Vector3, taunt_time: float, drag_time: float = 0.18) -> bool:
+	if _replica() or state == State.DEAD or state == State.RETURN or source == null or not is_instance_valid(source):
+		return false
+	taunt(source, taunt_time)
+	if rank == "boss":
+		return false
+	velocity = Vector3.ZERO
+	busy_until = maxf(busy_until, _now_s() + drag_time)   # (it does not walk while it is dragged)
+	var drag := create_tween()
+	drag.set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
+	drag.tween_property(self, "global_position", to, maxf(drag_time, 0.01))
+	return true
+
+## Collapse: slide this enemy to `to` over `drag_time` seconds, without changing
+## who it attacks. Bosses are too heavy to drag. Returns true if it was dragged.
+## Host / solo only (party members see it move through the usual snapshots).
+func drag_to(to: Vector3, drag_time: float = 0.25) -> bool:
+	if _replica() or state == State.DEAD or state == State.RETURN or rank == "boss":
+		return false
+	velocity = Vector3.ZERO
+	busy_until = maxf(busy_until, _now_s() + drag_time)   # (it does not walk while it is dragged)
+	var drag := create_tween()
+	drag.set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
+	drag.tween_property(self, "global_position", to, maxf(drag_time, 0.01))
+	return true
 
 func get_threat_list() -> Array:
 	var out := []
@@ -744,34 +1387,163 @@ func _face(dir: Vector3, delta: float) -> void:
 	var yaw := atan2(-dir.x, -dir.z)
 	rotation.y = lerp_angle(rotation.y, yaw, turn_speed * delta)
 
-func _process(_delta: float) -> void:
-	var cam := get_viewport().get_camera_3d()
-	if cam and _health_bar:
-		_health_bar.global_basis = cam.global_basis
+func _process(delta: float) -> void:
+	_update_dormant(delta)
+	if _dormant:
+		return
+	if _health_bar and _health_bar.visible:
+		var cam := get_viewport().get_camera_3d()
+		if cam:
+			_health_bar.global_basis = cam.global_basis
+	_update_cast_bar()
+	_bar_check -= delta
+	if _bar_check <= 0.0 and _health_bar and state != State.DEAD:
+		_bar_check = 0.1
+		_update_bar_state()
+
+var _bar_check := randf() * 0.1
+
+# --- Dormant (performance) -------------------------------------------------------
+# An idle enemy far from every player (a room you haven't reached yet) stops
+# animating, thinking and drawing. It wakes as soon as a player comes near or
+# it's pulled into a fight.
+const DORMANT_DIST := 45.0
+var _dormant := false
+var _dormant_check := randf() * 0.5
+
+func _update_dormant(delta: float) -> void:
+	_dormant_check -= delta
+	if _dormant_check > 0.0:
+		return
+	_dormant_check = 0.5
+	var want := false
+	if state == State.IDLE:
+		want = true
+		for p in get_tree().get_nodes_in_group("player") + get_tree().get_nodes_in_group("remote_player"):
+			if p is Node3D and _flat_dist((p as Node3D).global_position) < DORMANT_DIST:
+				want = false
+				break
+	if want != _dormant:
+		_set_dormant(want)
+
+func _set_dormant(on: bool) -> void:
+	_dormant = on
+	if _anim:
+		_anim.active = not on
+	var m := get_node_or_null("Model") as Node3D
+	if m:
+		m.visible = not on
+	if on:
+		velocity = Vector3.ZERO
+
+## Something happened to it (threat, damage): wake right away.
+func _wake() -> void:
+	if _dormant:
+		_set_dormant(false)
+	_dormant_check = 0.5
+var _is_targeted := false
+var _name_label: Label3D
+
+## Health bar only while fighting, targeted or hurt; glow red if the local
+## player has aggro, yellow if they're within 90% of taking it.
+func _update_bar_state() -> void:
+	var fighting := is_in_combat()
+	var show := fighting or _is_targeted or health < max_health
+	_health_bar.visible = show
+	if _name_label:
+		_name_label.visible = show or rank == "boss"
+	if _bar_glow == null:
+		return
+	var ts := threat_state_for(get_tree().get_first_node_in_group("player")) if fighting else 0
+	_bar_glow.visible = ts > 0
+	if ts > 0:
+		_bar_glow.material_override = _shared_bar_mats[4] if ts == 2 else _shared_bar_mats[5]
+
+func is_in_combat() -> bool:
+	return state == State.CHASE or state == State.ATTACK
+
+## Share of the top threat at which the aggro warning turns on.
+const THREAT_WARN := 0.9
+
+## For the local player's bar glow: 2 = `p` has aggro, 1 = within 90% of
+## taking it, 0 = neither.
+func threat_state_for(p: Node) -> int:
+	if p == null or not is_instance_valid(p):
+		return 0
+	if _replica():
+		var me := int(_net.my_id()) if _net else 0
+		if _net_threat == me and me != 0:
+			return 2
+		var top := 0.0
+		for m in _net_threat_vals:
+			top = maxf(top, float(_net_threat_vals[m]))
+		var mine := float(_net_threat_vals.get(me, 0.0))
+		return 1 if top > 0.0 and mine >= top * THREAT_WARN else 0
+	var top_node := top_threat()
+	if top_node == p:
+		return 2
+	if top_node == null:
+		return 0
+	var top_v := float(threat.get(top_node.get_instance_id(), {"value": 0.0})["value"])
+	var mine_v := float(threat.get(p.get_instance_id(), {"value": 0.0})["value"])
+	return 1 if top_v > 0.0 and mine_v >= top_v * THREAT_WARN else 0
+
+## Host snapshot: [[member, threat], ...] (so party members see the yellow warning).
+var _net_threat_vals := {}
+
+func net_apply_threat(rows: Array) -> void:
+	_net_threat_vals.clear()
+	for r in rows:
+		_net_threat_vals[int(r[0])] = float(r[1])
 
 # --- Targeting -------------------------------------------------------------------
 
 func set_targeted(on: bool) -> void:
+	_is_targeted = on
 	for m in _meshes:
 		m.material_overlay = _outline_mat if on else null
 
 func is_alive() -> bool:
 	return state != State.DEAD
 
+## Running back to its spot: nothing can hit it (it heals to full when it gets there).
+func is_evading() -> bool:
+	return state == State.RETURN
+
 # --- Health ---------------------------------------------------------------------
 # Called by CombatSystem with FINAL damage (after crit/armor/etc.).
+
+## Who landed the last hit (for "your killing blow" effects like Rune of Swiftness).
+var last_attacker: Node = null
+## Party member who got the killing blow (set by the host; -1 = unknown).
+var killer_member := -1
+## Instance ids of everyone who had a damage-over-time effect on this enemy as
+## it died ({instance id: true}; StatusContainer.dot_owner_ids). Carrion reads it.
+var dot_owners_at_death := {}
+
+## CombatSystem / Net: `src` is about to hit this enemy.
+func note_attacker(src: Node) -> void:
+	if src != null and is_instance_valid(src) and state != State.DEAD:
+		last_attacker = src
+
+## Did the local player land the killing blow?
+func killed_by_me() -> bool:
+	if _net and _net.online:
+		return killer_member == int(_net.my_id())
+	return is_instance_valid(last_attacker) and last_attacker.is_in_group("player")
 
 func take_damage(amount: int) -> void:
 	if state == State.DEAD or _replica():
 		return
 	if state == State.RETURN:
-		get_node("/root/CombatSystem").float_text(self, "Evade", Color(0.8, 0.8, 0.8), false)
-		return
+		return   # (CombatSystem shows "Evade")
 	health = max(health - amount, 0)
 	_update_health_bar()
 	_bus().enemy_damaged.emit(self, amount)
 	if health == 0:
 		_die()
+	else:
+		_check_frenzy()
 
 func receive_heal(amount: int) -> void:
 	if state != State.DEAD and not _replica():
@@ -780,10 +1552,18 @@ func receive_heal(amount: int) -> void:
 
 func _die() -> void:
 	if _net and _net.is_host():
-		_net.enemy_died(self)   # everyone plays the death (and rolls their own loot)
+		killer_member = _net.member_of(last_attacker) if is_instance_valid(last_attacker) else -1
+		_net.enemy_died(self, killer_member)   # everyone plays the death (and rolls their own loot)
 	change_state(State.DEAD)
 	remove_from_group("enemies")
 	set_targeted(false)
+	if _cast_tween:
+		_cast_tween.kill()
+		_cast_tween = null
+	if _cast_label or _cast_light:
+		_show_cast(false)
+	# (Who had damage over time on it as it died: asked after its effects are gone. Carrion.)
+	dot_owners_at_death = status.dot_owner_ids() if status.has_method("dot_owner_ids") else {}
 	status.clear()
 	threat.clear()
 	for c in get_children():
@@ -793,13 +1573,15 @@ func _die() -> void:
 	_bus().enemy_died.emit(self)
 	_drop_loot()
 	var t := create_tween()
+	if elite_trait == "volatile" or death_explode:
+		# Blows up where it fell (warning circle first). Stays around until then.
+		ELITE_TRAITS.explode(self, not _replica())
+		t.tween_interval(EB.ELITE_VOLATILE_DELAY + 0.3)
 	var death_len := play_once("death")
 	if death_len > 0.0:
 		# Has a death animation: play it, then sink away.
 		if _health_bar:
 			_health_bar.visible = false
-		if _status_label:
-			_status_label.visible = false
 		t.tween_interval(death_len + 1.0)
 		t.tween_property(self, "position:y", position.y - 1.5, 1.0)
 	else:
@@ -809,9 +1591,12 @@ func _die() -> void:
 # --- Multiplayer replica (client side) ----------------------------------------------
 
 ## Host snapshot for this enemy.
-func net_apply(pos: Vector3, yaw: float, hp: int, _mhp: int, st: int, moving: bool, threat_member: int) -> void:
+func net_apply(pos: Vector3, yaw: float, hp: int, mhp: int, st: int, moving: bool, threat_member: int) -> void:
 	if state == State.DEAD:
 		return
+	if mhp > 0 and mhp != max_health:
+		max_health = mhp
+		_update_health_bar()
 	_net_has = true
 	_net_pos = pos
 	_net_yaw = yaw
@@ -833,6 +1618,32 @@ func _net_follow(delta: float) -> void:
 	rotation.y = lerp_angle(rotation.y, _net_yaw, clampf(delta * 10.0, 0.0, 1.0))
 	_play("walk" if _net_moving else "idle")
 
+## Shield health the host has on this enemy (replicas only; the real shield -
+## Shielded elites, a Rime Shell - lives on the host).
+var _net_absorb := 0
+
+func net_apply_absorb(amount: int) -> void:
+	if amount != _net_absorb:
+		_net_absorb = maxi(amount, 0)
+		_update_health_bar()
+
+## Replica: how much of my `dmg` the host's shield on this enemy will soak. Taken
+## off the shown shield right away; the next snapshot has the real number.
+func net_soak(dmg: int) -> int:
+	if not _replica() or _net_absorb <= 0 or dmg <= 0:
+		return 0
+	var soaked := mini(dmg, _net_absorb)
+	_net_absorb -= soaked
+	_update_health_bar()
+	return soaked
+
+## Seconds my own copy of an effect may differ from the host's before the
+## host's time is taken (it reaches the host one trip later than it started here).
+const NET_OWN_EXPIRY_SLACK := 0.75
+
+static func keeps_own_clock(local_expires: float, host_expires: float) -> bool:
+	return absf(host_expires - local_expires) < NET_OWN_EXPIRY_SLACK
+
 ## Host's status effects on this enemy (Chilled, Frozen, Poisoned...). Mirrored
 ## so the status label shows them - but they never tick here (the host deals
 ## the DoT damage) until this machine becomes the host.
@@ -842,6 +1653,7 @@ func net_apply_status(rows: Array) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	var keep := {}
 	var changed := false
+	var me: Node = _net.body_of(_net.my_id()) if _net else null   # my own character
 	for r in rows:
 		var res: Resource = _effect_res(str(r[0]))
 		if res == null:
@@ -849,25 +1661,76 @@ func net_apply_status(rows: Array) -> void:
 		var src: Node = _net.body_of(int(r[3])) if _net and int(r[3]) != 0 else null
 		var id := STATUS_CONTAINER.key_for(res, src)   # per caster for DoTs, like on the host
 		keep[id] = true
+		# My own damage over time is dealt HERE (my stats, talents, runes): my copy
+		# keeps a real tick timer. Everything else is only shown (never ticks).
+		var mine: bool = me != null and src == me and float(res.tick_damage) > 0.0
 		if not status.effects.has(id):
-			status.effects[id] = {"res": res, "stacks": int(r[1]), "expires": now + float(r[2]),
+			if status.is_suppressed(id):
+				continue   # I just ended it; the host hasn't caught up yet
+			if mine and float(r[2]) < NET_DOT_MIN_LEFT:
+				continue   # about to run out on the host: not worth starting again
+			var fresh := {"res": res, "stacks": int(r[1]), "expires": now + float(r[2]),
 				"next_tick": INF, "source": src}
+			if r.size() > 4 and int(r[4]) > 0:
+				fresh["net_absorb"] = int(r[4])   # the host's shield on this effect (a Rime Shell)
+			if mine:
+				_net_start_ticking(fresh, res, src, now)
+			status.effects[id] = fresh
 			changed = true
 		else:
 			var fx: Dictionary = status.effects[id]
 			changed = changed or int(fx["stacks"]) != int(r[1])
 			fx["stacks"] = int(r[1])
-			fx["expires"] = now + float(r[2])
-			fx["next_tick"] = INF
+			if r.size() > 4 and int(r[4]) > 0:
+				fx["net_absorb"] = int(r[4])
+			else:
+				fx.erase("net_absorb")
+			# An effect I applied started here first: keep my clock unless the host's
+			# really differs (else every snapshot would look like a fresh application
+			# to talents that react to my slows).
+			var host_expires := now + float(r[2])
+			# (clock_hold: I just changed how long it lasts and told the host -
+			# StatusContainer.set_remaining_from - so its older number waits.)
+			if now < float(fx.get("clock_hold", 0.0)) and is_same(fx.get("source"), me):
+				pass
+			elif not (me != null and src == me and is_same(fx.get("source"), me)
+					and keeps_own_clock(float(fx["expires"]), host_expires)):
+				fx["expires"] = host_expires
 			fx["source"] = src
+			if not mine:
+				fx["next_tick"] = INF
+			elif float(fx.get("next_tick", INF)) == INF:
+				_net_start_ticking(fx, res, src, now)
 	for id in status.effects.keys():
-		if not keep.has(id):
-			status.effects.erase(id)
-			changed = true
+		if keep.has(id):
+			continue
+		var gone: Dictionary = status.effects[id]
+		if now - float(gone.get("predicted", -100.0)) < NET_PREDICT_GRACE:
+			continue   # my hit applied it a moment ago: the host will list it shortly
+		var burst: Variant = gone["res"].get("expire_damage")
+		if me != null and gone.get("source") == me and float(gone.get("next_tick", INF)) != INF \
+				and burst != null and float(burst) > 0.0 and float(gone["expires"]) - now <= NET_DOT_MIN_LEFT:
+			gone["expires"] = 0.0   # ran out on the host a moment before here: let it end (and burst) here
+			continue
+		status.effects.erase(id)
+		changed = true
 	if changed:
 		status.changed.emit()
 	if not status.effects.is_empty():
 		status.set_process(true)   # mirrored effects still need to expire here
+
+## Seconds a predicted effect is kept while the host hasn't listed it yet.
+const NET_PREDICT_GRACE := 1.0
+## My own DoT with less than this left on the host is not (re)started here.
+const NET_DOT_MIN_LEFT := 0.6
+
+## Give a mirrored copy of MY damage over time its tick timer (it is dealt here).
+func _net_start_ticking(fx: Dictionary, res: Resource, src: Node, now: float) -> void:
+	var tick: float = STATUS_CONTAINER.tick_for(res, src)
+	fx["tick"] = tick
+	fx["next_tick"] = now + tick
+	if not fx.has("tags"):
+		fx["tags"] = STATUS_CONTAINER.tag_hint(str(res.id))
 
 # Effect resources named in host snapshots (10x/s), looked up once per path.
 static var _effect_cache := {}
@@ -883,11 +1746,17 @@ func net_take_over() -> void:
 		return
 	var now := Time.get_ticks_msec() / 1000.0
 	for fx in status.effects.values():
-		fx["next_tick"] = now + maxf(float(fx["res"].tick_interval), 0.05)
+		if float(fx.get("next_tick", INF)) == INF:   # (my own DoTs already tick here)
+			fx["next_tick"] = now + maxf(float(fx["res"].tick_interval), 0.05)
+	if _net_absorb > 0 and _net and _net.has_method("restore_enemy_shell"):
+		_net.restore_enemy_shell(self, _net_absorb)
+	_net_absorb = 0
+	_update_health_bar()
 
-## Host says it died.
-func net_die() -> void:
+## Host says it died (`killer` = member with the killing blow).
+func net_die(killer: int = -1) -> void:
 	if state != State.DEAD:
+		killer_member = killer
 		_die()
 
 ## Host doesn't have this enemy (killed before we arrived): remove, no loot.
@@ -936,43 +1805,35 @@ func _build_health_bar() -> void:
 
 	if _shared_bar_mats.is_empty():
 		_shared_bar_mats = [_flat_mat(Color(0.05, 0.05, 0.05), 10),
-			_flat_mat(Color(0.85, 0.12, 0.12), 11), _flat_mat(Color(0.25, 0.25, 0.25), 11)]
+			_flat_mat(Color(0.85, 0.12, 0.12), 11), _flat_mat(Color(0.25, 0.25, 0.25), 11),
+			_flat_mat(Color(0.7, 0.9, 1.0, 0.85), 12),
+			_flat_mat(Color(1.0, 0.1, 0.05, 0.75), 9), _flat_mat(Color(1.0, 0.85, 0.1, 0.75), 9)]
 	var bg_mat := _shared_bar_mats[0]
-	_seg_full = _shared_bar_mats[1]
-	_seg_empty = _shared_bar_mats[2]
+	_bar_w = 1.0 if rank == "normal" else 1.6
 
-	# Fixed overall width; segments (and gaps) get narrower as max health grows.
-	var total_w := 1.0 if rank == "normal" else 1.6
-	var gap := minf(0.04, total_w * 0.25 / (max_health + 1))
-	var seg_w := (total_w - (max_health + 1) * gap) / max_health
+	# Aggro glow: a bigger quad behind the bar (red = you have aggro, yellow = close).
+	_bar_glow = MeshInstance3D.new()
+	var glow_mesh := QuadMesh.new()
+	glow_mesh.size = Vector2(_bar_w + 0.1, 0.24)
+	_bar_glow.mesh = glow_mesh
+	_bar_glow.position.z = -0.001
+	_bar_glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_bar_glow.visible = false
+	_health_bar.add_child(_bar_glow)
 
 	var bg := MeshInstance3D.new()
 	var bg_mesh := QuadMesh.new()
-	bg_mesh.size = Vector2(total_w, 0.14)
+	bg_mesh.size = Vector2(_bar_w, 0.14)
 	bg.mesh = bg_mesh
 	bg.material_override = bg_mat
 	bg.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_health_bar.add_child(bg)
 
-	for i in max_health:
-		var seg := MeshInstance3D.new()
-		var q := QuadMesh.new()
-		q.size = Vector2(seg_w, 0.08)
-		seg.mesh = q
-		seg.position = Vector3(-total_w / 2.0 + gap + seg_w / 2.0 + i * (seg_w + gap), 0, 0.001)
-		seg.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		_health_bar.add_child(seg)
-		_segments.append(seg)
+	# One fill quad scaled to the health fraction (+ a pale shield quad for absorbs).
+	_bar_fill = _bar_quad(_shared_bar_mats[1], 0.001)
+	_bar_shield = _bar_quad(_shared_bar_mats[3], 0.002)
 	_update_health_bar()
-
-	_status_label = Label3D.new()
-	_status_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	_status_label.no_depth_test = true
-	_status_label.font_size = 32
-	_status_label.pixel_size = 0.006
-	_status_label.outline_size = 8
-	_status_label.position = Vector3(0, health_bar_height + 0.17, 0)
-	add_child(_status_label)
+	_health_bar.visible = false   # shown while fighting / targeted / hurt (_update_bar_state)
 
 	if show_name and display_name != "":
 		var n := Label3D.new()
@@ -983,31 +1844,47 @@ func _build_health_bar() -> void:
 		n.pixel_size = 0.006
 		n.outline_size = 8
 		n.modulate = Color(1.0, 0.35, 0.3) if rank == "boss" else Color(1.0, 0.75, 0.3)
-		n.position = Vector3(0, health_bar_height + 0.36, 0)
+		_name_label = n
+		n.position = Vector3(0, health_bar_height + 0.2, 0)
 		add_child(n)
-		_status_label.position.y += 0.02   # status text sits between bar and name
+
+var _bar_w := 1.0
+var _bar_glow: MeshInstance3D
+var _bar_fill: MeshInstance3D
+var _bar_shield: MeshInstance3D
+const BAR_PAD := 0.03
+
+func _bar_quad(mat: Material, z: float) -> MeshInstance3D:
+	var m := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(_bar_w - BAR_PAD * 2.0, 0.08)
+	m.mesh = q
+	m.material_override = mat
+	m.position.z = z
+	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_health_bar.add_child(m)
+	return m
+
+## Fill [from, to] (fractions 0..1) of the bar with quad `m`.
+func _bar_span(m: MeshInstance3D, from: float, to: float) -> void:
+	var inner := _bar_w - BAR_PAD * 2.0
+	from = clampf(from, 0.0, 1.0)
+	to = clampf(to, from, 1.0)
+	m.visible = to - from > 0.001
+	m.scale.x = maxf(to - from, 0.001)
+	m.position.x = -inner / 2.0 + inner * (from + to) / 2.0
 
 func _update_health_bar() -> void:
-	for i in _segments.size():
-		_segments[i].material_override = _seg_full if i < health else _seg_empty
-
-func _update_status_label() -> void:
-	if _status_label == null:
+	if _bar_fill == null:
 		return
-	var names: Array[String] = []
-	var counts := {}   # the same DoT from several players shows once, with a count
-	var col := Color.WHITE
-	for e in status.list():
-		var n := str(e["name"])
-		if not counts.has(n):
-			names.append(n)
-		counts[n] = int(counts.get(n, 0)) + 1
-		col = e["color"]
-	for i in names.size():
-		if int(counts[names[i]]) > 1:
-			names[i] = "%s (%d)" % [names[i], int(counts[names[i]])]
-	_status_label.text = ", ".join(names)
-	_status_label.modulate = col
+	var frac := float(health) / float(maxi(max_health, 1))
+	_bar_span(_bar_fill, 0.0, frac)
+	var shield := 0
+	if _replica():
+		shield = _net_absorb   # the host's shield (mirrored)
+	elif status and status.has_method("total_absorb"):
+		shield = status.total_absorb()
+	_bar_span(_bar_shield, frac, frac + float(shield) / float(maxi(max_health, 1)))
 
 func _flat_mat(c: Color, priority: int) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -1015,4 +1892,6 @@ func _flat_mat(c: Color, priority: int) -> StandardMaterial3D:
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.no_depth_test = true
 	m.render_priority = priority
+	if c.a < 1.0:
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	return m

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"long_fall"
+display_name = "Rune of the Long Fall"
+description = "When {b:LONG_FALL_PCT}% of what is left in your Breach under an enemy would be enough to kill it, the demons pull it down: the Breach deals all that is left in it at once as Shadow damage and is gone. This hit cannot critically strike."
+color = Color(0.66, 0.4, 0.92, 1)
+rarity = 2
+unlock_level = 20
+trigger = 6

@@ -7,7 +7,7 @@
 script = ExtResource("1_s")
 id = &"flamenova"
 display_name = "Flame Nova"
-description = "Erupt in flame: {hit} fire damage to every enemy within 3 m, and they burn for {dot} fire damage per second for 4 s."
+description = "Erupts in flame, dealing {hit} Fire damage to all enemies within {radius} m and Burning them for {dot} Fire damage {fx_every} for {fx_time} sec."
 tags = PackedStringArray("Fire", "Spell", "AoE")
 cast_type = 0
 cast_time = 0.0
@@ -15,7 +15,7 @@ cooldown = 10.0
 requires_target = false
 resource_type = 1
 resource_cost = 4
-damage = 2
+damage = 1.5
 radius = 3.0
 on_hit_effect = ExtResource("2_fx")
 damage_type = &"fire"

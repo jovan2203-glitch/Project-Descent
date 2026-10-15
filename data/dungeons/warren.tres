@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="DungeonRecipe" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/dungeon_recipe.gd" id="1_recipe"]
+[ext_resource type="Resource" path="res://data/biomes/cave.tres" id="2_biome"]
+
+[resource]
+script = ExtResource("1_recipe")
+id = "warren"
+name_key = "dng_warren"
+desc_key = "dng_warren_desc"
+in_random_pool = true
+biome = ExtResource("2_biome")
+layout = "maze"
+rooms_per_section = 4
+roster = {
+"swarmer": {"scene": "res://scenes/goblin.tscn", "name": "warren_swarmer", "weight": 2.0},
+"archer": {"scene": "res://scenes/goblin_archer.tscn", "name": "warren_archer", "weight": 3.0},
+"caster": {"scene": "res://scenes/goblin_wizard.tscn", "name": "warren_caster", "weight": 3.0, "cast": "ab_firebolt", "school": "fire", "color": Color(1, 0.42, 0.12, 1)},
+"support": {"scene": "res://scenes/goblin_wizard.tscn", "name": "warren_support", "weight": 1.0, "tint": Color(0.7, 1, 0.7, 1), "cast": "ab_firebolt", "school": "nature", "color": Color(0.45, 1, 0.4, 1)}
+}
+pack_min = 2
+pack_max = 4
+elite_chance = 0.35
+bosses = [{
+"name": "boss_warren_1", "role": "archer", "skin": {"scene": "res://scenes/goblin_archer.tscn", "tint": Color(0.85, 1, 0.8, 1), "scale": 1.1}, "hp": 1.0, "dmg": 1.0,
+"abilities": [{"type": "barrage", "name": "ab_arrow_storm", "count": 7, "radius": 2.0, "time": 1.6, "cd": 12.0, "coef": 1.0, "first": 5.0}, {"type": "charge", "name": "ab_pounce", "width": 2.0, "time": 1.2, "cd": 10.0, "coef": 1.2, "first": 8.0}]
+}, {
+"name": "boss_warren_2", "role": "caster", "skin": {"scene": "res://scenes/goblin_wizard.tscn", "tint": Color(1, 0.8, 1, 1), "scale": 1.2, "cast": "ab_firebolt", "school": "fire", "color": Color(1, 0.42, 0.12, 1)}, "hp": 1.0, "dmg": 1.0,
+"abilities": [{"type": "big_cast", "name": "ab_hex_blast", "time": 3.0, "coef": 2.5, "cd": 16.0, "color": Color(0.9, 0.4, 1, 1), "first": 7.0}, {"type": "summon", "name": "ab_call_hexers", "role": "caster", "count": 2, "time": 2.5, "cd": 24.0, "interrupt": true, "first": 14.0}, {"type": "eruption", "name": "ab_hex_blast", "radius": 2.2, "time": 1.5, "extra": 1, "cd": 12.0, "color": Color(0.9, 0.4, 1, 1), "first": 4.0}]
+}, {
+"name": "boss_warren_3", "skin": {"scene": "res://scenes/goblin.tscn", "tint": Color(1, 0.8, 0.7, 1), "scale": 1.3}, "hp": 1.4, "dmg": 1.1,
+"abilities": [{"type": "cone", "name": "ab_cleave", "range": 6.0, "angle": 90.0, "time": 1.2, "cd": 8.0, "coef": 1.5, "first": 4.0}, {"type": "charge", "name": "ab_bull_rush", "width": 2.4, "time": 1.4, "cd": 13.0, "coef": 1.3, "first": 9.0}, {"type": "summon", "name": "ab_call_snipers", "role": "archer", "count": 2, "cd": 25.0, "interrupt": false, "first": 15.0}, {"type": "enrage", "below": 0.3}]
+}]
+objectives = Array[String](["key_elites", "defend", "clear_pct"])
+clear_pct = 70
+modifier_pool = Array[String](["frost_touched", "volatile", "bloodthirst", "darkness", "frenzy"])
+modifier_count = 1

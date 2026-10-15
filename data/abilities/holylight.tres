@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_s")
 id = &"holylight"
-display_name = "Holy Light"
-description = "Bathe yourself in holy light, healing {heal} health."
+display_name = "Dawnlight"
+description = "Bathes you in the light of dawn, healing you for {heal}."
 tags = PackedStringArray("Holy", "Spell", "Heal")
 cast_type = 0
 cast_time = 0.0

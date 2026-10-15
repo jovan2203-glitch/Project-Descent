@@ -5,7 +5,7 @@ extends RefCounted
 #
 # An item stored in inventory/bank/equipment is an ITEM INSTANCE id ("#5f3a...")
 # whose record lives in ItemDB (base item, runes, item level, rarity, rolled
-# stats, durability). Every function here accepts an instance id, and still
+# stats). Every function here accepts an instance id, and still
 # understands the old "sword" / "sword|frost" strings (used by old saves and as
 # base ids when creating items).
 
@@ -28,6 +28,7 @@ const PATHS := {
 	"ring_might": "res://data/items/ring_might.tres",
 	# Weapons / off hand
 	"staff": "res://data/items/staff.tres",
+	"greatsword": "res://data/items/greatsword.tres",   # two-handed melee (the Lightning tank's weapon)
 	"dagger": "res://data/items/dagger.tres",
 	"venom_fang": "res://data/items/venom_fang.tres",
 	"shield": "res://data/items/shield.tres",
@@ -39,10 +40,15 @@ const PATHS := {
 	"frost_shard": "res://data/items/frost_shard.tres",
 	"sand_hourglass": "res://data/items/sand_hourglass.tres",
 	"sacred_reliquary": "res://data/items/sacred_reliquary.tres",
+	# Mysterious Runes (not equippable): reveal in the main menu to learn a rune.
+	"mystery_rune_0": "res://data/items/mystery_rune_0.tres",
+	"mystery_rune_1": "res://data/items/mystery_rune_1.tres",
+	"mystery_rune_2": "res://data/items/mystery_rune_2.tres",
+	"mystery_rune_3": "res://data/items/mystery_rune_3.tres",
 }
 const ALL := ["helmet", "chestplate", "sword", "bow",
 	"amulet", "pauldrons", "cloak", "gloves", "leggings", "boots", "ring_focus", "ring_might",
-	"staff", "dagger", "venom_fang", "shield",
+	"staff", "greatsword", "dagger", "venom_fang", "shield",
 	"storm_idol", "phoenix_ember", "berserker_tooth", "arcane_clockwork",
 	"frost_shard", "sand_hourglass", "sacred_reliquary"]
 const Stats = preload("res://scripts/core/stats.gd")
@@ -80,9 +86,22 @@ static func with_rune(item: String, rune_id: String) -> String:
 	var b := base_id(item)
 	return b if rune_id == "" else "%s|%s" % [b, rune_id]
 
-## Base stats are multiplied by this for the item's level (same curve as rolled stats).
-static func stat_scale(ilvl: int) -> float:
-	return 1.0 + (maxi(ilvl, 1) - 1) * 0.25
+## Base stats are multiplied by this for the item's level (same curve as rolled
+## stats): flat stats (Intellect, Armor...) by Stats.flat_unit, percent stats
+## (Haste, Crit, Move Speed) by the much gentler Stats.pct_scale.
+static func stat_scale(ilvl: int, stat: String = "") -> float:
+	if stat != "" and Stats.scales_like_percent(stat):
+		return Stats.pct_scale(ilvl)
+	return Stats.unit_for(stat, ilvl)
+
+## Weapon damage coefficient -> real damage per hit at the player's level.
+static func real_weapon_damage(coef: float) -> int:
+	return int(round(coef * Stats.level_hit(Stats._player_level())))
+
+## What an auto-attack / auto-shot with that weapon really hits for (before
+## power): auto-attacks deal Balance.AUTO_ATTACK_MULT of the weapon's damage.
+static func real_auto_damage(coef: float) -> int:
+	return real_weapon_damage(coef * preload("res://scripts/balance.gd").AUTO_ATTACK_MULT)
 
 ## Player level needed to equip the item: its item level (1 - 50).
 ## Stats scale with item level, so stronger items need a higher level.
@@ -96,6 +115,22 @@ static func rarity_of(item: String) -> int:
 
 static func rarity_color(item: String) -> Color:
 	return ItemDB.RARITY_COLORS[rarity_of(item)]
+
+# --- Mysterious Runes ------------------------------------------------------------
+
+## Is this a Mysterious Rune (a consumable that reveals a rune choice)?
+static func is_mystery_rune(item: String) -> bool:
+	return base_id(item).begins_with("mystery_rune_")
+
+## Rune rarity (Runes.COMMON..LEGENDARY) of a Mysterious Rune, -1 otherwise.
+static func mystery_rarity(item: String) -> int:
+	if not is_mystery_rune(item):
+		return -1
+	return clampi(int(base_id(item).trim_prefix("mystery_rune_")), 0, 3)
+
+## Base item id of a Mysterious Rune of rune rarity `r`.
+static func mystery_rune_base(r: int) -> String:
+	return "mystery_rune_%d" % clampi(r, 0, 3)
 
 # --- Lookups ---------------------------------------------------------------------
 
@@ -115,7 +150,7 @@ static func exists(item: String) -> bool:
 # Dictionary view used across the game:
 #   name, slot, locks_offhand, color, desc, stats (base + rolled), and for weapons:
 #   weapon ("melee"/"ranged"), damage, attack_interval, attack_range.
-#   Instances also get: rarity, rarity_name, rarity_color, ilvl, durability, max_durability.
+#   Instances also get: rarity, rarity_name, rarity_color, ilvl, required_level.
 static func get_item(item: String) -> Dictionary:
 	var id := base_id(item)
 	if id == "" or not PATHS.has(id):
@@ -128,8 +163,22 @@ static func get_item(item: String) -> Dictionary:
 	# Base stats grow with item level (higher level = higher stats, see stat_scale).
 	var ilvl := int(rec.get("ilvl", 1))
 	var stats := {}
+	var armor_type := int(rec.get("armor_type", ItemDB.NO_ARMOR_TYPE)) if ItemDB.is_armor_piece(id) else ItemDB.NO_ARMOR_TYPE
 	for s in d["stats"]:
-		stats[s] = roundf(float(d["stats"][s]) * stat_scale(ilvl))
+		if armor_type >= 0 and str(s) == Stats.ARMOR:
+			continue   # a piece of armor's Armor comes from its type (below), not from its template
+		var v := float(d["stats"][s]) * stat_scale(ilvl, str(s))
+		# Percent stats (Haste 1.6%...) keep one decimal, the rest are whole numbers.
+		stats[s] = roundf(v * 10.0) / 10.0 if Stats.is_percent(str(s)) else roundf(v)
+	# Armor types (balance.gd): the heavier the piece, the more Armor; the
+	# lighter, the more of its type's stat. It is named and described by its type.
+	if armor_type >= 0:
+		var typed := armor_piece_stats(id, armor_type, ilvl)
+		for s in typed:
+			stats[s] = float(stats.get(s, 0.0)) + float(typed[s])
+		out["name"] = armor_piece_name(id, armor_type)
+		out["desc"] = "%s Armor" % armor_type_name(armor_type)
+		out["armor_type"] = armor_type
 	var rolled: Dictionary = rec.get("rolled", {})
 	for s in rolled:
 		stats[s] = float(stats.get(s, 0.0)) + float(rolled[s])
@@ -141,9 +190,43 @@ static func get_item(item: String) -> Dictionary:
 	out["rarity_color"] = ItemDB.RARITY_COLORS[r]
 	out["ilvl"] = ilvl
 	out["required_level"] = required_level(item)
-	out["durability"] = int(rec.get("durability", 100))
-	out["max_durability"] = int(rec.get("max_durability", 100))
 	return out
+
+# --- Armor types (Cloth, Light, Medium, Heavy) --------------------------------------
+# Every piece of armor (Balance.ARMOR_PIECES) is one of four types, rolled when
+# the item is made (ItemDB "armor_type"). The numbers are in balance.gd.
+
+const Balance = preload("res://scripts/balance.gd")
+
+## "Cloth", "Light", "Medium" or "Heavy" ("" for no type).
+static func armor_type_name(armor_type: int) -> String:
+	return str(Balance.ARMOR_TYPE_NAMES[armor_type]) if armor_type >= 0 and armor_type < Balance.ARMOR_TYPE_NAMES.size() else ""
+
+## The armor type of an item (-1 = none: not a piece of armor, or not an instance).
+static func armor_type_of(item: String) -> int:
+	if not ItemDB.is_instance_id(item) or not ItemDB.is_armor_piece(base_id(item)):
+		return ItemDB.NO_ARMOR_TYPE
+	return ItemDB.armor_type_of(item)
+
+## What a piece of armor of base `base` and type `armor_type` is called.
+static func armor_piece_name(base: String, armor_type: int) -> String:
+	var names: Array = Balance.ARMOR_PIECE_NAMES.get(base, [])
+	if armor_type >= 0 and armor_type < names.size():
+		return str(names[armor_type])
+	return str(_base_dict(base).get("name", ""))
+
+## The stats a piece of armor gets from its type at item level `ilvl`: its
+## Armor, and its type's stat (Intellect, Agility, Strength or Constitution).
+static func armor_piece_stats(base: String, armor_type: int, ilvl: int) -> Dictionary:
+	if not Balance.ARMOR_PIECES.has(base) or armor_type < 0 or armor_type >= Balance.ARMOR_TYPE_NAMES.size():
+		return {}
+	var weight := float(Balance.ARMOR_PIECES[base])
+	var unit := Stats.flat_unit(ilvl)
+	var bonus := str(Balance.ARMOR_TYPE_STAT[armor_type])
+	return {
+		Stats.ARMOR: maxf(roundf(weight * float(Balance.ARMOR_TYPE_ARMOR[armor_type]) * unit), 1.0),
+		bonus: maxf(roundf(weight * float(Balance.ARMOR_TYPE_STAT_AMOUNT[armor_type]) * unit), 1.0),
+	}
 
 static func _base_dict(id: String) -> Dictionary:
 	if _dict_cache.has(id):
@@ -181,34 +264,34 @@ static func use_effect_of(item: String) -> Resource:
 	var r := get_resource(item)
 	return r.get("use_effect") if r else null
 
-## Item effect damage / heals / flat buffs grow with item level (+10% per level,
-## gentler than stats). Percent buffs (haste, crit...) never scale.
-const EFFECT_SCALE_PER_LEVEL := 0.1
+## Item effect damage / heals are coefficients (1.0 = a standard hit), so they
+## already grow with your level (an item's level = the level needed to wear it).
+## Kept as a hook for extra per-item scaling.
+static func effect_scale(_item: String) -> float:
+	return 1.0
 
-static func effect_scale(item: String) -> float:
-	if not ItemDB.is_instance_id(item):
-		return 1.0
-	return 1.0 + (maxi(int(ItemDB.get_record(item).get("ilvl", 1)), 1) - 1) * EFFECT_SCALE_PER_LEVEL
-
-## Buff size of an effect at this scale (percent stats stay as they are).
+## Buff size of an effect: flat buffs are in flat units (Stats.flat_unit of
+## your level, e.g. "+2 Attack Power" = +250 at level 50); percent stats stay.
 static func scaled_buff(res: Resource, scale: float) -> float:
 	var b := float(res.buff_amount)
-	return b if Stats.is_percent(str(res.buff_stat)) else b * scale
+	return b if Stats.is_percent(str(res.buff_stat)) else b * scale * Stats.unit_for(str(res.buff_stat), Stats._player_level())
 
 static func item_type(item: String) -> String:
 	return str(get_item(item).get("item_type", ""))
+
+## Is this a one-handed melee weapon? Those can be held in the Off Hand too
+## (dual wield: a one-handed melee weapon in each hand).
+static func is_one_handed_melee(item: String) -> bool:
+	var d := get_item(item)
+	return str(d.get("weapon", "")) == "melee" and not bool(d.get("locks_offhand", false))
 
 ## An effect's description with {amount} (damage / heal) and {buff} (buff size)
 ## filled in for this item's level.
 static func effect_text(item: String, res: Resource) -> String:
 	if res == null:
 		return ""
-	var s := effect_scale(item)
-	var t: String = res.description
-	t = t.replace("{amount}", str(maxi(int(round(float(res.effect_amount) * s)), 1)))
-	var b := scaled_buff(res, s)
-	t = t.replace("{buff}", ("%d" % b) if is_equal_approx(b, round(b)) else ("%.1f" % b))
-	return t
+	# (Every number comes from the effect's data: see TextFill.rune.)
+	return preload("res://scripts/core/text_fill.gd").rune(res, effect_scale(item))
 
 ## "Equip: ..." / "Use: ... (60 s cooldown)" lines for tooltips (plain text).
 static func effect_lines(item: String) -> Array[String]:
@@ -260,7 +343,8 @@ static func stat_changes(item: String, old_items: Array) -> Dictionary:
 		if d.has("weapon") and old_weapon.is_empty():
 			old_weapon = d
 	if new_d.has("weapon") or not old_weapon.is_empty():
-		out["weapon_damage"] = float(new_d.get("damage", 0)) - float(old_weapon.get("damage", 0))
+		out["weapon_damage"] = float(real_weapon_damage(float(new_d.get("damage", 0)))) \
+			- float(real_weapon_damage(float(old_weapon.get("damage", 0))))
 		if new_d.has("weapon") and not old_weapon.is_empty():
 			out["attack_interval"] = float(new_d["attack_interval"]) - float(old_weapon["attack_interval"])
 	for s in out.keys():
@@ -283,12 +367,10 @@ static func tooltip(item: String) -> String:
 		lines.append("Requires Level %d" % req)
 	lines.append(slot_line(item))
 	if d.has("weapon"):
-		lines.append("%d damage  •  %.1f s  •  %s m range" % [d["damage"], d["attack_interval"], str(d["attack_range"])])
+		lines.append("%d damage  •  %.1f s  •  %s m range" % [real_weapon_damage(float(d["damage"])), d["attack_interval"], str(d["attack_range"])])
 	for stat in d["stats"]:
 		lines.append(stat_line(str(stat), float(d["stats"][stat])))
 	lines.append_array(effect_lines(item))
-	if d.has("durability"):
-		lines.append("Durability %d / %d" % [d["durability"], d["max_durability"]])
 	var e := rune_of(item)
 	if e != "":
 		var Runes = load("res://scripts/runes.gd")

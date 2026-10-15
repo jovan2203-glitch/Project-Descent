@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"countdown"
+display_name = "Countdown"
+description = "A mark that detonates when it runs out. The more Arcane damage its caster deals to this target first, the harder it hits."
+color = Color(0.75, 0.5, 1, 1)
+is_debuff = true
+tags = PackedStringArray("Arcane")
+duration = 5.0
+stack_mode = 0
+max_stacks = 1
+per_caster = true

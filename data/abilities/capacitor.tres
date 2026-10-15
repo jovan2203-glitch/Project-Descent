@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"capacitor"
+display_name = "Capacitor"
+description = "Stores all your Energy, up to {b:CAPACITOR_MAX}. Use it again within {b:CAPACITOR_TIME} sec to take the Energy back; after that it is lost. Does not trigger the global cooldown."
+tags = PackedStringArray("Lightning", "Spell")
+cast_type = 0
+cast_time = 0.0
+cooldown = 30.0
+requires_target = false
+resource_type = 2
+resource_cost = 0
+damage = 0.0
+cast_range = 0.0
+damage_type = &"lightning"

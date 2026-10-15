@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"iceshards"
+display_name = "Ice Shards"
+description = "Fires one ice shard per charge at the target, one every {b:ICE_SHARDS_INTERVAL} sec, each dealing {hit} Frost damage. Up to {b:ICE_SHARDS_MAX_CHARGES} charges: one every {b:ICE_SHARDS_RECHARGE} sec, and one each time you cast a Frost spell. No charges are gained while shards are firing."
+tags = PackedStringArray("Frost", "Spell", "Projectile")
+cast_type = 0
+cast_time = 0.0
+cooldown = 0.0
+requires_target = true
+resource_type = 1
+resource_cost = 0
+damage = 0.2
+cast_range = 30.0
+damage_type = &"frost"

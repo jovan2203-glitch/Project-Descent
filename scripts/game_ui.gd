@@ -18,6 +18,7 @@ var settings_panel: PanelContainer
 
 const CHAT_BOX = preload("res://scripts/ui/chat_box.gd")
 const DEBUG_OVERLAY = preload("res://scripts/ui/debug_overlay.gd")
+const COMBAT_VIGNETTE = preload("res://scripts/ui/combat_vignette.gd")
 var chat_box: PanelContainer
 
 func _ready() -> void:
@@ -26,6 +27,7 @@ func _ready() -> void:
 	chat_box = CHAT_BOX.new()
 	add_child(chat_box)
 	add_child(DEBUG_OVERLAY.new())
+	add_child(COMBAT_VIGNETTE.new())   # red screen edges while in combat
 	_build_maps()
 	_build_windows()
 	_build_esc_menu()
@@ -67,7 +69,7 @@ func _wire_items() -> void:
 			_gear_buttons.append(b)
 			b.pressed.connect(_on_gear_clicked.bind(slot))
 			b.set_drag_forwarding(
-				func(_pos): return null,
+				func(_pos): return _gear_drag_data(b, slot),
 				func(_pos, data): return _can_equip_drop(data, slot) or _is_rune(data),
 				func(_pos, data):
 					if _is_rune(data):
@@ -103,6 +105,12 @@ func _refresh_stats() -> void:
 			bonus[stat] = float(values[stat]) - without_buffs
 		else:
 			values[stat] = Stats.from_totals(stat, base_totals)
+	# The Parry row shows what counts: my cap is higher with Humming Blade / Crossguard up.
+	if player and player.has_method("parry_cap"):
+		values["parry_cap"] = player.parry_cap()
+	# ... and so does the Dodge row: each Reflection raises my Dodge cap.
+	if player and player.has_method("dodge_cap"):
+		values["dodge_cap"] = player.dodge_cap()
 	UI.update_stat_panel(_stat_panel, values, bonus)
 
 func _refresh_items() -> void:
@@ -145,6 +153,22 @@ func _inv_drag_data(btn: Button, idx: int) -> Variant:
 	_drag_inv_index = idx
 	return {"type": "inv", "index": idx}
 
+## Dragging an equipped on-use trinket gives its action-bar button ("Use
+## Trinket 1 / 2"): drop it on a bar slot to use the trinket from there.
+func _gear_drag_data(btn: Button, slot: String) -> Variant:
+	for button_id in Abilities.TRINKET_SLOTS:
+		if str(Abilities.TRINKET_SLOTS[button_id]) != slot:
+			continue
+		var item := str(_pd().equipment.get(slot, ""))
+		if item == "" or Items.use_effect_of(item) == null:
+			return null
+		if _in_combat():
+			_report("Can't change your action bar in combat")
+			return null
+		btn.set_drag_preview(UI.drag_preview(item, 1))
+		return {"type": "ability", "id": str(button_id), "from": -1}
+	return null
+
 func _can_equip_drop(data: Variant, slot: String) -> bool:
 	if not (data is Dictionary) or data.get("type") != "inv":
 		return false
@@ -175,7 +199,11 @@ func _update_runes_panel() -> void:
 # Detect an inventory drag that was released over nothing (the game world):
 # that drops the item on the floor in front of the player.
 func _process(_delta: float) -> void:
+	_fit_menu_bar()
 	_update_runes_panel()
+	if _book_dirty and windows.has("Talents") and windows["Talents"].visible:
+		_refresh_spellbook()
+	_update_slot_highlights()
 	if _drag_inv_index == -1:
 		return
 	var vp := get_viewport()
@@ -199,9 +227,8 @@ func _mouse_over_ui() -> bool:
 	for p in panels:
 		if p.visible and p.get_global_rect().has_point(mouse):
 			return true
-	for b in bar_buttons.values():
-		if b.get_parent().get_parent().get_global_rect().has_point(mouse):
-			return true
+	if _menu_bar and (_menu_bar.get_global_transform() * Rect2(Vector2.ZERO, _menu_bar.size)).has_point(mouse):
+		return true   # (uses the transform: the bar may be scaled down to fit)
 	return false
 
 func _drop_on_floor(idx: int) -> void:
@@ -224,11 +251,24 @@ func _inventory_context_menu(index: int) -> void:
 	var id: String = _pd().inventory[index]
 	if id == "":
 		return
+	var extras: Array = []
+	if Items.is_mystery_rune(id):
+		extras.append(["Reveal (in the main menu)", Callable(), true])
+	extras.append(["Salvage (+%d Rune Shards)" % _pd().salvage_value(id), func():
+		if _pd().inventory[index] == id:
+			var got: int = _pd().salvage_inventory_item(index)
+			_report_ok("+%d Rune Shards" % got)])
 	UI.item_menu(self, id,
 		func(): _on_inventory_clicked(index),
 		func():
 			if _pd().inventory[index] == id:   # still the same item after confirming
-				_pd().delete_inventory_item(index))
+				_pd().delete_inventory_item(index),
+		"Delete", "", extras)
+
+func _report_ok(msg: String) -> void:
+	var gl := get_node_or_null("/root/GameLog")
+	if gl:
+		gl.event(msg, Color(0.75, 0.55, 1.0))
 
 func _on_inventory_clicked(index: int, to_slot: String = "") -> void:
 	var err: String = _pd().equip_from_inventory(index, to_slot)
@@ -254,6 +294,7 @@ func _build_bar() -> void:
 	bar.offset_bottom = -14
 	bar.add_theme_stylebox_override("panel", UI.box(Color(0, 0, 0, 0.55), UI.BORDER, 1, 8))
 	add_child(bar)
+	_menu_bar = bar
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
@@ -262,7 +303,7 @@ func _build_bar() -> void:
 	# [window, button text, hotkey action]
 	var entries := [
 		["Character", "Character", "open_character"],
-		["Talents", "Talents & Abilities", "open_talents"],
+		["Talents", "Spellbook", "open_talents"],
 		["Bank", "Bank", "open_bank"],
 		["Inventory", "Inventory", "open_inventory"],
 	]
@@ -283,6 +324,32 @@ func _build_bar() -> void:
 		b.pressed.connect(_toggle_window.bind(e[0]))
 		row.add_child(b)
 		bar_buttons[e[0]] = b
+	# Details meter (damage / healing / buff uptime) - lives in the Details autoload.
+	var details := UI.button("Details", 13, Vector2(70, 32))
+	details.tooltip_text = "Details: damage / healing meter (%s)" % settings.key_text("open_details")
+	details.pressed.connect(func():
+		var d := get_node_or_null("/root/Details")
+		if d:
+			d.toggle_meter())
+	row.add_child(details)
+
+# The bar must never run into the action bar (hud.gd: 8 slots of 52 px, centered).
+# When it doesn't fit next to it, it shrinks (anchored at its bottom-left corner).
+const ACTION_BAR_HALF_W := (8 * 52.0 + 7 * 6.0 + 16.0) / 2.0
+const MENU_BAR_GAP := 10.0
+var _menu_bar: PanelContainer
+
+func _fit_menu_bar() -> void:
+	if _menu_bar == null:
+		return
+	var vp := get_viewport().get_visible_rect().size
+	var avail := vp.x * 0.5 - ACTION_BAR_HALF_W - MENU_BAR_GAP - _menu_bar.offset_left
+	var w := _menu_bar.get_combined_minimum_size().x
+	var s := clampf(avail / maxf(w, 1.0), 0.55, 1.0)
+	if _menu_bar.pivot_offset.y != _menu_bar.size.y:
+		_menu_bar.pivot_offset = Vector2(0, _menu_bar.size.y)
+	if not is_equal_approx(_menu_bar.scale.x, s):
+		_menu_bar.scale = Vector2(s, s)
 
 # --- Windows -----------------------------------------------------------------
 
@@ -302,11 +369,7 @@ func _build_windows() -> void:
 	character.get_meta("content").add_child(row)
 	windows["Character"] = character
 
-	var talents := UI.window("Talents & Abilities", Vector2(w, 0), _close_window.bind("Talents"), true)
-	var talents_note := UI.label("Abilities, talents and your action bar are managed in the main menu (Abilities & Talents tab).", 14, UI.TEXT_DIM)
-	talents_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	talents.get_meta("content").add_child(talents_note)
-	windows["Talents"] = talents
+	windows["Talents"] = _build_spellbook(maxf(w, 380.0), vp.y * 0.5)
 
 	var bank := UI.window("Bank", Vector2(w, 0), _close_window.bind("Bank"), true)
 	var slot_size := 30.0
@@ -341,6 +404,135 @@ func _open_window(name: String) -> void:
 	bar_buttons[name].set_pressed_no_signal(true)
 	open_order.erase(name)
 	open_order.append(name)
+
+# --- Spellbook (P): swap learned abilities on the action bar, out of combat -------------
+# Every ability you know, grouped by book (spells taught by runes have their own
+# "Rune Spells" section). Drag one onto the action bar to put it there; drag a
+# bar button onto the spellbook to take it off. Locked in combat.
+# Next to the abilities: your talents, to read only (TALENT_VIEW). Skill Cards
+# and talents are changed in the main menu.
+
+const Abilities = preload("res://scripts/abilities.gd")
+const Categories = preload("res://scripts/categories.gd")
+const TALENT_VIEW = preload("res://scripts/ui/talent_tree_view.gd")
+var _book_list: VBoxContainer
+var _book_status: Label
+var _book_dirty := true
+var _talent_view: VBoxContainer
+
+## `width` = the abilities column; the talents column is added to its right.
+func _build_spellbook(width: float, list_height: float) -> PanelContainer:
+	var tree_height := maxf(list_height - 20.0, 280.0)
+	var win := UI.window("Spellbook", Vector2(width + TALENT_VIEW.width_for(tree_height) + 36.0, 0),
+		_close_window.bind("Talents"), true)
+	var columns := HBoxContainer.new()
+	columns.add_theme_constant_override("separation", 10)
+	win.get_meta("content").add_child(columns)
+	var content := VBoxContainer.new()   # left: abilities
+	content.add_theme_constant_override("separation", 10)
+	columns.add_child(content)
+	columns.add_child(VSeparator.new())
+	_talent_view = TALENT_VIEW.new()     # right: talents (read only)
+	_talent_view.tree_height = tree_height
+	columns.add_child(_talent_view)
+	_book_status = UI.label("", 12, UI.TEXT_DIM)
+	_book_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_book_status.custom_minimum_size = Vector2(width - 24.0, 0)
+	content.add_child(_book_status)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(width - 20.0, list_height)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	content.add_child(scroll)
+	_book_list = VBoxContainer.new()
+	_book_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_book_list.add_theme_constant_override("separation", 6)
+	scroll.add_child(_book_list)
+	var note := UI.label("Skill Cards and talents are changed in the main menu.", 11, UI.TEXT_DIM)
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.custom_minimum_size = Vector2(width - 24.0, 0)
+	content.add_child(note)
+	# Dropping a button dragged off the action bar here takes it off the bar.
+	for c in [win, scroll, _book_list]:
+		(c as Control).set_drag_forwarding(func(_p): return null,
+			func(_p, data): return data is Dictionary and data.get("type") == "hud_bar" and not _in_combat(),
+			func(_p, data): _pd().clear_action_slot(int(data["slot"]) - 1))
+	_pd().changed.connect(func(): _book_dirty = true)
+	get_node("/root/SignalBus").combat_state_changed.connect(func(_c): _book_dirty = true)
+	return win
+
+func _in_combat() -> bool:
+	var p := get_tree().get_first_node_in_group("player")
+	return p != null and p.has_method("is_in_combat") and p.is_in_combat()
+
+func _refresh_spellbook() -> void:
+	_book_dirty = false
+	if _talent_view:
+		_talent_view.refresh()
+	for c in _book_list.get_children():
+		c.queue_free()
+	var pd := _pd()
+	var locked := _in_combat()
+	_book_status.text = "In combat: abilities can't be changed until the fight ends." if locked \
+		else "Drag an ability onto your action bar. Drag a bar button here to take it off."
+	_book_status.add_theme_color_override("font_color", Color(1.0, 0.5, 0.4) if locked else UI.TEXT_DIM)
+	var cats: Array = Categories.ORDER.duplicate()
+	cats.append(Categories.RUNE)   # spells taught by runes on your gear
+	cats.append("")   # abilities without a book
+	for cat in cats:
+		var ids: Array[String] = []
+		for id in Abilities.ALL:
+			if Abilities.category_of(id) == cat and pd.has_ability(id) and not Abilities.is_trinket_slot(id):
+				ids.append(id)
+		if ids.is_empty():
+			continue
+		var col := Categories.color(cat) if cat != "" else Color.WHITE
+		_book_list.add_child(UI.label(Categories.cat_name(cat) if cat != "" else "Other", 14, col.lightened(0.3)))
+		var flow := HFlowContainer.new()
+		flow.add_theme_constant_override("h_separation", 6)
+		flow.add_theme_constant_override("v_separation", 6)
+		_book_list.add_child(flow)
+		for id in ids:
+			flow.add_child(_spellbook_slot(id, locked, pd.action_bar.has(id)))
+
+func _spellbook_slot(id: String, locked: bool, on_bar: bool) -> Button:
+	var s := Abilities.make_slot(40)
+	Abilities.set_slot_ability(s, id)
+	if on_bar:
+		s.add_theme_stylebox_override("normal", UI.box(Color(0.06, 0.065, 0.085, 0.9), UI.ACCENT.darkened(0.2), 2, 6))
+	if locked:
+		s.get_node("AbilityIcon").modulate.a = 0.45
+	s.set_drag_forwarding(
+		func(_p):
+			if _in_combat():
+				_report("Can't change abilities in combat")
+				return null
+			var preview := Control.new()
+			var icon := Control.new()
+			icon.size = Vector2(40, 40)
+			icon.position = -icon.size / 2.0
+			icon.modulate.a = 0.85
+			icon.draw.connect(func(): Abilities.draw_icon(icon, id))
+			preview.add_child(icon)
+			s.set_drag_preview(preview)
+			return {"type": "ability", "id": id, "from": -1},
+		func(_p, data): return data is Dictionary and data.get("type") == "hud_bar" and not _in_combat(),
+		func(_p, data): _pd().clear_action_slot(int(data["slot"]) - 1))
+	return s
+
+## While an item (or rune) is being dragged and the Character window is open,
+## the gear slots it fits into glow.
+var _highlight_on := false
+
+func _update_slot_highlights() -> void:
+	var active: bool = windows.has("Character") and windows["Character"].visible and get_viewport().gui_is_dragging()
+	if not active and not _highlight_on:
+		return
+	_highlight_on = active
+	if active:
+		UI.highlight_drag_targets(get_viewport(), _gear_buttons, _pd())
+	else:
+		for b in _gear_buttons:
+			UI.set_slot_highlight(b, false)
 
 # --- Minimap (top-right) + local map (M) --------------------------------------------
 
@@ -416,8 +608,14 @@ func toggle_map() -> void:
 	map_panel.visible = not map_panel.visible
 	if map_panel.visible:
 		var scene := get_tree().current_scene
+		var title: Variant = scene.get("map_title") if scene else null
 		var depth: Variant = scene.get("depth") if scene else null
-		_map_title.text = "Map — %s" % (("The Crypt, Floor %d" % int(depth)) if depth != null else "The Cave")
+		if title != null and str(title) != "":
+			_map_title.text = "Map — %s" % str(title)
+		elif depth != null:
+			_map_title.text = "Map — The Crypt, Floor %d" % int(depth)
+		else:
+			_map_title.text = "Map"
 		map_panel.move_to_front()
 
 # --- Window placement ----------------------------------------------------------
@@ -499,6 +697,8 @@ func _close_window(name: String) -> void:
 
 func _build_esc_menu() -> void:
 	esc_menu = _small_panel("Menu")
+	esc_menu.offset_top = -150
+	esc_menu.offset_bottom = 130
 	var content: VBoxContainer = esc_menu.get_meta("content")
 	var resume := UI.button("Resume", 18, Vector2(0, 42))
 	resume.pressed.connect(_hide_esc)
@@ -506,6 +706,9 @@ func _build_esc_menu() -> void:
 	var settings := UI.button("Settings", 18, Vector2(0, 42))
 	settings.pressed.connect(_open_settings)
 	content.add_child(settings)
+	var macros := UI.button("Macros", 18, Vector2(0, 42))
+	macros.pressed.connect(_open_macros)
+	content.add_child(macros)
 	var quit := UI.button("Quit", 18, Vector2(0, 42))
 	quit.pressed.connect(_quit_to_menu)
 	content.add_child(quit)
@@ -581,6 +784,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_hide_esc()
 		elif not open_order.is_empty():
 			_close_window(open_order.back())   # Esc closes the latest window first
+		elif player and player.has_method("clear_target") and player.clear_target():
+			pass   # then clears your target (like WoW)
 		else:
 			esc_menu.visible = true
 			esc_menu.move_to_front()
@@ -593,6 +798,13 @@ func _open_settings() -> void:
 	esc_menu.visible = false
 	settings_panel.visible = true
 	settings_panel.move_to_front()
+
+const MacroWindow = preload("res://scripts/ui/macro_window.gd")
+
+## Macros: write them here, then drag one onto an action-bar slot.
+func _open_macros() -> void:
+	_hide_esc()
+	MacroWindow.open(self, true)
 
 func _back_from_settings() -> void:
 	settings_panel.visible = false

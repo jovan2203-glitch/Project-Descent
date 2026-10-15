@@ -4,9 +4,20 @@ extends RefCounted
 # (Abilities.CATEGORY_OF) and every category has its own talent tree (Talents).
 # Usage: const Categories = preload("res://scripts/categories.gd")
 
-const ORDER := ["fire", "frost", "lightning", "arcane", "shadow", "nature", "holy", "warrior", "rogue", "ranger"]
+const ORDER := ["fire", "frost", "lightning", "arcane", "shadow", "nature", "holy", "martial"]
+
+## Columns of the main menu's shelf for `count` books: two even rows, so the
+## shelf is symmetrical (8 books = 4 + 4).
+static func shelf_columns(count: int) -> int:
+	return maxi(int(ceil(count / 2.0)), 1)
+
+## The book of spells taught by runes (Frostfire Bolt). Not in ORDER: it has no
+## talent tree, and its spells follow the talents of the schools they belong to.
+const RUNE := "rune"
 
 const INFO := {
+	"rune": {"name": "Rune Spells", "kind": "Rune", "color": Color(0.72, 0.6, 1.0),
+		"desc": "Spells taught by runes. You know one while its rune is on your gear."},
 	"fire": {"name": "Fire", "color": Color(0.95, 0.42, 0.15),
 		"desc": "Burning attacks, explosions and damage over time."},
 	"frost": {"name": "Frost", "color": Color(0.5, 0.85, 1.0),
@@ -16,21 +27,24 @@ const INFO := {
 	"arcane": {"name": "Arcane", "color": Color(0.95, 0.45, 0.85),
 		"desc": "Raw magic: missiles, blinks and mana tricks."},
 	"shadow": {"name": "Shadow", "color": Color(0.58, 0.32, 0.82),
-		"desc": "Corruption, life drain and weakening curses."},
+		"desc": "Withering curses and life drain."},
 	"nature": {"name": "Nature", "color": Color(0.45, 0.85, 0.35),
 		"desc": "Poisons, roots, thorns and regrowth."},
 	"holy": {"name": "Holy", "color": Color(1.0, 0.88, 0.45),
 		"desc": "Healing, protection and bane of the undead."},
-	"warrior": {"name": "Warrior", "color": Color(0.85, 0.3, 0.25),
-		"desc": "Heavy weapons, rage and raw toughness."},
-	"rogue": {"name": "Rogue", "color": Color(0.75, 0.75, 0.8),
-		"desc": "Quick blades, evasion and lethal crits."},
-	"ranger": {"name": "Ranger", "color": Color(0.65, 0.8, 0.35),
-		"desc": "Bows, traps and precision from afar."},
+	# One book for everything done with a weapon and no magic (it was three:
+	# Warrior, Rogue and Ranger).
+	# (The book is Martial; the damage its abilities deal is still Physical damage.)
+	"martial": {"name": "Martial", "color": Color(0.78, 0.78, 0.84),
+		"desc": "Weapons without magic: heavy blows and rage, quick blades, and the bow."},
 }
 
 static func cat_name(id: String) -> String:
 	return str(INFO.get(id, {}).get("name", id.capitalize()))
+
+## Word for an ability of this book in tooltips ("Fire Spell", "Rune Spell").
+static func kind_name(id: String) -> String:
+	return str(INFO.get(id, {}).get("kind", cat_name(id)))
 
 static func color(id: String) -> Color:
 	return INFO.get(id, {}).get("color", Color(0.7, 0.7, 0.7))
@@ -46,6 +60,19 @@ static func draw_emblem(c: Control, id: String) -> void:
 	var col := color(id)
 	var light := col.lightened(0.45)
 	match id:
+		"rune":
+			# A carved rune stone: diamond with a split bolt (frost side, fire side).
+			var stone := PackedVector2Array([Vector2(0, -26), Vector2(19, 0), Vector2(0, 26), Vector2(-19, 0)])
+			for i in stone.size():
+				stone[i] = mid + stone[i] * k
+			c.draw_colored_polygon(stone, col.darkened(0.55))
+			stone.append(stone[0])
+			c.draw_polyline(stone, col, 2.5 * k, true)
+			c.draw_line(mid + Vector2(0, -15) * k, mid + Vector2(0, 15) * k, light, 2.5 * k, true)
+			c.draw_line(mid + Vector2(0, -4) * k, mid + Vector2(-9, -11) * k, Color(0.6, 0.9, 1.0), 2.2 * k, true)
+			c.draw_line(mid + Vector2(0, 3) * k, mid + Vector2(-9, -4) * k, Color(0.6, 0.9, 1.0), 2.2 * k, true)
+			c.draw_line(mid + Vector2(0, -4) * k, mid + Vector2(9, 3) * k, Color(1.0, 0.6, 0.25), 2.2 * k, true)
+			c.draw_line(mid + Vector2(0, 3) * k, mid + Vector2(9, 10) * k, Color(1.0, 0.6, 0.25), 2.2 * k, true)
 		"fire":
 			var outer := PackedVector2Array([Vector2(0, -26), Vector2(7, -12), Vector2(15, -2),
 				Vector2(17, 10), Vector2(11, 21), Vector2(0, 25), Vector2(-11, 21), Vector2(-17, 10),
@@ -117,32 +144,28 @@ static func draw_emblem(c: Control, id: String) -> void:
 					col, 2.5 * k, true)
 			c.draw_circle(mid, 11.0 * k, col)
 			c.draw_circle(mid, 6.0 * k, Color(1, 1, 0.9))
-		"warrior":
-			var blade := PackedVector2Array([Vector2(-3, 8), Vector2(-3, -20), Vector2(0, -26),
-				Vector2(3, -20), Vector2(3, 8)])
-			for i in blade.size():
-				blade[i] = mid + blade[i] * k
-			c.draw_colored_polygon(blade, Color(0.88, 0.88, 0.92))
-			c.draw_line(mid + Vector2(-11, 9) * k, mid + Vector2(11, 9) * k, col, 4.0 * k, true)
-			c.draw_line(mid + Vector2(0, 10) * k, mid + Vector2(0, 21) * k, Color(0.45, 0.28, 0.16), 4.0 * k, true)
-			c.draw_circle(mid + Vector2(0, 23) * k, 3.0 * k, col)
-		"rogue":
-			for sgn: float in [-1.0, 1.0]:
-				var d := Vector2(sgn, -1).normalized()
-				var p := Vector2(-d.y, d.x)
-				var base := mid - d * 8.0 * k
-				var tip := mid + d * 22.0 * k
-				c.draw_colored_polygon(PackedVector2Array([base + p * 3.0 * k, tip, base - p * 3.0 * k]),
-					Color(0.9, 0.9, 0.95))
-				c.draw_line(base + p * 7.0 * k, base - p * 7.0 * k, col.darkened(0.3), 3.0 * k, true)
-				c.draw_line(base, base - d * 10.0 * k, Color(0.3, 0.22, 0.2), 3.5 * k, true)
-		"ranger":
-			c.draw_arc(mid + Vector2(-8, 0) * k, 22.0 * k, -1.25, 1.25, 20, Color(0.6, 0.42, 0.25), 3.5 * k, true)
-			var top := mid + Vector2(-8 + cos(-1.25) * 22.0, sin(-1.25) * 22.0) * k
-			var bot := mid + Vector2(-8 + cos(1.25) * 22.0, sin(1.25) * 22.0) * k
-			c.draw_line(top, bot, Color(0.9, 0.9, 0.85), 1.2 * k, true)
-			c.draw_line(mid + Vector2(-4, 0) * k, mid + Vector2(22, 0) * k, Color(0.75, 0.55, 0.35), 2.2 * k, true)
-			c.draw_colored_polygon(PackedVector2Array([mid + Vector2(26, 0) * k, mid + Vector2(19, -4) * k,
-				mid + Vector2(19, 4) * k]), light)
-			c.draw_line(mid + Vector2(-4, 0) * k, mid + Vector2(-9, -4) * k, col, 2.0 * k, true)
-			c.draw_line(mid + Vector2(-4, 0) * k, mid + Vector2(-9, 4) * k, col, 2.0 * k, true)
+		"martial":
+			# A sword and an arrow crossed over a dagger: heavy weapons, the bow, quick blades.
+			var steel := Color(0.9, 0.9, 0.95)
+			# The dagger, point down, behind the other two.
+			c.draw_colored_polygon(PackedVector2Array([mid + Vector2(-3, -2) * k, mid + Vector2(3, -2) * k,
+				mid + Vector2(0, 24) * k]), steel.darkened(0.25))
+			c.draw_line(mid + Vector2(-7, -3) * k, mid + Vector2(7, -3) * k, col.darkened(0.35), 3.0 * k, true)
+			c.draw_line(mid + Vector2(0, -4) * k, mid + Vector2(0, -12) * k, Color(0.3, 0.22, 0.2), 3.5 * k, true)
+			# The sword: hilt bottom-left, point top-right.
+			var d := Vector2(1, -1).normalized()
+			var p := Vector2(-d.y, d.x)
+			var guard := mid - d * 8.0 * k
+			c.draw_colored_polygon(PackedVector2Array([guard + p * 3.2 * k, mid + d * 22.0 * k + p * 3.2 * k,
+				mid + d * 27.0 * k, mid + d * 22.0 * k - p * 3.2 * k, guard - p * 3.2 * k]), steel)
+			c.draw_line(guard + p * 9.0 * k, guard - p * 9.0 * k, col.darkened(0.3), 3.5 * k, true)
+			c.draw_line(guard, guard - d * 11.0 * k, Color(0.45, 0.28, 0.16), 3.5 * k, true)
+			# The arrow: fletching bottom-right, head top-left.
+			var a := Vector2(-1, -1).normalized()
+			var ap := Vector2(-a.y, a.x)
+			c.draw_line(mid - a * 24.0 * k, mid + a * 21.0 * k, Color(0.6, 0.42, 0.25), 2.4 * k, true)
+			c.draw_colored_polygon(PackedVector2Array([mid + a * 27.0 * k, mid + a * 19.0 * k + ap * 4.5 * k,
+				mid + a * 19.0 * k - ap * 4.5 * k]), light)
+			for off: float in [20.0, 15.0]:
+				c.draw_line(mid - a * off * k, mid - a * (off + 5.0) * k + ap * 5.0 * k, Color(0.8, 0.3, 0.25), 2.0 * k, true)
+				c.draw_line(mid - a * off * k, mid - a * (off + 5.0) * k - ap * 5.0 * k, Color(0.8, 0.3, 0.25), 2.0 * k, true)

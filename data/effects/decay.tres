@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"decay"
+display_name = "Breach"
+description = "Demons claw at its feet through a hole in the ground, dealing Shadow damage {bev:DECAY_TICK}: {b:DECAY_TICK_PCT}% of the amount shown, which shrinks by as much. It is open: its caster's Shadow spells add to it."
+color = Color(0.66, 0.4, 0.92, 1)
+is_debuff = true
+tags = PackedStringArray("Shadow", "DoT")
+duration = 15.0
+stack_mode = 0
+max_stacks = 99999999
+per_caster = true
+stacks_are_amount = true
+damage_type = &"shadow"

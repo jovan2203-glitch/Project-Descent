@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"decay_closed"
+display_name = "Closed Breach"
+description = "Demons claw at its feet through a hole in the ground, dealing Shadow damage {bev:DECAY_TICK}: {b:DECAY_TICK_PCT}% of the amount shown, which shrinks by as much. It is closed: it can no longer grow until its caster opens it again."
+color = Color(0.42, 0.34, 0.52, 1)
+is_debuff = true
+tags = PackedStringArray("Shadow", "DoT")
+duration = 600.0
+stack_mode = 0
+max_stacks = 99999999
+per_caster = true
+stacks_are_amount = true
+show_time = false
+damage_type = &"shadow"

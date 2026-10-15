@@ -10,6 +10,7 @@ signal cleared(zone: Node)
 
 ## Used when neither enemy_scenes nor enemy_scene is set.
 const DEFAULT_ENEMY_SCENE := "res://scenes/zombie.tscn"
+const ELITE_TRAITS = preload("res://scripts/core/elite_traits.gd")
 
 @export var size := Vector2(8, 8)
 @export var pack_size := 3
@@ -40,6 +41,9 @@ func spawn(parent: Node, rng: RandomNumberGenerator) -> void:
 		# Fixed name: in multiplayer every machine must name the same enemy the same.
 		e.name = "%s_E%d" % [name, i]
 		tune(e, rank, enemy_level)
+		if rank == "elite" and e.has_method("apply_elite_trait"):
+			# Seeded like everything else here, so the whole party gets the same trait.
+			e.apply_elite_trait(ELITE_TRAITS.roll(rng))
 		e.position = parent.to_local(Vector3(points[i].x, global_position.y + e.ground_offset(), points[i].y))
 		e.rotation.y = rng.randf() * TAU
 		parent.add_child(e)

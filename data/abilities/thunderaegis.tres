@@ -1,24 +1,25 @@
-[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
-[ext_resource type="Resource" path="res://data/effects/stunned.tres" id="2_fx"]
 
 [resource]
 script = ExtResource("1_s")
 id = &"thunderaegis"
-display_name = "Aegis of Thunder"
-description = "Drive your shield into the ground: a thunderclap hits every enemy within 3 m for {hit} lightning damage and stuns them for 1 s."
-tags = PackedStringArray("Ability", "Lightning", "Melee", "Shield", "AoE")
+display_name = "Humming Blade"
+description = "Your blade hums with charge for {b:HUMMING_BLADE_TIME} sec. Your Parry chance is increased by {b:HUMMING_BLADE_PARRY}%, your Parry cap is {b:HUMMING_BLADE_PARRY_CAP}% instead of {b:PARRY_CAP}%, and each attack you parry gives you {humming_energy} Energy."
+tags = PackedStringArray("Ability", "Lightning", "Defensive")
 cast_type = 0
 cast_time = 0.0
-cooldown = 18.0
+cooldown = 12.0
 requires_target = false
 weapon_requirement = 1
-requires_shield = true
-resource_type = 3
-resource_cost = 5
-damage = 1
-weapon_damage_multiplier = 0.5
-radius = 3.0
-on_hit_effect = ExtResource("2_fx")
+requires_two_hand = true
+resource_type = 2
+resource_cost = 0
+resource_generated = 0
+damage = 0.0
+weapon_damage_multiplier = 0.0
+cast_range = 0.0
+radius = 0.0
 damage_type = &"lightning"
+threat_multiplier = 1.0

@@ -6,10 +6,12 @@ extends Resource
 enum Slot {
 	HEAD, NECK, SHOULDER, BACK, CHEST, GLOVES, LEGS, BOOTS,
 	FINGER_1, FINGER_2, TRINKET_1, TRINKET_2, MAIN_HAND, OFF_HAND,
+	## Not equippable (consumables like Mysterious Runes). Keep it last.
+	NONE,
 }
-## Display names matching the Character window slot labels.
+## Display names matching the Character window slot labels ("" = not equippable).
 const SLOT_NAMES := ["Head", "Neck", "Shoulder", "Back", "Chest", "Gloves", "Legs", "Boots",
-	"Finger 1", "Finger 2", "Trinket 1", "Trinket 2", "Main Hand", "Off Hand"]
+	"Finger 1", "Finger 2", "Trinket 1", "Trinket 2", "Main Hand", "Off Hand", ""]
 
 enum WeaponType { NONE, MELEE, RANGED }
 
@@ -34,7 +36,8 @@ enum WeaponType { NONE, MELEE, RANGED }
 
 @export_group("Weapon")
 @export var weapon_type: WeaponType = WeaponType.NONE
-@export var weapon_damage: int = 0
+## Damage per hit as a coefficient (1.0 = a standard hit at your level).
+@export var weapon_damage: float = 0.0
 @export_range(0.0, 50.0, 0.1, "suffix:m") var attack_range: float = 1.0
 ## Auto-attack wind-up.
 @export_range(0.1, 10.0, 0.05, "suffix:s") var attack_interval: float = 1.0

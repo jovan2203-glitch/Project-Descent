@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"scatter"
+display_name = "Scatter"
+description = "Your next {n:arcanemissiles} within {b:SCATTER_TIME} sec deals its darts out evenly between up to {b:SCATTER_TARGETS} enemies (your target and the enemies nearest to it, within {b:SCATTER_RADIUS} m), and each dart deals {b:SCATTER_PCT}% more damage. Does not trigger the global cooldown."
+tags = PackedStringArray("Arcane", "Spell")
+cast_type = 0
+cast_time = 0.0
+cooldown = 8.0
+requires_target = false
+resource_type = 1
+resource_cost = 0
+damage = 0.0
+cast_range = 0.0
+damage_type = &"arcane"

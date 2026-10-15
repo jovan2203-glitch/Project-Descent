@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"balllightning"
+display_name = "Ball Lightning"
+description = "Releases a slow orb of lightning that drifts toward your target (straight ahead without one) for {b:BALL_LIGHTNING_TIME} sec. The orb zaps every enemy within {radius} m {bev:BALL_LIGHTNING_TICK} for {hit} Lightning damage, and each zap gives you {ball_energy} Energy."
+tags = PackedStringArray("Lightning", "Spell", "AoE")
+cast_type = 1
+cast_time = 2.0
+cooldown = 15.0
+requires_target = false
+resource_type = 2
+resource_cost = 0
+damage = 0.12
+cast_range = 30.0
+radius = 5.0
+damage_type = &"lightning"

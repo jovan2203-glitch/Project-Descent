@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"swiftness"
 display_name = "Rune of Swiftness"
-description = "Killing an enemy grants +30% move speed for 4 s."
+description = "Killing an enemy grants +{buff}% move speed for {time} sec."
 color = Color(0.5, 1, 0.45, 1)
 unlock_level = 3
 trigger = 2

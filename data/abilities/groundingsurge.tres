@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"groundingsurge"
+display_name = "Grounding Surge"
+description = "You ground yourself for {b:GROUNDING_SURGE_TIME} sec: you cannot move, your abilities cost {b:GROUNDING_SURGE_COST_PCT}% less Energy, and an ability that spends all your Energy counts as spending all of it but leaves you {b:GROUNDING_SURGE_KEEP_PCT}% of it. Use it again to end it early. Not on the global cooldown."
+tags = PackedStringArray("Lightning", "Spell")
+cast_type = 0
+cast_time = 0.0
+cooldown = 60.0
+requires_target = false
+resource_type = 0
+resource_cost = 0
+damage = 0.0
+cast_range = 0.0
+damage_type = &"lightning"

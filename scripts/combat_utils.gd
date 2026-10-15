@@ -104,3 +104,17 @@ static func feet_y(body: Node3D) -> float:
 	elif s is BoxShape3D:
 		half = s.size.y * 0.5
 	return cs.global_position.y - half * cs.global_basis.get_scale().y
+
+## Ground movement settings shared by every walking character (players, enemies):
+## they stay on the ground going down ramps (no hopping, so "on the floor" stays
+## true and casts / attacks aren't interrupted), move at the same speed up and
+## down a slope, and treat anything up to 50 degrees as floor.
+const WALK_SNAP := 0.4
+const WALK_MAX_SLOPE_DEG := 50.0
+
+static func setup_walker(body: CharacterBody3D) -> void:
+	if body == null:
+		return
+	body.floor_snap_length = WALK_SNAP
+	body.floor_constant_speed = true
+	body.floor_max_angle = deg_to_rad(WALK_MAX_SLOPE_DEG)

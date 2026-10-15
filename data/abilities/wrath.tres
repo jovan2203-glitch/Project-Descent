@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_s")
 id = &"wrath"
-display_name = "Wrath"
-description = "Hurl a bolt of raw nature energy for {hit} nature damage."
+display_name = "Thornbolt"
+description = "Hurls a bolt of thorns at the target, dealing {hit} Nature damage."
 tags = PackedStringArray("Nature", "Spell", "Projectile")
 cast_type = 0
 cast_time = 0.0
@@ -14,6 +14,6 @@ cooldown = 4.0
 requires_target = true
 resource_type = 1
 resource_cost = 2
-damage = 3
+damage = 1.8
 cast_range = 30.0
 damage_type = &"nature"

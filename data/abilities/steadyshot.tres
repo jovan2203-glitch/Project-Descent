@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1_s")
 id = &"steadyshot"
-display_name = "Steady Shot"
-description = "A careful shot for {hit} physical damage (weapon damage)."
+display_name = "Long Draw"
+description = "Draws the bow to its full length and fires, dealing {hit} Physical damage."
 tags = PackedStringArray("Ability", "Physical", "Ranged", "Projectile")
 cast_type = 1
 cast_time = 1.0
@@ -14,6 +14,6 @@ can_move_while_casting = true
 requires_target = true
 weapon_requirement = 2
 resource_type = 2
-resource_cost = 3
+resource_cost = 30
 damage = 0
-weapon_damage_multiplier = 1.0
+weapon_damage_multiplier = 2.0

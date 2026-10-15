@@ -3,9 +3,11 @@
 [ext_resource type="Script" uid="uid://bgiu3hfpkwuh1" path="res://scripts/dungeon/dungeon.gd" id="1_dun"]
 [ext_resource type="Script" uid="uid://7xvkmykhnptg" path="res://scripts/player.gd" id="2_ply"]
 [ext_resource type="PackedScene" path="res://scenes/zombie.tscn" id="2_tkjml"]
-[ext_resource type="PackedScene" path="res://scenes/goblin.tscn" id="3_5hkx1"]
+[ext_resource type="PackedScene" uid="uid://cyuqe3uqqr6op" path="res://scenes/goblin.tscn" id="3_5hkx1"]
 [ext_resource type="PackedScene" uid="uid://4eflsqlvr86i" path="res://assets/player/Idle.fbx" id="3_mdl"]
 [ext_resource type="Script" uid="uid://b1vyayy4aulol" path="res://scripts/camera_rig.gd" id="4_cam"]
+[ext_resource type="PackedScene" path="res://scenes/goblin_archer.tscn" id="4_pnxem"]
+[ext_resource type="PackedScene" path="res://scenes/goblin_wizard.tscn" id="5_7wjui"]
 [ext_resource type="Script" uid="uid://buqv0rgabimpy" path="res://scripts/hud.gd" id="5_hud"]
 [ext_resource type="Script" uid="uid://cf12411elg2t4" path="res://scripts/game_ui.gd" id="6_gui"]
 [ext_resource type="Script" uid="uid://dtr7vvoof2bcd" path="res://scripts/nav_region.gd" id="7_nav"]
@@ -27,7 +29,7 @@ height = 1.8
 
 [node name="Dungeon" type="Node3D" unique_id=1875360829]
 script = ExtResource("1_dun")
-enemy_pool = Array[PackedScene]([ExtResource("2_tkjml"), ExtResource("3_5hkx1")])
+enemy_pool = Array[PackedScene]([ExtResource("2_tkjml"), ExtResource("3_5hkx1"), ExtResource("4_pnxem"), ExtResource("5_7wjui")])
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1737600373]
 environment = SubResource("env")

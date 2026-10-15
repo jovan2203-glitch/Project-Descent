@@ -7,12 +7,12 @@
 script = ExtResource("2_r")
 id = &"quickened_sand"
 display_name = "Quickened Sand"
-description = "Turn the hourglass: +{buff}% Haste for 10 s."
+description = "Turn the hourglass: +{buff}% Haste for {time} sec."
 color = Color(0.95, 0.8, 0.45, 1)
 internal_cooldown = 60.0
 effect = 0
 buff_stat = &"haste"
-buff_amount = 20.0
+buff_amount = 11.2
 buff_duration = 10.0
 max_stacks = 1
 
@@ -24,5 +24,5 @@ description = "Trinket"
 color = Color(0.95, 0.8, 0.45, 1)
 slot = 10
 item_type = &"trinket"
-stats = {"haste": 2}
+stats = {"haste": 1.12}
 use_effect = SubResource("Use")

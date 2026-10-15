@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"frostbound_insight"
 display_name = "Frostbound Insight"
-description = "+1% Intellect per stack."
+description = "+{mod}% Intellect per stack."
 color = Color(0.55, 0.85, 1, 1)
 is_debuff = false
 tags = PackedStringArray("Frost", "Party")

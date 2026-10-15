@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"menace_arcane"
+display_name = "Rune of Arcane Menace"
+description = "Your Arcane damage generates {threat}% more threat."
+color = Color(0.8, 0.55, 1, 1)
+rarity = 0
+unlock_level = 1
+trigger = 6
+required_damage_types = PackedStringArray("arcane")
+threat_bonus_pct = 30.0

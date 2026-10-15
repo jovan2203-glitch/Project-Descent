@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"convergence"
+display_name = "Convergence"
+description = "Gathers your spent power into one bolt that deals {hit} Arcane damage, increased by {b:CONVERGENCE_PCT}% for each of your other Arcane spells that is on cooldown, up to {b:CONVERGENCE_MAX} spells."
+tags = PackedStringArray("Arcane", "Spell", "Projectile")
+cast_type = 1
+cast_time = 2.5
+cooldown = 20.0
+requires_target = true
+resource_type = 1
+resource_cost = 3
+damage = 2.0
+cast_range = 30.0
+damage_type = &"arcane"

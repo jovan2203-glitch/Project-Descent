@@ -10,4 +10,4 @@ description = "Leather gloves"
 color = Color(0.6, 0.42, 0.25, 1)
 slot = 5
 item_type = &"armor"
-stats = {"attack_power": 1, "haste": 2}
+stats = {"attack_power": 1, "haste": 1.12}

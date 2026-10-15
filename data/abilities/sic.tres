@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"sic"
+display_name = "Sic"
+description = "Strikes the target for {hit} Shadow damage and sets your Hounds on it. With no Hounds out, this calls them."
+tags = PackedStringArray("Ability", "Shadow", "Melee")
+cast_type = 0
+cast_time = 0.0
+cooldown = 0.0
+requires_target = true
+weapon_requirement = 1
+resource_type = 3
+resource_cost = 0
+resource_generated = 15
+damage = 0.0
+weapon_damage_multiplier = 1.0
+cast_range = 0.0
+radius = 0.0
+damage_type = &"shadow"
+threat_multiplier = 1.0

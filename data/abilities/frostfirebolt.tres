@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"frostfirebolt"
+display_name = "Frostfire Bolt"
+description = "Hurls a bolt of frost and fire at the target, dealing {half} Frost damage and {half} Fire damage. It counts as both a {n:frostbolt} and a {n:fireball}: whatever changes either of them changes this too."
+tags = PackedStringArray("Frost", "Fire", "Spell", "Projectile")
+cast_type = 1
+cast_time = 1.5
+requires_target = true
+resource_type = 1
+resource_cost = 1
+damage = 1.0
+cast_range = 20.0
+damage_type = &"frost"
