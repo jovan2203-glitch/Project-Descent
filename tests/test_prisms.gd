@@ -158,7 +158,7 @@ func test_mouseover_setting() -> void:
 
 func test_mouseover_gives_the_target_back() -> void:
 	var foe_script := GDScript.new()
-	foe_script.source_code = "extends Node3D\nfunc is_alive() -> bool:\n\treturn true\n"
+	foe_script.source_code = "@tool\nextends Node3D\nfunc is_alive() -> bool:\n\treturn true\n"
 	foe_script.reload()
 	var real: Node3D = track(Node3D.new())
 	real.set_script(foe_script)

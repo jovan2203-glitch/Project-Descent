@@ -1,0 +1,76 @@
+# A version tag (tools/release.sh 0.0.16 pushes v0.0.16) builds and publishes a release:
+# tests, Windows export, ProjectDescent-windows.zip (what the launcher downloads),
+# and the newest docs/PATCH_NOTES_*.md as the release text.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Cache Godot and export templates
+        id: godot-cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/godot
+            ~/AppData/Roaming/Godot/export_templates/4.7.2.stable
+          key: godot-4.7.2-stable-win64-templates
+
+      - name: Download Godot and export templates
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          curl -sSL -o godot.zip https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_win64.exe.zip
+          mkdir -p ~/godot && unzip -q godot.zip -d ~/godot && rm godot.zip
+          curl -sSL -o templates.tpz https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz
+          unzip -q templates.tpz -d tpz && rm templates.tpz
+          dest=~/AppData/Roaming/Godot/export_templates/4.7.2.stable
+          mkdir -p "$dest"
+          cp tpz/templates/version.txt tpz/templates/windows_* "$dest"/
+          rm -rf tpz
+
+      - name: Run tests
+        shell: bash
+        run: |
+          export GODOT_BIN="$HOME/godot/Godot_v4.7.2-stable_win64_console.exe"
+          tools/test.sh
+
+      - name: Export the Windows build
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/build"
+          "$HOME/godot/Godot_v4.7.2-stable_win64_console.exe" --headless --path . --export-release "Windows Desktop" "$RUNNER_TEMP/build/ProjectDescent.exe"
+          test -f "$RUNNER_TEMP/build/ProjectDescent.exe" && test -f "$RUNNER_TEMP/build/ProjectDescent.pck"
+
+      - name: Zip it
+        shell: pwsh
+        run: Compress-Archive -Path "$env:RUNNER_TEMP/build/*" -DestinationPath "$env:RUNNER_TEMP/ProjectDescent-windows.zip"
+
+      - name: Find the patch notes
+        id: notes
+        shell: bash
+        run: |
+          notes=$(git log -1 --format= --name-only --diff-filter=AM -- 'docs/PATCH_NOTES_*.md' | head -1)
+          echo "path=$notes" >> "$GITHUB_OUTPUT"
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          echo "Release notes: $notes"
+
+      - name: Publish the release
+        uses: softprops/action-gh-release@v3.0.3
+        with:
+          name: Project Descent ${{ steps.notes.outputs.version }}
+          body_path: ${{ steps.notes.outputs.path }}
+          files: ${{ runner.temp }}/ProjectDescent-windows.zip
+          prerelease: ${{ contains(github.ref_name, '-') }}

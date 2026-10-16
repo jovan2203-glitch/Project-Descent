@@ -132,7 +132,7 @@ func test_watchful_eye() -> void:
 	var pl: Node = track(_p().new())
 	var puppet: Node = track(Node.new())
 	var stand_in := GDScript.new()
-	stand_in.source_code = "extends Node\nvar hurt_at := -100.0\n"
+	stand_in.source_code = "@tool\nextends Node\nvar hurt_at := -100.0\n"
 	stand_in.reload()
 	puppet.set_script(stand_in)   # (a puppet: only what Watchful Eye reads)
 	puppet.set("hurt_at", Time.get_ticks_msec() / 1000.0)

@@ -4,3 +4,6 @@
 
 # Local Claude Code settings, skills and hook
 .claude/
+
+# Windows lock copies of the Steam DLL while the editor has it open
+addons/godotsteam/**/~*.TMP
