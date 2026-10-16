@@ -8,6 +8,7 @@ class_name MainMenu
 # --- Components ----------------------------------------------------------------------------
 # Each tab's own code lives in a part (scripts/menu/*.gd, see menu_part.gd), made
 # here as a child node; SPLIT_HOST=menu tools/split_batch.sh adds the line for each one.
+var esc: EscMenuPart = _part(EscMenuPart) as EscMenuPart
 var bank_page: BankPage = _part(BankPage) as BankPage
 var queue_page: QueuePage = _part(QueuePage) as QueuePage
 
@@ -239,7 +240,7 @@ func _build_ui() -> void:
 	ui.add_child(_queue_banner)
 
 	_build_xp_bar()
-	_build_esc_menu()
+	esc._build_esc_menu()
 
 # --- XP bar (bottom center, every tab) -----------------------------------------
 
@@ -304,11 +305,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		get_viewport().set_input_as_handled()
 		if wipe_panel.visible:
-			_back_from_wipe()
+			esc._back_from_wipe()
 		elif settings_panel.visible:
-			_back_from_settings()
+			esc._back_from_settings()
 		elif esc_menu.visible:
-			_hide_esc()
+			esc._hide_esc()
 		elif _search_query != "" and pages["Abilities & Talents"].visible:
 			_clear_search()   # Esc clears the search first
 		elif _pacts_page and _pacts_page.visible and pages["Abilities & Talents"].visible:
@@ -318,7 +319,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif pages["Queue"].visible:
 			_show_page("Lobby")   # Esc backs out of the Play screen
 		else:
-			_show_overlay(esc_menu)
+			esc._show_overlay(esc_menu)
 
 func _build_nav_bar() -> void:
 	var bar := PanelContainer.new()
@@ -379,7 +380,7 @@ func _build_nav_bar() -> void:
 	cog.mouse_exited.connect(func():
 		gear.set_meta("hot", false)
 		gear.queue_redraw())
-	cog.pressed.connect(_toggle_esc_menu)
+	cog.pressed.connect(esc._toggle_esc_menu)
 	ui.add_child(cog)
 
 ## A cogwheel icon: toothed ring with a hole.
@@ -1227,116 +1228,6 @@ func _gear_column(slots: Array, left_side: bool) -> Control:
 			row.add_child(labels)
 		col.add_child(row)
 	return col
-
-# --- Part: Esc menu (Resume / Settings / Wipe / Quit) --------
-func _build_esc_menu() -> void:
-	esc_menu = UI.small_panel("Menu")
-	esc_menu.offset_top = -175
-	esc_menu.offset_bottom = 160
-	var content: VBoxContainer = esc_menu.get_meta("content")
-	var resume := UI.button("Resume", 18, Vector2(0, 42))
-	resume.pressed.connect(_hide_esc)
-	content.add_child(resume)
-	var settings := UI.button("Settings", 18, Vector2(0, 42))
-	settings.pressed.connect(_open_settings)
-	content.add_child(settings)
-	var macros := UI.button("Macros", 18, Vector2(0, 42))
-	macros.pressed.connect(func():
-		_hide_esc()
-		MacroWindow.open(ui, false))
-	content.add_child(macros)
-	var wipe := UI.button("Wipe Save", 18, Vector2(0, 42))
-	wipe.add_theme_color_override("font_color", Color(1, 0.45, 0.4))
-	wipe.add_theme_color_override("font_hover_color", Color(1, 0.6, 0.55))
-	wipe.tooltip_text = "Delete your character and progress. Settings and keybinds are kept."
-	wipe.pressed.connect(_open_wipe)
-	content.add_child(wipe)
-	var quit := UI.button("Quit", 18, Vector2(0, 42))
-	quit.pressed.connect(func(): get_node("/root/GameManager").quit_game())
-	content.add_child(quit)
-	esc_menu.visible = false
-	ui.add_child(esc_menu)
-
-	settings_panel = UI.small_panel("Settings")
-	settings_panel.offset_left = -250
-	settings_panel.offset_right = 250
-	settings_panel.offset_top = -250
-	settings_panel.offset_bottom = 250
-	var s_content: VBoxContainer = settings_panel.get_meta("content")
-	s_content.add_child(get_node("/root/Settings").build_settings_ui())
-	var back := UI.button("Back", 18, Vector2(0, 42))
-	back.pressed.connect(_back_from_settings)
-	s_content.add_child(back)
-	settings_panel.visible = false
-	ui.add_child(settings_panel)
-
-	# "Wipe Save" confirmation.
-	wipe_panel = UI.small_panel("Wipe Save?")
-	wipe_panel.offset_left = -230
-	wipe_panel.offset_right = 230
-	wipe_panel.offset_top = -140
-	wipe_panel.offset_bottom = 140
-	var w_content: VBoxContainer = wipe_panel.get_meta("content")
-	var warn := UI.label("This permanently deletes your character: level, XP, gear, bank, runes, talents, Skill Cards, checkpoints and stats.\n\nYour settings and keybinds are kept. The game restarts afterwards.", 14, Color(0.9, 0.9, 0.92))
-	warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	warn.custom_minimum_size = Vector2(380, 0)
-	w_content.add_child(warn)
-	var w_row := HBoxContainer.new()
-	w_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	w_row.add_theme_constant_override("separation", 10)
-	w_content.add_child(w_row)
-	var confirm := UI.button("Wipe everything", 18, Vector2(180, 42))
-	confirm.add_theme_color_override("font_color", Color(1, 0.45, 0.4))
-	confirm.add_theme_color_override("font_hover_color", Color(1, 0.6, 0.55))
-	confirm.pressed.connect(func(): get_node("/root/SaveSystem").wipe_and_restart())
-	w_row.add_child(confirm)
-	var cancel := UI.button("Cancel", 18, Vector2(120, 42))
-	cancel.pressed.connect(_back_from_wipe)
-	w_row.add_child(cancel)
-	wipe_panel.visible = false
-	ui.add_child(wipe_panel)
-
-	# Dim backdrop behind the menu that also blocks clicks on the UI below.
-	esc_shade = ColorRect.new()
-	esc_shade.color = Color(0, 0, 0, 0.45)
-	esc_shade.set_anchors_preset(Control.PRESET_FULL_RECT)
-	esc_shade.visible = false
-	ui.add_child(esc_shade)
-	ui.move_child(esc_shade, esc_menu.get_index())
-
-## Shows one of the Esc-menu panels (Menu / Settings / Wipe Save) on top of the
-## dim backdrop. The backdrop is always raised first, so the open panel can never
-## end up underneath it (that left Settings grayed out and unclickable).
-func _show_overlay(panel: Control) -> void:
-	for p in [esc_menu, settings_panel, wipe_panel]:
-		p.visible = p == panel
-	esc_shade.visible = true
-	esc_shade.move_to_front()
-	panel.move_to_front()
-
-func _hide_esc() -> void:
-	esc_menu.visible = false
-	settings_panel.visible = false
-	wipe_panel.visible = false
-	esc_shade.visible = false
-
-func _open_wipe() -> void:
-	_show_overlay(wipe_panel)
-
-func _back_from_wipe() -> void:
-	_show_overlay(esc_menu)
-
-func _open_settings() -> void:
-	_show_overlay(settings_panel)
-
-func _back_from_settings() -> void:
-	_show_overlay(esc_menu)
-
-func _toggle_esc_menu() -> void:
-	if esc_menu.visible or settings_panel.visible or wipe_panel.visible:
-		_hide_esc()
-	else:
-		_show_overlay(esc_menu)
 
 # --- Part: Shelf: the Abilities & Talents page, one book per category --------
 var _shelf: PanelContainer
