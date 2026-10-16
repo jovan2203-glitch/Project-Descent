@@ -31,7 +31,7 @@ func _near(a: float, b: float) -> bool:
 	return absf(a - b) < 0.0001
 
 func _has_method(script: GDScript, method: String) -> bool:
-	for m in script.get_script_method_list():
+	for m in PlayerSource.methods_of(script):
 		if str(m["name"]) == method:
 			return true
 	return false

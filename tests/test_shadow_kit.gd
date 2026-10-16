@@ -33,7 +33,7 @@ func _player() -> GDScript:
 	return load("res://scripts/player.gd")
 
 func _has_method(method: String) -> bool:
-	for m in _player().get_script_method_list():
+	for m in PlayerSource.methods_of(_player()):
 		if str(m["name"]) == method:
 			return true
 	return false
@@ -120,14 +120,14 @@ func test_decay_numbers() -> void:
 
 func test_a_tick_takes_its_share_and_the_decay_shrinks_by_it() -> void:
 	var p := _player()
-	assert_eq(p.decay_tick(1000.0), 80.0, "8%")
-	assert_eq(p.decay_tick(0.0), 0.0)
-	assert_eq(p.decay_tick(-5.0), 0.0)
+	assert_eq(DecayKit.decay_tick(1000.0), 80.0, "8%")
+	assert_eq(DecayKit.decay_tick(0.0), 0.0)
+	assert_eq(DecayKit.decay_tick(-5.0), 0.0)
 	# Over time: half of it is dealt in about 8 ticks, and it never grows by itself.
 	var left := 1000.0
 	var dealt := 0.0
 	for i in 8:
-		var t: float = p.decay_tick(left)
+		var t: float = DecayKit.decay_tick(left)
 		left -= t
 		dealt += t
 	assert_true(dealt > 480.0 and dealt < 490.0, "about half after 8 ticks: %s" % dealt)
@@ -135,58 +135,58 @@ func test_a_tick_takes_its_share_and_the_decay_shrinks_by_it() -> void:
 
 func test_haste_and_gnaw_make_it_tick_faster() -> void:
 	var p := _player()
-	assert_eq(p.decay_interval(1.0), 1.0)
-	assert_true(is_equal_approx(p.decay_interval(1.25), 0.8), "25% Haste: 25% more ticks")
+	assert_eq(DecayKit.decay_interval(1.0), 1.0)
+	assert_true(is_equal_approx(DecayKit.decay_interval(1.25), 0.8), "25% Haste: 25% more ticks")
 	assert_eq(Balance.GNAW_TIME, 4.0)
 	assert_eq(Balance.GNAW_SPEED_MULT, 2.0)
-	assert_eq(p.decay_interval(1.0, true), 0.5, "Gnaw: twice as often")
-	assert_true(is_equal_approx(p.decay_interval(1.25, true), 0.4), "they multiply")
-	assert_true(p.decay_interval(1000.0, true) >= 0.05, "never faster than the game can tick")
+	assert_eq(DecayKit.decay_interval(1.0, true), 0.5, "Gnaw: twice as often")
+	assert_true(is_equal_approx(DecayKit.decay_interval(1.25, true), 0.4), "they multiply")
+	assert_true(DecayKit.decay_interval(1000.0, true) >= 0.05, "never faster than the game can tick")
 
 func test_what_feeds_an_open_decay() -> void:
 	var p := _player()
 	var strike := PackedStringArray(["Ability", "Shadow", "Melee"])
 	var frost := PackedStringArray(["Frost", "Spell", "Projectile"])
-	assert_true(p.shadow_spell(SHADOW))
-	assert_false(p.shadow_spell(strike), "a weapon ability is not a spell")
-	assert_false(p.shadow_spell(frost))
-	assert_eq(p.decay_feed_pct("blight", SHADOW, false, false), 100.0, "all of Blight's own damage")
+	assert_true(DecayKit.shadow_spell(SHADOW))
+	assert_false(DecayKit.shadow_spell(strike), "a weapon ability is not a spell")
+	assert_false(DecayKit.shadow_spell(frost))
+	assert_eq(DecayKit.decay_feed_pct("blight", SHADOW, false, false), 100.0, "all of Blight's own damage")
 	# Erode (Beckon) is the spell that builds it: all of its damage too.
 	assert_eq(Balance.ERODE_FEED_PCT, 100.0)
-	assert_eq(p.decay_feed_pct("erode", Abilities.tags_of("erode"), false, false), 100.0, "all of Erode's")
+	assert_eq(DecayKit.decay_feed_pct("erode", Abilities.tags_of("erode"), false, false), 100.0, "all of Erode's")
 	assert_contains(str(Abilities.get_resource("erode").description), "{b:ERODE_FEED_PCT}")
 	for id in ["gnaw", "pall", "hush", "corruption"]:
-		assert_eq(p.decay_feed_pct(id, Abilities.tags_of(id), false, false), 50.0, "%s: half of what it deals" % id)
+		assert_eq(DecayKit.decay_feed_pct(id, Abilities.tags_of(id), false, false), 50.0, "%s: half of what it deals" % id)
 	# Never a tick, a proc, or Decay's own damage.
-	assert_eq(p.decay_feed_pct("erode", SHADOW, false, true), 0.0, "damage over time does not feed it")
-	assert_eq(p.decay_feed_pct("erode", SHADOW, true, false), 0.0, "a proc does not feed it")
-	assert_eq(p.decay_feed_pct(p.DECAY_HIT_ID, PackedStringArray(p.DECAY_TAGS), false, true), 0.0, "its own ticks")
-	assert_eq(p.decay_feed_pct("calldue", SHADOW, false, false), 0.0, "taking it out does not put it back")
+	assert_eq(DecayKit.decay_feed_pct("erode", SHADOW, false, true), 0.0, "damage over time does not feed it")
+	assert_eq(DecayKit.decay_feed_pct("erode", SHADOW, true, false), 0.0, "a proc does not feed it")
+	assert_eq(DecayKit.decay_feed_pct(DecayKit.DECAY_HIT_ID, PackedStringArray(DecayKit.DECAY_TAGS), false, true), 0.0, "its own ticks")
+	assert_eq(DecayKit.decay_feed_pct("calldue", SHADOW, false, false), 0.0, "taking it out does not put it back")
 	# Other builds get nothing for free ...
-	assert_eq(p.decay_feed_pct("shadowstrike", strike, false, false), 0.0)
-	assert_eq(p.decay_feed_pct("frostbolt", frost, false, false), 0.0)
+	assert_eq(DecayKit.decay_feed_pct("shadowstrike", strike, false, false), 0.0)
+	assert_eq(DecayKit.decay_feed_pct("frostbolt", frost, false, false), 0.0)
 	# ... only through the talent Tainted Steel and the Rune of Rot.
-	assert_eq(p.decay_feed_pct("shadowstrike", strike, false, false, 30.0, 15.0), 30.0, "Tainted Steel: Shadow abilities")
-	assert_eq(p.decay_feed_pct("frostbolt", frost, false, false, 30.0, 15.0), 15.0, "Rune of Rot: other books' spells")
-	assert_eq(p.decay_feed_pct("slam", PackedStringArray(["Ability", "Melee"]), false, false, 30.0, 15.0), 0.0,
+	assert_eq(DecayKit.decay_feed_pct("shadowstrike", strike, false, false, 30.0, 15.0), 30.0, "Tainted Steel: Shadow abilities")
+	assert_eq(DecayKit.decay_feed_pct("frostbolt", frost, false, false, 30.0, 15.0), 15.0, "Rune of Rot: other books' spells")
+	assert_eq(DecayKit.decay_feed_pct("slam", PackedStringArray(["Ability", "Melee"]), false, false, 30.0, 15.0), 0.0,
 		"another book's ability feeds nothing")
-	assert_eq(p.decay_feed_pct("gnaw", SHADOW, false, false, 30.0, 15.0), 50.0, "the talents change nothing for Shadow spells")
-	assert_eq(p.decay_feed_pct("erode", SHADOW, false, false, 30.0, 15.0), 100.0)
+	assert_eq(DecayKit.decay_feed_pct("gnaw", SHADOW, false, false, 30.0, 15.0), 50.0, "the talents change nothing for Shadow spells")
+	assert_eq(DecayKit.decay_feed_pct("erode", SHADOW, false, false, 30.0, 15.0), 100.0)
 
 func test_only_a_closed_decay_ends_with_a_last_drop() -> void:
 	var p := _player()
-	assert_true(p.decay_last_drop(99.0, false, 100.0), "closed and under one standard hit: the next tick deals all of it")
-	assert_false(p.decay_last_drop(100.0, false, 100.0))
-	assert_false(p.decay_last_drop(5.0, true, 100.0), "an open one never ends that way: a fresh Blight stays")
-	assert_true(p.decay_last_drop(0.0, false, 100.0), "an empty closed one just goes")
+	assert_true(DecayKit.decay_last_drop(99.0, false, 100.0), "closed and under one standard hit: the next tick deals all of it")
+	assert_false(DecayKit.decay_last_drop(100.0, false, 100.0))
+	assert_false(DecayKit.decay_last_drop(5.0, true, 100.0), "an open one never ends that way: a fresh Blight stays")
+	assert_true(DecayKit.decay_last_drop(0.0, false, 100.0), "an empty closed one just goes")
 	# So a tick is never less than 8% of a standard hit.
-	assert_eq(p.decay_tick(Balance.DECAY_LAST_DROP * 100.0), 8.0)
+	assert_eq(DecayKit.decay_tick(Balance.DECAY_LAST_DROP * 100.0), 8.0)
 
 func test_call_due() -> void:
 	var p := _player()
 	assert_eq(Balance.CALL_DUE_BONUS_PCT, 25.0)
-	assert_eq(p.call_due_damage(1000.0), 1250.0, "all of it, and a quarter more")
-	assert_eq(p.call_due_damage(0.0), 0.0)
+	assert_eq(DecayKit.call_due_damage(1000.0), 1250.0, "all of it, and a quarter more")
+	assert_eq(DecayKit.call_due_damage(0.0), 0.0)
 	assert_contains(str(Abilities.get_resource("calldue").description), "cannot critically strike")
 	assert_false(Abilities.has_scaling("calldue"), "its damage is the Decay: nothing of its own to scale")
 
@@ -195,20 +195,20 @@ func test_spill_copies_and_merges() -> void:
 	assert_eq(Balance.SPILL_PCT, 50.0)
 	assert_eq(Balance.SPILL_TARGETS, 4)
 	assert_eq(Balance.SPILL_RADIUS, 8.0)
-	assert_eq(p.spill_amount(600.0), 300.0)
-	assert_eq(p.spill_error(0.0, 3), p.DECAY_ERROR)
-	assert_ne(p.spill_error(600.0, 0), "", "nobody to copy it onto")
-	assert_eq(p.spill_error(600.0, 1), "")
+	assert_eq(DecayKit.spill_amount(600.0), 300.0)
+	assert_eq(DecayKit.spill_error(0.0, 3), DecayKit.DECAY_ERROR)
+	assert_ne(DecayKit.spill_error(600.0, 0), "", "nobody to copy it onto")
+	assert_eq(DecayKit.spill_error(600.0, 1), "")
 	# A copy (and what a dead enemy leaves) is added to my Decay there, and keeps the longer open time.
-	assert_eq(p.decay_merge(200.0, 50.0, 300.0, 58.0), [500.0, 58.0])
-	assert_eq(p.decay_merge(200.0, 60.0, 300.0, 58.0), [500.0, 60.0], "never closes one that was open for longer")
-	assert_eq(p.decay_merge(0.0, 0.0, 300.0, 58.0), [300.0, 58.0], "onto an enemy without any")
+	assert_eq(DecayKit.decay_merge(200.0, 50.0, 300.0, 58.0), [500.0, 58.0])
+	assert_eq(DecayKit.decay_merge(200.0, 60.0, 300.0, 58.0), [500.0, 60.0], "never closes one that was open for longer")
+	assert_eq(DecayKit.decay_merge(0.0, 0.0, 300.0, 58.0), [300.0, 58.0], "onto an enemy without any")
 
 func test_take_it_back_and_bottomless() -> void:
 	var p := _player()
 	assert_eq(Balance.TAKE_IT_BACK_PCT, 30.0)
 	assert_eq(Balance.TAKE_IT_BACK_TIME, 8.0)
-	assert_eq(p.take_back_amount(1000.0), 300.0)
+	assert_eq(DecayKit.take_back_amount(1000.0), 300.0)
 	assert_eq(Balance.BOTTOMLESS_TIME, 8.0)
 	for id in ["takeitback", "bottomless", "spill"]:
 		assert_false(Abilities.has_scaling(id), "%s has nothing to scale" % id)
@@ -224,7 +224,7 @@ func test_hush_is_an_interrupt() -> void:
 	assert_true(float(Abilities.get_resource("hush").cooldown) >= Balance.INTERRUPT_SHARED_COOLDOWN)
 	assert_true(Abilities.tooltip("hush").contains(Abilities.interrupt_note()))
 	assert_eq(Balance.HUSH_DECAY, 1.0)
-	assert_eq(p.hush_decay(460.0), 460.0, "a standard spell hit's worth when it stops a cast")
+	assert_eq(DecayKit.hush_decay(460.0), 460.0, "a standard spell hit's worth when it stops a cast")
 
 ## The editor keeps the effect files it loaded when it started. This brings its
 ## copies of the two debuffs up to date with their files (in place: everything
@@ -265,7 +265,7 @@ func test_the_debuff_shows_the_amount_and_the_open_time() -> void:
 	assert_eq(StatusIcons.compact(1240), "1.2k")
 	assert_eq(StatusIcons.compact(34500), "34k")
 	assert_eq(StatusIcons.compact(1500000), "1.5m")
-	assert_eq(Details.spell_name(_player().DECAY_HIT_ID), "Breach (Periodic)", "its ticks have their own line on the meter")
+	assert_eq(Details.spell_name(DecayKit.DECAY_HIT_ID), "Breach (Periodic)", "its ticks have their own line on the meter")
 
 func test_decay_counts_as_my_damage_over_time() -> void:
 	var me: Node = track(Node.new())
@@ -364,14 +364,14 @@ func test_rune_of_rot() -> void:
 	assert_eq(_typed_number(str(Runes.get_resource("rot").description)), "")
 	# Each copy adds as much: what the talent's three ranks gave.
 	var p := _player()
-	assert_eq(p.rot_rune_pct(0), 0.0)
-	assert_eq(p.rot_rune_pct(1), 5.0)
-	assert_eq(p.rot_rune_pct(2), 10.0)
-	assert_eq(p.rot_rune_pct(3), 15.0)
-	assert_eq(p.rot_rune_pct(5), 15.0, "never more than three count")
+	assert_eq(DecayKit.rot_rune_pct(0), 0.0)
+	assert_eq(DecayKit.rot_rune_pct(1), 5.0)
+	assert_eq(DecayKit.rot_rune_pct(2), 10.0)
+	assert_eq(DecayKit.rot_rune_pct(3), 15.0)
+	assert_eq(DecayKit.rot_rune_pct(5), 15.0, "never more than three count")
 	var frost := PackedStringArray(["Frost", "Spell", "Projectile"])
-	assert_eq(p.decay_feed_pct("frostbolt", frost, false, false, 0.0, p.rot_rune_pct(2)), 10.0)
-	assert_eq(p.decay_feed_pct("gnaw", SHADOW, false, false, 0.0, p.rot_rune_pct(3)), 50.0, "nothing changes for Shadow spells")
+	assert_eq(DecayKit.decay_feed_pct("frostbolt", frost, false, false, 0.0, DecayKit.rot_rune_pct(2)), 10.0)
+	assert_eq(DecayKit.decay_feed_pct("gnaw", SHADOW, false, false, 0.0, DecayKit.rot_rune_pct(3)), 50.0, "nothing changes for Shadow spells")
 	var has_count := false
 	for m in (load("res://scripts/rune_listener.gd") as GDScript).get_script_method_list():
 		has_count = has_count or str(m["name"]) == "rune_count"
@@ -390,16 +390,16 @@ func test_rune_of_the_long_fall() -> void:
 	assert_contains(text, "%s%%" % TextFill.num(Balance.LONG_FALL_PCT))
 	assert_eq(_typed_number(str(Runes.get_resource("long_fall").description)), "")
 	var p := _player()
-	assert_true(p.long_fall_applies(1000.0, 500.0), "half of it covers the enemy's health")
-	assert_true(p.long_fall_applies(1000.0, 120.0))
-	assert_false(p.long_fall_applies(1000.0, 501.0), "not quite")
-	assert_false(p.long_fall_applies(0.0, 10.0), "no Breach")
-	assert_false(p.long_fall_applies(1000.0, 0.0), "an enemy that is already dead")
+	assert_true(DecayKit.long_fall_applies(1000.0, 500.0), "half of it covers the enemy's health")
+	assert_true(DecayKit.long_fall_applies(1000.0, 120.0))
+	assert_false(DecayKit.long_fall_applies(1000.0, 501.0), "not quite")
+	assert_false(DecayKit.long_fall_applies(0.0, 10.0), "no Breach")
+	assert_false(DecayKit.long_fall_applies(1000.0, 0.0), "an enemy that is already dead")
 	# It is a hit, dealt like every other one (the enemy takes the damage and may
 	# survive it): a rune's, with its own line on the meter, and it feeds nothing.
-	assert_eq(p.LONG_FALL_HIT_ID, "rune_long_fall")
-	assert_eq(Details.spell_name(p.LONG_FALL_HIT_ID), "Rune of the Long Fall")
-	assert_eq(p.decay_feed_pct(p.LONG_FALL_HIT_ID, SHADOW, true, false), 0.0)
+	assert_eq(DecayKit.LONG_FALL_HIT_ID, "rune_long_fall")
+	assert_eq(Details.spell_name(DecayKit.LONG_FALL_HIT_ID), "Rune of the Long Fall")
+	assert_eq(DecayKit.decay_feed_pct(DecayKit.LONG_FALL_HIT_ID, SHADOW, true, false), 0.0)
 	var src := PlayerSource.text()
 	assert_contains(src, "_decay_hit(foe, all, LONG_FALL_HIT_ID, false, [], 0.0, true)")
 
@@ -433,7 +433,7 @@ func test_the_breach_theme() -> void:
 		if not bool(Talents.get_talent(id).get("placeholder", true)):
 			texts.append(str(Talents.get_talent(id).get("name", "")) + ": " + Talents.tooltip(id, 1) + " " + Talents.capstone_text(id))
 	texts.append(Keywords.keyword_text("decay"))
-	texts.append(str(_player().DECAY_ERROR))
+	texts.append(str(DecayKit.DECAY_ERROR))
 	var old := RegEx.create_from_string("\\b(Decay|Blight|Blights|Erode|Erodes|Sink In|Spill|Spills|Smother|Smothers|Pall|Rot|Rots|Seep|Tainted|Open Wound|last drop)\\b")
 	for text in texts:
 		var m := old.search(text)
@@ -461,8 +461,8 @@ func test_rune_of_the_open_wound() -> void:
 	assert_contains(text, "instant")
 	assert_eq(_typed_number(str(Runes.get_resource("open_wound").description)), "")
 	var p := _player()
-	assert_eq(p.blight_open_time(false), 15.0)
-	assert_eq(p.blight_open_time(true), 8.0, "with the rune it opens Decay for less time")
+	assert_eq(DecayKit.blight_open_time(false), 15.0)
+	assert_eq(DecayKit.blight_open_time(true), 8.0, "with the rune it opens Decay for less time")
 
 ## Usher In ("sinkin") and Gloom Bolt ("shadowbolt") were removed. No list has
 ## them, nobody starts with them, and a saved bar or draft that had them drops

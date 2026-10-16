@@ -63,7 +63,7 @@ func _typed_number(raw: String) -> String:
 	return m.get_string() if m else ""
 
 func _has_method(path: String, method: String) -> bool:
-	for m in (load(path) as GDScript).get_script_method_list():
+	for m in PlayerSource.methods_of(load(path)):
 		if str(m["name"]) == method:
 			return true
 	return false

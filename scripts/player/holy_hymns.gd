@@ -148,14 +148,14 @@ func _talent_verse(key: String, kind: String) -> void:
 	var every := player._talent(key)
 	if every <= 0.0:
 		return
-	var now := player._str_now()
+	var now := player.strings._str_now()
 	if now - float(_talent_verse_at.get(key, -INF)) < every:
 		return
 	_talent_verse_at[key] = now
 	_add_verses(kind, 1)
 
 func _tick_hymns() -> void:
-	var now := player._str_now()
+	var now := player.strings._str_now()
 	if player.is_dead():
 		verses.clear()
 		_refrains.clear()
@@ -199,7 +199,7 @@ func _boom(h: String, spent: Array) -> void:
 	if full:
 		_booms.clear()   # (the next Full Choir needs three new booms)
 	var matches := matching_verses(spent, h)
-	_last_boom = {"hymn": h, "matches": matches, "full": full, "at": player._str_now()}
+	_last_boom = {"hymn": h, "matches": matches, "full": full, "at": player.strings._str_now()}
 	_do_boom(h, matches, full, 1.0)
 	if full:
 		_add_verses(h, Balance.FULL_CHOIR_REFUND)
@@ -216,11 +216,11 @@ func _do_boom(h: String, matches: int, full: bool, scale: float) -> void:
 			# My friendly target if Psalm could reach it (range, line of sight), else me.
 			var pick: Variant = player._pick_support_target("psalm")[0]
 			var who: Node3D = pick if pick != null else player
-			player._heal_coef(who, Balance.BENEDICTION_HEAL * mult, BOOM_IDS[h])
+			player.strings._heal_coef(who, Balance.BENEDICTION_HEAL * mult, BOOM_IDS[h])
 			at = who.global_position
 		"chorus":
 			for a in player._allies_within(Balance.CHORALE_RADIUS):
-				player._heal_coef(a, Balance.CHORALE_HEAL * mult, BOOM_IDS[h])
+				player.strings._heal_coef(a, Balance.CHORALE_HEAL * mult, BOOM_IDS[h])
 		"vigil":
 			var t := bulwark_song_time(matches, full) + player._talent("holy_long_note")   # + Long Note
 			for a in player._allies_within(Balance.BULWARK_SONG_RADIUS):
@@ -254,14 +254,14 @@ func _hymn_precheck(id: String) -> String:
 			if pick[0] == null:
 				return str(pick[1])
 		"reprise":
-			if _last_boom.is_empty() or not reprise_ready(player._str_now() - float(_last_boom["at"]), Balance.REPRISE_COST):
+			if _last_boom.is_empty() or not reprise_ready(player.strings._str_now() - float(_last_boom["at"]), Balance.REPRISE_COST):
 				return "You have not boomed in the last %s sec" % Stats.num(Balance.REPRISE_WINDOW)
 			if verses.size() < Balance.REPRISE_COST:
 				return "Not enough Verses"
 		"lastverse":
 			if verses.size() < Balance.VERSE_MAX:
 				return "Not enough Verses"
-			if player._fallen_ally(float(Abilities.get_resource(id).cast_range)) == null:
+			if player.strings._fallen_ally(float(Abilities.get_resource(id).cast_range)) == null:
 				return "No downed ally in range"
 	return ""
 
@@ -273,7 +273,7 @@ func _hymn_use(id: String, res: Resource) -> void:
 		"lift":
 			var who: Node3D = player._pick_support_target(id)[0]
 			if who:
-				player._heal_coef(who, _hymn_heal_coef(id), id)
+				player.strings._heal_coef(who, _hymn_heal_coef(id), id)
 				player._ring_effect(0.8, HOLY_LIGHT, who.global_position)
 		"refrain":
 			var who: Node3D = player._pick_support_target(id)[0]
@@ -282,9 +282,9 @@ func _hymn_use(id: String, res: Resource) -> void:
 		"antiphon":
 			var who: Node3D = player._pick_support_target(id)[0]
 			if who:
-				var amount := player._heal_coef(who, _hymn_heal_coef(id), id)
+				var amount := player.strings._heal_coef(who, _hymn_heal_coef(id), id)
 				if not is_same(who, player):
-					player._heal_exact(player, int(round(amount * Balance.ANTIPHON_SELF_PCT / 100.0)), ANTIPHON_SELF_ID)   # (its own id: no second splash or ward)
+					player.strings._heal_exact(player, int(round(amount * Balance.ANTIPHON_SELF_PCT / 100.0)), ANTIPHON_SELF_ID)   # (its own id: no second splash or ward)
 				player._ring_effect(0.8, HOLY_LIGHT, who.global_position)
 		"shelter":
 			var who: Node3D = player._pick_support_target(id)[0]
@@ -305,7 +305,7 @@ func _hymn_use(id: String, res: Resource) -> void:
 			player.status.apply(make_hymn_dr_fx(REST_FX, Balance.REST_PCT, Balance.REST_TIME), player)
 			player.status.set_remaining(REST_FX, Balance.REST_TIME)
 		"lastverse":
-			var ally := player._fallen_ally(float(res.cast_range))
+			var ally := player.strings._fallen_ally(float(res.cast_range))
 			if ally and player._net():
 				player._net().revive_ally(ally, player)
 				player._ring_effect(1.4, HOLY_LIGHT, ally.global_position)
@@ -324,7 +324,7 @@ func _hymn_cast_heal(spell: String, tgt: Variant, kind: String) -> void:
 	match spell:
 		"psalm", "outpour":
 			var who: Variant = tgt if kind == "ally" and tgt != null and is_instance_valid(tgt) else player
-			player._heal_coef(who, _hymn_heal_coef(spell), spell)
+			player.strings._heal_coef(who, _hymn_heal_coef(spell), spell)
 			player._ring_effect(1.2, HOLY_LIGHT, (who as Node3D).global_position)
 		"canticle":
 			# The injured allies near me, lowest health first.
@@ -333,14 +333,14 @@ func _hymn_cast_heal(spell: String, tgt: Variant, kind: String) -> void:
 			hurt.sort_custom(func(a, b): return _health_share_of(a) < _health_share_of(b))
 			hurt = hurt.slice(0, Balance.CANTICLE_TARGETS)
 			for a in hurt:
-				player._heal_coef(a, _hymn_heal_coef(spell), spell)
+				player.strings._heal_coef(a, _hymn_heal_coef(spell), spell)
 				player._ring_effect(0.7, HOLY_LIGHT, (a as Node3D).global_position)
 			if hurt.size() >= Balance.MANY_VOICES_ALLIES:
 				_talent_verse("holy_many_voices", "chorus")   # Many Voices
 		"exultation":
 			var all := player._allies_within(float(Abilities.get_resource(spell).radius))
 			for a in all:
-				player._heal_coef(a, _hymn_heal_coef(spell), spell)
+				player.strings._heal_coef(a, _hymn_heal_coef(spell), spell)
 			player._ring_effect(float(Abilities.get_resource(spell).radius), HOLY_LIGHT)
 			if all.size() >= Balance.MANY_VOICES_ALLIES:
 				_talent_verse("holy_many_voices", "chorus")   # Many Voices
@@ -355,7 +355,7 @@ func _health_share_of(a: Variant) -> float:
 # party member is healed on their own machine like any other heal of mine).
 
 func _start_refrain(who: Node3D) -> void:
-	var now := player._str_now()
+	var now := player.strings._str_now()
 	var per := _hymn_heal_coef("refrain") * Balance.REFRAIN_TICK / Balance.REFRAIN_TIME
 	_refrains[who.get_instance_id()] = {"node": who, "until": now + Balance.REFRAIN_TIME,
 		"next": now + Balance.REFRAIN_TICK / maxf(player.haste_mult(), 0.1), "per": per}
@@ -371,7 +371,7 @@ func _tick_refrains(now: float) -> void:
 		# Every tick due by now, the one that falls on its last moment included.
 		while now >= float(e["next"]) and float(e["next"]) <= float(e["until"]) + 0.001:
 			e["next"] = float(e["next"]) + Balance.REFRAIN_TICK / maxf(player.haste_mult(), 0.1)
-			player._heal_coef(who, float(e["per"]), "refrain")
+			player.strings._heal_coef(who, float(e["per"]), "refrain")
 		if float(e["next"]) > float(e["until"]) + 0.001:
 			_refrains.erase(key)
 
@@ -408,7 +408,7 @@ func _chorus_splash(healed: Node3D, amount: int) -> void:
 	near = near.slice(0, Balance.CHORUS_SPLASH_TARGETS)
 	var share := int(round(amount * Balance.CHORUS_SPLASH_PCT / 100.0 * (1.0 + player._talent("holy_swelling_chorus") / 100.0)))   # + Swelling Chorus
 	for a in near:
-		player._heal_exact(a, share, CHORUS_SPLASH_ID)
+		player.strings._heal_exact(a, share, CHORUS_SPLASH_ID)
 	if near.size() + 1 >= Balance.MANY_VOICES_ALLIES:
 		_talent_verse("holy_many_voices", "chorus")   # Many Voices (the splash counts)
 
@@ -421,7 +421,7 @@ func _on_damage_dealt_holy(info: RefCounted) -> void:
 		return
 	var shares: Array = allies.map(func(a): return _health_share_of(a))
 	var who: Node3D = allies[Player.lowest_share(shares)]
-	player._heal_exact(who, int(round(float(info.amount) * Balance.HIGH_NOTE_HEAL_PCT / 100.0)), HIGH_NOTE_ID)
+	player.strings._heal_exact(who, int(round(float(info.amount) * Balance.HIGH_NOTE_HEAL_PCT / 100.0)), HIGH_NOTE_ID)
 
 # Effects on allies: less damage taken, and shields.
 
@@ -471,7 +471,7 @@ func receive_hymn_dr(from: Node, fx_id: String, pct: float, time: float) -> void
 	player.status.apply(make_hymn_dr_fx(fx_id, pct, time), from)
 	player.status.set_remaining(fx_id, time)
 	if fx_id == VIGIL_FX and from != null and is_instance_valid(from):
-		_vigil_from[from.get_instance_id()] = {"from": from, "until": player._str_now() + time}
+		_vigil_from[from.get_instance_id()] = {"from": from, "until": player.strings._str_now() + time}
 
 ## Watchful: a big hit on me while I stand in a healer's Vigil gives them a Vigil Verse.
 func _vigil_taken(info: RefCounted) -> void:

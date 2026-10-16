@@ -44,7 +44,7 @@ func _player() -> GDScript:
 	return load("res://scripts/player.gd")
 
 func _has_method(method: String) -> bool:
-	for m in _player().get_script_method_list():
+	for m in PlayerSource.methods_of(_player()):
 		if str(m["name"]) == method:
 			return true
 	return false
@@ -176,11 +176,11 @@ func test_how_they_are_used() -> void:
 	var p := _player()
 	for id in CASTS:
 		assert_true(p.SUPPORT_CASTS.has(id), "%s is cast at an ally like Heal" % id)
-		assert_false(p.STRING_INSTANTS.has(id))
-	assert_eq(p.STRING_INSTANTS.size(), 17)
+		assert_false(StringsKit.STRING_INSTANTS.has(id))
+	assert_eq(StringsKit.STRING_INSTANTS.size(), 17)
 	for id in KIT:
 		if not CASTS.has(id):
-			assert_true(p.STRING_INSTANTS.has(id), "%s is one of the kit's instants" % id)
+			assert_true(StringsKit.STRING_INSTANTS.has(id), "%s is one of the kit's instants" % id)
 	# Off the global cooldown: the three that only set something up.
 	for id in ["doublethread", "restring", "behinditsback"]:
 		assert_true(Abilities.OFF_GCD.has(id) and not p.on_gcd(id), "%s is off the global cooldown" % id)
@@ -217,114 +217,114 @@ func test_it_is_wired_in() -> void:
 
 func test_strings_in_hand() -> void:
 	var p := _player()
-	assert_eq(p.strings_in_hand(0, 0), 6, "all of them")
-	assert_eq(p.strings_in_hand(4, 0), 2)
-	assert_eq(p.strings_in_hand(2, 1), 3, "one tied somewhere and one recovering are both out of my hand")
-	assert_eq(p.strings_in_hand(6, 0), 0)
-	assert_eq(p.strings_in_hand(5, 3), 0, "never less than none")
-	assert_eq(p.strings_in_hand(-2, -1), 6)
-	assert_eq(p.string_gcd(1.5), 0.75, "String: half a global cooldown")
-	assert_eq(p.string_gcd(1.0), 0.5)
+	assert_eq(StringsKit.strings_in_hand(0, 0), 6, "all of them")
+	assert_eq(StringsKit.strings_in_hand(4, 0), 2)
+	assert_eq(StringsKit.strings_in_hand(2, 1), 3, "one tied somewhere and one recovering are both out of my hand")
+	assert_eq(StringsKit.strings_in_hand(6, 0), 0)
+	assert_eq(StringsKit.strings_in_hand(5, 3), 0, "never less than none")
+	assert_eq(StringsKit.strings_in_hand(-2, -1), 6)
+	assert_eq(StringsKit.string_gcd(1.5), 0.75, "String: half a global cooldown")
+	assert_eq(StringsKit.string_gcd(1.0), 0.5)
 
 func test_tying_one_to_an_ally() -> void:
 	var p := _player()
 	# [Strings afterwards, free ones added, used up]
-	assert_eq(p.string_placed(0), [1, 0, false])
-	assert_eq(p.string_placed(1), [2, 0, false], "another one on the same ally: one more")
-	assert_eq(p.string_placed(2), [3, 0, false])
-	assert_eq(p.string_placed(3), [3, 0, true], "full: it only starts their time over, and is used up")
-	assert_eq(p.string_placed(-1), [1, 0, false])
+	assert_eq(StringsKit.string_placed(0), [1, 0, false])
+	assert_eq(StringsKit.string_placed(1), [2, 0, false], "another one on the same ally: one more")
+	assert_eq(StringsKit.string_placed(2), [3, 0, false])
+	assert_eq(StringsKit.string_placed(3), [3, 0, true], "full: it only starts their time over, and is used up")
+	assert_eq(StringsKit.string_placed(-1), [1, 0, false])
 	# Double Thread: two for one.
-	assert_eq(p.string_placed(0, true), [2, 1, false], "the second one is none of my six")
-	assert_eq(p.string_placed(1, true), [3, 1, false])
-	assert_eq(p.string_placed(2, true), [3, 0, false], "room for one only")
-	assert_eq(p.string_placed(3, true), [3, 0, true])
+	assert_eq(StringsKit.string_placed(0, true), [2, 1, false], "the second one is none of my six")
+	assert_eq(StringsKit.string_placed(1, true), [3, 1, false])
+	assert_eq(StringsKit.string_placed(2, true), [3, 0, false], "room for one only")
+	assert_eq(StringsKit.string_placed(3, true), [3, 0, true])
 
 func test_what_a_string_heals() -> void:
 	var p := _player()
-	assert_true(_near(p.string_tick_heal(1), 0.07))
-	assert_true(_near(p.string_tick_heal(2), 0.14))
-	assert_true(_near(p.string_tick_heal(3), 0.21), "three Strings: three times the heal")
-	assert_eq(p.string_tick_heal(0), 0.0)
-	assert_true(_near(p.string_tick_heal(0, true), 0.07), "a loose String of Cat's Cradle heals like one of mine")
-	assert_true(_near(p.string_tick_heal(3, true), 0.28))
-	assert_eq(p.string_tick_interval(1.0), 1.0, "every second")
-	assert_true(_near(p.string_tick_interval(1.25), 0.8), "25% Haste: 25% more heals")
-	assert_eq(p.string_tick_interval(1.0, true), 0.5, "Tug: twice as often")
-	assert_true(_near(p.string_tick_interval(1.25, true), 0.4), "they multiply")
-	assert_true(p.string_tick_interval(1000.0, true) >= 0.1, "never faster than the game can tick")
+	assert_true(_near(StringsKit.string_tick_heal(1), 0.07))
+	assert_true(_near(StringsKit.string_tick_heal(2), 0.14))
+	assert_true(_near(StringsKit.string_tick_heal(3), 0.21), "three Strings: three times the heal")
+	assert_eq(StringsKit.string_tick_heal(0), 0.0)
+	assert_true(_near(StringsKit.string_tick_heal(0, true), 0.07), "a loose String of Cat's Cradle heals like one of mine")
+	assert_true(_near(StringsKit.string_tick_heal(3, true), 0.28))
+	assert_eq(StringsKit.string_tick_interval(1.0), 1.0, "every second")
+	assert_true(_near(StringsKit.string_tick_interval(1.25), 0.8), "25% Haste: 25% more heals")
+	assert_eq(StringsKit.string_tick_interval(1.0, true), 0.5, "Tug: twice as often")
+	assert_true(_near(StringsKit.string_tick_interval(1.25, true), 0.4), "they multiply")
+	assert_true(StringsKit.string_tick_interval(1000.0, true) >= 0.1, "never faster than the game can tick")
 	# Over its whole time one String heals about a Tug and a half.
-	assert_true(_near(p.pull_taut_coef(Balance.STRING_TIME), 1.05), "Pull Taut on a fresh String: all 15 heals")
-	assert_true(_near(p.pull_taut_coef(5.0), 0.35))
-	assert_eq(p.pull_taut_coef(0.0), 0.0)
-	assert_eq(p.pull_taut_coef(-3.0), 0.0)
-	assert_true(_near(p.pull_taut_coef(30.0), 1.05), "a knotted String gives no more than a fresh one")
+	assert_true(_near(StringsKit.pull_taut_coef(Balance.STRING_TIME), 1.05), "Pull Taut on a fresh String: all 15 heals")
+	assert_true(_near(StringsKit.pull_taut_coef(5.0), 0.35))
+	assert_eq(StringsKit.pull_taut_coef(0.0), 0.0)
+	assert_eq(StringsKit.pull_taut_coef(-3.0), 0.0)
+	assert_true(_near(StringsKit.pull_taut_coef(30.0), 1.05), "a knotted String gives no more than a fresh one")
 
 func test_heals_are_shared_along_the_strings() -> void:
 	var p := _player()
-	assert_eq(p.string_share(100), 30)
-	assert_eq(p.string_share(1000), 300)
-	assert_eq(p.string_share(0), 0)
-	assert_eq(p.string_share(-50), 0)
+	assert_eq(StringsKit.string_share(100), 30)
+	assert_eq(StringsKit.string_share(1000), 300)
+	assert_eq(StringsKit.string_share(0), 0)
+	assert_eq(StringsKit.string_share(-50), 0)
 	for id in ["hoist", "patchup", "tug", "wrench"]:
 		assert_true(Abilities.PATHS.has(id), "%s is an ability" % id)
-		assert_true(p.shares_heal(id, true), "%s on an ally on a String is shared" % id)
+		assert_true(StringsKit.shares_heal(id, true), "%s on an ally on a String is shared" % id)
 	# Not the Strings' own heals, nor the ones that reach everybody already.
 	for id in ["puppetstring", "catscradle", "pulltaut", "cutthestrings"]:
-		assert_false(p.shares_heal(id, true), "%s is not shared" % id)
+		assert_false(StringsKit.shares_heal(id, true), "%s is not shared" % id)
 	# Not what is no spell or ability: Lifesteal, a talent's or a rune's heal, the share itself.
-	for id in ["lifesteal", "stand_over", "rune_something", p.STRING_SHARE_ID]:
+	for id in ["lifesteal", "stand_over", "rune_something", StringsKit.STRING_SHARE_ID]:
 		assert_false(Abilities.PATHS.has(id))
-		assert_false(p.shares_heal(id, Abilities.PATHS.has(id)), "%s is not shared" % id)
+		assert_false(StringsKit.shares_heal(id, Abilities.PATHS.has(id)), "%s is not shared" % id)
 
 func test_crossed_strings_move_damage_to_the_enemy() -> void:
 	var p := _player()
 	# A hit of 100 with 25% crossed away lands for 75: the enemy takes the other 25.
-	assert_true(_near(p.cross_redirect(75.0, -25.0, 25.0), 25.0))
+	assert_true(_near(StringsKit.cross_redirect(75.0, -25.0, 25.0), 25.0))
 	# With another 25% taken off by something else it lands for 50: still 25 of the 100.
-	assert_true(_near(p.cross_redirect(50.0, -50.0, 25.0), 25.0))
-	assert_eq(p.cross_redirect(75.0, -25.0, 0.0), 0.0, "not crossed: nothing moves")
-	assert_eq(p.cross_redirect(0.0, -25.0, 25.0), 0.0)
-	assert_eq(p.cross_redirect(10.0, -100.0, 25.0), 0.0)
-	assert_eq(p.CROSSED_ID, "crossed_strings")
-	assert_eq(Details.spell_name(p.CROSSED_ID), "Crossed Strings", "its own line on the meter")
-	assert_eq(Details.spell_name(p.STRING_SHARE_ID), "Shared along the Strings")
-	for id in [p.CROSSED_ID, p.STRING_SHARE_ID]:
+	assert_true(_near(StringsKit.cross_redirect(50.0, -50.0, 25.0), 25.0))
+	assert_eq(StringsKit.cross_redirect(75.0, -25.0, 0.0), 0.0, "not crossed: nothing moves")
+	assert_eq(StringsKit.cross_redirect(0.0, -25.0, 25.0), 0.0)
+	assert_eq(StringsKit.cross_redirect(10.0, -100.0, 25.0), 0.0)
+	assert_eq(StringsKit.CROSSED_ID, "crossed_strings")
+	assert_eq(Details.spell_name(StringsKit.CROSSED_ID), "Crossed Strings", "its own line on the meter")
+	assert_eq(Details.spell_name(StringsKit.STRING_SHARE_ID), "Shared along the Strings")
+	for id in [StringsKit.CROSSED_ID, StringsKit.STRING_SHARE_ID]:
 		assert_true(Details.spell_color(id) != Color(0.7, 0.7, 0.75), "%s has a colour" % id)
 	assert_true(Balance.STRING_CROSS_RANGE < Balance.STRING_LEASH, "a crossing breaks long before a String does")
 
 func test_the_rest_of_the_kit() -> void:
 	var p := _player()
 	var heal := Balance.REFERENCE_HEAL
-	assert_true(_near(p.cupped_hands_coef(0), heal * 0.45))
-	assert_true(_near(p.cupped_hands_coef(1), heal * 0.65), "bigger for each String on that ally")
-	assert_true(_near(p.cupped_hands_coef(3), heal * 1.05))
-	assert_eq(p.slack_mana(0), 0.0)
-	assert_eq(p.slack_mana(4), 4.0, "mana back for each String out")
-	assert_true(p.still_standing_lives(25, 100, 25.0), "healed enough: it stays up")
-	assert_false(p.still_standing_lives(24, 100, 25.0), "not enough: it falls when the Strings let go")
-	assert_false(p.still_standing_lives(1, 0, 25.0))
+	assert_true(_near(StringsKit.cupped_hands_coef(0), heal * 0.45))
+	assert_true(_near(StringsKit.cupped_hands_coef(1), heal * 0.65), "bigger for each String on that ally")
+	assert_true(_near(StringsKit.cupped_hands_coef(3), heal * 1.05))
+	assert_eq(StringsKit.slack_mana(0), 0.0)
+	assert_eq(StringsKit.slack_mana(4), 4.0, "mana back for each String out")
+	assert_true(StringsKit.still_standing_lives(25, 100, 25.0), "healed enough: it stays up")
+	assert_false(StringsKit.still_standing_lives(24, 100, 25.0), "not enough: it falls when the Strings let go")
+	assert_false(StringsKit.still_standing_lives(1, 0, 25.0))
 	assert_true(Balance.NOT_FINISHED_STRINGS <= Balance.STRING_STACKS, "one ally can hold what Not Finished With You ties")
 	assert_true(Balance.NOT_FINISHED_STRINGS <= Balance.STRING_MAX)
 
 func test_the_buffs() -> void:
 	var p := _player()
-	var on_string: Resource = p.make_string_fx()
-	assert_eq(str(on_string.id), p.STRING_BUFF)
+	var on_string: Resource = StringsKit.make_string_fx()
+	assert_eq(str(on_string.id), StringsKit.STRING_BUFF)
 	assert_true(bool(on_string.per_caster), "two healers' Strings are two buffs")
 	assert_eq(int(on_string.max_stacks), Balance.STRING_STACKS + 1, "three of mine and a loose one")
 	assert_eq(float(on_string.duration), Balance.STRING_TIME)
-	var behind: Resource = p.make_behind_fx()
+	var behind: Resource = StringsKit.make_behind_fx()
 	assert_eq(float(behind.damage_mod_pct), -40.0)
 	assert_true(bool(behind.modifies_incoming) and bool(behind.mod_affects_dots), "less of every kind of damage")
 	assert_eq(float(behind.duration), 6.0)
-	assert_eq(float(p.make_double_thread_fx().duration), 10.0)
-	assert_eq(float(p.make_slack_fx().duration), 4.0)
-	assert_eq(float(p.make_cupped_hands_fx(5.0).duration), 5.0)
-	assert_eq(float(p.make_still_standing_fx(8.0).duration), 8.0)
-	assert_eq(float(p.make_held_up_fx(4.0).duration), 4.0)
-	for fx in [on_string, behind, p.make_double_thread_fx(), p.make_slack_fx(), p.make_cupped_hands_fx(5.0),
-			p.make_still_standing_fx(8.0), p.make_held_up_fx(4.0)]:
+	assert_eq(float(StringsKit.make_double_thread_fx().duration), 10.0)
+	assert_eq(float(StringsKit.make_slack_fx().duration), 4.0)
+	assert_eq(float(StringsKit.make_cupped_hands_fx(5.0).duration), 5.0)
+	assert_eq(float(StringsKit.make_still_standing_fx(8.0).duration), 8.0)
+	assert_eq(float(StringsKit.make_held_up_fx(4.0).duration), 4.0)
+	for fx in [on_string, behind, StringsKit.make_double_thread_fx(), StringsKit.make_slack_fx(), StringsKit.make_cupped_hands_fx(5.0),
+			StringsKit.make_still_standing_fx(8.0), StringsKit.make_held_up_fx(4.0)]:
 		assert_false(bool(fx.is_debuff), "%s is a buff" % fx.id)
 		assert_true(str(fx.description) != "", "%s says what it does" % fx.id)
 		assert_true((fx.stat_modifiers as Dictionary).is_empty(), "%s changes no stat" % fx.id)
@@ -334,11 +334,11 @@ func test_the_buffs() -> void:
 	var healer_b: Node = track(Node.new())
 	st.apply(on_string, healer_a)
 	st.apply(on_string, healer_b)
-	assert_true(st.has_from(p.STRING_BUFF, healer_a) and st.has_from(p.STRING_BUFF, healer_b))
-	assert_true(st.set_stacks_from(p.STRING_BUFF, healer_a, 3))
-	assert_true(st.remove_from(p.STRING_BUFF, healer_a))
-	assert_false(st.has_from(p.STRING_BUFF, healer_a))
-	assert_true(st.has_from(p.STRING_BUFF, healer_b), "one healer's Strings going leaves the other's")
+	assert_true(st.has_from(StringsKit.STRING_BUFF, healer_a) and st.has_from(StringsKit.STRING_BUFF, healer_b))
+	assert_true(st.set_stacks_from(StringsKit.STRING_BUFF, healer_a, 3))
+	assert_true(st.remove_from(StringsKit.STRING_BUFF, healer_a))
+	assert_false(st.has_from(StringsKit.STRING_BUFF, healer_a))
+	assert_true(st.has_from(StringsKit.STRING_BUFF, healer_b), "one healer's Strings going leaves the other's")
 
 func test_string_up_and_tangle() -> void:
 	Balance.apply_effects()
@@ -379,37 +379,37 @@ func test_the_words() -> void:
 func test_talents_of_the_strings_themselves() -> void:
 	var p := _player()
 	# Long Thread: Strings on allies last longer, and Pull Taut gives all of that.
-	assert_eq(p.string_time_with(0.0), 15.0)
-	assert_eq(p.string_time_with(4.0), 19.0)
-	assert_eq(p.string_time_with(-3.0), 15.0)
-	assert_true(_near(p.pull_taut_coef(19.0, 19.0), 0.07 * 19.0), "a fresh String with Long Thread")
-	assert_true(_near(p.pull_taut_coef(19.0), 1.05), "without it: no more than its usual time")
+	assert_eq(StringsKit.string_time_with(0.0), 15.0)
+	assert_eq(StringsKit.string_time_with(4.0), 19.0)
+	assert_eq(StringsKit.string_time_with(-3.0), 15.0)
+	assert_true(_near(StringsKit.pull_taut_coef(19.0, 19.0), 0.07 * 19.0), "a fresh String with Long Thread")
+	assert_true(_near(StringsKit.pull_taut_coef(19.0), 1.05), "without it: no more than its usual time")
 	# Spare Spool: used-up Strings are back sooner.
-	assert_eq(p.string_recharge(0.0), 10.0)
-	assert_eq(p.string_recharge(2.0), 8.0)
-	assert_eq(p.string_recharge(50.0), 1.0, "never at once")
+	assert_eq(StringsKit.string_recharge(0.0), 10.0)
+	assert_eq(StringsKit.string_recharge(2.0), 8.0)
+	assert_eq(StringsKit.string_recharge(50.0), 1.0, "never at once")
 	# Taking the Weight: a bigger share, and (capstone) from further apart.
-	assert_eq(p.cross_pct_with(0.0), Balance.STRING_CROSS_PCT)
-	assert_eq(p.cross_pct_with(5.0), 5.0, "the talent's number replaces the usual one")
-	assert_eq(p.cross_pct_with(7.0), 7.0)
-	assert_eq(p.cross_range_with(false), 30.0)
-	assert_eq(p.cross_range_with(true), 40.0)
+	assert_eq(StringsKit.cross_pct_with(0.0), Balance.STRING_CROSS_PCT)
+	assert_eq(StringsKit.cross_pct_with(5.0), 5.0, "the talent's number replaces the usual one")
+	assert_eq(StringsKit.cross_pct_with(7.0), 7.0)
+	assert_eq(StringsKit.cross_range_with(false), 30.0)
+	assert_eq(StringsKit.cross_range_with(true), 40.0)
 	assert_eq(Balance.TAKING_THE_WEIGHT_RANGE, 40.0)
 	assert_true(Balance.TAKING_THE_WEIGHT_RANGE < Balance.STRING_LEASH, "still well inside what a String reaches")
 	# Full Harness: only with every String an ally can hold.
-	assert_eq(p.full_harness_pct(3, 6.0), 6.0)
-	assert_eq(p.full_harness_pct(2, 6.0), 0.0, "two Strings: nothing")
-	assert_eq(p.full_harness_pct(3, 0.0), 0.0, "not without the talent")
+	assert_eq(StringsKit.full_harness_pct(3, 6.0), 6.0)
+	assert_eq(StringsKit.full_harness_pct(2, 6.0), 0.0, "two Strings: nothing")
+	assert_eq(StringsKit.full_harness_pct(3, 0.0), 0.0, "not without the talent")
 	# First Stitch: so many heals of one String at once.
-	assert_true(_near(p.first_stitch_coef(2.0), 0.14))
-	assert_true(_near(p.first_stitch_coef(4.0), 0.28))
-	assert_eq(p.first_stitch_coef(0.0), 0.0)
-	assert_eq(Details.spell_name(p.FIRST_STITCH_ID), "First Stitch", "its own line on the meter")
-	assert_false(p.shares_heal(p.FIRST_STITCH_ID, Abilities.PATHS.has(p.FIRST_STITCH_ID)), "and it is not shared along the Strings")
+	assert_true(_near(StringsKit.first_stitch_coef(2.0), 0.14))
+	assert_true(_near(StringsKit.first_stitch_coef(4.0), 0.28))
+	assert_eq(StringsKit.first_stitch_coef(0.0), 0.0)
+	assert_eq(Details.spell_name(StringsKit.FIRST_STITCH_ID), "First Stitch", "its own line on the meter")
+	assert_false(StringsKit.shares_heal(StringsKit.FIRST_STITCH_ID, Abilities.PATHS.has(StringsKit.FIRST_STITCH_ID)), "and it is not shared along the Strings")
 	# Steady Hands: every String heal.
-	assert_eq(p.steady_heal(0.07, 0.0), 0.07)
-	assert_true(_near(p.steady_heal(0.07, 15.0), 0.0805))
-	assert_true(_near(p.steady_heal(p.string_tick_heal(3, true), 15.0), 0.28 * 1.15), "loose Strings too")
+	assert_eq(StringsKit.steady_heal(0.07, 0.0), 0.07)
+	assert_true(_near(StringsKit.steady_heal(0.07, 15.0), 0.0805))
+	assert_true(_near(StringsKit.steady_heal(StringsKit.string_tick_heal(3, true), 15.0), 0.28 * 1.15), "loose Strings too")
 	var src := PlayerSource.text()
 	for piece in ["_steady(string_tick_heal(int(e[\"n\"]), loose))", "_steady(pull_taut_coef(", "_steady(first_stitch_coef(stitch))",
 			"string_recharge(_talent(\"shadow_spare_spool\"))", "data[\"cross\"] = _cross_pct()", "data[\"dr\"] = full_harness_pct(",
@@ -420,27 +420,27 @@ func test_talents_of_the_strings_themselves() -> void:
 func test_talents_of_one_ability_each() -> void:
 	var p := _player()
 	# Heave: Hoist heals more for each String on its target; (capstone) faster on a full one.
-	assert_eq(p.heave_mult(0, 10.0), 1.0)
-	assert_true(_near(p.heave_mult(2, 5.0), 1.1))
-	assert_true(_near(p.heave_mult(3, 10.0), 1.3))
-	assert_true(_near(p.heave_mult(9, 10.0), 1.3), "no more than an ally can hold")
-	assert_eq(p.heave_mult(3, 0.0), 1.0)
+	assert_eq(StringsKit.heave_mult(0, 10.0), 1.0)
+	assert_true(_near(StringsKit.heave_mult(2, 5.0), 1.1))
+	assert_true(_near(StringsKit.heave_mult(3, 10.0), 1.3))
+	assert_true(_near(StringsKit.heave_mult(9, 10.0), 1.3), "no more than an ally can hold")
+	assert_eq(StringsKit.heave_mult(3, 0.0), 1.0)
 	assert_eq(Balance.HEAVE_CAST, 0.5)
-	assert_eq(p.heave_cast(2.0, 3, true), 1.5)
-	assert_eq(p.heave_cast(2.0, 2, true), 2.0, "only on an ally with all three")
-	assert_eq(p.heave_cast(2.0, 3, false), 2.0, "only the capstone")
+	assert_eq(StringsKit.heave_cast(2.0, 3, true), 1.5)
+	assert_eq(StringsKit.heave_cast(2.0, 2, true), 2.0, "only on an ally with all three")
+	assert_eq(StringsKit.heave_cast(2.0, 3, false), 2.0, "only the capstone")
 	# Snap Back: Pull Taut's String straight back.
-	assert_true(p.snaps_back(50.0, 49.9))
-	assert_false(p.snaps_back(50.0, 50.0))
-	assert_false(p.snaps_back(0.0, 0.0), "not without the talent")
+	assert_true(StringsKit.snaps_back(50.0, 49.9))
+	assert_false(StringsKit.snaps_back(50.0, 50.0))
+	assert_false(StringsKit.snaps_back(0.0, 0.0), "not without the talent")
 	# Give and Take: Slack stops the healing for less long.
-	assert_eq(p.slack_time(0.0), 4.0)
-	assert_eq(p.slack_time(1.0), 3.0)
-	assert_eq(p.slack_time(3.0), 1.0)
-	assert_eq(p.slack_time(9.0), 0.0)
+	assert_eq(StringsKit.slack_time(0.0), 4.0)
+	assert_eq(StringsKit.slack_time(1.0), 3.0)
+	assert_eq(StringsKit.slack_time(3.0), 1.0)
+	assert_eq(StringsKit.slack_time(9.0), 0.0)
 	# Long Drop: a hit of its own when String Up lets go.
-	assert_eq(Details.spell_name(p.LONG_DROP_ID), "Long Drop")
-	assert_true(Details.spell_color(p.LONG_DROP_ID) != Color(0.7, 0.7, 0.75))
+	assert_eq(Details.spell_name(StringsKit.LONG_DROP_ID), "Long Drop")
+	assert_true(Details.spell_color(StringsKit.LONG_DROP_ID) != Color(0.7, 0.7, 0.75))
 	for m in ["_tick_long_drops", "_lean_on_me", "_others_heal_mult", "string_time", "_cross_pct", "_steady"]:
 		assert_true(_has_method(m), "player.gd has %s" % m)
 	var src := PlayerSource.text()
@@ -452,13 +452,13 @@ func test_talents_of_one_ability_each() -> void:
 func test_the_open_talents_of_the_healer() -> void:
 	var p := _player()
 	# Many Hands: heals on anyone but me.
-	assert_true(_near(p.many_hands_mult(true, 6.0), 1.06))
-	assert_eq(p.many_hands_mult(false, 6.0), 1.0, "not on myself")
-	assert_eq(p.many_hands_mult(true, 0.0), 1.0)
+	assert_true(_near(StringsKit.many_hands_mult(true, 6.0), 1.06))
+	assert_eq(StringsKit.many_hands_mult(false, 6.0), 1.0, "not on myself")
+	assert_eq(StringsKit.many_hands_mult(true, 0.0), 1.0)
 	# Lean On Me: less damage of every kind for a while.
 	assert_eq(Balance.LEAN_ON_ME_TIME, 4.0)
-	var lean: Resource = p.make_lean_on_me_fx(6.0)
-	assert_eq(str(lean.id), p.LEAN_ON_ME_FX)
+	var lean: Resource = StringsKit.make_lean_on_me_fx(6.0)
+	assert_eq(str(lean.id), StringsKit.LEAN_ON_ME_FX)
 	assert_eq(float(lean.damage_mod_pct), -6.0)
 	assert_true(bool(lean.modifies_incoming) and bool(lean.mod_affects_dots))
 	assert_eq(float(lean.duration), 4.0)

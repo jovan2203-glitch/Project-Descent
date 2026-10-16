@@ -177,9 +177,9 @@ func test_blossoms() -> void:
 	_near(ShepherdKit.dewfall_mult(0), 1.0)
 	_near(ShepherdKit.dewfall_mult(3), 1.0 + 3.0 * Balance.DEWFALL_PER_BLOSSOM / 100.0)
 	var pl: Node = track(_p().new())
-	pl.shepherd._blossoms[pl.get_instance_id()] = {"who": pl, "n": 2, "until": pl._str_now() + 5.0}
+	pl.shepherd._blossoms[pl.get_instance_id()] = {"who": pl, "n": 2, "until": pl.strings._str_now() + 5.0}
 	assert_eq(pl.blossoms_on(pl), 2)
-	pl.shepherd._blossoms[pl.get_instance_id()]["until"] = pl._str_now() - 1.0
+	pl.shepherd._blossoms[pl.get_instance_id()]["until"] = pl.strings._str_now() - 1.0
 	assert_eq(pl.blossoms_on(pl), 0, "ran out")
 
 func test_fawn_bounces_to_the_lowest_once() -> void:

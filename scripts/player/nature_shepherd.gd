@@ -13,7 +13,7 @@ class_name ShepherdKit
 # at each of the lowest-health allies.
 # Everything is decided here, on the healer's machine: who holds how many
 # Blossoms, every heal. A party member is told through Net.support_ally (their
-# Player.receive_support): the Blossom buff, the Owl watching them, Rootguard's
+# StringsKit.receive_support): the Blossom buff, the Owl watching them, Rootguard's
 # shield; they answer "owl_hit" (they were hit: the owl dives) and
 # "rootguard_broke" (the shield was used up). A friendly dummy is handled here.
 # Own only: only my rooted creatures use my Blossoms. Numbers: balance.gd
@@ -78,14 +78,14 @@ func blossoms_on(who: Variant) -> int:   # untyped: may be a freed node
 	if who == null or not is_instance_valid(who) or not (who is Node):
 		return 0
 	var e: Variant = _blossoms.get((who as Node).get_instance_id())
-	return int(e["n"]) if e != null and float(e["until"]) > player._str_now() else 0
+	return int(e["n"]) if e != null and float(e["until"]) > player.strings._str_now() else 0
 
 ## `k` more Blossoms on `who` (their time starts over).
 func _add_blossom(who: Node3D, k: int) -> void:
 	if who == null or not is_instance_valid(who) or k <= 0:
 		return
 	var n := blossom_add(blossoms_on(who), k)
-	_blossoms[who.get_instance_id()] = {"who": who, "n": n, "until": player._str_now() + Balance.BLOSSOM_TIME}
+	_blossoms[who.get_instance_id()] = {"who": who, "n": n, "until": player.strings._str_now() + Balance.BLOSSOM_TIME}
 	_show_blossoms(who, n, Balance.BLOSSOM_TIME)
 
 ## Use up my Blossoms on `who`: how many there were.
@@ -146,7 +146,7 @@ static func make_rootguard_fx(time: float) -> Resource:
 func _tick_shepherd() -> void:
 	if _blossoms.is_empty() and _owls.is_empty():
 		return
-	var now := player._str_now()
+	var now := player.strings._str_now()
 	for key in _blossoms.keys():
 		var e: Dictionary = _blossoms[key]
 		if float(e["until"]) <= now or not is_instance_valid(e["who"]):
@@ -188,7 +188,7 @@ func _shepherd_cast_heal(spell: String, tgt: Variant, _kind: String) -> void:
 		return
 	var who: Node3D = tgt
 	if spell == DEWFALL_ID:
-		player._heal_coef(who, float(Abilities.HEALS[DEWFALL_ID]) * dewfall_mult(blossoms_on(who)), DEWFALL_ID)
+		player.strings._heal_coef(who, float(Abilities.HEALS[DEWFALL_ID]) * dewfall_mult(blossoms_on(who)), DEWFALL_ID)
 		player._ring_effect(0.9, BLOSSOM_COLOR, who.global_position)
 	else:
 		_fawn(who, FAWN_ID, player._muzzle() if player.is_inside_tree() else player.global_position)
@@ -198,7 +198,7 @@ func _woven_heal(who: Node3D, coef: float, id: String) -> void:
 	var h: Variant = who.get("health")
 	var mh: Variant = who.get("max_health")
 	var missing := int(mh) - int(h) if h != null and mh != null else 1 << 30
-	var amount := player._heal_coef(who, coef, id)
+	var amount := player.strings._heal_coef(who, coef, id)
 	_add_blossom(who, 2 if overheals(amount, missing) else 1)
 
 # Fawn: a chain from ally to ally.
@@ -237,7 +237,7 @@ func _wild_herd(radius: float) -> void:
 # Owl: watches an ally, dives when they are hit.
 
 func _owl(who: Node3D) -> void:
-	_owls[who.get_instance_id()] = {"who": who, "until": player._str_now() + Balance.OWL_TIME}
+	_owls[who.get_instance_id()] = {"who": who, "until": player.strings._str_now() + Balance.OWL_TIME}
 	if is_same(who, player):
 		_owl_watched(player, Balance.OWL_TIME)
 	elif who.is_in_group("friendly"):
@@ -252,7 +252,7 @@ func _owl(who: Node3D) -> void:
 func _owl_watched(from: Node, time: float) -> void:
 	if from == null or not is_instance_valid(from) or player.status == null or player.is_dead():
 		return
-	_owl_from[from.get_instance_id()] = {"from": from, "until": player._str_now() + time}
+	_owl_from[from.get_instance_id()] = {"from": from, "until": player.strings._str_now() + time}
 	player.status.apply(make_owl_fx(time), from)
 	player.status.set_remaining_from(OWL_FX, from, time)
 
@@ -260,7 +260,7 @@ func _owl_watched(from: Node, time: float) -> void:
 func _owl_taken(info: RefCounted) -> void:
 	if _owl_from.is_empty() or info.avoided():
 		return
-	var now := player._str_now()
+	var now := player.strings._str_now()
 	for key in _owl_from.keys():
 		var from: Variant = _owl_from[key]["from"]
 		var live := float(_owl_from[key]["until"]) > now
@@ -349,7 +349,7 @@ func _heartwood_elk(radius: float) -> void:
 			if not is_instance_valid(a) or not a.is_alive():
 				continue
 			var n := _take_blossoms(a)
-			player._heal_coef(a, WeaverKit.rooted_coef(float(Abilities.HEALS[ELK_ID]), Balance.ELK_PER_BLOSSOM, n) * share, ELK_ID)
+			player.strings._heal_coef(a, WeaverKit.rooted_coef(float(Abilities.HEALS[ELK_ID]), Balance.ELK_PER_BLOSSOM, n) * share, ELK_ID)
 			if n >= Balance.BLOSSOM_MAX:
 				player.hymns._hymn_dr(a, FULL_BLOOM_FX, Balance.FULL_BLOOM_PCT, Balance.FULL_BLOOM_TIME)   # Full Bloom
 		player._ring_effect(radius, BLOSSOM_COLOR))

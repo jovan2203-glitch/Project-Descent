@@ -23,6 +23,10 @@ const BLIZZARD_RADIUS = 2.5
 # --- Components ----------------------------------------------------------------------------
 # Each spec's own code lives in a component (scripts/player/*.gd, see player_kit.gd),
 # made here as a child node; tools/split_section.pl adds the line for each one.
+var decay: DecayKit = _kit(DecayKit) as DecayKit
+var shadow_talents: ShadowTalentsKit = _kit(ShadowTalentsKit) as ShadowTalentsKit
+var hounds: HoundsKit = _kit(HoundsKit) as HoundsKit
+var strings: StringsKit = _kit(StringsKit) as StringsKit
 var hymns: HymnsKit = _kit(HymnsKit) as HymnsKit
 var censer: CenserKit = _kit(CenserKit) as CenserKit
 var prism_kit: PrismsKit = _kit(PrismsKit) as PrismsKit
@@ -134,6 +138,50 @@ func overture_ready(spell: String) -> bool:
 func verses_text(id: String) -> String:
 	return hymns.verses_text(id)
 
+
+# Forwards to StringsKit (called from other scripts).
+func string_time() -> float:
+	return strings.string_time()
+
+func strings_placed() -> int:
+	return strings.strings_placed()
+
+func strings_out() -> int:
+	return strings.strings_out()
+
+func string_charges() -> int:
+	return strings.string_charges()
+
+func strings_on(who: Variant) -> int:
+	return strings.strings_on(who)
+
+func on_my_string(who: Variant) -> bool:
+	return strings.on_my_string(who)
+
+func receive_support(kind: String, from: Node, data: Dictionary) -> void:
+	strings.receive_support(kind, from, data)
+
+
+# Forwards to HoundsKit (called from other scripts).
+func hounds_out() -> bool:
+	return hounds.hounds_out()
+
+
+# Forwards to ShadowTalentsKit (called from other scripts).
+func crit_hit_bonus(info: RefCounted) -> Array:
+	return shadow_talents.crit_hit_bonus(info)
+
+
+# Forwards to DecayKit (called from other scripts).
+func interest_ready() -> bool:
+	return decay.interest_ready()
+
+func decay_on(foe: Variant) -> float:
+	return decay.decay_on(foe)
+
+func decay_open_on(foe: Variant) -> bool:
+	return decay.decay_open_on(foe)
+
 # --- End of components ---
 
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
@@ -171,7 +219,7 @@ var god_mode := false   # debug: /god
 func take_damage(amount: int) -> void:
 	if health <= 0 or amount <= 0 or god_mode:
 		return
-	amount = _still_standing_limit(amount)   # Still Standing: the Strings hold off a killing blow
+	amount = strings._still_standing_limit(amount)   # Still Standing: the Strings hold off a killing blow
 	amount = censer._unfallen_cap(amount)           # Unfallen: nothing can kill me
 	if amount <= 0:
 		return
@@ -444,9 +492,9 @@ func _ready() -> void:
 	_bus().damage_dealt.connect(_on_damage_dealt_fire)
 	_bus().damage_dealt.connect(_on_damage_dealt_lightning)
 	_bus().damage_dealt.connect(_on_damage_dealt_arcane)
-	_bus().damage_dealt.connect(_on_damage_dealt_shadow)
-	_bus().enemy_died.connect(_on_enemy_died_shadow)   # Carrion
-	_bus().heal_done.connect(_on_heal_done_strings)    # the Strings share my heals
+	_bus().damage_dealt.connect(decay._on_damage_dealt_shadow)
+	_bus().enemy_died.connect(shadow_talents._on_enemy_died_shadow)   # Carrion
+	_bus().heal_done.connect(strings._on_heal_done_strings)    # the Strings share my heals
 	_bus().heal_done.connect(hymns._on_heal_done_hymns)      # the Hymns: Chorus, Vigil, Mercy's Ear
 	_bus().damage_dealt.connect(hymns._on_damage_dealt_holy)  # High Note's heal
 	_bus().cast_finished.connect(_pact_on_ability)     # Pact of the Purist: an ability of mine went off
@@ -619,8 +667,8 @@ func _unhandled_input(event: InputEvent) -> void:
 					_start_thunderhead(cast_point)
 				elif placing_id == COLLAPSE_ID:
 					_start_collapse(cast_point)
-				elif placing_id == PALL_ID:
-					_start_pall(cast_point)
+				elif placing_id == DecayKit.PALL_ID:
+					decay._start_pall(cast_point)
 				elif placing_id == WeaverKit.MOSSBACK_ID or placing_id == WeaverKit.VIPERS_ID:
 					weaver._start_finisher(placing_id, cast_point)
 				else:
@@ -713,8 +761,8 @@ func use_ability(id: String) -> void:
 	# An instant ability went off (casts start the GCD in _begin_spell).
 	if _acted and on_gcd(id) and gcd_left <= 0.0:
 		_start_gcd()
-		if id == STRING_ID:   # String: a short global cooldown, so several can be tied quickly
-			gcd_total = string_gcd(gcd_total)
+		if id == StringsKit.STRING_ID:   # String: a short global cooldown, so several can be tied quickly
+			gcd_total = StringsKit.string_gcd(gcd_total)
 			gcd_left = gcd_total
 
 ## Enemy-targeted bolt spells with a cast time (same flow as Frost Bolt).
@@ -750,9 +798,9 @@ const SUPPORT_CASTS := ["rimeshell", "flashfreeze", "hoist", "patchup", "psalm",
 const BASE_INSTANTS := ["stoneguard", "taunt"]
 
 func _use_ability_now(id: String) -> void:
-	if id == BLIGHT_ID and (_has_rune(OPEN_WOUND_RUNE) or interest_ready()):
+	if id == DecayKit.BLIGHT_ID and (_has_rune(DecayKit.OPEN_WOUND_RUNE) or decay.interest_ready()):
 		cancel_placement()
-		_blight_now()   # Rune of the Open Wound: instant, on a cooldown. Interest's capstone: instant, once
+		decay._blight_now()   # Rune of the Open Wound: instant, on a cooldown. Interest's capstone: instant, once
 		return
 	if id in ENEMY_BOLTS:
 		cancel_placement()
@@ -1115,7 +1163,7 @@ func _on_hit_extra(enemy: Node, at: Vector3, id: String) -> void:
 			_shatter_shot_landed(enemy, at)   # on a target I had Frozen: it thaws and the ice bursts
 		"shadowstrike":
 			# Share the Kill: Leeching Strike heals for more while my Hounds are out.
-			heal(float(Abilities.HEALS[id]) * leech_heal_mult(hounds_out(), _talent("shadow_share_the_kill")), id)
+			heal(float(Abilities.HEALS[id]) * HoundsKit.leech_heal_mult(hounds.hounds_out(), _talent("shadow_share_the_kill")), id)
 
 # Instant, free cast triggered by an rune (e.g. Rune of Frost).
 func proc_cast(ability_id: String, enemy: Node) -> void:
@@ -1186,11 +1234,11 @@ func can_afford(id: String, report: bool = false) -> bool:
 			_error("None of your Reflections has shattered")
 		return false
 	# String ties one from my hand; Not Finished With You takes several.
-	if id == STRING_ID and string_charges() < 1:
+	if id == StringsKit.STRING_ID and strings.string_charges() < 1:
 		if report:
 			_error("No Strings left in your hand")
 		return false
-	if id == NOT_FINISHED_ID and string_charges() < Balance.NOT_FINISHED_STRINGS:
+	if id == StringsKit.NOT_FINISHED_ID and strings.string_charges() < Balance.NOT_FINISHED_STRINGS:
 		if report:
 			_error("Requires %d Strings in your hand" % Balance.NOT_FINISHED_STRINGS)
 		return false
@@ -1268,8 +1316,8 @@ func _pay(id: String) -> bool:
 		if res == "energy" and cost > 0.0:
 			_redline()   # Redline: Energy spent during Overdrive makes it last longer
 			_storm_cycle_spent(cost)   # Storm Cycle counts what I spend
-		if rouses(res, cost):
-			_rouse_hounds()   # Shadow melee: spending Rage Rouses my Hounds
+		if HoundsKit.rouses(res, cost):
+			hounds._rouse_hounds()   # Shadow melee: spending Rage Rouses my Hounds
 	return true
 
 func _gain(res: String, amount: float) -> void:
@@ -1290,7 +1338,7 @@ func _tick_resources(delta: float) -> void:
 		return
 	_gain("mana", MANA_REGEN * mana_unit() * delta)
 	_gain("energy", energy_regen(ENERGY_REGEN, _talent("lightning_quick_charge")) * delta)   # Quick Charge
-	_gain("rage", -rage_decay(RAGE_DECAY, _talent("shadow_thick_blood")) * delta)   # Thick Blood
+	_gain("rage", -HoundsKit.rage_decay(RAGE_DECAY, _talent("shadow_thick_blood")) * delta)   # Thick Blood
 
 # --- Natural health regeneration (WoW-style) ------------------------------------------
 # A trickle in combat, fast once the fight is over (after a short delay).
@@ -1399,7 +1447,7 @@ func cooldown_left(id: String) -> float:
 	var left := float(cooldowns.get(id, 0.0))
 	if id == STORM_ARROW_ID and quiver_loaded():
 		left = 0.0   # Loaded Quiver: its arrows ignore the cooldown
-	if id == BLIGHT_ID and interest_ready():
+	if id == DecayKit.BLIGHT_ID and decay.interest_ready():
 		left = 0.0   # Interest: the instant Blight ignores the rune's cooldown
 	return maxf(left, gcd_left if on_gcd(id) else 0.0)
 
@@ -1411,7 +1459,7 @@ func cooldown_total(id: String) -> float:
 	var own := 0.0 if (id == STORM_ARROW_ID and quiver_loaded()) else float(cooldowns.get(id, 0.0))   # (Loaded Quiver)
 	if on_gcd(id) and gcd_left > own:
 		return gcd_total   # the sweep is the global cooldown right now
-	if id == BLIGHT_ID and own > 0.0 and not interest_ready():
+	if id == DecayKit.BLIGHT_ID and own > 0.0 and not decay.interest_ready():
 		return Balance.OPEN_WOUND_COOLDOWN   # Rune of the Open Wound: Blight has a cooldown
 	var res := Abilities.get_resource(id)
 	return Abilities.cooldown_of(res) if res else 1.0
@@ -1573,7 +1621,7 @@ func _on_damage_modify(info: RefCounted) -> void:
 				info.add_bonus(-(Balance.BRAND_PCT + _talent("fire_deep_brand")), "Brand")   # + Deep Brand
 		_reflection_talents_incoming(info)   # Empty Room, Bent Light
 		_guard_incoming(info)   # Reflex Arc, Faraday Guard
-		_crossed_incoming(info) # Crossed Strings: part of it goes to an enemy
+		strings._crossed_incoming(info) # Crossed Strings: part of it goes to an enemy
 		_pact_incoming(info)    # my Pact: more or less damage taken
 		return
 	if info.source != self:
@@ -1611,7 +1659,7 @@ func _on_damage_modify(info: RefCounted) -> void:
 	var id := str(info.ability_id)
 	_borrowed_time_hit(info, id)   # Borrowed Time: the next spell or ability after a long cooldown comes back
 	_open_talents_modify(info)   # Feed the Flames, Change of Pace, Dig In
-	_shadow_talents_modify(info, id)   # Slow Death, Finish It, Inevitable, Spite
+	shadow_talents._shadow_talents_modify(info, id)   # Slow Death, Finish It, Inevitable, Spite
 	_empower_weapon_ability(info, id)   # Static Step, Polar Strike's charge
 	# Running on Empty: with little Energy left, my Lightning spells and abilities hit harder.
 	var empty := _talent("lightning_running_on_empty")
@@ -2226,10 +2274,10 @@ func _begin_spell(spell: String, display_name: String, duration: float, channel:
 		duration = maxf(duration - _talent("holy_quick_lance"), 0.2)   # Quick Lance
 	elif spell == GLACIAL_DRAW_ID:
 		duration = thin_ice_cast(duration, _talent("frost_thin_ice"), _chilled_by_me(target))   # Thin Ice
-	elif spell == HOIST_ID:
-		duration = heave_cast(duration, strings_on(_cast_target), _capstone("shadow_heave"))   # Heave's capstone
-	elif spell == ERODE_ID:
-		duration = deep_call_cast(duration, _talent("shadow_deep_call"), decay_open_on(target))   # Deep Call
+	elif spell == StringsKit.HOIST_ID:
+		duration = StringsKit.heave_cast(duration, strings.strings_on(_cast_target), _capstone("shadow_heave"))   # Heave's capstone
+	elif spell == DecayKit.ERODE_ID:
+		duration = StringsKit.deep_call_cast(duration, _talent("shadow_deep_call"), decay.decay_open_on(target))   # Deep Call
 	duration /= haste_mult()
 	if Abilities.is_a(spell, "frostbolt") and frozen_instinct_ready():
 		duration = 0.05   # Frozen Instinct: instant (released next frame)
@@ -2364,8 +2412,8 @@ func _release_cast() -> void:
 	if spell == COLLAPSE_ID:
 		_cast_collapse()
 		return
-	if spell == PALL_ID:
-		_cast_pall()
+	if spell == DecayKit.PALL_ID:
+		decay._cast_pall()
 		return
 	if spell == CRUCIBLE_ID:
 		_place_crucible(false)
@@ -2491,11 +2539,11 @@ func _process(_delta: float) -> void:
 	_tick_permafrost()
 	_tick_fuses()
 	_tick_countdowns()
-	_tick_decay()
+	decay._tick_decay()
 	_tick_grounded()
 	_tick_dusk()
-	_tick_hounds()
-	_tick_strings()
+	hounds._tick_hounds()
+	strings._tick_strings()
 	hymns._tick_hymns()
 	_tick_pact(_delta)
 	_tick_live_wire()
@@ -2734,7 +2782,7 @@ func _use_drafted(id: String) -> void:
 		return
 	if not _pay(id):
 		return
-	_hounds_on_ability(id)   # Shadow melee: with no Hounds out, its abilities call them
+	hounds._hounds_on_ability(id)   # Shadow melee: with no Hounds out, its abilities call them
 	var cd_before := float(cooldowns.get(id, 0.0))
 	cooldowns[id] = Abilities.cooldown_of(res)   # (with talents: Thick Hide)
 	if id == STORM_ARROW_ID:
@@ -2752,9 +2800,9 @@ func _use_drafted(id: String) -> void:
 		rotation.y = atan2(-dir.x, -dir.z)
 	var muzzle := _muzzle()
 	match id:
-		STRING_ID, TUG_ID, CRADLE_ID, WRENCH_ID, PULL_TAUT_ID, CUPPED_HANDS_ID, STRING_UP_ID, RESTRING_ID, KNOT_ID, TANGLE_ID, \
-				YANK_ID, DOUBLE_THREAD_ID, BEHIND_ID, SLACK_ID, STILL_STANDING_ID, CUT_STRINGS_ID, NOT_FINISHED_ID:
-			_string_use(id, res)   # Shadow healer: the Strings
+		StringsKit.STRING_ID, StringsKit.TUG_ID, StringsKit.CRADLE_ID, StringsKit.WRENCH_ID, StringsKit.PULL_TAUT_ID, StringsKit.CUPPED_HANDS_ID, StringsKit.STRING_UP_ID, StringsKit.RESTRING_ID, StringsKit.KNOT_ID, StringsKit.TANGLE_ID, \
+				StringsKit.YANK_ID, StringsKit.DOUBLE_THREAD_ID, StringsKit.BEHIND_ID, StringsKit.SLACK_ID, StringsKit.STILL_STANDING_ID, StringsKit.CUT_STRINGS_ID, StringsKit.NOT_FINISHED_ID:
+			strings._string_use(id, res)   # Shadow healer: the Strings
 		"lift", "refrain", "antiphon", "shelter", "steadyvoice", "reprise", "swell", "rest", "lastverse", "singmercy", "singchorus", "singvigil":
 			hymns._hymn_use(id, res)   # Holy healer: the Hymns
 		CenserKit.CENSER_SWING_ID, CenserKit.HALLOWED_ARC_ID, CenserKit.BECKON_ID, CenserKit.POUR_OUT_ID, CenserKit.ABSOLVE_ID, CenserKit.AUREOLE_ID, CenserKit.GATHER_ID, CenserKit.RAISE_CENSER_ID, CenserKit.UNFALLEN_ID:
@@ -3063,8 +3111,8 @@ func _use_drafted(id: String) -> void:
 		"counterspell", "kick", "pummel", "rimelock", "jolt", "hush":
 			# (Hush: was there a cast to stop? Asked before anything lands.)
 			var hush_foe: Node3D = target
-			var hush_stops: bool = id == HUSH_ID and target.has_method("cast_progress") and float(target.cast_progress()) >= 0.0
-			if id == "counterspell" or id == "rimelock" or id == JOLT_ID or id == HUSH_ID:
+			var hush_stops: bool = id == DecayKit.HUSH_ID and target.has_method("cast_progress") and float(target.cast_progress()) >= 0.0
+			if id == "counterspell" or id == "rimelock" or id == JOLT_ID or id == DecayKit.HUSH_ID:
 				_ring_effect(0.9, Abilities.color_of(id), target.global_position)
 			else:
 				deal_damage(target, _weapon_hit(w, res), id)
@@ -3082,43 +3130,43 @@ func _use_drafted(id: String) -> void:
 			if id == "rimelock":
 				_chill(target, id)   # Rimelock also Chills
 				_ring_effect(0.5, Color(0.95, 0.97, 1.0), target.global_position)
-			if id == HUSH_ID:
-				_hush(hush_foe, float(res.damage), hush_stops)   # its own hit, and what it adds to an open Decay
+			if id == DecayKit.HUSH_ID:
+				decay._hush(hush_foe, float(res.damage), hush_stops)   # its own hit, and what it adds to an open Decay
 		# --- Shadow melee (see "Shadow melee: the Hounds" below) ---
 		"sic", "openup":
 			# (My Hounds go for what I strike: _hounds_on_hit. Open Up's mark is its on-hit effect.)
 			deal_damage(target, _weapon_hit(w, res), id)
-			for i in (2 if id == OPEN_UP_ID else 1):
-				_slash_effect(HOUND_COLOR)
+			for i in (2 if id == HoundsKit.OPEN_UP_ID else 1):
+				_slash_effect(HoundsKit.HOUND_COLOR)
 		"bothatonce":
 			var both_foe: Node3D = target
 			deal_damage(both_foe, _weapon_hit(w, res), id)
 			for i in 2:
-				_slash_effect(HOUND_COLOR)
-			_hounds_lunge(both_foe)
+				_slash_effect(HoundsKit.HOUND_COLOR)
+			hounds._hounds_lunge(both_foe)
 			# Again: a chance that it is ready again at once.
-			if again_resets(randf() * 100.0, _talent("shadow_again")):
-				cooldowns.erase(BOTH_AT_ONCE_ID)
-				_combat().float_text(self, "Again", HOUND_COLOR.lightened(0.3), false)
+			if HoundsKit.again_resets(randf() * 100.0, _talent("shadow_again")):
+				cooldowns.erase(HoundsKit.BOTH_AT_ONCE_ID)
+				_combat().float_text(self, "Again", HoundsKit.HOUND_COLOR.lightened(0.3), false)
 		"runthemdown":
-			_run_them_down(w, res)
+			hounds._run_them_down(w, res)
 		"guarddogs":
-			_start_guard_dogs()
+			hounds._start_guard_dogs()
 		"offthechain":
-			_start_off_the_chain()
+			hounds._start_off_the_chain()
 		"bringitdown":
-			_bring_it_down()   # (that there are Hounds with something to drag down: _drafted_precheck)
+			hounds._bring_it_down()   # (that there are Hounds with something to drag down: _drafted_precheck)
 		# --- Shadow caster (see "Shadow caster: Decay" below) ---
 		"calldue":
-			_call_due()   # (my Decay on the target is checked in _drafted_precheck)
+			decay._call_due()   # (my Decay on the target is checked in _drafted_precheck)
 		"gnaw":
-			_gnaw(res)
+			decay._gnaw(res)
 		"spill":
-			_spill()
+			decay._spill()
 		"takeitback":
-			_take_it_back()
+			decay._take_it_back()
 		"bottomless":
-			_start_bottomless()
+			decay._start_bottomless()
 		# --- Frost: Rime Shell kit ---
 		"shatteringwave":
 			_shattering_wave(float(res.radius))
@@ -3148,8 +3196,8 @@ func _enemies_near(point: Vector3, radius: float, exclude: Node = null) -> Array
 
 ## Ability-specific "can I use it right now?" checks (before paying).
 func _drafted_precheck(id: String, _res: Resource, w: Dictionary) -> String:
-	if STRING_INSTANTS.has(id):
-		return _string_precheck(id)   # Shadow healer
+	if StringsKit.STRING_INSTANTS.has(id):
+		return strings._string_precheck(id)   # Shadow healer
 	if HymnsKit.HYMN_INSTANTS.has(id):
 		return hymns._hymn_precheck(id)    # Holy healer
 	if CenserKit.CENSER_IDS.has(id):
@@ -3183,12 +3231,12 @@ func _drafted_precheck(id: String, _res: Resource, w: Dictionary) -> String:
 			if traces() <= 0:
 				return "You have no Traces"
 		"calldue", "takeitback":
-			if decay_on(target) <= 0.0:
-				return DECAY_ERROR
+			if decay.decay_on(target) <= 0.0:
+				return DecayKit.DECAY_ERROR
 		"bringitdown":
-			return bring_down_error(hounds_out(), _prey_ok(_hound_prey) or (_has_valid_target() and _prey_ok(target)))
+			return HoundsKit.bring_down_error(hounds.hounds_out(), hounds._prey_ok(hounds._hound_prey) or (_has_valid_target() and hounds._prey_ok(target)))
 		"spill":
-			return spill_error(decay_on(target), _spill_targets(target).size() if _has_valid_target() else 0)
+			return DecayKit.spill_error(decay.decay_on(target), decay._spill_targets(target).size() if _has_valid_target() else 0)
 		"multishot":
 			if _multishot_targets(float(w["attack_range"])).is_empty():
 				return "No enemies in range"
@@ -3456,8 +3504,8 @@ func _start_support_cast(id: String) -> void:
 	if pick[0] == null and str(pick[1]) != "":
 		_error(str(pick[1]))
 		return
-	if id == HOIST_ID and not on_my_string(pick[0]):   # Hoist: only someone on one of my Strings
-		_error(NOT_ON_STRING)
+	if id == StringsKit.HOIST_ID and not strings.on_my_string(pick[0]):   # Hoist: only someone on one of my Strings
+		_error(StringsKit.NOT_ON_STRING)
 		return
 	if not can_afford(id, true):
 		return
@@ -3515,7 +3563,7 @@ func _release_support(spell: String) -> void:
 		"flashfreeze":
 			_flash_freeze(float(res.radius))
 		"hoist", "patchup":
-			_string_cast_heal(spell, tgt, kind)   # Shadow healer
+			strings._string_cast_heal(spell, tgt, kind)   # Shadow healer
 		"psalm", "outpour", "canticle", "exultation":
 			hymns._hymn_cast_heal(spell, tgt, kind)   # Holy healer
 		"brightlance":
@@ -5236,826 +5284,7 @@ func _clear_arcane() -> void:
 	_arcane_mark("sigil", _sigil_at, 0.0, 0.0)
 	_arcane_mark("image", _image_at, 0.0, 0.0)
 	_clear_traces()
-	_clear_decay()   # Shadow: my Decays go with me, and their debuffs
-
-# --- Shadow caster: Decay ------------------------------------------------------------------
-# NAMES. In the game this is the BREACH: a hole the caster opens in the ground
-# under an enemy, with demons clawing at its feet through it (which is why it
-# is open or closed). The code and the data keep the first names: Decay = the
-# Breach, Blight = Break Ground, Erode = Beckon, Spill = Widen, Pall = Many
-# Hands, Rune of the Open Wound = Rune of the Trapdoor, Rune of Rot = Rune of
-# Invitation, and the talents Seep = Lure, Running Over = Wider Still, Rot
-# Through = Hooked Claws, Tainted Steel = Baited Steel. Call Due, Gnaw, Hush,
-# Take It Back and Bottomless kept their names. Read "Decay" below as "what is
-# left in the Breach". (Sink In / Usher In and its talent Loose Grains were
-# removed, and so was the book's starting spell, Gloom Bolt.)
-# What it LOOKS like - the hole under the enemy and the hands clawing out of
-# it - is scripts/breach_fx.gd: the enemy shows it from its own debuffs, so
-# everyone in the party sees it.
-# Decay is my own damage over time on an enemy, kept here as an amount of real
-# damage (like Permafrost's pool). Every DECAY_TICK seconds (faster with Haste)
-# it deals DECAY_TICK_PCT % of that amount and shrinks by as much. A tick can
-# crit: what the crit adds comes on top, the amount shrinks no faster.
-# Blight puts it on a target and OPENS it for DECAY_OPEN_TIME seconds. While it
-# is open, my other Shadow spells add DECAY_FEED_PCT % of the direct damage they
-# deal to it (Blight and Erode: all of theirs). When that time is up it is
-# CLOSED: it keeps ticking but can't grow, and once less than DECAY_LAST_DROP is
-# left, its next tick deals all of it and it ends. Blight opens a closed one
-# again and keeps its amount. Call Due deals all of it at once and ends it. When
-# the enemy dies, what is left moves to the nearest enemy.
-# Own only: the amount lives here and every tick is dealt on my machine, with my
-# stats. The enemy carries a debuff that shows it to the party (decay.tres while
-# it is open, decay_closed.tres after): its stack count is the amount
-# (StatusEffectData.stacks_are_amount), its time the open time left.
-# Tainted Steel (a talent) lets my Shadow abilities add to an open Decay too,
-# and the Rune of Rot my other books' spells. Numbers are in balance.gd.
-
-const DECAY_FX := "decay"                  # the debuff that shows an open Decay
-const DECAY_CLOSED_FX := "decay_closed"    # ... and a closed one
-const DECAY_HIT_ID := "dot_decay"          # its ticks on the damage meter and in the log ("Decay (Periodic)")
-const BLIGHT_ID := "blight"
-const CALL_DUE_ID := "calldue"
-const GNAW_ID := "gnaw"
-const SPILL_ID := "spill"
-const PALL_ID := "pall"
-const HUSH_ID := "hush"
-const TAKE_IT_BACK_ID := "takeitback"
-const TAKE_IT_BACK_FX := "take_it_back"
-const BOTTOMLESS_ID := "bottomless"
-const BOTTOMLESS_FX := "bottomless"
-const ERODE_ID := "erode"
-const WITHER_TICK_ID := "dot_corrupted"    # a tick of Wither's damage over time (Seep)
-const INTEREST_FX := "interest"            # Interest's capstone: my next Blight is instant
-const DECAY_CRIT_META := "decay_crit"      # on a tick's DamageInfo: % crit chance it gets on top (Bite Down)
-## Rune of the Open Wound: Blight is instant, on a cooldown, and opens Decay for less time.
-const OPEN_WOUND_RUNE := "open_wound"
-## Rune of Rot (up to 3 equipped): my other books' spells add to an open Decay, for each copy.
-const ROT_RUNE := "rot"
-## Rune of the Long Fall (Epic): when part of what is left in my Decay would be
-## enough to kill its enemy, all of it is dealt at once (see _tick_decay).
-const LONG_FALL_RUNE := "long_fall"
-const LONG_FALL_HIT_ID := "rune_long_fall"   # that hit on the damage meter and in the log (the rune's name)
-const SHADOW_TAGS := ["Shadow", "Spell"]
-const DECAY_TAGS := ["Shadow", "Spell", "DoT"]
-const DECAY_ERROR := "Your Breach isn't under that target"
-
-## enemy instance id -> {"target": Node3D, "amount": damage it has left, "open":
-## time it closes, "next": time of its next tick, "fast": time Gnaw runs out,
-## "pos": where the enemy was last seen, "shown": the debuff that shows it,
-## "dirty": that debuff's number is out of date, "sync": when it may be sent next}
-var _decay := {}
-var _bottomless_until := 0.0   # when the Bottomless I last used runs out (No Floor holds Decay open until then)
-
-## Does something with these tags count as one of my Shadow spells?
-static func shadow_spell(tags: PackedStringArray) -> bool:
-	return tags.has("Shadow") and tags.has("Spell")
-
-## % of the damage of a hit of mine that goes into my open Decay on its target
-## (0 = none of it). Only direct hits feed it: never a tick, a proc, or Decay's
-## own damage. `ability_pct` = Tainted Steel (my Shadow abilities), `other_pct`
-## = the Rune of Rot (my spells of the other books: rot_rune_pct).
-static func decay_feed_pct(id: String, tags: PackedStringArray, is_proc: bool, is_dot: bool,
-		ability_pct: float = 0.0, other_pct: float = 0.0) -> float:
-	if is_proc or is_dot or id == DECAY_HIT_ID or id == CALL_DUE_ID:
-		return 0.0
-	if shadow_spell(tags):
-		if id == BLIGHT_ID:
-			return Balance.BLIGHT_FEED_PCT
-		return Balance.ERODE_FEED_PCT if id == ERODE_ID else Balance.DECAY_FEED_PCT   # Erode (Beckon) builds it
-	if tags.has("Shadow"):
-		return maxf(ability_pct, 0.0)
-	return maxf(other_pct, 0.0) if tags.has("Spell") else 0.0
-
-## Damage one tick of a Decay of `amount` deals (and the Decay shrinks by).
-static func decay_tick(amount: float) -> float:
-	return maxf(amount, 0.0) * Balance.DECAY_TICK_PCT / 100.0
-
-## Seconds between a Decay's ticks. `haste` = my Haste as a speed multiplier,
-## `fast` = Gnaw is on it.
-static func decay_interval(haste: float, fast: bool = false, wasting_pct: float = 0.0) -> float:
-	var speed := maxf(haste, 0.1) * (Balance.GNAW_SPEED_MULT if fast else 1.0) * dot_speed_with(1.0, wasting_pct)   # Wasting
-	return maxf(Balance.DECAY_TICK / speed, 0.05)
-
-## Rune of the Long Fall: is a Decay of `amount` big enough for an enemy with
-## `health` left? LONG_FALL_PCT % of it has to cover that health. (All of it is
-## then dealt, so there is room for whatever the enemy has to protect itself.)
-static func long_fall_applies(amount: float, health: float) -> bool:
-	return health > 0.0 and maxf(amount, 0.0) * Balance.LONG_FALL_PCT / 100.0 >= health
-
-## No Floor: must a Decay that closes at `open_until` be kept open? `hold_until`
-## = when Bottomless ends (0 = it is not running, or no capstone). Only one that
-## is still open is held: a closed one stays closed.
-static func decay_held_open(open_until: float, now: float, hold_until: float) -> bool:
-	return hold_until > now and open_until > now and open_until < hold_until
-
-## Is a Decay of `amount` down to its last drop (its next tick deals all of it
-## and ends it)? Only a closed one ends that way. `unit` = the real damage of a
-## standard spell hit of mine.
-static func decay_last_drop(amount: float, open: bool, unit: float) -> bool:
-	return not open and amount < Balance.DECAY_LAST_DROP * maxf(unit, 0.0)
-
-## Call Due: the damage of taking out a Decay of `amount` (`extra_pct` = Interest).
-static func call_due_damage(amount: float, extra_pct: float = 0.0) -> float:
-	return maxf(amount, 0.0) * (1.0 + (Balance.CALL_DUE_BONUS_PCT + maxf(extra_pct, 0.0)) / 100.0)
-
-## Small Change: what Call Due leaves on the target of a Decay of `amount`.
-static func call_due_left(amount: float, pct: float) -> float:
-	return maxf(amount, 0.0) * clampf(pct, 0.0, 100.0) / 100.0
-
-## Next of Kin: what moves on of a Decay with `left` in it when its enemy dies
-## (`pct` = the talent). `second` = what the next nearest enemy gets (its capstone).
-static func kin_amount(left: float, pct: float, second: bool = false) -> float:
-	var moved := maxf(left, 0.0) * (1.0 + maxf(pct, 0.0) / 100.0)
-	return moved * Balance.NEXT_OF_KIN_SECOND_PCT / 100.0 if second else moved
-
-## Seep: % of a hit's damage that goes into my open Decay because it is a tick
-## of Wither (`pct` = the talent; 0 = it is not, or no talent).
-static func seep_feed_pct(id: String, pct: float) -> float:
-	return maxf(pct, 0.0) if id == WITHER_TICK_ID else 0.0
-
-## Seconds Bottomless lasts (`extra` = No Floor).
-static func bottomless_time(extra: float = 0.0) -> float:
-	return Balance.BOTTOMLESS_TIME + maxf(extra, 0.0)
-
-## % more a tick of my Decay deals: Slow Death (all my damage over time), Rot
-## Through (Decay's ticks) and, on the last drop, Bitter End. As [pct, label]
-## pairs, one for each that adds something (each gets its own line on the meter).
-static func decay_tick_bonuses(slow_death: float, rot_through: float, bitter_end: float, last_drop: bool) -> Array:
-	var out: Array = []
-	if slow_death > 0.0:
-		out.append([slow_death, "Slow Death"])
-	if rot_through > 0.0:
-		out.append([rot_through, "Hooked Claws"])
-	if last_drop and bitter_end > 0.0:
-		out.append([bitter_end, "Bitter End"])
-	return out
-
-## Interest's capstone: is my next Blight instant?
-func interest_ready() -> bool:
-	return status != null and status.has(INTEREST_FX)
-
-## Spill: what each copy of a Decay of `amount` gets.
-## (`extra_pct` = Running Over.)
-static func spill_amount(amount: float, extra_pct: float = 0.0) -> float:
-	return maxf(amount, 0.0) * (Balance.SPILL_PCT + maxf(extra_pct, 0.0)) / 100.0
-
-## Until when a copy Spill makes is open: as long as the Decay it came from
-## (`open_until`), and with Running Over's capstone (`at_least`) never less than
-## RUNNING_OVER_OPEN_TIME from `now`.
-static func spill_open_until(open_until: float, now: float, at_least: bool) -> float:
-	return maxf(open_until, now + Balance.RUNNING_OVER_OPEN_TIME) if at_least else open_until
-
-## Bite Down: % crit chance a tick of my Decay gets on top (`fast` = Gnaw is on
-## it, `pct` = the talent).
-static func bite_down_crit(fast: bool, pct: float) -> float:
-	return maxf(pct, 0.0) if fast else 0.0
-
-## Cut Short: what Hush's cooldown is after it interrupted a cast, when it had
-## `left` to go and the talent takes `cut` seconds off. Never under what all
-## interrupts share (or what it already was, if that is less).
-static func cut_short_cooldown(left: float, cut: float) -> float:
-	return maxf(left - maxf(cut, 0.0), minf(left, Balance.INTERRUPT_SHARED_COOLDOWN))
-
-## Why Spill can't be used on a target with `amount` of my Decay and `others`
-## enemies in reach of it ("" = it can).
-static func spill_error(amount: float, others: int) -> String:
-	if amount <= 0.0:
-		return DECAY_ERROR
-	return "" if others > 0 else "No other enemy in reach"
-
-## Take It Back: what it takes off a Decay of `amount` (the shield, before Rime Ward).
-static func take_back_amount(amount: float) -> float:
-	return maxf(amount, 0.0) * Balance.TAKE_IT_BACK_PCT / 100.0
-
-## % of the direct damage of my other books' spells that goes into an open
-## Decay with `copies` Runes of Rot equipped (each copy adds as much; never more
-## than the rune allows to be equipped).
-static func rot_rune_pct(copies: int) -> float:
-	return Balance.ROT_RUNE_PCT * clampi(copies, 0, Runes.max_copies(ROT_RUNE))
-
-## How many copies of rune `id` I have equipped and active.
-func _rune_count(id: String) -> int:
-	var rl := get_node_or_null("RuneListener")
-	return int(rl.rune_count(id)) if rl != null and rl.has_method("rune_count") else 0
-
-## Seconds Blight opens Decay for (`quick` = the Rune of the Open Wound).
-static func blight_open_time(quick: bool) -> float:
-	return Balance.OPEN_WOUND_OPEN_TIME if quick else Balance.DECAY_OPEN_TIME
-
-## Hush: what it adds to an open Decay when it interrupts a cast (`unit` = the
-## real damage of a standard spell hit of mine).
-static func hush_decay(unit: float) -> float:
-	return Balance.HUSH_DECAY * maxf(unit, 0.0)
-
-## A Decay that gets another one's amount and open time (a copy from Spill, or
-## what a dead enemy left behind): [amount, time it closes]. The amounts add up,
-## and it stays open for as long as either of the two would have.
-static func decay_merge(amount: float, open_until: float, add: float, add_open_until: float) -> Array:
-	return [maxf(amount, 0.0) + maxf(add, 0.0), maxf(open_until, add_open_until)]
-
-const BREACH_FX = preload("res://scripts/breach_fx.gd")
-## Hands that claw up under an enemy when one of these spells of mine hits it:
-## [how many, how far up its body they reach (a share of its height)].
-const CLAW_HITS := {"blight": [5, 0.6], "erode": [2, 0.4], "gnaw": [4, 0.3], "hush": [1, 0.95]}
-
-## Hands claw up out of the ground at `at` (a point on the ground), `count` of
-## them within `radius`, `height` metres tall. Only a picture (breach_fx.gd);
-## the party sees it too.
-func _claws(at: Vector3, radius: float, count: int, height: float) -> void:
-	_net_fx("claws", at, null, {"r": radius, "n": count, "h": height})
-	BREACH_FX.burst(get_tree().current_scene, at, radius, count, height)
-
-## ... under `foe`, reaching `share` of its height.
-func _claws_at(foe: Variant, count: int, share: float) -> void:
-	if foe == null or not is_instance_valid(foe) or not (foe is Node3D):
-		return
-	var body: Dictionary = BREACH_FX.body_of(foe)
-	_claws(BREACH_FX.ground_of(foe), BREACH_FX.hole_radius(float(body["radius"])) * 0.9, count, float(body["height"]) * share)
-
-func _decay_now() -> float:
-	return Time.get_ticks_msec() / 1000.0
-
-## Real damage of a standard hit (a 1.0 coefficient) of a Shadow spell of mine.
-func _decay_unit() -> float:
-	return damage_unit() + Stats.power_bonus(PackedStringArray(SHADOW_TAGS), get_stat)
-
-## Can `foe` carry (and be hit by) my Decay right now?
-func _decay_usable(foe: Variant) -> bool:
-	if foe == null or not is_instance_valid(foe) or not (foe is Node3D) or not foe.is_alive():
-		return false
-	return not (foe.has_method("is_evading") and foe.is_evading())
-
-## My Decay on `foe` (0 = none).
-func decay_on(foe: Variant) -> float:
-	if foe == null or not is_instance_valid(foe):
-		return 0.0
-	var d: Dictionary = _decay.get((foe as Node).get_instance_id(), {})
-	return float(d.get("amount", 0.0))
-
-## Is my Decay on `foe` open (can it grow)?
-func decay_open_on(foe: Variant) -> bool:
-	if foe == null or not is_instance_valid(foe):
-		return false
-	var d: Dictionary = _decay.get((foe as Node).get_instance_id(), {})
-	return not d.is_empty() and _decay_now() < float(d["open"])
-
-## My Decay on `foe`, made (empty and closed) if there is none yet.
-func _decay_entry(foe: Node3D) -> Dictionary:
-	var key := foe.get_instance_id()
-	if not _decay.has(key):
-		_decay[key] = {"target": foe, "amount": 0.0, "open": 0.0,
-			"next": _decay_now() + decay_interval(haste_mult(), false, _talent("shadow_wasting")),
-			"fast": 0.0, "pos": foe.global_position, "shown": "", "dirty": true, "sync": 0.0}
-	return _decay[key]
-
-## Blight landed on `foe`: my Decay there is open for the next `seconds`.
-func _open_decay(foe: Node3D, seconds: float) -> void:
-	var d := _decay_entry(foe)
-	var now := _decay_now()
-	d["open"] = maxf(float(d["open"]), now + seconds)
-	_decay_show(d, now, true)
-
-## Add `amount` damage to my Decay on `foe`, if it is open. Returns true if it grew.
-func _decay_feed(foe: Variant, amount: float) -> bool:
-	if amount <= 0.0 or not decay_open_on(foe):
-		return false
-	var d: Dictionary = _decay[(foe as Node).get_instance_id()]
-	d["amount"] = float(d["amount"]) + amount
-	d["dirty"] = true
-	return true
-
-## Every hit I deal (SignalBus.damage_dealt). Blight opens my Decay on its
-## target; a direct hit on a target whose Decay is open adds its share to it.
-func _on_damage_dealt_shadow(info: RefCounted) -> void:
-	if not is_same(info.source, self) or info.avoided() or int(info.amount) <= 0:
-		return
-	_pact_acted(info)    # Pact of the Relentless: I hit something
-	_dusk_on_hit(info)   # Dusk till Dawn: any Shadow damage of mine starts Dusk
-	_hounds_on_hit(info)   # Shadow melee: my Hounds go for the enemy I last struck
-	var foe: Variant = info.target
-	if not _decay_usable(foe):
-		return
-	_note_first_hit(foe)   # Inevitable counts from my first damage to it
-	var id := str(info.ability_id)
-	if id == BLIGHT_ID and not bool(info.is_proc):
-		_open_decay(foe, blight_open_time(_has_rune(OPEN_WOUND_RUNE)))
-	if CLAW_HITS.has(id) and not bool(info.is_proc) and not bool(info.is_dot):
-		_claws_at(foe, int(CLAW_HITS[id][0]), float(CLAW_HITS[id][1]))   # what the spell looks like as it lands
-	if _decay.is_empty():
-		return
-	var pct := decay_feed_pct(id, info.tags, bool(info.is_proc), bool(info.is_dot),
-		_talent("shadow_tainted_steel"), rot_rune_pct(_rune_count(ROT_RUNE)))
-	if pct <= 0.0:
-		pct = seep_feed_pct(id, _talent("shadow_seep"))   # Seep: Wither's ticks add to it too
-	if pct > 0.0:
-		_decay_feed(foe, float(info.amount) * pct / 100.0)
-
-## Keep the debuff that shows a Decay in step with it: which one it is (open or
-## closed), the open time it has left, and its amount (the debuff's stack count,
-## sent at most every DECAY_SYNC_EVERY seconds). `fresh` = put the debuff on
-## again now (Blight reopened it, or it was given more open time).
-func _decay_show(d: Dictionary, now: float, fresh: bool = false) -> void:
-	var foe: Variant = d["target"]
-	if not _decay_usable(foe):
-		return
-	var open := now < float(d["open"])
-	var want := DECAY_FX if open else DECAY_CLOSED_FX
-	var shown := str(d["shown"])
-	if shown != want or fresh:
-		if shown != "" and shown != want:
-			_decay_unshow(foe, shown)
-		# (A hit with no damage, so in a party it reaches the host like any other effect.)
-		_apply_effect_hit(foe, preload("res://scripts/core/effects.gd").get_effect(want), DECAY_HIT_ID,
-			PackedStringArray(DECAY_TAGS), "shadow")
-		d["shown"] = want
-		if open:
-			_decay_effect_time(foe, want, float(d["open"]) - now)
-		d["dirty"] = true
-		d["sync"] = 0.0
-	if bool(d["dirty"]) and now >= float(d["sync"]):
-		d["dirty"] = false
-		d["sync"] = now + Balance.DECAY_SYNC_EVERY
-		_decay_effect_stacks(foe, want, maxi(int(round(float(d["amount"]))), 1))
-
-## Take my debuff `fx_id` off `foe` (the host owns enemy effects in a party).
-func _decay_unshow(foe: Variant, fx_id: String) -> void:
-	if fx_id == "" or foe == null or not is_instance_valid(foe):
-		return
-	var net := _net()
-	if net:
-		net.remove_effect(foe, self, fx_id)
-	else:
-		var st: Node = (foe as Node).get_node_or_null("Status")
-		if st:
-			st.remove_from(fx_id, self)
-
-## Make my debuff `fx_id` on `foe` show `seconds` left (the open time).
-func _decay_effect_time(foe: Variant, fx_id: String, seconds: float) -> void:
-	var net := _net()
-	if net:
-		net.set_effect_remaining(foe, self, fx_id, seconds)
-	else:
-		var st: Node = (foe as Node).get_node_or_null("Status")
-		if st:
-			st.set_remaining_from(fx_id, self, seconds)
-
-## Make my debuff `fx_id` on `foe` show `stacks` (the amount).
-func _decay_effect_stacks(foe: Variant, fx_id: String, stacks: int) -> void:
-	var net := _net()
-	if net:
-		net.set_effect_stacks(foe, self, fx_id, stacks)
-	else:
-		var st: Node = (foe as Node).get_node_or_null("Status")
-		if st:
-			st.set_stacks_from(fx_id, self, stacks)
-
-## My Decay on the enemy with instance id `key` is over: its debuff goes.
-func _end_decay(key: int) -> void:
-	if not _decay.has(key):
-		return
-	var d: Dictionary = _decay[key]
-	_decay.erase(key)
-	_decay_unshow(d["target"], str(d["shown"]))
-
-## Deal `amount` of my Decay's damage to `foe`: exact (what went into it was
-## already worked out hit by hit) and never avoided. A tick (`tick`) is damage
-## over time and can crit; what a crit adds comes on top of `amount`. Taken out
-## at once (Call Due) it is a direct hit that can't crit.
-## `bonuses` = [pct, label] pairs of what my talents add to it (decay_tick_bonuses).
-## `crit_bonus` = % crit chance it gets on top (Bite Down; adjust_crit adds it).
-## `proc` = a rune caused it (the Rune of the Long Fall): nothing triggers off it.
-func _decay_hit(foe: Variant, amount: float, id: String, tick: bool, bonuses: Array = [], crit_bonus: float = 0.0,
-		proc: bool = false) -> void:
-	if amount <= 0.0 or not _decay_usable(foe):
-		return
-	var hit := DamageInfo.make(self, foe, 1.0, id)
-	hit.is_proc = proc
-	if crit_bonus > 0.0:
-		hit.set_meta(DECAY_CRIT_META, crit_bonus)
-	for b in bonuses:
-		hit.add_bonus(float(b[0]), str(b[1]))
-	hit.unit = amount
-	hit.exact = true
-	hit.add_power = false
-	hit.can_crit = tick
-	hit.can_block = false
-	hit.is_dot = tick
-	hit.damage_type = "shadow"
-	hit.tags = PackedStringArray(DECAY_TAGS if tick else SHADOW_TAGS)
-	_combat().deal(hit)
-
-## Every frame: my Decays tick, close, and move on when their enemy dies.
-func _tick_decay() -> void:
-	if _decay.is_empty() or is_dead():
-		return
-	var now := _decay_now()
-	var haste := haste_mult()
-	var endless: bool = status != null and status.has(BOTTOMLESS_FX)   # Bottomless: ticks take nothing out
-	var hold := _bottomless_until if endless and _capstone("shadow_no_floor") else 0.0   # No Floor: it can't close either
-	var wasting := _talent("shadow_wasting")
-	var slow_death := _talent("shadow_slow_death")
-	var rot_through := _talent("shadow_rot_through")
-	var long_fall := _has_rune(LONG_FALL_RUNE)
-	var unit := -1.0
-	for key in _decay.keys():
-		if not _decay.has(key):
-			continue
-		var d: Dictionary = _decay[key]
-		var foe: Variant = d["target"]
-		if foe == null or not is_instance_valid(foe) or not foe.is_alive():
-			_decay.erase(key)
-			_decay_jump(d)   # what is left moves to the nearest enemy
-			continue
-		if foe.has_method("is_evading") and foe.is_evading():
-			_decay.erase(key)   # it ran home and shook everything off (its debuffs went with it)
-			continue
-		d["pos"] = (foe as Node3D).global_position
-		# Rune of the Long Fall: part of it would be enough to kill the enemy, so
-		# all of it is dealt now and it is gone. A real hit like any other: the
-		# enemy TAKES the damage (a shield on it, or a heal that reached it first,
-		# can still leave it standing); it is never simply killed.
-		if long_fall:
-			var foe_health: Variant = foe.get("health")
-			if foe_health != null and long_fall_applies(float(d["amount"]), float(foe_health)):
-				var all := float(d["amount"])
-				_end_decay(int(key))
-				_ring_effect(1.5, Abilities.color_of(CALL_DUE_ID), (foe as Node3D).global_position)
-				_claws_at(foe, 9, 1.3)   # they pull it down
-				_decay_hit(foe, all, LONG_FALL_HIT_ID, false, [], 0.0, true)
-				continue
-		# No Floor: an open Decay stays open until Bottomless is over.
-		if decay_held_open(float(d["open"]), now, hold):
-			d["open"] = hold
-			if str(d["shown"]) == DECAY_FX:
-				_decay_effect_time(foe, DECAY_FX, hold - now)
-		if now >= float(d["next"]):
-			var fast := now < float(d["fast"])   # Gnaw is on it
-			d["next"] = now + decay_interval(haste, fast, wasting)
-			if unit < 0.0:
-				unit = _decay_unit()
-			var bite := bite_down_crit(fast, _talent("shadow_bite_down"))   # Bite Down: more crits during Gnaw
-			var amount := float(d["amount"])
-			if decay_last_drop(amount, now < float(d["open"]), unit):
-				_end_decay(int(key))
-				# The last drop: all that is left (Bitter End: and more).
-				_decay_hit(foe, amount, DECAY_HIT_ID, true,
-					decay_tick_bonuses(slow_death, rot_through, _talent("shadow_bitter_end"), true), bite)
-				continue
-			var tick := decay_tick(amount)
-			if not endless:
-				d["amount"] = amount - tick
-				d["dirty"] = true
-			_decay_hit(foe, tick, DECAY_HIT_ID, true, decay_tick_bonuses(slow_death, rot_through, 0.0, false), bite)
-		_decay_show(d, now)
-
-## Put `amount` more Decay of mine on `foe`, open until `open_until` (a time):
-## a copy from Spill, or what a dead enemy left behind.
-func _decay_add(foe: Node3D, amount: float, open_until: float) -> void:
-	var d := _decay_entry(foe)
-	var merged := decay_merge(float(d["amount"]), float(d["open"]), amount, open_until)
-	d["amount"] = float(merged[0])
-	d["open"] = float(merged[1])
-	_decay_show(d, _decay_now(), true)
-
-## The enemy that carried Decay `d` died: what is left moves to the nearest
-## enemy within DECAY_JUMP_RADIUS of where it fell, on top of my Decay there,
-## and stays open for as long as it still had.
-func _decay_jump(d: Dictionary) -> void:
-	var left := float(d["amount"])
-	if left <= 0.0:
-		return
-	var at: Vector3 = d["pos"]
-	var kin := _talent("shadow_next_of_kin")   # Next of Kin: more than what was left moves on
-	var heirs := 2 if _capstone("shadow_next_of_kin") else 1   # ... and a second enemy gets part of it
-	var given := 0
-	for e in _enemies_near(at, Balance.DECAY_JUMP_RADIUS):   # (nearest first)
-		if not _decay_usable(e):
-			continue
-		_decay_add(e, kin_amount(left, kin, given > 0), float(d["open"]))
-		_ring_effect(0.7, Abilities.color_of(BLIGHT_ID), (e as Node3D).global_position)
-		given += 1
-		if given >= heirs:
-			return
-
-## Dead or downed: my Decays go, and their debuffs with them.
-func _clear_decay() -> void:
-	for key in _decay.keys():
-		_end_decay(int(key))
-
-## Blight with the Rune of the Open Wound: instant, on a cooldown.
-## Interest's capstone makes one Blight instant too: that one has no cooldown,
-## and ignores the rune's.
-func _blight_now() -> void:
-	if casting:
-		return
-	var free := interest_ready()
-	if not free and float(cooldowns.get(BLIGHT_ID, 0.0)) > 0.0:
-		_error("%s is not ready yet" % Abilities.ability_name(BLIGHT_ID))
-		return
-	if not _has_valid_target():
-		_error("No target")
-		return
-	if not target_in_range(BLIGHT_ID):
-		_error("Target out of range")
-		return
-	var sight_err := _target_error(target)
-	if sight_err != "":
-		_error(sight_err)
-		return
-	if not _pay(BLIGHT_ID):
-		return
-	if free:
-		status.remove(INTEREST_FX)
-	else:
-		cooldowns[BLIGHT_ID] = Balance.OPEN_WOUND_COOLDOWN
-	var dir := target.global_position - global_position
-	rotation.y = atan2(-dir.x, -dir.z)
-	FROST_BOLT.spawn(get_tree().current_scene, _muzzle(), target, self, false, BLIGHT_ID,
-		float(Abilities.get_resource(BLIGHT_ID).damage))
-	_bus().cast_finished.emit(BLIGHT_ID)
-
-## Call Due: all of my Decay on the target at once, and a little more. It ends it.
-func _call_due() -> void:
-	var foe := target
-	var amount := decay_on(foe)
-	var was_open := decay_open_on(foe)
-	# Small Change: part of it stays on the target (open for as long as it still was).
-	var left := call_due_left(amount, _talent("shadow_small_change"))
-	if left > 0.0 and _decay.has(foe.get_instance_id()):
-		var d: Dictionary = _decay[foe.get_instance_id()]
-		d["amount"] = left
-		d["dirty"] = true
-		d["sync"] = 0.0
-	else:
-		_end_decay(foe.get_instance_id())
-	_ring_effect(1.3, Abilities.color_of(CALL_DUE_ID), foe.global_position)
-	_claws_at(foe, 8, 1.15)   # every hand at once, over its head
-	_decay_hit(foe, call_due_damage(amount, _talent("shadow_interest")), CALL_DUE_ID, false)   # Interest: more on top
-	# Interest's capstone: taking out an open Decay makes my next Blight instant.
-	if was_open and _capstone("shadow_interest"):
-		var fx := StatusContainer.make_buff(INTEREST_FX, "Interest", INTEREST_FX, 0.0, Balance.INTEREST_TIME, 1,
-			Abilities.color_of(BLIGHT_ID))
-		fx.stat_modifiers = {}
-		fx.tags = PackedStringArray(["Shadow"])
-		fx.description = "Your next %s is instant." % Abilities.ability_name(BLIGHT_ID)
-		status.apply(fx, self)
-
-## Gnaw: a small hit, and my Decay on the target ticks faster for a while.
-func _gnaw(res: Resource) -> void:
-	var foe := target
-	deal_damage(foe, float(res.damage), GNAW_ID)   # (the hands at its feet: CLAW_HITS)
-	if not is_instance_valid(foe) or not _decay.has(foe.get_instance_id()):
-		return
-	var d: Dictionary = _decay[foe.get_instance_id()]
-	var now := _decay_now()
-	d["fast"] = now + Balance.GNAW_TIME
-	d["next"] = minf(float(d["next"]), now + decay_interval(haste_mult(), true, _talent("shadow_wasting")))   # the faster ticks start now
-
-## Spill: the enemies around `foe` a copy of its Decay goes to.
-func _spill_targets(foe: Node3D) -> Array:
-	var out: Array = []
-	for e in _enemies_near(foe.global_position, Balance.SPILL_RADIUS, foe):
-		if out.size() >= Balance.SPILL_TARGETS:
-			break
-		if _decay_usable(e):
-			out.append(e)
-	return out
-
-## Spill: part of my Decay on the target is copied onto the enemies around it.
-func _spill() -> void:
-	var foe := target
-	var d: Dictionary = _decay.get(foe.get_instance_id(), {})
-	if d.is_empty():
-		return
-	var share := spill_amount(float(d["amount"]), _talent("shadow_running_over"))   # Running Over: bigger copies
-	var open_until := spill_open_until(float(d["open"]), _decay_now(), _capstone("shadow_running_over"))
-	var col := Abilities.color_of(SPILL_ID)
-	_ring_effect(1.2, col, foe.global_position)
-	_claws_at(foe, 4, 0.5)
-	for e in _spill_targets(foe):
-		_decay_add(e, share, open_until)
-		_claws_at(e, 3, 0.4)   # the ground gives way under each of them
-
-## Take It Back: part of my Decay on the target comes off it and shields me.
-func _take_it_back() -> void:
-	var foe := target
-	var d: Dictionary = _decay.get(foe.get_instance_id(), {})
-	if d.is_empty():
-		return
-	var taken := take_back_amount(float(d["amount"]))
-	d["amount"] = float(d["amount"]) - taken
-	d["dirty"] = true
-	var col := Abilities.color_of(TAKE_IT_BACK_ID)
-	_claws_at(foe, 3, 0.5)
-	_ring_effect(1.3, col)
-	var amount := int(round(taken * absorb_mult()))   # (Rime Ward: like every shield I put up)
-	if amount <= 0:
-		return
-	var fx := StatusContainer.make_buff(TAKE_IT_BACK_FX, Abilities.ability_name(TAKE_IT_BACK_ID), TAKE_IT_BACK_FX, 0.0,
-		Balance.TAKE_IT_BACK_TIME, 1, col)
-	var armor := _talent("frost_shield_armor")   # Hardened Frost: my shields add armor
-	fx.stat_modifiers = {"armor%": armor} if armor > 0.0 else {}
-	fx.tags = PackedStringArray(["Shadow"])
-	fx.description = "A shield absorbs damage."
-	if status.apply(fx, self):
-		status.set_absorb(TAKE_IT_BACK_FX, amount)
-
-## Bottomless: for a while my Decay does not shrink when it ticks (see _tick_decay).
-## No Floor makes it last longer, and (its capstone) keeps my open Decays open.
-func _start_bottomless() -> void:
-	var col := Abilities.color_of(BOTTOMLESS_ID)
-	var seconds := bottomless_time(_talent("shadow_no_floor"))
-	var fx := StatusContainer.make_buff(BOTTOMLESS_FX, Abilities.ability_name(BOTTOMLESS_ID), BOTTOMLESS_FX, 0.0,
-		seconds, 1, col)
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Shadow"])
-	fx.description = "Your Breach does not shrink when it deals its damage."
-	if _capstone("shadow_no_floor"):
-		fx.description += " It cannot close."
-	status.apply(fx, self)
-	_bottomless_until = _decay_now() + seconds
-	_ring_effect(1.4, col)
-	_ring_effect(0.7, Color(0.1, 0.04, 0.15))
-
-## Hush's own hit, and what it adds to an open Decay when there was a cast to stop.
-func _hush(foe: Node3D, coef: float, stopped: bool) -> void:
-	# Cut Short: stopping a cast takes time off its cooldown (which was just set).
-	if stopped and cooldowns.has(HUSH_ID):
-		cooldowns[HUSH_ID] = cut_short_cooldown(float(cooldowns[HUSH_ID]), _talent("shadow_cut_short"))
-	if not is_instance_valid(foe) or not foe.is_alive():
-		return
-	deal_damage(foe, coef, HUSH_ID)
-	if stopped and is_instance_valid(foe) and foe.is_alive():
-		_decay_feed(foe, hush_decay(_decay_unit()))
-
-# Smother (ability id "pall": the name it was first given): ground-targeted,
-# like Collapse. When the cast finishes, every enemy in
-# the circle is hit (and each one's open Decay gets its share of that hit).
-
-func _start_pall(point: Vector3) -> void:
-	if casting or not is_on_floor():
-		return
-	cast_point = point
-	if not can_afford(PALL_ID, true):
-		return
-	var res := Abilities.get_resource(PALL_ID)
-	_begin_spell(PALL_ID, str(res.display_name), float(res.cast_time))
-
-func _cast_pall() -> void:
-	var res := Abilities.get_resource(PALL_ID)
-	cooldowns[PALL_ID] = Abilities.cooldown_of(res)
-	var at := cast_point
-	var r := float(res.radius)
-	var col := Abilities.color_of(PALL_ID)
-	_ring_effect(r, col, at + Vector3(0, 0.9, 0))
-	_claws(at, r, 18, 1.3)   # a field of hands
-	var hit := _enemies_near(at, r)
-	var share := float(res.damage) * Balance.aoe_share(hit.size())
-	for e in hit:
-		if is_instance_valid(e) and e.is_alive():
-			deal_damage(e, share, PALL_ID)
-
-# --- Shadow: the open talents ---------------------------------------------------------------
-# Talents of the Shadow book that work with every book's spells and abilities:
-# Slow Death (my damage over time hits harder), Wasting (it ticks more often:
-# the StatusContainer asks dot_speed_mult, Decay asks decay_interval), Finish It
-# (more damage to enemies low on health), Spite (taking damage boosts my next
-# spell or ability), Carrion (an enemy dying with my damage over time on it
-# gives mana back) and Inevitable (more damage to enemies I have been on for a
-# while). Finish It, Spite and Inevitable are % modifiers, so they never touch
-# Decay's own damage (that is exact); Slow Death and Wasting do count for it.
-# Numbers: balance.gd and talents.gd.
-
-const SPITE_FX := "spite"
-var _spite_id := ""            # the spell / ability that is using Spite's boost up
-var _spite_until := 0.0        # ... and until when its hits still get it
-var _first_hit := {}           # enemy instance id -> time of my first damage to it (Inevitable)
-
-## How many times as often my damage over time ticks with `wasting_pct` % from
-## Wasting on top of `base` (what something else already does for it).
-static func dot_speed_with(base: float, wasting_pct: float) -> float:
-	return base * (1.0 + maxf(wasting_pct, 0.0) / 100.0)
-
-## Finish It: is an enemy with this health low enough?
-static func finish_it_applies(health: float, max_health: float) -> bool:
-	return max_health > 0.0 and health / max_health * 100.0 < Balance.FINISH_IT_HEALTH_PCT
-
-## Inevitable: have I been on an enemy I first damaged at `first_hit` (a time; 0 =
-## never) for long enough at `now`?
-static func inevitable_applies(first_hit: float, now: float) -> bool:
-	return first_hit > 0.0 and now - first_hit > Balance.INEVITABLE_TIME
-
-## Carrion: the mana `pct` % of a mana pool of `max_mana` is.
-static func carrion_mana(max_mana: float, pct: float) -> float:
-	return maxf(max_mana, 0.0) * maxf(pct, 0.0) / 100.0
-
-const ILL_WILL_LABEL := "Ill Will"
-
-## A hit of mine that just rolled a critical strike (CombatSystem.deal asks,
-## for every hit, exact ones like my Breach's ticks too): [percent, label] it
-## gets on top, or [] for none. Ill Will: crits of my damage over time.
-func crit_hit_bonus(info: RefCounted) -> Array:
-	return ill_will_bonus(bool(info.is_dot), _talent("shadow_ill_will"))
-
-static func ill_will_bonus(is_dot: bool, pct: float) -> Array:
-	return [pct, ILL_WILL_LABEL] if is_dot and pct > 0.0 else []
-
-## A hit of mine, before its damage is worked out (_on_damage_modify): Slow
-## Death, Finish It, Inevitable, Spite.
-func _shadow_talents_modify(info: RefCounted, id: String) -> void:
-	# Slow Death: my damage over time hits harder.
-	if bool(info.is_dot):
-		var slow := _talent("shadow_slow_death")
-		if slow > 0.0:
-			info.add_bonus(slow, "Slow Death")
-	var foe: Variant = info.target
-	if foe != null and is_instance_valid(foe) and foe is Node:
-		var hp: Variant = foe.get("health")
-		var max_hp: Variant = foe.get("max_health")
-		if hp != null and max_hp != null:
-			# Finish It: enemies low on health.
-			var finish := _talent("shadow_finish_it")
-			if finish > 0.0 and finish_it_applies(float(hp), float(max_hp)):
-				info.add_bonus(finish, "Finish It")
-			# (An enemy back at full health starts over for Inevitable: it ran home and healed.)
-			if float(hp) >= float(max_hp):
-				_first_hit.erase((foe as Node).get_instance_id())
-		# Inevitable: enemies I have been on for a while.
-		var inevitable := _talent("shadow_inevitable")
-		if inevitable > 0.0 and inevitable_applies(float(_first_hit.get((foe as Node).get_instance_id(), 0.0)), _decay_now()):
-			info.add_bonus(inevitable, "Inevitable")
-		# Still Wet's capstone: my own direct hits also hit an enemy I Laid Open
-		# harder (the Hounds' bites have Open Up's own bonus).
-		if not bool(info.is_proc) and not bool(info.is_dot) and _capstone("shadow_still_wet"):
-			var wet: Node = (foe as Node).get_node_or_null("Status")
-			if still_wet_applies(true, wet != null and wet.has_from(LAID_OPEN_FX, self), false, false):
-				info.add_bonus(Balance.STILL_WET_PCT, STILL_WET_LABEL)
-	_spite_hit(info, id)
-
-## Remember when I first damaged `foe` (Inevitable counts from then).
-func _note_first_hit(foe: Node) -> void:
-	var key := foe.get_instance_id()
-	if _first_hit.has(key):
-		return
-	if _first_hit.size() >= 64:
-		_first_hit.clear()   # (a long run: forget the old ones rather than keep every enemy ever hit)
-	_first_hit[key] = _decay_now()
-
-## Something damaged me (_on_hit_taken). Spite: my next spell or ability hits harder.
-func _spite_on_hit_taken(info: RefCounted) -> void:
-	if int(info.amount) <= 0 or info.avoided() or _talent("shadow_spite") <= 0.0:
-		return
-	if status.has(SPITE_FX) and status.remaining_of(SPITE_FX) > Balance.SPITE_TIME - 0.5:
-		return   # (it was just renewed: a pack hitting me doesn't rebuild it on every blow)
-	var fx := StatusContainer.make_buff(SPITE_FX, "Spite", SPITE_FX, 0.0, Balance.SPITE_TIME, 1, Abilities.color_of(BLIGHT_ID))
-	fx.stat_modifiers = {}
-	fx.description = "Your next spell or ability deals more damage."
-	status.apply(fx, self)
-
-## A hit of mine, before its damage is worked out. Spite: the first spell or
-## ability I hit with uses the boost, and every hit of that one use gets it
-## (SPITE_HITS seconds: it may hit several enemies). Never an auto-attack, a
-## proc or damage over time.
-func _spite_hit(info: RefCounted, id: String) -> void:
-	if not echoes(info.tags, bool(info.is_proc), bool(info.is_dot), Abilities.PATHS.has(id)):
-		return
-	var now := _decay_now()
-	if status != null and status.has(SPITE_FX):
-		status.remove(SPITE_FX)
-		_spite_id = id
-		_spite_until = now + Balance.SPITE_HITS
-	elif id != _spite_id or now > _spite_until:
-		return
-	var pct := _talent("shadow_spite")
-	if pct > 0.0:
-		info.add_bonus(pct, "Spite")
-
-## An enemy died (SignalBus.enemy_died). Carrion: if it carried one of my damage
-## over time effects (it noted who had one as it died), I get some mana back.
-func _on_enemy_died_shadow(enemy: Node) -> void:
-	if enemy == null or not is_instance_valid(enemy):
-		return
-	var key := enemy.get_instance_id()
-	var by_me: bool = enemy.has_method("killed_by_me") and bool(enemy.killed_by_me())
-	var damaged := _first_hit.has(key) or by_me
-	var dragged := float(_drag_watch.get(key, 0.0))
-	_first_hit.erase(key)
-	_drag_watch.erase(key)
-	if is_dead():
-		return
-	# Take It With You's capstone: Drag Down killed it, so my next pair arrives Roused.
-	if drag_kill_counts(_hound_now(), dragged, by_me) and _capstone("shadow_take_it_with_you"):
-		_hounds_roused_next = true
-	# Feeding Frenzy: an enemy I damaged died.
-	var frenzy := _talent("shadow_feeding_frenzy")
-	if frenzy > 0.0 and damaged:
-		add_buff(FEEDING_FRENZY_FX, Stats.HASTE, frenzy, Balance.FEEDING_FRENZY_TIME, 1, "Feeding Frenzy")
-	var pct := _talent("shadow_carrion")
-	if pct <= 0.0:
-		return
-	var owners: Variant = enemy.get("dot_owners_at_death")
-	if owners is Dictionary and (owners as Dictionary).has(get_instance_id()):
-		_gain("mana", carrion_mana(resource_max("mana"), pct))
+	decay._clear_decay()   # Shadow: my Decays go with me, and their debuffs
 
 # --- Arcane tank (a dodge tank with a melee weapon in each hand) --------------------------
 # No resource: cooldowns alone. It lives on Reflections, images of me that stand
@@ -7898,1826 +7127,6 @@ func _overload() -> void:
 		_combat().deal(info)
 	_ring_effect(radius, OVERLOAD_COLOR)
 
-# --- Shadow melee: the Hounds ---------------------------------------------------------------
-# Two demon dogs that fight beside me, on Rage. With none out, my next Shadow
-# melee ability (HOUND_CALLERS) calls them up through the ground for HOUND_TIME
-# seconds. They always bite the last enemy I damaged directly: every hit of a
-# spell, an ability or an auto attack sends them to its enemy (no tick, no proc).
-# They have no stats: each of their hits is mine (my level, Attack / Spell
-# Power, crit, damage bonuses, Lifesteal and threat), dealt as a proc under its
-# own name (Hound Bite, Hound Lunge, Drag Down). So runes and "on hit" talents
-# do not fire off them, they spend no "your next ..." buff and feed no Breach
-# (but for the talent Out of the Hole). Haste makes them bite faster. Enemies
-# cannot target them. Sent at prey more than a second's run away, they dash.
-# Sic and Open Up build Rage; whatever spends Rage Rouses them (their bites hit
-# harder for ROUSED_TIME; it does not stack). Open Up marks its target (the Laid
-# Open debuff, own only): bites on it hit harder. Both At Once makes each of
-# them lunge. Run Them Down lets their bites reach other enemies. Guard Dogs: I
-# take less damage. Off the Chain: faster bites, and the pair stays that much
-# longer.
-# When their time is up each drags at its prey once (Drag Down), and my next
-# Shadow melee ability calls a new pair. Bring It Down sends them under early,
-# with the same Drag Down. Dying or going down sends them away without it.
-# The dogs themselves are scripts/hound.gd (only a picture); the party sees
-# them through the "hounds" fx. Numbers: balance.gd (HOUND_*, ROUSED_*, ...).
-# Talents (talents.gd, the two edges of the Shadow book):
-#   Lean and Hungry   faster bites                  hound_bite_interval
-#   Fed               a bite that crits gives Rage  _hound_bite
-#   Worked Up         Roused lasts longer           Abilities.effect_time_bonus;
-#                     capstone: bites crit more while Roused (adjust_crit)
-#   Out of the Hole   bites add to my open Breach   _hound_bite
-#   Long Night        the pair stays longer         hound_time
-#   Take It With You  Drag Down hits harder         hound_hit_bonuses; capstone:
-#                     its kill makes the next pair arrive Roused (_on_enemy_died_shadow)
-#   Pack Leader       every Hound hit is bigger     hound_hit_bonuses
-#   Still Wet         Open Up's mark lasts longer   Abilities.effect_time_bonus;
-#                     capstone: my own direct hits on it too (_shadow_talents_modify)
-#   Pincer            lunges hit harder             hound_hit_bonuses; capstone:
-#                     a lunge that crits gives Rage back (_hounds_lunge)
-#   Again             Both At Once may reset        _use_drafted
-#   Stand Over        bites heal me in Guard Dogs   _hound_bite
-#   Slipped Leash     Off the Chain lasts longer    Abilities.effect_time_bonus;
-#                     capstone: a third Hound for as long (_add_third_hound)
-#   Share the Kill    Leeching Strike heals more    _on_hit_extra
-# (Thick Blood and Feeding Frenzy are open talents: _tick_resources,
-# _on_enemy_died_shadow.)
-
-const HOUND = preload("res://scripts/hound.gd")
-const SIC_ID := "sic"
-const OPEN_UP_ID := "openup"
-const BOTH_AT_ONCE_ID := "bothatonce"
-const RUN_DOWN_ID := "runthemdown"
-const GUARD_DOGS_ID := "guarddogs"
-const OFF_THE_CHAIN_ID := "offthechain"
-const LEECHING_STRIKE_ID := "shadowstrike"
-const BRING_DOWN_ID := "bringitdown"
-const BRING_DOWN_NO_HOUNDS := "You have no Hounds out"
-const BRING_DOWN_NO_PREY := "Your Hounds have nothing to drag down"
-## The Shadow melee abilities: using one with no Hounds out calls them.
-const HOUND_CALLERS := [SIC_ID, OPEN_UP_ID, BOTH_AT_ONCE_ID, RUN_DOWN_ID, GUARD_DOGS_ID, OFF_THE_CHAIN_ID, LEECHING_STRIKE_ID]
-const HOUNDS_FX := "hounds"
-const ROUSED_FX := "roused"
-const RUN_DOWN_FX := "run_them_down"
-const GUARD_DOGS_FX := "guard_dogs"
-const OFF_THE_CHAIN_FX := "off_the_chain"
-const LAID_OPEN_FX := "laid_open"            # Open Up's mark on an enemy (data/effects/laid_open.tres)
-## Their hits in the log and on the damage meter (Details.HIT_NAMES).
-const HOUND_BITE_ID := "hound_bite"
-const HOUND_LUNGE_ID := "hound_lunge"
-const HOUND_DRAG_ID := "hound_drag"
-## Stand Over's heal on the healing meter.
-const STAND_OVER_ID := "stand_over"
-## What Roused and Open Up's mark add to a bite: each is a line of its own on the meter.
-const ROUSED_LABEL := "Roused"
-const LAID_OPEN_LABEL := "Laid Open"
-## ... and what the talents add to the Hounds' hits and to mine.
-const PACK_LEADER_LABEL := "Pack Leader"
-const PINCER_LABEL := "Pincer"
-const TAKE_IT_LABEL := "Take It With You"
-const STILL_WET_LABEL := "Still Wet"
-## Worked Up's capstone: the extra crit chance a bite carries (adjust_crit reads it).
-const HOUND_CRIT_META := "hound_crit"
-const FEEDING_FRENZY_FX := "feeding_frenzy"
-## A Hound's hit scales like an ability of mine.
-const HOUND_TAGS := ["Shadow", "Ability", "Hound"]
-const HOUND_COLOR := Color(0.8, 0.16, 0.3)
-## Seconds between reminders to the party of where my Hounds are.
-const HOUND_RETELL := 5.0
-
-var _hounds_until := 0.0        # seconds: when my Hounds' time is up (0 = none out)
-var _hound_prey: Node3D         # the enemy they are on (null = at heel)
-var _hound_prey_frame := -1     # the frame a hit of mine last sent them somewhere
-var _hound_bite_at: Array = []  # for each Hound: when its next bite lands
-var _hound_nodes: Array = []    # their pictures (scripts/hound.gd)
-var _hounds_told := 0.0
-var _roused_fx: Resource
-var _hound_crit := false        # did the Hound hit dealt last critically strike?
-var _hounds_roused_next := false   # Take It With You's capstone: the next pair arrives Roused
-var _drag_watch := {}           # enemy instance id -> time until which its death is Drag Down's kill
-
-## Does using ability `id` call the Hounds when none are out?
-static func calls_hounds(id: String) -> bool:
-	return HOUND_CALLERS.has(id)
-
-## Does spending `cost` of resource `res` Rouse my Hounds? Anything that costs Rage.
-static func rouses(res: String, cost: float) -> bool:
-	return res == "rage" and cost > 0.0
-
-## Seconds between one Hound's bites (`haste` = my haste multiplier, `unchained`
-## = Off the Chain, `faster_pct` = Lean and Hungry). The three multiply.
-static func hound_bite_interval(haste: float, unchained: bool, faster_pct: float = 0.0) -> float:
-	var speed := maxf(haste, 0.1) * ((1.0 + Balance.OFF_THE_CHAIN_SPEED_PCT / 100.0) if unchained else 1.0) \
-		* (1.0 + maxf(faster_pct, 0.0) / 100.0)
-	return maxf(Balance.HOUND_BITE_EVERY / speed, 0.2)
-
-## Seconds a pair stays (`longer` = Long Night).
-static func hound_time(longer: float = 0.0) -> float:
-	return Balance.HOUND_TIME + maxf(longer, 0.0)
-
-## Seconds Off the Chain lasts, and how much longer the Hounds stay for it (`longer` = Slipped Leash).
-static func off_the_chain_time(longer: float = 0.0) -> float:
-	return Balance.OFF_THE_CHAIN_TIME + maxf(longer, 0.0)
-
-## What the talents add to a Hound's hit `id`, as [percent, label] rows: Pack
-## Leader to every one, Pincer to a lunge, Take It With You to Drag Down.
-static func hound_hit_bonuses(id: String, pack_pct: float, pincer_pct: float, drag_pct: float) -> Array:
-	var out: Array = []
-	if pack_pct > 0.0:
-		out.append([pack_pct, PACK_LEADER_LABEL])
-	if id == HOUND_LUNGE_ID and pincer_pct > 0.0:
-		out.append([pincer_pct, PINCER_LABEL])
-	if id == HOUND_DRAG_ID and drag_pct > 0.0:
-		out.append([drag_pct, TAKE_IT_LABEL])
-	return out
-
-## Worked Up's capstone: the crit chance a bite gets on top while my Hounds are Roused.
-static func worked_up_crit(roused: bool, capstone: bool) -> float:
-	return Balance.WORKED_UP_CRIT if roused and capstone else 0.0
-
-## Out of the Hole: what a bite of `dealt` adds to my open Breach under the enemy bitten.
-static func hole_feed(dealt: int, pct: float) -> float:
-	return maxf(float(dealt), 0.0) * maxf(pct, 0.0) / 100.0
-
-## Stand Over: health a bite gives me back during Guard Dogs (`pct` % of my maximum).
-static func stand_over_heal(max_hp: int, pct: float) -> int:
-	return int(round(maxf(float(max_hp), 0.0) * maxf(pct, 0.0) / 100.0))
-
-## Share the Kill: how many times as big Leeching Strike's heal is.
-static func leech_heal_mult(hounds_are_out: bool, pct: float) -> float:
-	return 1.0 + maxf(pct, 0.0) / 100.0 if hounds_are_out else 1.0
-
-## Thick Blood: Rage lost per second, `slower_pct` % slower than `base`.
-static func rage_decay(base: float, slower_pct: float) -> float:
-	return base * clampf(1.0 - slower_pct / 100.0, 0.0, 1.0)
-
-## Again: does Both At Once come off cooldown? `roll` = 0-100.
-static func again_resets(roll: float, chance: float) -> bool:
-	return chance > 0.0 and roll < chance
-
-## Still Wet's capstone: does a hit of mine get its bonus? A direct hit of my
-## own (no tick, no proc: never a Hound's) on an enemy carrying my Laid Open.
-static func still_wet_applies(capstone: bool, mark_is_mine: bool, is_proc: bool, is_dot: bool) -> bool:
-	return capstone and mark_is_mine and not is_proc and not is_dot
-
-## Take It With You's capstone: was an enemy's death Drag Down's kill? It died
-## by my hand while `watched_until` (set as Drag Down hit it) had not passed.
-static func drag_kill_counts(now: float, watched_until: float, killed_by_me: bool) -> bool:
-	return killed_by_me and watched_until > 0.0 and now <= watched_until
-
-## Why Bring It Down cannot be used ("" = it can).
-static func bring_down_error(hounds_are_out: bool, has_prey: bool) -> String:
-	if not hounds_are_out:
-		return BRING_DOWN_NO_HOUNDS
-	return "" if has_prey else BRING_DOWN_NO_PREY
-
-## What a bite gets on top, as [percent, label] rows: Roused, and Open Up's mark on the enemy bitten.
-static func hound_bite_bonuses(roused: bool, laid_open: bool) -> Array:
-	var out: Array = []
-	if roused:
-		out.append([Balance.ROUSED_PCT, ROUSED_LABEL])
-	if laid_open:
-		out.append([Balance.LAID_OPEN_PCT, LAID_OPEN_LABEL])
-	return out
-
-## Does a hit of mine set my Hounds on its enemy? Every direct hit that landed
-## does (a spell, an ability, an auto attack): never a damage over time tick,
-## and never a proc (their own bites, chain jumps, rune hits).
-static func sets_prey(is_proc: bool, is_dot: bool, amount: int) -> bool:
-	return not is_proc and not is_dot and amount > 0
-
-## One spell or ability of mine hits several enemies at the same moment
-## (`same_cast`), so none of them is the last: do my Hounds stay on the one they
-## were just sent to? Only if that one is my target.
-static func keeps_prey(same_cast: bool, prey_is_my_target: bool) -> bool:
-	return same_cast and prey_is_my_target
-
-## Damage each other enemy takes from a bite of `amount` during Run Them Down.
-static func run_down_amount(amount: int) -> int:
-	return int(round(maxf(float(amount), 0.0) * Balance.RUN_DOWN_PCT / 100.0))
-
-## How many other enemies each bite hits during Run Them Down (`extra` = Wide Pack's).
-static func run_down_targets(extra: float = 0.0) -> int:
-	return Balance.RUN_DOWN_TARGETS + int(round(maxf(extra, 0.0)))
-
-## When my Hounds' time is up once Off the Chain is used at `now`: they stay as
-## long again as it lasts (their time stands still meanwhile). `time` = seconds
-## it lasts (off_the_chain_time).
-static func hounds_until_unchained(until: float, now: float, time: float = Balance.OFF_THE_CHAIN_TIME) -> float:
-	return maxf(until, now) + time
-
-## My Hounds are gone: was their time up (so each drags at its prey), or were
-## they sent away early (I died, or went down)?
-static func hounds_time_up(now: float, until: float) -> bool:
-	return until > 0.0 and now >= until - 0.25
-
-## The buff that shows my Hounds and the time they have left.
-static func make_hounds_fx() -> Resource:
-	var fx := StatusContainer.make_buff(HOUNDS_FX, "Hounds", HOUNDS_FX, 0.0, Balance.HOUND_TIME, 1, HOUND_COLOR)
-	fx.stat_modifiers = {}
-	fx.stack_mode = 2   # IGNORE: nothing renews them
-	fx.tags = PackedStringArray(["Shadow"])
-	fx.description = "Two Hounds fight beside you and bite the last enemy you damaged directly. When their time is up, each drags at its prey."
-	return fx
-
-## Roused: my Hounds' bites hit harder (the bonus itself is added in _hound_bite).
-static func make_roused_fx() -> Resource:
-	var fx := StatusContainer.make_buff(ROUSED_FX, ROUSED_LABEL, ROUSED_FX, 0.0, Balance.ROUSED_TIME, 1, HOUND_COLOR.lightened(0.25))
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Shadow"])
-	fx.description = "The bites of your Hounds deal %s%% more damage." % Stats.num(Balance.ROUSED_PCT)
-	return fx
-
-static func make_run_down_fx(targets: int = Balance.RUN_DOWN_TARGETS) -> Resource:
-	var fx := StatusContainer.make_buff(RUN_DOWN_FX, Abilities.ability_name(RUN_DOWN_ID), RUN_DOWN_FX, 0.0,
-		Balance.RUN_DOWN_TIME, 1, HOUND_COLOR)
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Shadow"])
-	fx.description = "Each bite of your Hounds also hits up to %d other enemies near the one bitten, for %s%% of its damage." % [
-		targets, Stats.num(Balance.RUN_DOWN_PCT)]
-	return fx
-
-## Guard Dogs: less damage taken, of every kind (hits and damage over time).
-static func make_guard_dogs_fx() -> Resource:
-	var fx := StatusContainer.make_buff(GUARD_DOGS_FX, Abilities.ability_name(GUARD_DOGS_ID), GUARD_DOGS_FX, 0.0,
-		Balance.GUARD_DOGS_TIME, 1, HOUND_COLOR.darkened(0.15))
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Shadow", "Defensive"])
-	fx.damage_mod_pct = -Balance.GUARD_DOGS_PCT
-	fx.modifies_incoming = true
-	fx.mod_affects_dots = true
-	fx.description = "You take %s%% less damage." % Stats.num(Balance.GUARD_DOGS_PCT)
-	return fx
-
-static func make_off_the_chain_fx() -> Resource:
-	var fx := StatusContainer.make_buff(OFF_THE_CHAIN_FX, Abilities.ability_name(OFF_THE_CHAIN_ID), OFF_THE_CHAIN_FX, 0.0,
-		Balance.OFF_THE_CHAIN_TIME, 1, HOUND_COLOR.lightened(0.1))
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Shadow"])
-	fx.description = "Your Hounds bite %s%% faster." % Stats.num(Balance.OFF_THE_CHAIN_SPEED_PCT)
-	return fx
-
-func _hound_now() -> float:
-	return Time.get_ticks_msec() / 1000.0
-
-## Are my Hounds out?
-func hounds_out() -> bool:
-	return _hounds_until > 0.0 and status != null and status.has(HOUNDS_FX)
-
-## Can my Hounds be on `foe`? Alive, and within their leash of me.
-func _prey_ok(foe: Variant) -> bool:   # untyped: may be a freed enemy
-	return foe != null and is_instance_valid(foe) and foe is Node3D and foe.is_alive() \
-		and _flat_dist_to((foe as Node3D).global_position) <= Balance.HOUND_LEASH
-
-## An ability of mine went off (_use_drafted, once it was paid for). A Shadow
-## melee ability calls the Hounds if none are out; one that cost Rage Rouses
-## them (the pair it just called too).
-func _hounds_on_ability(id: String) -> void:
-	if status == null:
-		return
-	# (A pair whose time ran out since the last frame goes first, so it still
-	# drags at its prey before the next one is called.)
-	if _hounds_until > 0.0 and not status.has(HOUNDS_FX):
-		_hounds_gone(hounds_time_up(_hound_now(), _hounds_until))
-	if calls_hounds(id) and not hounds_out():
-		var res := Abilities.get_resource(id)
-		# (They come up at what I am about to strike; with nothing to strike, at heel.)
-		_call_hounds(target if res != null and res.requires_target and _has_valid_target() else null)
-	if rouses(Abilities.resource_of(id), float(Abilities.cost_of(id))):
-		_rouse_hounds()
-
-func _call_hounds(at_prey: Node3D) -> void:
-	var time := hound_time(_talent("shadow_long_night"))   # Long Night
-	status.apply(make_hounds_fx(), self)
-	status.set_remaining(HOUNDS_FX, time)   # exactly that long (Overtime does not stretch it)
-	var now := _hound_now()
-	_hounds_until = now + time
-	_hound_prey = at_prey if _prey_ok(at_prey) else null
-	# Their first bites come once they are out of the ground, and never both at once.
-	var every := _hound_bite_every()
-	_hound_bite_at = []
-	for i in Balance.HOUND_COUNT:
-		_hound_bite_at.append(now + HOUND.RISE_TIME + every * (0.15 + float(i) / Balance.HOUND_COUNT))
-	_drop_hound_nodes(false)
-	_hound_nodes = HOUND.call_pair(get_tree().current_scene, self, _hound_prey, time, false)
-	# Take It With You's capstone: the last Drag Down killed, so this pair arrives Roused.
-	if _hounds_roused_next:
-		_hounds_roused_next = false
-		_rouse_hounds()
-	# Slipped Leash's capstone: called while Off the Chain is still up, the third comes with them.
-	if status.has(OFF_THE_CHAIN_FX) and _capstone("shadow_slipped_leash"):
-		_add_third_hound()
-	_tell_hounds()
-
-## Seconds between one Hound's bites right now (Haste, Off the Chain, Lean and Hungry).
-func _hound_bite_every() -> float:
-	return hound_bite_interval(haste_mult(), status != null and status.has(OFF_THE_CHAIN_FX), _talent("shadow_lean_and_hungry"))
-
-## I spent Rage (_pay, _hounds_on_ability): my Hounds are Roused.
-func _rouse_hounds() -> void:
-	if not hounds_out():
-		return
-	if _roused_fx == null:
-		_roused_fx = make_roused_fx()
-	status.apply(_roused_fx, self)
-
-## A hit of mine landed (_on_damage_dealt_shadow, which sees every one): my
-## Hounds always go for the last enemy I damaged directly (sets_prey). Of the
-## enemies one cast hits at once, my target is the one they take (keeps_prey).
-func _hounds_on_hit(info: RefCounted) -> void:
-	if _hounds_until <= 0.0:
-		return
-	var foe: Variant = info.target
-	if is_same(foe, self) or not _prey_ok(foe):
-		return
-	if not sets_prey(bool(info.is_proc), bool(info.is_dot), int(info.amount)):
-		return
-	var frame := Engine.get_process_frames()
-	if not is_same(foe, target) and keeps_prey(frame == _hound_prey_frame, _prey_ok(_hound_prey) and is_same(_hound_prey, target)):
-		return
-	_hound_prey_frame = frame
-	_set_hound_prey(foe)
-
-## Send my Hounds at `foe` (null = back to heel). A bite waits until they are there.
-func _set_hound_prey(foe: Variant) -> void:
-	var to: Node3D = foe as Node3D if _prey_ok(foe) else null
-	if is_same(to, _hound_prey):
-		return   # they are on it already (or at heel already)
-	_hound_prey = to
-	var now := _hound_now()
-	for i in _hound_bite_at.size():
-		var from := global_position
-		if i < _hound_nodes.size() and is_instance_valid(_hound_nodes[i]):
-			var node := _hound_nodes[i] as Node3D
-			from = node.global_position
-			node.set_prey(to)
-		if to != null:
-			_hound_bite_at[i] = maxf(float(_hound_bite_at[i]), now + HOUND.travel_time(from, to.global_position))
-	_tell_hounds()
-
-## Every frame: my Hounds bite, and leave when their time is up.
-func _tick_hounds() -> void:
-	if _hounds_until <= 0.0:
-		return
-	var now := _hound_now()
-	if status == null or not status.has(HOUNDS_FX):
-		_hounds_gone(hounds_time_up(now, _hounds_until))
-		return
-	if _hound_prey != null and not _prey_ok(_hound_prey):
-		_set_hound_prey(null)   # it died, or is out of their reach: back to heel
-	# Slipped Leash's third Hound goes when Off the Chain is over.
-	if _hound_bite_at.size() > Balance.HOUND_COUNT and not status.has(OFF_THE_CHAIN_FX):
-		_third_hound_gone()
-	if _hound_prey != null:
-		var every := _hound_bite_every()
-		for i in _hound_bite_at.size():
-			# (More Haste, or Off the Chain, since this bite was set: it comes sooner.)
-			_hound_bite_at[i] = minf(float(_hound_bite_at[i]), now + every)
-			if now < float(_hound_bite_at[i]):
-				continue
-			_hound_bite_at[i] = now + every
-			_hound_bite(i)
-			if not _prey_ok(_hound_prey):
-				break
-	if now - _hounds_told >= HOUND_RETELL:
-		_tell_hounds()
-
-## Hound number `i` bites their prey. Run Them Down: the bite reaches other enemies too.
-func _hound_bite(i: int) -> void:
-	var foe: Node3D = _hound_prey
-	var st: Node = foe.get_node_or_null("Status")
-	var roused: bool = status.has(ROUSED_FX)
-	var dealt := _hound_hit(foe, Balance.HOUND_BITE, HOUND_BITE_ID,
-		hound_bite_bonuses(roused, st != null and st.has_from(LAID_OPEN_FX, self)),
-		worked_up_crit(roused, _capstone("shadow_worked_up")))
-	if i < _hound_nodes.size() and is_instance_valid(_hound_nodes[i]):
-		_hound_nodes[i].bite()
-	if dealt <= 0:
-		return
-	# Fed: a bite that critically strikes gives me Rage.
-	if _hound_crit:
-		_gain("rage", _talent("shadow_fed"))
-	# Out of the Hole: part of the bite is added to my open Breach under the enemy.
-	var hole := _talent("shadow_out_of_the_hole")
-	if hole > 0.0:
-		_decay_feed(foe, hole_feed(dealt, hole))
-	# Stand Over: during Guard Dogs every bite gives me health back.
-	var stand := _talent("shadow_stand_over")
-	if stand > 0.0 and status.has(GUARD_DOGS_FX):
-		_combat().heal(self, self, float(stand_over_heal(max_health, stand)), STAND_OVER_ID, true)
-	if not status.has(RUN_DOWN_FX):
-		return
-	# An exact share of the bite (its crit and every bonus are already in it),
-	# under Run Them Down's own name.
-	var share := run_down_amount(dealt)
-	var others := 0
-	var most := run_down_targets(_talent("shadow_wide_pack"))   # Wide Pack: more of them
-	for e in _enemies_near(foe.global_position, Balance.RUN_DOWN_REACH, foe):
-		if others >= most:
-			break
-		_exact_hit(e, share, RUN_DOWN_ID, "shadow", PackedStringArray(HOUND_TAGS))
-		others += 1
-
-## One hit of a Hound's on `foe`: mine in everything (my level, power, crit,
-## damage bonuses, threat), a proc under its own name. `bonuses` = [percent,
-## label] rows added to it (what my talents add to it comes on top:
-## hound_hit_bonuses), `crit_more` = extra crit chance (Worked Up's capstone).
-## Returns the damage it dealt; _hound_crit says whether it critically struck.
-func _hound_hit(foe: Variant, coef: float, id: String, bonuses: Array = [], crit_more: float = 0.0) -> int:
-	_hound_crit = false
-	if foe == null or not is_instance_valid(foe) or not foe.is_alive():
-		return 0
-	var info := DamageInfo.make(self, foe, coef, id)
-	info.damage_type = "shadow"
-	info.tags = PackedStringArray(HOUND_TAGS)
-	info.is_proc = true       # runes and "on hit" talents do not fire off it, and Baited Steel does not count it
-	info.no_empower = true    # it neither builds nor spends a "your next ..." buff
-	if crit_more > 0.0:
-		info.set_meta(HOUND_CRIT_META, crit_more)
-	for b in bonuses + hound_hit_bonuses(id, _talent("shadow_pack_leader"), _talent("shadow_pincer"),
-			_talent("shadow_take_it_with_you")):
-		info.add_bonus(float(b[0]), str(b[1]))
-	_combat().deal(info)
-	var dealt := 0 if info.avoided() else int(info.amount)
-	_hound_crit = dealt > 0 and bool(info.crit)
-	return dealt
-
-## Both At Once: each of my Hounds leaps at `foe` and hits it (a third one too,
-## while it is out). Pincer's capstone: a lunge that critically strikes gives
-## Rage back.
-func _hounds_lunge(foe: Variant) -> void:
-	if not hounds_out() or not _prey_ok(foe):
-		return
-	_set_hound_prey(foe)
-	var refund := Balance.PINCER_RAGE if _capstone("shadow_pincer") else 0.0
-	for i in _hound_bite_at.size():
-		_hound_hit(foe, Balance.HOUND_LUNGE, HOUND_LUNGE_ID)
-		if _hound_crit:
-			_gain("rage", refund)
-		if i < _hound_nodes.size() and is_instance_valid(_hound_nodes[i]):
-			_hound_nodes[i].lunge()
-	_tell_hounds(true)
-
-## Run Them Down: everything around me is struck - more than AOE_TARGET_CAP
-## enemies share that many hits' damage - and for a while my Hounds' bites reach
-## other enemies too (_hound_bite).
-func _run_them_down(w: Dictionary, res: Resource) -> void:
-	var reach := float(res.radius)
-	var hit := _enemies_within(reach)
-	var coef := _weapon_hit(w, res) * Balance.aoe_share(hit.size())
-	for e in hit:
-		if is_instance_valid(e) and e.is_alive():
-			deal_damage(e, coef, RUN_DOWN_ID)
-	status.apply(make_run_down_fx(run_down_targets(_talent("shadow_wide_pack"))), self)
-	for i in 3:
-		rotation.y += TAU / 3.0
-		_slash_effect(HOUND_COLOR)
-	_ring_effect(reach, HOUND_COLOR)
-
-func _start_guard_dogs() -> void:
-	status.apply(make_guard_dogs_fx(), self)
-	_ring_effect(1.4, HOUND_COLOR)
-	_ring_effect(0.9, Abilities.color_of(GUARD_DOGS_ID))
-
-## Off the Chain: my Hounds bite faster, and their time stands still while it
-## lasts (they stay that much longer).
-func _start_off_the_chain() -> void:
-	# (Slipped Leash makes the buff last longer: Abilities.effect_time_bonus.)
-	status.apply(make_off_the_chain_fx(), self)
-	if hounds_out():
-		var now := _hound_now()
-		_hounds_until = hounds_until_unchained(_hounds_until, now, off_the_chain_time(_talent("shadow_slipped_leash")))
-		status.set_remaining(HOUNDS_FX, _hounds_until - now)
-		if _capstone("shadow_slipped_leash"):
-			_add_third_hound()
-		_tell_hounds()
-	_ring_effect(1.6, HOUND_COLOR)
-	_ring_effect(1.0, Abilities.color_of(OFF_THE_CHAIN_ID))
-
-## Slipped Leash's capstone: a third Hound comes up beside the pair. It stays
-## for as long as Off the Chain lasts (_tick_hounds sends it away).
-func _add_third_hound() -> void:
-	if not hounds_out() or _hound_bite_at.size() >= Balance.HOUND_COUNT + Balance.SLIPPED_LEASH_HOUNDS:
-		return   # (it is out already)
-	var at := _hound_bite_at.size()
-	_hound_bite_at.append(_hound_now() + HOUND.RISE_TIME + _hound_bite_every() * 0.5)
-	# (Its picture keeps its own place in the list, whatever became of the pair's.)
-	while _hound_nodes.size() < at:
-		_hound_nodes.append(null)
-	_hound_nodes.append(HOUND.call_one(get_tree().current_scene, self, _hound_prey if _prey_ok(_hound_prey) else null,
-		maxf(status.remaining_of(OFF_THE_CHAIN_FX), 0.1), false, at))
-
-## Off the Chain is over: the third Hound goes back under, dragging at its prey
-## like any Hound whose time is up. The pair stays.
-func _third_hound_gone() -> void:
-	while _hound_bite_at.size() > Balance.HOUND_COUNT:
-		var at := _hound_bite_at.size() - 1
-		_hound_bite_at.remove_at(at)
-		var drag := is_alive() and _prey_ok(_hound_prey)
-		if drag:
-			_drag_down(_hound_prey, 1)
-		if at < _hound_nodes.size():
-			var node: Variant = _hound_nodes[at]
-			_hound_nodes.remove_at(at)
-			if node != null and is_instance_valid(node):
-				node.leave(drag)
-	_tell_hounds()
-
-## `hounds` Hounds drag at `prey` on their way down (Drag Down). Take It With
-## You's capstone watches whether it dies of it (_on_enemy_died_shadow).
-func _drag_down(prey: Node3D, hounds: int) -> void:
-	if _drag_watch.size() >= 16:
-		_drag_watch.clear()
-	_drag_watch[prey.get_instance_id()] = _hound_now() + Balance.DRAG_KILL_WINDOW
-	for i in hounds:
-		_hound_hit(prey, Balance.HOUND_DRAG, HOUND_DRAG_ID)
-
-## Bring It Down: my Hounds go back under now, each dragging at its prey as if
-## their time was up. At heel, they take my target. My next Shadow melee
-## ability calls a new pair.
-func _bring_it_down() -> void:
-	if not hounds_out():
-		return
-	if not _prey_ok(_hound_prey) and _has_valid_target() and _prey_ok(target):
-		_set_hound_prey(target)
-	var prey: Variant = _hound_prey
-	status.remove(HOUNDS_FX)
-	_hounds_gone(true)
-	_ring_effect(1.2, HOUND_COLOR)
-	if _prey_ok(prey):
-		_ring_effect(0.9, HOUND_COLOR, (prey as Node3D).global_position)
-
-## My Hounds are gone. `time_up`: each drags at its prey on the way down.
-func _hounds_gone(time_up: bool) -> void:
-	var prey: Variant = _hound_prey
-	var out := maxi(_hound_bite_at.size(), Balance.HOUND_COUNT)   # (three while Slipped Leash's third is out)
-	_hounds_until = 0.0
-	_hound_prey = null
-	_hound_bite_at = []
-	if status != null and status.has(ROUSED_FX):
-		status.remove(ROUSED_FX)   # there is nobody left to be Roused
-	var drag := time_up and is_alive() and _prey_ok(prey)
-	if drag:
-		_drag_down(prey, out)
-	_drop_hound_nodes(drag)
-	_hounds_told = _hound_now()
-	_net_fx("hounds", global_position, prey if drag else null, {"time": 0.0})
-
-## Their pictures sink back into the ground.
-func _drop_hound_nodes(drag: bool) -> void:
-	for n in _hound_nodes:
-		if n != null and is_instance_valid(n):
-			n.leave(drag)
-	_hound_nodes = []
-
-## Tell the party about my Hounds: how long they have left, what they are on,
-## and (`lunge`) that they leap at it now.
-func _tell_hounds(lunge: bool = false) -> void:
-	_hounds_told = _hound_now()
-	_net_fx("hounds", global_position, _hound_prey if _prey_ok(_hound_prey) else null,
-		{"time": maxf(_hounds_until - _hounds_told, 0.1), "lunge": lunge, "count": maxi(_hound_bite_at.size(), Balance.HOUND_COUNT)})
-
-# --- Shadow healer: the Strings ---------------------------------------------------------------
-# A demon floats behind me and holds my allies up on puppet Strings. It has
-# STRING_MAX of them, for allies and enemies together. Each one is in my hand
-# (a charge of the String ability), tied to someone, or used up and recovering.
-#   On an ally   it heals every second (faster with Haste) for STRING_TIME
-#                seconds. Up to STRING_STACKS go on one ally; tying another
-#                starts the time of all of them over.
-#   On an enemy  it lasts STRING_ENEMY_TIME seconds and is crossed with the ally
-#                I tied last: part of the damage that ally takes is dealt to the
-#                enemy instead (Crossed Strings), while the two are close enough.
-#   Shared       a spell or ability of mine that heals an ally on a String also
-#                heals every other ally on one for a share (heal_done).
-#   Coming back  a String that runs its time, or whose target dies or gets out
-#                of reach, is back in my hand at once. One I use up (tied to an
-#                ally who is full, pulled taut) recovers STRING_RECHARGE seconds
-#                later, one after the other. So letting them run out is free and
-#                keeping everyone covered without a gap is not.
-# Everything is decided here, on the healer's machine: who holds how many, when
-# they end, every heal. A party member is told through Net.support_ally (their
-# Player.receive_support): heals, the buff that shows their Strings, the share
-# of damage that is crossed away (they report it back as "cross_dmg" and I deal
-# it), shields, Still Standing and Yank. A friendly dummy is handled right here.
-# Cat's Cradle ties loose Strings: they heal and count as "on a String" but are
-# none of my STRING_MAX. Double Thread's second String is free in the same way.
-# The demon and the threads are scripts/puppeteer.gd (only a picture); the
-# party sees them through the "strings" fx. Numbers: balance.gd (STRING_*, ...).
-
-const PUPPETEER = preload("res://scripts/puppeteer.gd")
-const STRING_ID := "puppetstring"
-const PATCH_UP_ID := "patchup"
-const HOIST_ID := "hoist"
-const TUG_ID := "tug"
-const CRADLE_ID := "catscradle"
-const WRENCH_ID := "wrench"
-const PULL_TAUT_ID := "pulltaut"
-const CUPPED_HANDS_ID := "cuppedhands"
-const STRING_UP_ID := "stringup"
-const RESTRING_ID := "restring"
-const KNOT_ID := "knot"
-const TANGLE_ID := "tangle"
-const YANK_ID := "yank"
-const DOUBLE_THREAD_ID := "doublethread"
-const BEHIND_ID := "behinditsback"
-const SLACK_ID := "slack"
-const STILL_STANDING_ID := "stillstanding"
-const CUT_STRINGS_ID := "cutthestrings"
-const NOT_FINISHED_ID := "notfinished"
-## The kit's instant abilities (Patch Up and Hoist are cast like Heal: SUPPORT_CASTS).
-const STRING_INSTANTS := [STRING_ID, TUG_ID, CRADLE_ID, WRENCH_ID, PULL_TAUT_ID, CUPPED_HANDS_ID, STRING_UP_ID, RESTRING_ID,
-	KNOT_ID, TANGLE_ID, YANK_ID, DOUBLE_THREAD_ID, BEHIND_ID, SLACK_ID, STILL_STANDING_ID, CUT_STRINGS_ID, NOT_FINISHED_ID]
-## Heals of mine that are never shared along the Strings: the Strings' own, and
-## the ones that already reach everybody.
-const STRING_NO_SHARE := [STRING_ID, CRADLE_ID, PULL_TAUT_ID, CUT_STRINGS_ID]
-## Meter / log ids (Details.HIT_NAMES): the shared heal, and the damage Crossed Strings moves to an enemy.
-const STRING_SHARE_ID := "string_share"
-const CROSSED_ID := "crossed_strings"
-const CROSSED_LABEL := "Crossed Strings"
-## Talents: First Stitch's heal and Long Drop's hit (meter ids), Full Harness (the name of what it takes off a hit), Lean On Me (its buff).
-const FIRST_STITCH_ID := "first_stitch"
-const LONG_DROP_ID := "long_drop"
-const FULL_HARNESS_LABEL := "Full Harness"
-const LEAN_ON_ME_FX := "lean_on_me"
-const STRING_BUFF := "on_a_string"          # what someone on a String carries: it shows how many, and for how long
-const DOUBLE_THREAD_FX := "double_thread"
-const BEHIND_FX := "behind_its_back"
-const SLACK_FX := "slack"
-const CUPPED_HANDS_FX := "cupped_hands"
-const STILL_STANDING_FX := "still_standing"
-const HELD_UP_FX := "held_up"
-const STRUNG_UP_FX := "strung_up"           # data/effects/strung_up.tres
-const TANGLED_FX := "tangled"               # data/effects/tangled.tres
-const STRING_TAGS := ["Shadow", "Spell"]
-const STRING_COLOR := Color(0.93, 0.86, 1.0)
-const NOT_ON_STRING := "That ally is not on one of your Strings"
-const NO_STRING_THERE := "That ally has none of your Strings"
-const NO_STRINGS_OUT := "You have no Strings placed"
-## Seconds between reminders to the party (and to everyone on a String) of where my Strings are.
-const STRINGS_RETELL := 3.0
-## Seconds a new String waits for its ally to be on its feet (Not Finished With You: the revive is on its way).
-const STRING_GRACE := 2.5
-
-var _strings := {}              # target instance id -> entry (see _string_entry)
-var _string_order: Array = []   # target instance ids, one for each String tied, oldest first (Restring takes the last)
-var _string_last_ally := 0      # instance id of the ally I tied last: an enemy's String is crossed with it
-var _string_spent := 0          # Strings used up and recovering
-var _string_recover_at := 0.0   # when the next of them is back
-var _slack_until := 0.0         # Slack: no String heals before this
-var _strings_dirty := false
-var _strings_shown := false
-var _strings_told := 0.0
-var _string_fx: Resource
-# The other end: Strings somebody (I myself, or a party member) has on me.
-var _strung := {}               # caster instance id -> {"from": Node, "cross": percent, "until": time}
-var _cross_owed := {}           # caster instance id -> damage crossed away from me that they still have to hear of
-var _cross_told := 0.0
-var _stand_until := 0.0         # Still Standing on me: a killing blow before this is held off
-var _stand_hold := 0.0          # ... for this long
-var _stand_pct := 0.0           # ... and I need this share of health at the end of it
-var _held_until := 0.0          # the Strings are holding me up until then (I cannot die)
-
-## Strings in my hand with `placed` of my own tied somewhere and `spent` recovering.
-static func strings_in_hand(placed: int, spent: int) -> int:
-	return maxi(Balance.STRING_MAX - maxi(placed, 0) - maxi(spent, 0), 0)
-
-## The String ability's global cooldown: a share of a normal one.
-static func string_gcd(gcd: float) -> float:
-	return gcd * Balance.STRING_GCD_MULT
-
-# What the healer's talents change (talents.gd, Shadow: "the Strings").
-
-## Seconds a String on an ally lasts (`longer`: Long Thread).
-static func string_time_with(longer: float) -> float:
-	return Balance.STRING_TIME + maxf(longer, 0.0)
-
-## Seconds a used-up String takes to come back (`sooner`: Spare Spool).
-static func string_recharge(sooner: float) -> float:
-	return maxf(Balance.STRING_RECHARGE - maxf(sooner, 0.0), 1.0)
-
-## The share (%) of an ally's damage Crossed Strings moves (`talent`: Taking the Weight's, which replaces it).
-static func cross_pct_with(talent: float) -> float:
-	return talent if talent > 0.0 else Balance.STRING_CROSS_PCT
-
-## Metres apart a crossing holds (`far`: Taking the Weight's capstone).
-static func cross_range_with(far: bool) -> float:
-	return Balance.TAKING_THE_WEIGHT_RANGE if far else Balance.STRING_CROSS_RANGE
-
-## Full Harness: the share (%) of its damage an ally with `strings` of my Strings is spared.
-static func full_harness_pct(strings: int, pct: float) -> float:
-	return pct if strings >= Balance.STRING_STACKS and pct > 0.0 else 0.0
-
-## First Stitch: the heal of tying a String, a coefficient (`heals` heals of one String).
-static func first_stitch_coef(heals: float) -> float:
-	return Balance.STRING_HEAL * maxf(heals, 0.0)
-
-## Heave: Hoist's heal on someone with `strings` of my Strings, a multiplier (`pct` % more for each).
-static func heave_mult(strings: int, pct: float) -> float:
-	return 1.0 + maxf(pct, 0.0) * clampi(strings, 0, Balance.STRING_STACKS) / 100.0
-
-## Heave's capstone: Hoist's cast time on someone with `strings` of my Strings.
-## Deep Call: Beckon's cast `cast` is `cut` sec shorter on a target whose Breach of mine is open.
-static func deep_call_cast(cast: float, cut: float, open: bool) -> float:
-	return maxf(cast - cut, 0.2) if open and cut > 0.0 else cast
-
-## Hard Pull: how long Tug makes an ally's Strings heal faster (`extra` = the talent's seconds).
-static func tug_time(extra: float = 0.0) -> float:
-	return Balance.TUG_TIME + maxf(extra, 0.0)
-
-static func heave_cast(cast: float, strings: int, capstone: bool) -> float:
-	return maxf(cast - Balance.HEAVE_CAST, 0.2) if capstone and strings >= Balance.STRING_STACKS else cast
-
-## Snap Back: does Pull Taut's String go straight back into my hand? (`roll`: 0-100.)
-static func snaps_back(pct: float, roll: float) -> bool:
-	return pct > 0.0 and roll < pct
-
-## Seconds Slack stops the Strings healing (`less`: Give and Take).
-static func slack_time(less: float) -> float:
-	return maxf(Balance.SLACK_TIME - maxf(less, 0.0), 0.0)
-
-## Steady Hands: a String's heal `coef` with `pct` % more.
-static func steady_heal(coef: float, pct: float) -> float:
-	return coef * (1.0 + maxf(pct, 0.0) / 100.0)
-
-## Many Hands: the multiplier on a heal of mine (`on_other`: it is not on myself).
-static func many_hands_mult(on_other: bool, pct: float) -> float:
-	return 1.0 + maxf(pct, 0.0) / 100.0 if on_other else 1.0
-
-## Lean On Me: less damage taken for a while after healing someone else.
-static func make_lean_on_me_fx(pct: float) -> Resource:
-	var fx := StatusContainer.make_buff(LEAN_ON_ME_FX, "Lean On Me", LEAN_ON_ME_FX, 0.0, Balance.LEAN_ON_ME_TIME, 1, STRING_COLOR.darkened(0.15))
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Shadow", "Defensive"])
-	fx.damage_mod_pct = -absf(pct)
-	fx.modifies_incoming = true
-	fx.mod_affects_dots = true
-	fx.description = "You take %s%% less damage." % Stats.num(absf(pct))
-	return fx
-
-func string_time() -> float:
-	return string_time_with(_talent("shadow_long_thread"))
-
-func _cross_pct() -> float:
-	return cross_pct_with(_talent("shadow_taking_the_weight"))
-
-## Many Hands: what a heal of mine on `tgt` is multiplied by (more on anyone but me).
-## (And my Pact's: the Shepherd. A heal on myself gets that one in heal().)
-func _others_heal_mult(tgt: Variant) -> float:
-	var other: bool = tgt != null and is_instance_valid(tgt) and not is_same(tgt, self)
-	var grace := 1.0 + _talent("holy_grace") / 100.0 if other else 1.0   # Grace (an open Holy talent)
-	return many_hands_mult(other, _talent("shadow_many_hands")) * (_pact_heal_mult() if other else 1.0) * grace
-
-func _steady(coef: float) -> float:
-	return steady_heal(coef, _talent("shadow_steady_hands"))
-
-## Lean On Me: I healed someone else (_on_heal_done_strings).
-func _lean_on_me() -> void:
-	var pct := _talent("shadow_lean_on_me")
-	if pct <= 0.0 or status == null or is_dead():
-		return
-	if status.has(LEAN_ON_ME_FX):
-		status.set_remaining(LEAN_ON_ME_FX, Balance.LEAN_ON_ME_TIME)   # (many small heals: only its time starts over)
-	else:
-		status.apply(make_lean_on_me_fx(pct), self)
-
-## Long Drop: enemies String Up is holding, and when each is let go.
-var _long_drops: Array = []   # [{"foe": Node, "at": time}]
-
-func _tick_long_drops() -> void:
-	if _long_drops.is_empty():
-		return
-	var now := _str_now()
-	for i in range(_long_drops.size() - 1, -1, -1):
-		var d: Dictionary = _long_drops[i]
-		if now < float(d["at"]):
-			continue
-		_long_drops.remove_at(i)
-		var foe: Variant = d["foe"]
-		var coef := _talent("shadow_long_drop")
-		if coef > 0.0 and foe != null and is_instance_valid(foe) and foe is Node3D and foe.is_alive():
-			deal_damage(foe, coef, LONG_DROP_ID, true, "shadow", PackedStringArray(STRING_TAGS))
-			_ring_effect(0.8, HOUND_COLOR, (foe as Node3D).global_position)
-
-## Tying a String to an ally who has `n`: [Strings it has afterwards, how many of
-## those added are free (Double Thread's second), is the String used up].
-## An ally who is full gets none: the String only starts their time over, and
-## is used up doing it.
-static func string_placed(n: int, doubled: bool = false) -> Array:
-	var room := Balance.STRING_STACKS - maxi(n, 0)
-	if room <= 0:
-		return [maxi(n, 0), 0, true]
-	var add := mini(2 if doubled else 1, room)
-	return [maxi(n, 0) + add, add - 1, false]
-
-## Heal of one tick on an ally with `stacks` Strings (`loose`: one of Cat's Cradle's as well), a coefficient.
-static func string_tick_heal(stacks: int, loose: bool = false) -> float:
-	return Balance.STRING_HEAL * (maxi(stacks, 0) + (1 if loose else 0))
-
-## Seconds between the heals of an ally's Strings (`haste` = my haste multiplier, `tugged` = Tug).
-static func string_tick_interval(haste: float, tugged: bool = false) -> float:
-	return maxf(Balance.STRING_TICK / (maxf(haste, 0.1) * (Balance.TUG_SPEED_MULT if tugged else 1.0)), 0.1)
-
-## What every other ally on a String gets of a heal of `amount`.
-static func string_share(amount: int) -> int:
-	return int(round(maxf(float(amount), 0.0) * Balance.STRING_SHARE_PCT / 100.0))
-
-## Is a heal `id` of mine shared along the Strings? A spell's or an ability's
-## own heal (`is_ability`: it is in Abilities.PATHS): no Lifesteal, no talent or
-## rune heal, and none of STRING_NO_SHARE.
-static func shares_heal(id: String, is_ability: bool) -> bool:
-	return is_ability and not STRING_NO_SHARE.has(id)
-
-## Crossed Strings: the damage that was taken away from a hit of `amount` (what
-## got through, with `bonus_pct` in it) by a `pct` % share. The enemy takes it.
-static func cross_redirect(amount: float, bonus_pct: float, pct: float) -> float:
-	var mult := 1.0 + bonus_pct / 100.0
-	if mult <= 0.0 or pct <= 0.0 or amount <= 0.0:
-		return 0.0
-	return amount * (pct / 100.0) / mult
-
-## Pull Taut: the healing a String with `seconds_left` still had to give, a coefficient.
-## (`full`: how long a String lasts for me, with Long Thread.)
-static func pull_taut_coef(seconds_left: float, full: float = Balance.STRING_TIME) -> float:
-	return Balance.STRING_HEAL * clampf(seconds_left, 0.0, maxf(full, 0.0)) / Balance.STRING_TICK
-
-## Cupped Hands: its shield on an ally with `strings` Strings, as a Heal coefficient.
-static func cupped_hands_coef(strings: int) -> float:
-	return Balance.REFERENCE_HEAL * (Balance.CUPPED_HANDS_SHIELD + Balance.CUPPED_HANDS_PER_STRING * maxi(strings, 0))
-
-## Slack: mana points back with `strings` Strings out.
-static func slack_mana(strings: int) -> float:
-	return Balance.SLACK_MANA * maxi(strings, 0)
-
-## Still Standing: is someone at `hp` of `max_hp` health well enough to stay up when the Strings let go?
-static func still_standing_lives(hp: int, max_hp: int, pct: float) -> bool:
-	return max_hp > 0 and float(hp) * 100.0 / float(max_hp) >= pct
-
-## The buff someone on a String carries (its stacks = how many Strings).
-static func make_string_fx() -> Resource:
-	var fx := StatusContainer.make_buff(STRING_BUFF, "String", STRING_BUFF, 0.0, Balance.STRING_TIME, Balance.STRING_STACKS + 1, STRING_COLOR)
-	fx.stat_modifiers = {}
-	fx.stack_mode = 0   # (its stacks and time are set by whoever holds the Strings)
-	fx.per_caster = true
-	fx.tags = PackedStringArray(["Shadow"])
-	fx.description = "Held up by a demon's Strings: each one heals you every second."
-	return fx
-
-static func make_double_thread_fx() -> Resource:
-	var fx := StatusContainer.make_buff(DOUBLE_THREAD_FX, Abilities.ability_name(DOUBLE_THREAD_ID), DOUBLE_THREAD_FX, 0.0,
-		Balance.DOUBLE_THREAD_TIME, 1, STRING_COLOR)
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Shadow"])
-	fx.description = "Your next String on an ally is placed as two."
-	return fx
-
-## Behind Its Back: less damage taken, of every kind.
-static func make_behind_fx() -> Resource:
-	var fx := StatusContainer.make_buff(BEHIND_FX, Abilities.ability_name(BEHIND_ID), BEHIND_FX, 0.0,
-		Balance.BEHIND_ITS_BACK_TIME, 1, HOUND_COLOR.darkened(0.1))
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Shadow", "Defensive"])
-	fx.damage_mod_pct = -Balance.BEHIND_ITS_BACK_PCT
-	fx.modifies_incoming = true
-	fx.mod_affects_dots = true
-	fx.description = "You take %s%% less damage." % Stats.num(Balance.BEHIND_ITS_BACK_PCT)
-	return fx
-
-static func make_slack_fx() -> Resource:
-	var fx := StatusContainer.make_buff(SLACK_FX, Abilities.ability_name(SLACK_ID), SLACK_FX, 0.0, Balance.SLACK_TIME, 1, STRING_COLOR.darkened(0.3))
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Shadow"])
-	fx.description = "Your Strings are slack: they do not heal."
-	return fx
-
-## Cupped Hands: the buff its shield rides on (`time` seconds).
-static func make_cupped_hands_fx(time: float) -> Resource:
-	var fx := StatusContainer.make_buff(CUPPED_HANDS_FX, Abilities.ability_name(CUPPED_HANDS_ID), CUPPED_HANDS_FX, 0.0, time, 1, HOUND_COLOR)
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Shadow", "Defensive"])
-	fx.description = "A demon's hand is closed over you: a shield that absorbs damage."
-	return fx
-
-static func make_still_standing_fx(time: float) -> Resource:
-	var fx := StatusContainer.make_buff(STILL_STANDING_FX, Abilities.ability_name(STILL_STANDING_ID), STILL_STANDING_FX, 0.0, time, 1, STRING_COLOR)
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Shadow", "Defensive"])
-	fx.description = "A killing blow leaves you at a sliver of health, held up by the Strings."
-	return fx
-
-static func make_held_up_fx(time: float) -> Resource:
-	var fx := StatusContainer.make_buff(HELD_UP_FX, "Held Up", HELD_UP_FX, 0.0, time, 1, HOUND_COLOR.lightened(0.2))
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Shadow", "Defensive"])
-	fx.description = "The Strings are holding you up: nothing can kill you. When they let go you fall, unless you have been healed enough."
-	return fx
-
-func _str_now() -> float:
-	return Time.get_ticks_msec() / 1000.0
-
-## My entry for `who`, made empty if there is none: {node, enemy, n (Strings on
-## it), free (how many of those are none of my STRING_MAX), until (when they run
-## out), born, next (its next heal), fast (Tug: heals faster until then), knot,
-## cross (instance id at the other end of a crossing, 0 = none), loose (when
-## Cat's Cradle's String on it runs out, 0 = none)}.
-func _string_entry(who: Node3D, is_enemy: bool) -> Dictionary:
-	var key := who.get_instance_id()
-	if not _strings.has(key):
-		var now := _str_now()
-		_strings[key] = {"node": who, "enemy": is_enemy, "n": 0, "free": 0, "until": 0.0, "born": now,
-			"next": now + string_tick_interval(haste_mult()), "fast": 0.0, "knot": false, "cross": 0, "loose": 0.0}
-	return _strings[key]
-
-## How many of my STRING_MAX are tied somewhere.
-func strings_placed() -> int:
-	var n := 0
-	for e in _strings.values():
-		n += int(e["n"]) - int(e["free"])
-	return n
-
-## Every String I have out, the free ones too (not Cat's Cradle's loose ones).
-func strings_out() -> int:
-	var n := 0
-	for e in _strings.values():
-		n += int(e["n"])
-	return n
-
-## Strings in my hand: the charges of the String ability.
-func string_charges() -> int:
-	return strings_in_hand(strings_placed(), _string_spent)
-
-## My Strings on `who` (not a loose one).
-func strings_on(who: Variant) -> int:   # untyped: may be a freed node
-	if who == null or not is_instance_valid(who) or not (who is Node):
-		return 0
-	var e: Variant = _strings.get((who as Node).get_instance_id())
-	return int(e["n"]) if e != null else 0
-
-## Is `who` on one of my Strings (a loose one counts)?
-func on_my_string(who: Variant) -> bool:
-	if who == null or not is_instance_valid(who) or not (who is Node):
-		return false
-	var e: Variant = _strings.get((who as Node).get_instance_id())
-	return e != null and (int(e["n"]) > 0 or float(e["loose"]) > _str_now())
-
-## Can entry `e` still hold? Its target is there, on its feet (a new one gets a
-## moment for that) and within the leash.
-func _string_holds(e: Dictionary, now: float) -> bool:
-	var who: Variant = e["node"]
-	if who == null or not is_instance_valid(who) or not (who is Node3D):
-		return false
-	if not who.is_alive() and (bool(e["enemy"]) or now - float(e["born"]) > STRING_GRACE):
-		return false
-	return is_same(who, self) or _flat_dist_to((who as Node3D).global_position) <= Balance.STRING_LEASH
-
-## Who a String ability goes to: [node, is it an enemy, error]. My friendly
-## target; else (`foes`) my enemy target; else me.
-func _string_pick(id: String, foes: bool) -> Array:
-	var res := Abilities.get_resource(id)
-	var reach := float(res.cast_range) if res else 40.0
-	var who: Node3D = self
-	var is_enemy := false
-	if has_friendly_target():
-		who = friendly_target
-	elif foes and _has_valid_target():
-		who = target
-		is_enemy = true
-	if not is_same(who, self):
-		if reach > 0.0 and global_position.distance_to(who.global_position) > reach:
-			return [null, false, "Target out of range"]
-		if not can_see(who):
-			return [null, false, "Target not in line of sight"]
-	return [who, is_enemy, ""]
-
-## Can a String ability be used right now? ("" = yes.) _drafted_precheck asks.
-func _string_precheck(id: String) -> String:
-	match id:
-		STRING_ID:
-			return str(_string_pick(id, true)[2])
-		TUG_ID, CUPPED_HANDS_ID, STILL_STANDING_ID:
-			var pick := _string_pick(id, false)
-			if str(pick[2]) != "":
-				return str(pick[2])
-			return "" if on_my_string(pick[0]) else NOT_ON_STRING
-		PULL_TAUT_ID, KNOT_ID:
-			var pick := _string_pick(id, false)
-			if str(pick[2]) != "":
-				return str(pick[2])
-			return "" if strings_on(pick[0]) > 0 else NO_STRING_THERE
-		YANK_ID:
-			if not has_friendly_target():
-				return "No friendly target"
-			var pick := _string_pick(id, false)
-			if str(pick[2]) != "":
-				return str(pick[2])
-			return "" if on_my_string(pick[0]) else NOT_ON_STRING
-		WRENCH_ID:
-			return "" if strings_on(target) > 0 else "That enemy has none of your Strings"
-		BEHIND_ID, SLACK_ID, CUT_STRINGS_ID:
-			return "" if strings_out() > 0 else NO_STRINGS_OUT
-		NOT_FINISHED_ID:
-			var res := Abilities.get_resource(id)
-			return "" if _fallen_ally(float(res.cast_range)) != null else "No downed ally in range"
-		RESTRING_ID:
-			return _restring_error()
-	return ""
-
-## A String ability went off (_use_drafted, once it was paid for).
-func _string_use(id: String, res: Resource) -> void:
-	match id:
-		STRING_ID:
-			_use_string()
-		TUG_ID:
-			_tug()
-		CRADLE_ID:
-			_cats_cradle(res)
-		WRENCH_ID:
-			_wrench(res)
-		PULL_TAUT_ID:
-			_pull_taut()
-		CUPPED_HANDS_ID:
-			_cupped_hands()
-		STRING_UP_ID:
-			_string_up()
-		RESTRING_ID:
-			_restring()
-		KNOT_ID:
-			_knot()
-		TANGLE_ID:
-			_tangle(res)
-		YANK_ID:
-			_yank()
-		DOUBLE_THREAD_ID:
-			status.apply(make_double_thread_fx(), self)
-			_ring_effect(0.8, STRING_COLOR)
-		BEHIND_ID:
-			status.apply(make_behind_fx(), self)
-			_ring_effect(1.3, HOUND_COLOR)
-		SLACK_ID:
-			_slack()
-		STILL_STANDING_ID:
-			_still_standing()
-		CUT_STRINGS_ID:
-			_cut_the_strings()
-		NOT_FINISHED_ID:
-			_not_finished(res)
-
-# The Strings themselves.
-
-## String: one from my hand to whoever I have targeted (an ally, an enemy, or me).
-func _use_string() -> void:
-	var pick := _string_pick(STRING_ID, true)
-	var who: Variant = pick[0]
-	if who == null:
-		return
-	_tie_string(who, bool(pick[1]))
-	_ring_effect(0.6, HOUND_COLOR if bool(pick[1]) else STRING_COLOR, (who as Node3D).global_position)
-
-## Tie a String to `who`. `from_hand`: it comes out of my hand (false: Restring
-## moves one that is out already, so nothing is used up and nothing is doubled).
-func _tie_string(who: Node3D, is_enemy: bool, from_hand: bool = true) -> void:
-	var now := _str_now()
-	var key := who.get_instance_id()
-	var e := _string_entry(who, is_enemy)
-	if is_enemy:
-		if int(e["n"]) >= 1:
-			if from_hand:
-				_string_use_up()   # it takes the place of the one that was there
-		else:
-			e["n"] = 1
-			_string_order.append(key)
-		e["until"] = now + Balance.STRING_ENEMY_TIME
-		_cross_strings(key)
-	else:
-		var doubled: bool = from_hand and status != null and status.has(DOUBLE_THREAD_FX)
-		var placed := string_placed(int(e["n"]), doubled)
-		for i in int(placed[0]) - int(e["n"]):
-			_string_order.append(key)
-		e["n"] = int(placed[0])
-		e["free"] = int(e["free"]) + int(placed[1])
-		if bool(placed[2]) and from_hand:
-			_string_use_up()
-		if doubled:
-			status.remove(DOUBLE_THREAD_FX)
-		# (A knotted ally's Strings never lose time to a new one.)
-		e["until"] = maxf(float(e["until"]), now + string_time()) if bool(e["knot"]) else now + string_time()
-		_string_last_ally = key
-		# First Stitch: the String heals the moment it is tied.
-		var stitch := _talent("shadow_first_stitch")
-		if stitch > 0.0:
-			_heal_coef(who, _steady(first_stitch_coef(stitch)), FIRST_STITCH_ID)
-	_tell_string(key, who)
-	_strings_dirty = true
-
-## A String of mine was used up: it is back in my hand STRING_RECHARGE seconds
-## after the one recovering before it.
-func _string_use_up() -> void:
-	_string_spent += 1
-	if _string_spent == 1:
-		_string_recover_at = _str_now() + string_recharge(_talent("shadow_spare_spool"))   # Spare Spool
-
-## One String comes off `key` (its entry goes with the last one).
-func _string_take(key: int) -> void:
-	if not _strings.has(key):
-		return
-	var e: Dictionary = _strings[key]
-	if int(e["n"]) <= 1:
-		_strings_fall(key)
-		return
-	e["n"] = int(e["n"]) - 1
-	e["free"] = mini(int(e["free"]), int(e["n"]))
-	var at := _string_order.rfind(key)
-	if at >= 0:
-		_string_order.remove_at(at)
-	_tell_string(key, e["node"])
-	_strings_dirty = true
-
-## The Strings on `key` are gone (they ran their time, or were taken off). A
-## loose one of Cat's Cradle stays until it runs out.
-func _strings_fall(key: int) -> void:
-	if not _strings.has(key):
-		return
-	var e: Dictionary = _strings[key]
-	var who: Variant = e["node"]
-	_uncross(key)
-	e["n"] = 0
-	e["free"] = 0
-	e["knot"] = false
-	while _string_order.has(key):
-		_string_order.erase(key)
-	if bool(e["enemy"]) or float(e["loose"]) <= _str_now():
-		_strings.erase(key)
-	_tell_string(key, who)
-	_strings_dirty = true
-
-## Everything of mine on `key` is gone, a loose String too.
-func _string_gone(key: int) -> void:
-	if not _strings.has(key):
-		return
-	_strings[key]["loose"] = 0.0
-	_strings_fall(key)
-
-## Dead, or downed: the demon lets everything go.
-func _clear_strings() -> void:
-	for key in _strings.keys():
-		_string_gone(int(key))
-	_slack_until = 0.0
-	_show_strings()
-
-## The String on enemy `enemy_key` is crossed with the ally I tied last (if that
-## ally still has a String). One crossing for each ally and for each enemy: an
-## older one lets go.
-func _cross_strings(enemy_key: int) -> void:
-	_uncross(enemy_key)
-	var ally_key := _string_last_ally
-	if not _strings.has(ally_key) or not _strings.has(enemy_key):
-		return
-	var a: Dictionary = _strings[ally_key]
-	if bool(a["enemy"]) or int(a["n"]) <= 0:
-		return
-	_uncross(ally_key)
-	a["cross"] = enemy_key
-	_strings[enemy_key]["cross"] = ally_key
-	_tell_string(ally_key, a["node"])
-
-func _uncross(key: int) -> void:
-	if not _strings.has(key):
-		return
-	var other := int(_strings[key]["cross"])
-	if other == 0:
-		return
-	_strings[key]["cross"] = 0
-	if _strings.has(other):
-		_strings[other]["cross"] = 0
-	for k in [key, other]:
-		if _strings.has(k) and not bool(_strings[k]["enemy"]):
-			_tell_string(int(k), _strings[k]["node"])
-
-## Let whoever is at the other end know where their Strings stand: how many (a
-## loose one counts), for how long, and what share of their damage is crossed
-## away. Me: straight into my own buffs. A dummy: its Status. A party member:
-## their machine (Net.support_ally "string").
-func _tell_string(key: int, who: Variant) -> void:   # untyped: may be a freed node
-	if who == null or not is_instance_valid(who) or not (who is Node) or (who as Node).is_in_group("enemies"):
-		return
-	var data := {"n": 0, "t": 0.0, "cross": 0.0, "dr": 0.0}
-	var e: Variant = _strings.get(key)
-	if e != null:
-		var now := _str_now()
-		var loose := maxf(float(e["loose"]) - now, 0.0)
-		var held := maxf(float(e["until"]) - now, 0.0) if int(e["n"]) > 0 else 0.0
-		data["n"] = int(e["n"]) + (1 if loose > 0.0 else 0)
-		data["t"] = maxf(held, loose)
-		data["cross"] = _cross_pct() if int(e["cross"]) != 0 else 0.0   # (Taking the Weight)
-		data["dr"] = full_harness_pct(int(e["n"]), _talent("shadow_full_harness"))   # Full Harness: % less damage taken
-	if is_same(who, self):
-		_on_string_state(self, data)
-	elif (who as Node).is_in_group("friendly"):
-		_string_on_dummy(who, key, data)
-	elif _net():
-		_net().support_ally(who, self, "string", data)
-
-## A friendly dummy on a String: the buff that shows it, and the share of what
-## it takes that is crossed away (ally_dummy.gd asks its "damage_share" meta).
-func _string_on_dummy(who: Node, key: int, data: Dictionary) -> void:
-	var st: Node = who.get_node_or_null("Status")
-	if st != null:
-		if int(data["n"]) > 0 and float(data["t"]) > 0.0:
-			if _string_fx == null:
-				_string_fx = make_string_fx()
-			if not st.has_from(STRING_BUFF, self):   # (told again every few seconds: only the numbers change)
-				st.apply(_string_fx, self)
-			st.set_stacks_from(STRING_BUFF, self, int(data["n"]))
-			st.set_remaining_from(STRING_BUFF, self, float(data["t"]))
-		else:
-			st.remove_from(STRING_BUFF, self)
-	if float(data["cross"]) > 0.0 or float(data.get("dr", 0.0)) > 0.0:
-		who.set_meta("damage_share", Callable(self, "_dummy_crossed").bind(key))
-	elif who.has_meta("damage_share"):
-		who.remove_meta("damage_share")
-
-## A dummy on a crossed String is about to take `dmg`: its share goes to the enemy. Returns what is left.
-func _dummy_crossed(dmg: int, key: int) -> int:
-	var e: Variant = _strings.get(key)
-	if e == null or dmg <= 0:
-		return dmg
-	# Full Harness: with every String it can hold, it is spared a share.
-	var left := dmg - int(round(dmg * full_harness_pct(int(e["n"]), _talent("shadow_full_harness")) / 100.0))
-	if int(e["cross"]) == 0:
-		return left
-	var moved := int(round(dmg * _cross_pct() / 100.0))
-	_crossed_damage(e["node"], moved)
-	return maxi(left - moved, 0)
-
-## An ally on a crossed String took less: `amount` of it is dealt to the enemy
-## at the other end, as my own Shadow damage under its own name.
-func _crossed_damage(ally: Variant, amount: int) -> void:
-	if amount <= 0 or ally == null or not is_instance_valid(ally) or not (ally is Node):
-		return
-	var a: Variant = _strings.get((ally as Node).get_instance_id())
-	if a == null or int(a["cross"]) == 0 or not _strings.has(int(a["cross"])):
-		return
-	_exact_hit(_strings[int(a["cross"])]["node"], amount, CROSSED_ID, "shadow", PackedStringArray(STRING_TAGS))
-
-## Every frame: Strings heal, run out and come back; the demon and the party are kept up to date.
-func _tick_strings() -> void:
-	_tick_strung()            # (the other end: Strings somebody has on me)
-	_tick_still_standing()
-	_tick_long_drops()        # Long Drop: enemies String Up lets go of
-	var now := _str_now()
-	if _string_spent > 0 and now >= _string_recover_at:
-		_string_spent -= 1
-		_string_recover_at = now + string_recharge(_talent("shadow_spare_spool")) if _string_spent > 0 else 0.0
-	if _strings.is_empty():
-		if _strings_shown or _strings_dirty:
-			_show_strings()
-		return
-	if is_dead():
-		_clear_strings()
-		return
-	var slack := now < _slack_until
-	for key in _strings.keys():
-		if not _strings.has(key):
-			continue
-		var e: Dictionary = _strings[key]
-		if not _string_holds(e, now):
-			_string_gone(int(key))   # dead, gone or too far away: back in my hand
-			continue
-		if int(e["n"]) > 0 and now >= float(e["until"]):
-			_strings_fall(int(key))  # ran their time: back in my hand
-			if not _strings.has(key):
-				continue
-		var loose := float(e["loose"]) > now
-		if int(e["n"]) <= 0 and not loose:
-			_string_gone(int(key))
-			continue
-		if bool(e["enemy"]):
-			# Crossed: it breaks when the two are too far apart.
-			var other := int(e["cross"])
-			if other != 0:
-				var a: Variant = _strings.get(other)
-				if a == null or not is_instance_valid(a["node"]) or (e["node"] as Node3D).global_position.distance_to(
-						(a["node"] as Node3D).global_position) > cross_range_with(_capstone("shadow_taking_the_weight")):
-					_string_gone(int(key))
-			continue
-		if now >= float(e["next"]):
-			e["next"] = now + string_tick_interval(haste_mult(), now < float(e["fast"]))
-			if not slack and (e["node"] as Node).is_alive():
-				_heal_coef(e["node"], _steady(string_tick_heal(int(e["n"]), loose)), STRING_ID)   # (Steady Hands)
-	if _strings_dirty or now - _strings_told >= STRINGS_RETELL:
-		_show_strings()
-
-## Show my demon and the threads on everyone I hold, tell the party, and remind
-## everyone on a String where theirs stand.
-func _show_strings() -> void:
-	_strings_dirty = false
-	_strings_told = _str_now()
-	var now := _strings_told
-	var net := _net()
-	var held: Array = []
-	var members := {}
-	var foes := {}
-	for key in _strings:
-		var e: Dictionary = _strings[key]
-		var who: Variant = e["node"]
-		if who == null or not is_instance_valid(who):
-			continue
-		var n := int(e["n"]) + (1 if float(e["loose"]) > now else 0)
-		if n <= 0:
-			continue
-		held.append([who, n, bool(e["enemy"])])
-		if bool(e["enemy"]):
-			if net:
-				foes[str(net.enemy_id(who))] = 1
-			continue
-		if net and not (who as Node).is_in_group("friendly"):
-			var member := int(net.member_of(who))
-			if member != 0:
-				members[member] = n
-		_tell_string(int(key), who)
-	_strings_shown = not held.is_empty()
-	if is_inside_tree():
-		PUPPETEER.hold(get_tree().current_scene, self, held)
-	_net_fx("strings", global_position, null, {"m": members, "e": foes})
-
-# Heals.
-
-## Heal `tgt` (me, a party member or a friendly dummy) for exactly `amount`, as
-## `id` in the log and on the meter. A party member is healed on their own machine.
-func _heal_exact(tgt: Variant, amount: int, id: String) -> void:   # untyped: may be a freed node
-	if amount <= 0 or tgt == null or not is_instance_valid(tgt) or not (tgt is Node):
-		return
-	holy_talents._overflowing(tgt, amount, id)   # Overflowing: the overhealing becomes a shield
-	holy_talents._second_breath(tgt, amount, id)   # Second Breath: a big save gives mana back
-	if is_same(tgt, self) or (tgt as Node).is_in_group("friendly"):
-		_combat().heal(self, tgt, float(amount), id, true)
-		return
-	_combat().float_text(tgt, "+%d" % amount, Color(0.45, 1.0, 0.45), false)
-	_bus().heal_done.emit(self, tgt, amount, amount, id, false)   # Details meter
-	if _net():
-		_net().support_ally(tgt, self, "heal", {"amount": amount, "id": id})   # their machine heals them (+ threat)
-
-## The same for a coefficient `coef` (it scales with my power like spell `id`). Returns the amount.
-func _heal_coef(tgt: Variant, coef: float, id: String) -> int:
-	# (Many Hands and my Pact on someone else; my Pact alone on myself, since this heal does not go through heal().)
-	coef *= holy_talents._holy_heal_mult(id)   # Radiance
-	if not is_same(tgt, self) and holy_talents.hit_recently(tgt, Balance.WATCHFUL_EYE_WINDOW):
-		coef *= 1.0 + _talent("holy_watchful_eye") / 100.0   # Watchful Eye (both Holy healers)
-	var amount: int = _combat().heal_amount(self, coef * (_pact_heal_mult() if is_same(tgt, self) else _others_heal_mult(tgt)), id)
-	_heal_exact(tgt, amount, id)
-	return amount
-
-## A heal of mine landed (SignalBus.heal_done, which hears every one). A spell's
-## or an ability's heal on an ally on a String is shared: every other ally on
-## one of my Strings is healed for a share of it, under its own name.
-func _on_heal_done_strings(source: Node, healed: Node, amount: int, _effective: int, id: String, _crit: bool) -> void:
-	if amount <= 0 or not is_same(source, self):
-		return
-	_pact_on_heal(healed, id)   # my Pact: the Fast (a heal on myself), the Relentless (one on an ally)
-	if healed != null and not is_same(healed, self):
-		_lean_on_me()   # Lean On Me (an open talent: any heal of mine on someone else)
-	if _strings.is_empty():
-		return
-	if not shares_heal(id, Abilities.PATHS.has(id)) or not on_my_string(healed):
-		return
-	var share := string_share(amount)
-	for key in _strings.keys():
-		var e: Variant = _strings.get(key)
-		if e == null or bool(e["enemy"]) or is_same(e["node"], healed) or not on_my_string(e["node"]):
-			continue
-		_heal_exact(e["node"], share, STRING_SHARE_ID)
-
-## Hoist and Patch Up finished casting (_release_support): the heal lands on
-## whoever they were cast at. (Hoist's share for the others: _on_heal_done_strings.)
-func _string_cast_heal(spell: String, tgt: Variant, kind: String) -> void:
-	var who: Variant = tgt if kind == "ally" and tgt != null and is_instance_valid(tgt) else self
-	var coef := float(Abilities.HEALS[spell])
-	if spell == HOIST_ID:
-		coef *= heave_mult(strings_on(who), _talent("shadow_heave"))   # Heave: more for each String on them
-	_heal_coef(who, coef, spell)
-	if who is Node3D:
-		_ring_effect(1.2, STRING_COLOR, (who as Node3D).global_position)
-
-## Tug: a small heal, and that ally's Strings heal faster for a while.
-func _tug() -> void:
-	var who: Variant = _string_pick(TUG_ID, false)[0]
-	if who == null:
-		return
-	_heal_coef(who, float(Abilities.HEALS[TUG_ID]), TUG_ID)
-	var e: Variant = _strings.get((who as Node).get_instance_id())
-	if e != null:
-		var now := _str_now()
-		e["fast"] = now + tug_time(_talent("shadow_hard_pull"))   # Hard Pull: longer
-		e["next"] = minf(float(e["next"]), now + string_tick_interval(haste_mult(), true))
-	_ring_effect(0.7, STRING_COLOR, (who as Node3D).global_position)
-
-## Cat's Cradle: every ally near me is healed and gets a loose String (none of
-## my STRING_MAX) for a while.
-func _cats_cradle(res: Resource) -> void:
-	var now := _str_now()
-	for a in _allies_within(float(res.radius)):
-		_heal_coef(a, float(Abilities.HEALS[CRADLE_ID]), CRADLE_ID)
-		var e := _string_entry(a, false)
-		e["loose"] = now + Balance.LOOSE_STRING_TIME
-		_tell_string((a as Node).get_instance_id(), a)
-		_ring_effect(0.7, STRING_COLOR, (a as Node3D).global_position)
-	_strings_dirty = true
-	_ring_effect(2.5, STRING_COLOR)
-
-## Pull Taut: one String on the ally gives all the healing it had left, and is used up.
-func _pull_taut() -> void:
-	var who: Variant = _string_pick(PULL_TAUT_ID, false)[0]
-	if who == null:
-		return
-	var key: int = (who as Node).get_instance_id()
-	var e: Variant = _strings.get(key)
-	if e == null or int(e["n"]) <= 0:
-		return
-	_heal_coef(who, _steady(pull_taut_coef(float(e["until"]) - _str_now(), string_time())), PULL_TAUT_ID)
-	_string_take(key)
-	if snaps_back(_talent("shadow_snap_back"), randf() * 100.0):
-		_combat().float_text(self, "Snap Back", STRING_COLOR, false)   # straight back into my hand
-	else:
-		_string_use_up()
-	_ring_effect(0.9, STRING_COLOR, (who as Node3D).global_position)
-
-## Knot: the ally's Strings do not run out for a while. One ally at a time.
-func _knot() -> void:
-	var who: Variant = _string_pick(KNOT_ID, false)[0]
-	if who == null:
-		return
-	var key: int = (who as Node).get_instance_id()
-	var now := _str_now()
-	for k in _strings:
-		var other: Dictionary = _strings[k]
-		if bool(other["knot"]) and int(k) != key:
-			other["knot"] = false
-			other["until"] = minf(float(other["until"]), now + string_time())
-			_tell_string(int(k), other["node"])
-	var e: Variant = _strings.get(key)
-	if e == null or int(e["n"]) <= 0:
-		return
-	e["knot"] = true
-	e["until"] = now + Balance.KNOT_TIME
-	_tell_string(key, who)
-	_ring_effect(0.8, STRING_COLOR, (who as Node3D).global_position)
-
-## Wrench: the enemy on a String is hurt, and the ally it is crossed with is healed for as much.
-func _wrench(res: Resource) -> void:
-	var foe: Node3D = target
-	var e: Variant = _strings.get(foe.get_instance_id())
-	var crossed: Variant = _strings.get(int(e["cross"])) if e != null and int(e["cross"]) != 0 else null
-	var dealt := deal_damage(foe, float(res.damage), WRENCH_ID)
-	if crossed != null and dealt > 0:
-		_heal_exact(crossed["node"], dealt, WRENCH_ID)
-	_ring_effect(0.7, HOUND_COLOR, foe.global_position)
-
-## Cupped Hands: a shield on an ally on a String, bigger for each String on them.
-func _cupped_hands() -> void:
-	var who: Variant = _string_pick(CUPPED_HANDS_ID, false)[0]
-	if who == null:
-		return
-	var e: Variant = _strings.get((who as Node).get_instance_id())
-	var n := (int(e["n"]) + (1 if float(e["loose"]) > _str_now() else 0)) if e != null else 0
-	var amount := int(round(_combat().heal_amount(self, cupped_hands_coef(n), CUPPED_HANDS_ID) * absorb_mult()))   # (Rime Ward: bigger shields)
-	if is_same(who, self):
-		_shield_on(status, self, amount, Balance.CUPPED_HANDS_TIME)
-	elif (who as Node).is_in_group("friendly"):
-		_shield_on((who as Node).get_node_or_null("Status"), self, amount, Balance.CUPPED_HANDS_TIME)
-	elif _net():
-		_net().support_ally(who, self, "shield", {"amount": amount, "time": Balance.CUPPED_HANDS_TIME})
-	_combat().float_text(who, "%s (%d)" % [Abilities.ability_name(CUPPED_HANDS_ID), amount], STRING_COLOR, false)
-	_ring_effect(1.0, HOUND_COLOR, (who as Node3D).global_position)
-
-## Put Cupped Hands' shield of `amount` on whoever owns Status `st`.
-func _shield_on(st: Node, from: Node, amount: int, time: float) -> void:
-	if st == null or amount <= 0:
-		return
-	st.apply(make_cupped_hands_fx(time), from)
-	st.set_absorb(CUPPED_HANDS_FX, amount)
-
-## Slack: my Strings stop healing for a while, and I get mana back for each one out.
-func _slack() -> void:
-	var slack_for := slack_time(_talent("shadow_give_and_take"))   # Give and Take: for less long
-	_slack_until = _str_now() + slack_for
-	_gain("mana", slack_mana(strings_out()) * mana_unit())
-	if slack_for > 0.0:
-		status.apply(make_slack_fx(), self)
-		status.set_remaining(SLACK_FX, slack_for)
-	_ring_effect(1.2, Color(0.35, 0.55, 1.0))
-
-## Still Standing: for a while a killing blow on that ally is held off by the Strings.
-func _still_standing() -> void:
-	var who: Variant = _string_pick(STILL_STANDING_ID, false)[0]
-	if who == null:
-		return
-	var data := {"window": Balance.STILL_STANDING_TIME, "hold": Balance.STILL_STANDING_HOLD, "pct": Balance.STILL_STANDING_HEALTH_PCT}
-	if is_same(who, self):
-		_receive_hold(self, data)
-	elif (who as Node).is_in_group("friendly"):
-		var st: Node = (who as Node).get_node_or_null("Status")
-		if st:
-			st.apply(make_still_standing_fx(Balance.STILL_STANDING_TIME), self)   # (a dummy never dies: only shown)
-	elif _net():
-		_net().support_ally(who, self, "hold", data)
-	_ring_effect(1.1, STRING_COLOR, (who as Node3D).global_position)
-
-## Cut the Strings: every String out bursts (a heal on an ally for each one on
-## them, damage on an enemy), and all of them are back in my hand.
-func _cut_the_strings() -> void:
-	for key in _strings.keys():
-		var e: Variant = _strings.get(key)
-		if e == null or int(e["n"]) <= 0:
-			continue
-		var who: Variant = e["node"]
-		if who == null or not is_instance_valid(who):
-			continue
-		if bool(e["enemy"]):
-			deal_damage(who, Balance.CUT_STRINGS_DAMAGE, CUT_STRINGS_ID)
-		else:
-			_heal_coef(who, Balance.CUT_STRINGS_HEAL * int(e["n"]), CUT_STRINGS_ID)
-		if is_instance_valid(who) and who is Node3D:
-			_ring_effect(0.9, HOUND_COLOR if bool(e["enemy"]) else STRING_COLOR, (who as Node3D).global_position)
-	for key in _strings.keys():
-		_strings_fall(int(key))
-	_ring_effect(1.6, STRING_COLOR)
-
-## The String I tied last that can be moved (0 = none): the newest one that is
-## still out and not knotted.
-func _restring_source() -> int:
-	for i in range(_string_order.size() - 1, -1, -1):
-		var key := int(_string_order[i])
-		var e: Variant = _strings.get(key)
-		if e != null and int(e["n"]) > 0 and not bool(e["knot"]):
-			return key
-	return 0
-
-func _restring_error() -> String:
-	var from := _restring_source()
-	if from == 0:
-		return "You have no String to move"
-	var pick := _string_pick(RESTRING_ID, true)
-	if str(pick[2]) != "":
-		return str(pick[2])
-	var key: int = (pick[0] as Node).get_instance_id()
-	if key == from:
-		return "That String is already there"
-	var e: Variant = _strings.get(key)
-	if e != null and int(e["n"]) >= (1 if bool(pick[1]) else Balance.STRING_STACKS):
-		return "That target cannot hold another String"
-	return ""
-
-## Restring: the String I tied last moves to my current target.
-func _restring() -> void:
-	var from := _restring_source()
-	var pick := _string_pick(RESTRING_ID, true)
-	if from == 0 or pick[0] == null:
-		return
-	_string_take(from)
-	_tie_string(pick[0], bool(pick[1]), false)
-	_ring_effect(0.6, STRING_COLOR, (pick[0] as Node3D).global_position)
-
-## Yank: my friendly target is pulled to just in front of me.
-func _yank() -> void:
-	var who: Node3D = friendly_target
-	if who == null or not is_instance_valid(who):
-		return
-	var dir := who.global_position - global_position
-	dir.y = 0.0
-	dir = dir.normalized() if dir.length() > 0.1 else _flat_forward()
-	var to := global_position + dir * Balance.YANK_STOP
-	_ring_effect(0.8, STRING_COLOR, who.global_position)
-	if who.is_in_group("friendly"):
-		who.global_position = to
-	elif _net():
-		_net().support_ally(who, self, "yank", {"to": to})
-	_ring_effect(0.8, STRING_COLOR)
-
-## The nearest downed party member within `reach` metres (null if none).
-func _fallen_ally(reach: float) -> Node3D:
-	var best: Node3D = null
-	var best_d := reach
-	for p in get_tree().get_nodes_in_group("remote_player"):
-		if not (p is Node3D) or not bool(p.get("downed")):
-			continue
-		var d := _flat_dist_to(p.global_position)
-		if d <= best_d:
-			best_d = d
-			best = p
-	return best
-
-## Not Finished With You: the nearest downed ally is lifted back onto their
-## feet (their machine stands them up: Net.revive_ally) with Strings on them.
-func _not_finished(res: Resource) -> void:
-	var ally := _fallen_ally(float(res.cast_range))
-	if ally == null:
-		return
-	if _net():
-		_net().revive_ally(ally, self)
-	var now := _str_now()
-	var key := ally.get_instance_id()
-	var e := _string_entry(ally, false)
-	while _string_order.has(key):
-		_string_order.erase(key)
-	e["n"] = mini(Balance.NOT_FINISHED_STRINGS, Balance.STRING_STACKS)
-	e["free"] = 0
-	e["born"] = now
-	e["until"] = now + string_time()
-	for i in int(e["n"]):
-		_string_order.append(key)
-	_string_last_ally = key
-	_tell_string(key, ally)
-	_strings_dirty = true
-	_ring_effect(1.4, STRING_COLOR, ally.global_position)
-
-## String Up: the enemy hangs off the ground, unable to do anything.
-func _string_up() -> void:
-	var foe: Node3D = target
-	var fx: Resource = preload("res://scripts/core/effects.gd").get_effect(STRUNG_UP_FX)
-	var hangs := Balance.STRING_UP_TIME + effect_duration_bonus(fx)   # (Left Hanging: my stuns last longer)
-	_apply_effect_hit(foe, fx, STRING_UP_ID, PackedStringArray(STRING_TAGS), "shadow")
-	PUPPETEER.string_up(get_tree().current_scene, foe, hangs)
-	_net_fx("strungup", foe.global_position, foe, {"time": hangs})   # the party sees it hang
-	if _talent("shadow_long_drop") > 0.0:
-		_long_drops.append({"foe": foe, "at": _str_now() + hangs})   # Long Drop: it is hurt when it is let go
-
-## Tangle: every enemy near my target is held in place by Strings across the floor.
-func _tangle(res: Resource) -> void:
-	var foe: Node3D = target
-	var at := foe.global_position
-	var r := float(res.radius)
-	var fx: Resource = preload("res://scripts/core/effects.gd").get_effect(TANGLED_FX)
-	for e in _enemies_near(at, r):
-		_apply_effect_hit(e, fx, TANGLE_ID, PackedStringArray(STRING_TAGS), "shadow")
-	var ground := Vector3(at.x, Combat.feet_y(foe), at.z)
-	var held := Balance.TANGLE_TIME + effect_duration_bonus(fx)   # (Left Hanging: my roots last longer)
-	PUPPETEER.tangle(get_tree().current_scene, ground, r, held)
-	_net_fx("tangle", ground, null, {"r": r, "time": held})
-	_ring_effect(r, STRING_COLOR, at)
-
-# The other end: what a healer's Strings do on the one they are tied to. This
-# runs on the machine of whoever is held (me, when I tie one to myself).
-
-## Something a party member's ability does to me, or tells me (Net._sup_do).
-## `from` = their character on this machine.
-func receive_support(kind: String, from: Node, data: Dictionary) -> void:
-	match kind:
-		"heal":
-			if is_alive():
-				_combat().heal(from, self, float(int(data.get("amount", 0))), str(data.get("id", "")), true)
-		"string":
-			_on_string_state(from, data)
-		"shield":
-			if is_alive():
-				_shield_on(status, from, int(data.get("amount", 0)), float(data.get("time", 0.0)))
-				_combat().float_text(self, "%s (%d)" % [Abilities.ability_name(CUPPED_HANDS_ID), int(data.get("amount", 0))], STRING_COLOR, false)
-		"hold":
-			if is_alive():
-				_receive_hold(from, data)
-		"yank":
-			_yanked_to(data.get("to"))
-		"cross_dmg":
-			_crossed_damage(from, int(data.get("amount", 0)))   # (I am the healer: my ally's share for the enemy)
-		# The Holy healer's Hymns (player.gd, "Holy healer: the Hymns").
-		"hymn_dr":
-			hymns.receive_hymn_dr(from, str(data.get("id", "")), float(data.get("pct", 0.0)), float(data.get("time", 0.0)))
-		"hymn_ward":
-			if is_alive() and HymnsKit.HYMN_WARD_NAMES.has(str(data.get("id", ""))):
-				var ward_id := str(data.get("id", ""))
-				hymns._hymn_ward_on(status, from, ward_id, int(data.get("amount", 0)), float(data.get("time", 0.0)))
-				if ward_id == HymnsKit.SHELTER_FX:
-					_combat().float_text(self, "%s (%d)" % [HymnsKit.HYMN_WARD_NAMES[ward_id], int(data.get("amount", 0))], HymnsKit.HOLY_LIGHT, false)
-		"vigil_hit":
-			hymns._talent_verse("holy_watchful", "vigil")   # (I am the healer: a big hit landed on an ally in my Vigil)
-		# The Nature healer's Shepherd (player.gd, "Nature healer: the Shepherd").
-		"blossom":
-			shepherd._blossoms_shown(status, from, int(data.get("n", 0)), float(data.get("t", 0.0)))
-		"owl":
-			shepherd._owl_watched(from, float(data.get("t", 0.0)))
-		"owl_hit":
-			shepherd._owl_dive(from)   # (I am the healer: my owl's ally was hit)
-		"rootguard":
-			if is_alive():
-				var healer := from
-				shepherd._rootguard_on(status, from, int(data.get("amount", 0)), float(data.get("time", 0.0)), func():
-					if _net() and is_instance_valid(healer):
-						_net().support_ally(healer, self, "rootguard_broke", {}))
-				_combat().float_text(self, "%s (%d)" % [Abilities.ability_name(ShepherdKit.ROOTGUARD_ID), int(data.get("amount", 0))], ShepherdKit.BLOSSOM_COLOR, false)
-		"rootguard_broke":
-			shepherd._rootguard_broke(from)   # (I am the healer: my shield on that ally was used up)
-
-## Where the Strings `from` has on me stand: n = how many (0 = none any more),
-## t = seconds they have left, cross = % of my damage that is crossed away.
-func _on_string_state(from: Node, data: Dictionary) -> void:
-	if from == null or not is_instance_valid(from) or status == null:
-		return
-	var key := from.get_instance_id()
-	var n := int(data.get("n", 0))
-	var t := float(data.get("t", 0.0))
-	if n <= 0 or t <= 0.0 or is_dead():
-		_strung.erase(key)
-		status.remove_from(STRING_BUFF, from)
-		return
-	_strung[key] = {"from": from, "cross": float(data.get("cross", 0.0)), "dr": float(data.get("dr", 0.0)), "until": _str_now() + t}
-	if _string_fx == null:
-		_string_fx = make_string_fx()
-	if not status.has_from(STRING_BUFF, from):   # (told again every few seconds: only the numbers change)
-		status.apply(_string_fx, from)
-	status.set_stacks_from(STRING_BUFF, from, n)
-	status.set_remaining_from(STRING_BUFF, from, t)
-
-## A hit on me, before its damage is worked out (_on_damage_modify): the share
-## of it a crossed String takes away.
-func _crossed_incoming(info: RefCounted) -> void:
-	if _strung.is_empty():
-		return
-	var now := _str_now()
-	for key in _strung.keys():
-		var s: Dictionary = _strung[key]
-		if now >= float(s["until"]) or not is_instance_valid(s["from"]):
-			_strung.erase(key)
-		else:
-			if float(s["cross"]) > 0.0:
-				info.add_bonus(-float(s["cross"]), CROSSED_LABEL)
-			if float(s.get("dr", 0.0)) > 0.0:
-				info.add_bonus(-float(s["dr"]), FULL_HARNESS_LABEL)   # Full Harness: all the Strings I can hold
-
-## The hit landed (_on_hit_taken): what was taken away goes to the enemy at the
-## other end. My own healer deals it at once; a party member's is told a few
-## times a second (_tick_strung).
-func _crossed_taken(info: RefCounted) -> void:
-	if _strung.is_empty() or int(info.amount) <= 0 or info.avoided():
-		return
-	for key in _strung:
-		var s: Dictionary = _strung[key]
-		var moved := cross_redirect(float(info.amount), float(info.bonus_pct), float(s["cross"]))
-		if moved <= 0.0:
-			continue
-		if is_same(s["from"], self):
-			_crossed_damage(self, int(round(moved)))
-		else:
-			_cross_owed[key] = float(_cross_owed.get(key, 0.0)) + moved
-
-func _tick_strung() -> void:
-	if _cross_owed.is_empty():
-		return
-	var now := _str_now()
-	if now - _cross_told < 0.3:
-		return
-	_cross_told = now
-	for key in _cross_owed.keys():
-		var amount := int(round(float(_cross_owed[key])))
-		var s: Variant = _strung.get(key)
-		if amount >= 1 and s != null and is_instance_valid(s["from"]) and _net():
-			_net().support_ally(s["from"], self, "cross_dmg", {"amount": amount})
-	_cross_owed.clear()
-
-## Still Standing was put on me: for `window` seconds a killing blow is held off.
-func _receive_hold(from: Node, data: Dictionary) -> void:
-	_stand_until = _str_now() + float(data.get("window", 0.0))
-	_stand_hold = float(data.get("hold", 0.0))
-	_stand_pct = float(data.get("pct", 0.0))
-	if status:
-		status.apply(make_still_standing_fx(float(data.get("window", 0.0))), from)
-
-## Damage of `amount` is about to land on me (take_damage). While the Strings
-## hold me up nothing takes my last health; and a blow that would kill me while
-## Still Standing is on me starts that instead.
-func _still_standing_limit(amount: int) -> int:
-	if _held_until <= 0.0 and _stand_until <= 0.0:
-		return amount
-	var now := _str_now()
-	if _held_until > now:
-		return mini(amount, health - 1)
-	if amount >= health and _stand_until > now:
-		_stand_until = 0.0
-		_held_until = now + _stand_hold
-		if status:
-			status.remove(STILL_STANDING_FX)
-			status.apply(make_held_up_fx(_stand_hold), self)
-		_combat().float_text(self, "Held up!", STRING_COLOR, true)
-		return health - 1
-	return amount
-
-## The Strings let go: I stay up only if I was healed enough meanwhile.
-func _tick_still_standing() -> void:
-	if _held_until <= 0.0 or _str_now() < _held_until:
-		return
-	_held_until = 0.0
-	_stand_until = 0.0
-	if is_alive() and not still_standing_lives(health, max_health, _stand_pct):
-		_combat().float_text(self, "The Strings let go", HOUND_COLOR, true)
-		take_damage(health)
-
-## Yank: a party member's Strings pull me to `to`.
-func _yanked_to(to: Variant) -> void:
-	if not (to is Vector3) or is_dead():
-		return
-	if casting:
-		_cancel_cast()
-	velocity = Vector3.ZERO
-	var tw := create_tween()
-	tw.tween_property(self, "global_position", to as Vector3, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_combat().float_text(self, "Yanked!", STRING_COLOR, false)
-
 # --- Pacts -----------------------------------------------------------------------------------
 # One Pact for the dungeon (scripts/pacts.gd says what each is and changes; the
 # choice is PlayerData.pact). Here its bonus and drawback are applied and its
@@ -10171,7 +7580,7 @@ func _auto_target(id: String) -> void:
 				continue
 		if id == "rekindle" and _rekindle_targets(e).is_empty():
 			continue
-		if (id == CALL_DUE_ID or id == SPILL_ID or id == TAKE_IT_BACK_ID) and decay_on(e) <= 0.0:
+		if (id == DecayKit.CALL_DUE_ID or id == DecayKit.SPILL_ID or id == DecayKit.TAKE_IT_BACK_ID) and decay.decay_on(e) <= 0.0:
 			continue   # (these work on my Decay: an enemy without it is no use)
 		var d := global_position.distance_squared_to(e.global_position)
 		if d < best_d:
@@ -10524,8 +7933,8 @@ func charges_text(id: String) -> String:
 		return str(reflections())   # the Reflections you have (to fill up, or to spend)
 	if id == ENCORE_ID:
 		return str(traces())   # the Traces it would replay
-	if id == STRING_ID:
-		return str(string_charges())   # the Strings in your hand
+	if id == StringsKit.STRING_ID:
+		return str(strings.string_charges())   # the Strings in your hand
 	if hymns.verses_text(id) != "":
 		return hymns.verses_text(id)   # Holy healer: the Verses you hold
 	if id == CONVERGENCE_ID:
@@ -10975,7 +8384,7 @@ static func pitch_speed(effect_id: String, pitched: bool) -> float:
 ## The StatusContainer asks before every tick of one of MY damage-over-time effects.
 func dot_speed_mult(tgt: Node, res: Resource) -> float:
 	var id := str(res.id)
-	var wasting := dot_speed_with(1.0, _talent("shadow_wasting"))   # Wasting: all of my damage over time
+	var wasting := ShadowTalentsKit.dot_speed_with(1.0, _talent("shadow_wasting"))   # Wasting: all of my damage over time
 	if not Balance.PITCH_EFFECTS.has(id) or tgt == null or not is_instance_valid(tgt):
 		return wasting
 	var st: Node = tgt.get_node_or_null("Status")
@@ -11060,7 +8469,7 @@ func phoenix_cast() -> void:
 func _heal_someone(tgt: Node, coef: float, id: String) -> void:
 	if tgt == null or not is_instance_valid(tgt):
 		return
-	coef *= _others_heal_mult(tgt)   # Many Hands
+	coef *= strings._others_heal_mult(tgt)   # Many Hands
 	if tgt == self:
 		heal(coef, id)
 	elif tgt.is_in_group("friendly"):
@@ -11111,7 +8520,7 @@ static func furnace_heart_cost(cost: float, less: float) -> float:
 func _on_hit_taken(info: RefCounted) -> void:
 	if not is_same(info.target, self) or status == null or is_dead():
 		return
-	_crossed_taken(info)   # Crossed Strings: what it spared me goes to the enemy at the other end
+	strings._crossed_taken(info)   # Crossed Strings: what it spared me goes to the enemy at the other end
 	hymns._vigil_taken(info)     # Watchful: a big hit while I stand in a healer's Vigil
 	shepherd._owl_taken(info)       # a Nature healer's Owl watching over me dives
 	colossus._colossus_hit_taken(info)   # Nature tank: hits on my Giant's Hands give Sap
@@ -11136,7 +8545,7 @@ func _on_hit_taken(info: RefCounted) -> void:
 	censer._censer_hit_taken(info)   # Incense from hits and blocks; Unfallen counts the damage
 	_mirror_finish(info)   # Mirror Finish: what I dodge, parry or block hurts the attacker
 	_tempered(info)   # Tempered: a block gives Armor for a while
-	_spite_on_hit_taken(info)   # Spite: taking damage boosts my next spell or ability
+	shadow_talents._spite_on_hit_taken(info)   # Spite: taking damage boosts my next spell or ability
 	holy_talents._penitent_hit(info)   # Penitent: a big hit makes my next heal on myself stronger
 
 # --- Heat Sink ------------------------------------------------------------------------------
@@ -11381,11 +8790,11 @@ func adjust_crit(info: RefCounted, chance: float) -> float:
 	if str(info.damage_type) == "lightning":
 		chance += _talent("lightning_conductive")
 	# Bite Down: the ticks of my Decay crit more often while Gnaw is on it (_tick_decay marks them).
-	if id == DECAY_HIT_ID:
-		chance += float(info.get_meta(DECAY_CRIT_META, 0.0))
+	if id == DecayKit.DECAY_HIT_ID:
+		chance += float(info.get_meta(DecayKit.DECAY_CRIT_META, 0.0))
 	# Worked Up's capstone: my Hounds' bites crit more often while they are Roused (_hound_bite marks them).
-	if id == HOUND_BITE_ID:
-		chance += float(info.get_meta(HOUND_CRIT_META, 0.0))
+	if id == HoundsKit.HOUND_BITE_ID:
+		chance += float(info.get_meta(HoundsKit.HOUND_CRIT_META, 0.0))
 	# Dull Edge / Dull Mind: talents can't lift crit over the cap either (sure crits still crit).
 	if chance < 100.0 and chance > Balance.DULL_EDGE_CRIT_CAP and dull_rune_power() != "":
 		chance = Balance.DULL_EDGE_CRIT_CAP

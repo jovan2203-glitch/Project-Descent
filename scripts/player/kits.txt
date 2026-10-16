@@ -7,3 +7,7 @@ lightstring LightstringKit holy_lightstring.gd
 prism_kit PrismsKit holy_prisms.gd
 censer CenserKit holy_censer.gd
 hymns HymnsKit holy_hymns.gd
+strings StringsKit shadow_strings.gd
+hounds HoundsKit shadow_hounds.gd
+shadow_talents ShadowTalentsKit shadow_talents.gd
+decay DecayKit shadow_decay.gd

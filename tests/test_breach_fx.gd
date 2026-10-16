@@ -178,10 +178,10 @@ func test_hands_burst_out_where_a_spell_lands() -> void:
 	assert_true(one.is_queued_for_deletion(), "they sink again and it is gone")
 	# Which spells of mine do it as they hit, and that the party sees them too.
 	var p := _player()
-	for id in p.CLAW_HITS:
+	for id in DecayKit.CLAW_HITS:
 		assert_true(Abilities.PATHS.has(id), "%s is an ability" % id)
 		assert_eq(Abilities.category_of(id), "shadow")
-	assert_true(p.CLAW_HITS.has("blight") and p.CLAW_HITS.has("gnaw") and p.CLAW_HITS.has("hush"))
+	assert_true(DecayKit.CLAW_HITS.has("blight") and DecayKit.CLAW_HITS.has("gnaw") and DecayKit.CLAW_HITS.has("hush"))
 	var net := FileAccess.get_file_as_string("res://scripts/net/net.gd")
 	assert_contains(net, "\"claws\":")
 	assert_contains(net, "BREACH_FX.burst(w, at")

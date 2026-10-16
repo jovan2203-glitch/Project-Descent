@@ -212,7 +212,7 @@ func _prism_heal(who: Variant, coef: float, id: String) -> void:
 	if who == null or not is_instance_valid(who):
 		return
 	var mult := _prism_beam((who as Node3D).global_position, coef)
-	player._heal_coef(who, coef * mult, id)
+	player.strings._heal_coef(who, coef * mult, id)
 
 ## Set Prism, Realign, Prism Arrow (ground-targeted).
 func _prism_place_error(id: String, point: Variant = null) -> String:
@@ -369,7 +369,7 @@ func _shatter_prism(i: int) -> void:
 	var allies := _allies_near(at, reach)
 	var share := shatter_share(light, allies.size())
 	for a in allies:
-		player._heal_coef(a, share, PRISM_SHATTER_ID)
+		player.strings._heal_coef(a, share, PRISM_SHATTER_ID)
 	var foes := player._enemies_near(at, reach)
 	var coef := shatter_damage(light, _my_prism_cap(), player._talent("holy_prismatic_burst")) * Balance.aoe_share(foes.size())   # + Prismatic Burst
 	if coef > 0.0:

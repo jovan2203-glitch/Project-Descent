@@ -29,3 +29,15 @@ static func text() -> String:
 static func _sub(text: String, pattern: String, with: String) -> String:
 	var re := RegEx.create_from_string(pattern)
 	return re.sub(text, with, true)
+
+## get_script_method_list() of `script`, and for the player's script also of
+## every component (the code moved there keeps counting as the player's).
+static func methods_of(script: Script) -> Array:
+	var out: Array = script.get_script_method_list()
+	if script.resource_path != "res://scripts/player.gd":
+		return out
+	for line in FileAccess.get_file_as_string("res://scripts/player/kits.txt").split("\n", false):
+		var parts := line.split(" ", false)
+		if parts.size() == 3:
+			out.append_array((load("res://scripts/player/" + parts[2]) as Script).get_script_method_list())
+	return out
