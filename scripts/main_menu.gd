@@ -76,14 +76,6 @@ func _ready() -> void:
 	net.system_message.connect(_toast_ok)
 	_refresh_party()
 
-# --- Party (lobby slots, friends panel, queue status) ------------------------------
-
-var social: PanelContainer
-var _party_slots: Array[Button] = []
-var _you_label: Label
-var _queue_banner: Label
-var _party_row: HBoxContainer
-
 # --- Party podiums + party members' characters ---------------------------------------
 # Every party card has a 3D podium standing in it (behind the UI, lined up with
 # the card each frame), and a party member's character stands on theirs. Cards
@@ -91,6 +83,437 @@ var _party_row: HBoxContainer
 # same base model as you for now; gear and character customization plug in at
 # _make_party_model later.
 const PARTY_MODEL = preload("res://assets/player/Idle.fbx")
+# --- Gear: right-click -> bank, Alt+hover -> pick from bank -----------------------
+
+var _toast_label: Label
+var _toast_tween: Tween
+
+const RuneScreens = preload("res://scripts/ui/rune_screens.gd")
+const RuneManager = preload("res://scripts/ui/rune_manager.gd")
+const MacroWindow = preload("res://scripts/ui/macro_window.gd")
+
+# --- Rune Transfer ------------------------------------------------------------------
+# Source Item (must be runed) -> Target Item. Transfer: the rune moves to
+# the target, is learned permanently, and the source is destroyed.
+# Extract: learn the rune and destroy the source (no target needed).
+
+func _toast_ok(msg: String) -> void:
+	_toast_if(msg)
+	_toast_label.add_theme_color_override("font_color", Color(0.55, 1.0, 0.55))
+	_toast_label.move_to_front()
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ALT:
+		if _hovered_slot != "" and pages["Character"].visible:
+			_open_alt_popup()
+
+func _process(delta: float) -> void:
+	_update_queue_banner()
+	_layout_party_3d()
+	_check_bar_drag_end()
+	_update_gear_highlights()
+	if _alt_popup == null or not _alt_popup.visible:
+		return
+	var mouse := get_viewport().get_mouse_position()
+	var over := _alt_popup.get_global_rect().has_point(mouse)
+	if is_instance_valid(_alt_popup_btn) and _alt_popup_btn.is_visible_in_tree():
+		over = over or _alt_popup_btn.get_global_rect().has_point(mouse)
+	if over:
+		_alt_grace = ALT_GRACE
+		return
+	_alt_grace -= delta
+	if _alt_grace <= 0.0:
+		_alt_popup.visible = false
+
+func _toast_if(msg: String) -> void:
+	if msg == "":
+		return
+	if _toast_label == null:
+		_toast_label = UI.label("", 18, Color(1, 0.35, 0.3))
+		_toast_label.anchor_left = 0.5
+		_toast_label.anchor_right = 0.5
+		_toast_label.anchor_top = 1.0
+		_toast_label.anchor_bottom = 1.0
+		_toast_label.offset_left = -300
+		_toast_label.offset_right = 300
+		_toast_label.offset_top = -140
+		_toast_label.offset_bottom = -110
+		_toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ui.add_child(_toast_label)
+	_toast_label.text = msg
+	_toast_label.add_theme_color_override("font_color", Color(1, 0.35, 0.3))
+	_toast_label.move_to_front()
+	_toast_label.modulate.a = 1.0
+	if _toast_tween:
+		_toast_tween.kill()
+	_toast_tween = create_tween()
+	_toast_tween.tween_interval(1.2)
+	_toast_tween.tween_property(_toast_label, "modulate:a", 0.0, 0.5)
+
+# --- Bank: show items, Ctrl+click multi-select, drag to trash --------------------
+
+func _play_idle() -> void:
+	var anim: AnimationPlayer = model.find_child("AnimationPlayer", true, false)
+	if anim and anim.has_animation("mixamo_com"):
+		anim.get_animation("mixamo_com").loop_mode = Animation.LOOP_LINEAR
+		anim.play("mixamo_com")
+
+# --- UI construction ---------------------------------------------------------
+
+func _build_ui() -> void:
+	ui = CanvasLayer.new()
+	add_child(ui)
+
+	pages["Lobby"] = _build_lobby()
+	pages["Character"] = _build_character()
+	pages["Abilities & Talents"] = _build_abilities_page()
+	pages["Skill Cards"] = _build_cards_page()
+	pages["Bank"] = _build_bank_page()
+	pages["Queue"] = _build_queue_page()
+	for p in pages.values():
+		ui.add_child(p)
+
+	_build_nav_bar()
+
+	play_button = Button.new()
+	play_button.text = "PLAY"
+	play_button.anchor_left = 1.0
+	play_button.anchor_right = 1.0
+	play_button.anchor_top = 1.0
+	play_button.anchor_bottom = 1.0
+	play_button.offset_left = -250
+	play_button.offset_right = -30
+	play_button.offset_top = -100
+	play_button.offset_bottom = -30
+	play_button.add_theme_font_size_override("font_size", 30)
+	play_button.add_theme_color_override("font_color", Color(0.1, 0.07, 0.03))
+	play_button.add_theme_color_override("font_hover_color", Color(0.1, 0.07, 0.03))
+	play_button.add_theme_color_override("font_pressed_color", Color(0.1, 0.07, 0.03))
+	play_button.add_theme_stylebox_override("normal", _box(C_ACCENT, Color(1, 0.9, 0.6), 2, 8))
+	play_button.add_theme_stylebox_override("hover", _box(C_ACCENT.lightened(0.15), Color(1, 0.95, 0.75), 2, 8))
+	play_button.add_theme_stylebox_override("pressed", _box(C_ACCENT.darkened(0.15), Color(1, 0.9, 0.6), 2, 8))
+	play_button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	play_button.pressed.connect(_on_play)
+	ui.add_child(play_button)
+
+	# Friends & party panel sits left of Play.
+	friends_button = UI.button("Friends", 20, Vector2(0, 0))
+	friends_button.pressed.connect(_toggle_social)
+	friends_button.anchor_left = 1.0
+	friends_button.anchor_right = 1.0
+	friends_button.anchor_top = 1.0
+	friends_button.anchor_bottom = 1.0
+	friends_button.offset_left = -410
+	friends_button.offset_right = -265
+	friends_button.offset_top = -100
+	friends_button.offset_bottom = -30
+	friends_button.tooltip_text = "Friends & party"
+	ui.add_child(friends_button)
+
+	social = SOCIAL_PANEL.new()
+	social.visible = false
+	ui.add_child(social)
+
+	_queue_banner = _label("", 17, Color(0.55, 0.9, 1.0))
+	_queue_banner.anchor_left = 0.5
+	_queue_banner.anchor_right = 0.5
+	_queue_banner.offset_left = -400
+	_queue_banner.offset_right = 400
+	_queue_banner.offset_top = 46
+	_queue_banner.offset_bottom = 90
+	_queue_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_queue_banner.visible = false
+	ui.add_child(_queue_banner)
+
+	_build_xp_bar()
+	_build_esc_menu()
+
+# --- XP bar (bottom center, every tab) -----------------------------------------
+
+const XP_BAR_W := 640.0
+var _xp_fill: ColorRect
+var _xp_label: Label
+
+func _build_xp_bar() -> void:
+	var root := Control.new()
+	root.anchor_left = 0.5
+	root.anchor_right = 0.5
+	root.anchor_top = 1.0
+	root.anchor_bottom = 1.0
+	root.offset_left = -XP_BAR_W / 2.0
+	root.offset_right = XP_BAR_W / 2.0
+	root.offset_top = -20
+	root.offset_bottom = -6
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(root)
+	var bg := ColorRect.new()
+	bg.color = Color(0, 0, 0, 0.6)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(bg)
+	_xp_fill = ColorRect.new()
+	_xp_fill.color = Color(0.6, 0.35, 0.95)
+	_xp_fill.position = Vector2(1, 1)
+	_xp_fill.size = Vector2(0, 12)
+	_xp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_xp_fill)
+	_xp_label = UI.label("", 12, Color.WHITE)
+	_xp_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_xp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_xp_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	root.add_child(_xp_label)
+	get_node("/root/PlayerData").changed_late.connect(_update_xp_bar)
+	get_node("/root/SignalBus").xp_changed.connect(_on_xp_changed)
+	_update_xp_bar()
+
+func _on_xp_changed(_l, _x, _n) -> void:
+	_update_xp_bar()
+
+var _shards_label: Label
+
+func _refresh_shards() -> void:
+	if is_instance_valid(_shards_label):
+		_shards_label.text = "Rune Shards: %d" % int(get_node("/root/PlayerData").rune_shards)
+
+func _update_xp_bar() -> void:
+	var pd := get_node("/root/PlayerData")
+	var need: int = pd.xp_to_next(pd.level)
+	# At max level there is nothing left to earn: the whole bar is hidden.
+	(_xp_fill.get_parent() as Control).visible = need > 0
+	if need <= 0:
+		return
+	_xp_fill.size.x = (XP_BAR_W - 2.0) * clampf(float(pd.xp) / need, 0.0, 1.0)
+	_xp_label.text = "Level %d  •  %d / %d XP" % [pd.level, pd.xp, need]
+
+# --- Esc menu (Resume / Settings / Quit) --------------------------------------
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
+		get_viewport().set_input_as_handled()
+		if wipe_panel.visible:
+			_back_from_wipe()
+		elif settings_panel.visible:
+			_back_from_settings()
+		elif esc_menu.visible:
+			_hide_esc()
+		elif _search_query != "" and pages["Abilities & Talents"].visible:
+			_clear_search()   # Esc clears the search first
+		elif _pacts_page and _pacts_page.visible and pages["Abilities & Talents"].visible:
+			_close_pacts()   # Esc closes the Pacts page first
+		elif _book and _book.visible and pages["Abilities & Talents"].visible:
+			_close_book()   # Esc closes an open book first
+		elif pages["Queue"].visible:
+			_show_page("Lobby")   # Esc backs out of the Play screen
+		else:
+			_show_overlay(esc_menu)
+
+func _build_nav_bar() -> void:
+	var bar := PanelContainer.new()
+	bar.anchor_right = 1.0
+	bar.offset_bottom = 40
+	bar.add_theme_stylebox_override("panel", _box(Color(0.04, 0.045, 0.06, 0.95), C_BORDER, 0, 0, [0, 0, 0, 2]))
+	ui.add_child(bar)
+
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 6)
+	bar.add_child(row)
+
+	var group := ButtonGroup.new()
+	# The Queue screen has no tab: it opens from the PLAY button.
+	for page_name in ["Lobby", "Character", "Abilities & Talents", "Skill Cards", "Bank"]:
+		var b := Button.new()
+		b.text = page_name
+		b.toggle_mode = true
+		b.button_group = group
+		b.custom_minimum_size = Vector2(128, 34)
+		b.add_theme_font_size_override("font_size", 15)
+		b.add_theme_color_override("font_color", C_TEXT_DIM)
+		b.add_theme_color_override("font_hover_color", Color.WHITE)
+		b.add_theme_color_override("font_pressed_color", C_ACCENT)
+		b.add_theme_color_override("font_hover_pressed_color", C_ACCENT)
+		b.add_theme_stylebox_override("normal", _box(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 4))
+		b.add_theme_stylebox_override("hover", _box(Color(1, 1, 1, 0.05), Color(0, 0, 0, 0), 0, 4))
+		b.add_theme_stylebox_override("pressed", _box(Color(1, 1, 1, 0.04), C_ACCENT, 0, 0, [0, 0, 0, 3]))
+		b.add_theme_stylebox_override("hover_pressed", _box(Color(1, 1, 1, 0.07), C_ACCENT, 0, 0, [0, 0, 0, 3]))
+		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		b.pressed.connect(_show_page.bind(page_name))
+		row.add_child(b)
+		nav_buttons[page_name] = b
+
+	# Cogwheel (top right): opens the Esc menu (Settings, Wipe Save, Quit...).
+	var cog := Button.new()
+	cog.focus_mode = Control.FOCUS_NONE
+	cog.anchor_left = 1.0
+	cog.anchor_right = 1.0
+	cog.offset_left = -44
+	cog.offset_right = -10
+	cog.offset_top = 3
+	cog.offset_bottom = 37
+	cog.tooltip_text = "Menu (Esc)"
+	cog.add_theme_stylebox_override("normal", _box(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 6))
+	cog.add_theme_stylebox_override("hover", _box(Color(1, 1, 1, 0.07), C_BORDER, 1, 6))
+	cog.add_theme_stylebox_override("pressed", _box(Color(1, 1, 1, 0.1), C_ACCENT, 1, 6))
+	cog.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	var gear := Control.new()
+	gear.set_anchors_preset(Control.PRESET_FULL_RECT)
+	gear.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	gear.draw.connect(func(): _draw_cog(gear, C_ACCENT if gear.get_meta("hot", false) else C_TEXT_DIM.lightened(0.25)))
+	cog.add_child(gear)
+	cog.mouse_entered.connect(func():
+		gear.set_meta("hot", true)
+		gear.queue_redraw())
+	cog.mouse_exited.connect(func():
+		gear.set_meta("hot", false)
+		gear.queue_redraw())
+	cog.pressed.connect(_toggle_esc_menu)
+	ui.add_child(cog)
+
+## A cogwheel icon: toothed ring with a hole.
+func _draw_cog(c: Control, col: Color) -> void:
+	var mid := c.size / 2.0
+	var r := minf(c.size.x, c.size.y) * 0.3
+	var teeth := 8
+	for i in teeth:
+		var a := TAU * i / teeth
+		var d := Vector2(cos(a), sin(a))
+		var side := Vector2(-d.y, d.x) * r * 0.22
+		var inner := mid + d * r * 0.8
+		var outer := mid + d * r * 1.32
+		c.draw_colored_polygon(PackedVector2Array([inner - side, outer - side * 0.8, outer + side * 0.8, inner + side]), col)
+	c.draw_circle(mid, r, col)
+	c.draw_circle(mid, r * 0.42, Color(0.04, 0.045, 0.06))
+
+func _full_rect_page() -> Control:
+	var page := Control.new()
+	page.set_anchors_preset(Control.PRESET_FULL_RECT)
+	page.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return page
+
+# --- Abilities & Talents -----------------------------------------------------------
+# Top: the action bar (drag abilities onto it, drag them off to remove).
+# Below: a shelf of books, one per category. Opening a book shows that
+# category's abilities on the left page and its talent tree on the right page.
+# Talent rows unlock globally: 3 points in a row of ANY tree opens the next row
+# in EVERY tree, so trees can be mixed freely.
+
+const Abilities = preload("res://scripts/abilities.gd")
+const Categories = preload("res://scripts/categories.gd")
+const PAGE_BG := Color(0.12, 0.105, 0.085, 0.98)
+const PAGE_BORDER := Color(0.32, 0.26, 0.18)
+const INK := Color(0.93, 0.88, 0.78)
+const INK_DIM := Color(0.62, 0.57, 0.5)
+
+var _talent_points_label: Label
+# Search (one bar at the top of the page): on the shelf it lists matches to pick
+# from; in an open book it highlights them. Hovering an ability or a talent
+# highlights everything that mentions it (or that it mentions).
+const Keywords = preload("res://scripts/core/keywords.gd")
+# --- Pacts: the tab above Rune Spells, and the page it opens ------------------------------
+# One Pact at a time (scripts/pacts.gd; PlayerData.pact). It can only be changed
+# here, so once a dungeon starts it is locked in.
+
+const Pacts = preload("res://scripts/pacts.gd")
+# --- Skill Cards: a loadout that guarantees abilities in level-up drafts ------------
+
+const SkillCards = preload("res://scripts/skill_cards.gd")
+# --- Queue: pick a dungeon and go in --------------------------------------------
+# "Random Dungeon" is the real queue: you (and your party) get sent into a random
+# dungeon from the pool. Below it every dungeon can be joined on its own - for
+# testing. Enemy level = the group's average pulled toward its highest level.
+
+const DB = preload("res://scripts/dungeon/dungeon_db.gd")
+
+func _build_empty_page(title: String) -> Control:
+	var page := _full_rect_page()
+	var panel := PanelContainer.new()
+	panel.anchor_left = 0.5
+	panel.anchor_right = 0.5
+	panel.anchor_top = 0.5
+	panel.anchor_bottom = 0.5
+	panel.offset_left = -380
+	panel.offset_right = 380
+	panel.offset_top = -230
+	panel.offset_bottom = 260
+	panel.add_theme_stylebox_override("panel", _box(Color(0.05, 0.055, 0.075, 0.96), C_BORDER, 2, 10))
+	page.add_child(panel)
+
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 12)
+	panel.add_child(v)
+	var t := _label(title, 28, C_ACCENT)
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(t)
+	var sub := _label("Nothing here yet.", 16, C_TEXT_DIM)
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(sub)
+	return page
+
+# --- Behaviour ---------------------------------------------------------------
+
+func _show_page(page_name: String) -> void:
+	for k in pages:
+		pages[k].visible = (k == page_name)
+	if nav_buttons.has(page_name):
+		nav_buttons[page_name].button_pressed = true
+	else:
+		for b in nav_buttons.values():
+			b.set_pressed_no_signal(false)
+	if page_name == "Queue":
+		_refresh_queue()
+	play_button.visible = (page_name == "Lobby")
+	friends_button.visible = (page_name == "Lobby")
+	if is_instance_valid(_chat_layer):
+		_chat_layer.visible = page_name == "Lobby"   # the chat only shows in the Lobby
+	if social and page_name != "Lobby" and page_name != "Queue":
+		social.visible = false
+	# Hide the 3D character behind full-panel pages.
+	var shows_player := page_name in ["Lobby", "Character"]
+	model.visible = shows_player
+	$Pedestal.visible = shows_player
+
+## PLAY opens the dungeon / queue screen.
+func _on_play() -> void:
+	_show_page("Queue")
+
+# --- Helpers -----------------------------------------------------------------
+
+func _label(text: String, size: int, color: Color) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", color)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	l.add_theme_constant_override("outline_size", 4)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
+
+# borders: [left, top, right, bottom] widths; overrides `border` when given.
+func _box(bg: Color, border_color: Color, border: int, radius: int, borders: Array = []) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = bg
+	sb.border_color = border_color
+	if borders.size() == 4:
+		sb.border_width_left = borders[0]
+		sb.border_width_top = borders[1]
+		sb.border_width_right = borders[2]
+		sb.border_width_bottom = borders[3]
+	else:
+		sb.set_border_width_all(border)
+	sb.set_corner_radius_all(radius)
+	sb.content_margin_left = 8
+	sb.content_margin_right = 8
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 4
+	return sb
+
+# --- Part: Lobby page: party slots, social panel, queue banner, party podiums --------
+var social: PanelContainer
+var _party_slots: Array[Button] = []
+var _you_label: Label
+var _queue_banner: Label
+var _party_row: HBoxContainer
+
 const PARTY_Z := -1.2            # the party stands a little behind you
 const PARTY_MODEL_HEIGHT := 1.8  # the model's real height (m), for scaling it into a card
 var _party_podiums: Array[MeshInstance3D] = []
@@ -241,22 +664,79 @@ func _update_queue_banner() -> void:
 	_queue_banner.text = "In queue: %s   •   %d / %d players   •   %d:%02d" % [
 		_instance_name(online.queue_instance), online.party_size(), online.max_party(), floori(s / 60.0), s % 60]
 
-# --- Gear: right-click -> bank, Alt+hover -> pick from bank -----------------------
+# Lobby: two empty party slots on each side of the player.
+func _build_lobby() -> Control:
+	var page := _full_rect_page()
 
+	var row := HBoxContainer.new()
+	row.anchor_left = 0.0
+	row.anchor_right = 1.0
+	row.anchor_top = 0.5
+	row.anchor_bottom = 0.5
+	row.offset_top = -110
+	row.offset_bottom = 150
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 22)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	page.add_child(row)
+	_party_row = row
+
+	for i in PARTY_SLOTS:
+		if i == PARTY_SLOTS / 2:
+			var gap := Control.new()
+			gap.custom_minimum_size = Vector2(300, 0)
+			gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			row.add_child(gap)
+		var ps := _party_slot()
+		_party_slots.append(ps)
+		row.add_child(ps)
+
+	var name_label := _label("You", 22, Color.WHITE)
+	_you_label = name_label
+	name_label.anchor_left = 0.5
+	name_label.anchor_right = 0.5
+	name_label.anchor_top = 1.0
+	name_label.anchor_bottom = 1.0
+	name_label.offset_left = -100
+	name_label.offset_right = 100
+	name_label.offset_top = -80
+	name_label.offset_bottom = -50
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	page.add_child(name_label)
+	return page
+
+func _party_slot() -> Control:
+	var slot := Button.new()
+	slot.custom_minimum_size = Vector2(150, 240)
+	slot.text = "+\nEmpty slot"
+	slot.add_theme_font_size_override("font_size", 18)
+	slot.add_theme_color_override("font_color", C_TEXT_DIM)
+	slot.add_theme_color_override("font_hover_color", Color.WHITE)
+	_style_party_slot(slot, false)
+	slot.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	# A member's name + level, at the top of the card (above their character).
+	var who := _label("", 15, Color.WHITE)
+	who.name = "Who"
+	who.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	who.offset_top = 8
+	who.offset_bottom = 50
+	who.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	who.visible = false
+	slot.add_child(who)
+	slot.tooltip_text = "Invite a friend"
+	slot.pressed.connect(func():
+		social.visible = true
+		social.move_to_front())
+	return slot
+
+# --- Part: Character page: gear, runes panel, stats, attributes, level lock, prestige, Alt popup --------
 var _hovered_slot := ""
 var _hovered_btn: Button
 var _alt_popup: PanelContainer
-var _toast_label: Label
-var _toast_tween: Tween
-
 var _runes_col: VBoxContainer
 var _runes_panel: PanelContainer
 var _known_runes_shown: Array = []
 var _menu_stat_panel: PanelContainer
-const RuneScreens = preload("res://scripts/ui/rune_screens.gd")
-const RuneManager = preload("res://scripts/ui/rune_manager.gd")
-const MacroWindow = preload("res://scripts/ui/macro_window.gd")
-
 # Rebuild the Runes dropdown when the set of learned runes changes.
 func _rebuild_runes_panel() -> void:
 	var pd := get_node("/root/PlayerData")
@@ -279,8 +759,6 @@ func _refresh_menu_stats() -> void:
 	for stat in Stats.ORDER:
 		values[stat] = Stats.from_totals(stat, totals)
 	UI.update_stat_panel(_menu_stat_panel, values)
-
-# --- Attributes (1 point per level; freely movable here, add-only in game) -----------
 
 var _attr_points_label: Label
 var _attr_rows := {}   # stat -> {"value": Label, "minus": Button, "plus": Button}
@@ -342,196 +820,6 @@ func _refresh_attributes() -> void:
 		(r["value"] as Label).text = str(pd.attribute_rank(s))
 		(r["minus"] as Button).disabled = pd.attribute_rank(s) <= 0
 		(r["plus"] as Button).disabled = left <= 0
-
-# --- Rune Transfer ------------------------------------------------------------------
-# Source Item (must be runed) -> Target Item. Transfer: the rune moves to
-# the target, is learned permanently, and the source is destroyed.
-# Extract: learn the rune and destroy the source (no target needed).
-
-var _et_panel: PanelContainer
-var _et_shade: ColorRect
-var _et_src := {}
-var _et_tgt := {}
-var _et_pick := ""          # "src" / "tgt" while choosing from the list
-var _et_src_btn: Button
-var _et_tgt_btn: Button
-var _et_list: VBoxContainer
-var _et_list_title: Label
-
-func _close_rune_transfer() -> void:
-	_et_panel.visible = false
-	_et_shade.visible = false
-
-func _build_rune_transfer() -> void:
-	_et_shade = ColorRect.new()
-	_et_shade.color = Color(0, 0, 0, 0.5)
-	_et_shade.set_anchors_preset(Control.PRESET_FULL_RECT)
-	ui.add_child(_et_shade)
-
-	_et_panel = PanelContainer.new()
-	_et_panel.anchor_left = 0.5
-	_et_panel.anchor_right = 0.5
-	_et_panel.anchor_top = 0.5
-	_et_panel.anchor_bottom = 0.5
-	_et_panel.offset_left = -260
-	_et_panel.offset_right = 260
-	_et_panel.offset_top = -230
-	_et_panel.offset_bottom = 230
-	var sb := UI.box(UI.PANEL_BG, UI.ACCENT.darkened(0.3), 2, 10)
-	sb.content_margin_left = 16
-	sb.content_margin_right = 16
-	sb.content_margin_top = 12
-	sb.content_margin_bottom = 14
-	_et_panel.add_theme_stylebox_override("panel", sb)
-	ui.add_child(_et_panel)
-
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 10)
-	_et_panel.add_child(v)
-	v.add_child(UI.label("Rune Transfer", 22, C_ACCENT))
-	var info := UI.label("The rune is learned permanently and the source item is destroyed.", 13, C_TEXT_DIM)
-	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v.add_child(info)
-
-	var slots := HBoxContainer.new()
-	slots.alignment = BoxContainer.ALIGNMENT_CENTER
-	slots.add_theme_constant_override("separation", 24)
-	v.add_child(slots)
-	_et_src_btn = _et_slot_column(slots, "Source Item", "src")
-	var arrow := UI.label("→", 30, C_ACCENT)
-	arrow.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	slots.add_child(arrow)
-	_et_tgt_btn = _et_slot_column(slots, "Target Item", "tgt")
-
-	_et_list_title = UI.label("", 14, Color.WHITE)
-	v.add_child(_et_list_title)
-	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(0, 170)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	v.add_child(scroll)
-	_et_list = VBoxContainer.new()
-	_et_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_et_list.add_theme_constant_override("separation", 4)
-	scroll.add_child(_et_list)
-
-	var buttons := HBoxContainer.new()
-	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
-	buttons.add_theme_constant_override("separation", 10)
-	v.add_child(buttons)
-	var transfer := UI.button("Transfer", 16, Vector2(130, 38))
-	transfer.pressed.connect(_do_transfer)
-	buttons.add_child(transfer)
-	var extract := UI.button("Extract (learn only)", 16, Vector2(170, 38))
-	extract.pressed.connect(_do_extract)
-	buttons.add_child(extract)
-	var close := UI.button("Close", 16, Vector2(90, 38))
-	close.pressed.connect(_close_rune_transfer)
-	buttons.add_child(close)
-	_et_panel.visible = false
-	_et_shade.visible = false
-
-func _et_slot_column(parent: Control, title: String, mode: String) -> Button:
-	var col := VBoxContainer.new()
-	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	var l := UI.label(title, 14, Color.WHITE)
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	col.add_child(l)
-	var b := UI.slot(66, "Click to choose")
-	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	b.pressed.connect(func():
-		_et_pick = mode
-		_refresh_rune_transfer())
-	col.add_child(b)
-	parent.add_child(col)
-	return b
-
-func _et_where(ref: Dictionary) -> String:
-	if ref.get("where") == "equip":
-		return "Equipped (%s)" % ref["slot"]
-	return "Bank"
-
-func _refresh_rune_transfer() -> void:
-	var pd := get_node("/root/PlayerData")
-	# Drop stale selections (item moved/destroyed).
-	if not _et_src.is_empty() and Items.rune_of(pd.get_item_at(_et_src)) == "":
-		_et_src = {}
-	if not _et_tgt.is_empty() and pd.get_item_at(_et_tgt) == "":
-		_et_tgt = {}
-	UI.set_slot_item(_et_src_btn, pd.get_item_at(_et_src) if not _et_src.is_empty() else "")
-	UI.set_slot_item(_et_tgt_btn, pd.get_item_at(_et_tgt) if not _et_tgt.is_empty() else "")
-	_et_src_btn.add_theme_stylebox_override("normal", UI.box(UI.BG, C_ACCENT if _et_pick == "src" else UI.BORDER, 2, 5))
-	_et_tgt_btn.add_theme_stylebox_override("normal", UI.box(UI.BG, C_ACCENT if _et_pick == "tgt" else UI.BORDER, 2, 5))
-
-	for c in _et_list.get_children():
-		c.queue_free()
-	var refs: Array[Dictionary] = []
-	if _et_pick == "src":
-		_et_list_title.text = "Choose a Source Item (with a rune):"
-		refs = pd.list_items(1)
-	elif _et_pick == "tgt":
-		_et_list_title.text = "Choose a Target Item (no rune):"
-		refs = pd.list_items(0)
-	else:
-		_et_list_title.text = "Click a slot to choose an item."
-	if _et_pick != "" and refs.is_empty():
-		_et_list.add_child(UI.label("No suitable items in your gear or bank.", 13, C_TEXT_DIM))
-	for ref in refs:
-		var item: String = pd.get_item_at(ref)
-		var row := UI.button("", 14, Vector2(0, 40))
-		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		row.text = "          %s   —   %s" % [Items.item_name(item), _et_where(ref)]
-		row.set_meta("tip_item", item)
-		row.set_meta("tip_equipped", ref.get("where") == "equip")
-		var icon := UI.slot(32, "")
-		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon.position = Vector2(4, 4)
-		UI.set_slot_item(icon, item)
-		row.add_child(icon)
-		var mode := _et_pick
-		row.pressed.connect(func():
-			if mode == "src":
-				_et_src = ref
-				_et_pick = "tgt" if _et_tgt.is_empty() else ""
-			else:
-				_et_tgt = ref
-				_et_pick = ""
-			_refresh_rune_transfer())
-		_et_list.add_child(row)
-
-func _do_transfer() -> void:
-	var pd := get_node("/root/PlayerData")
-	if _et_src.is_empty() or _et_tgt.is_empty():
-		_toast_if("Choose a source and a target item")
-		return
-	var e := Items.rune_of(pd.get_item_at(_et_src))
-	var err: String = pd.transfer_rune(_et_src, _et_tgt)
-	if err != "":
-		_toast_if(err)
-		return
-	_toast_ok("Learned %s and applied it to %s" % [Runes.rune_name(e), Items.item_name(pd.get_item_at(_et_tgt))])
-	_et_src = {}
-	_et_pick = "src"
-	_refresh_rune_transfer()
-
-func _do_extract() -> void:
-	var pd := get_node("/root/PlayerData")
-	if _et_src.is_empty():
-		_toast_if("Choose a source item")
-		return
-	var e := Items.rune_of(pd.get_item_at(_et_src))
-	var err: String = pd.extract_rune(_et_src)
-	if err != "":
-		_toast_if(err)
-		return
-	_toast_ok("Learned %s" % Runes.rune_name(e))
-	_et_src = {}
-	_et_pick = "src"
-	_refresh_rune_transfer()
-
-func _toast_ok(msg: String) -> void:
-	_toast_if(msg)
-	_toast_label.add_theme_color_override("font_color", Color(0.55, 1.0, 0.55))
-	_toast_label.move_to_front()
 
 func _wire_gear() -> void:
 	# Runes dropdown at the right edge of the Character tab.
@@ -627,11 +915,6 @@ func _update_gear_highlights() -> void:
 		for b in _gear_slot_buttons:
 			UI.set_slot_highlight(b, false)
 
-func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ALT:
-		if _hovered_slot != "" and pages["Character"].visible:
-			_open_alt_popup()
-
 func _open_alt_popup() -> void:
 	if _hovered_btn == null:
 		return
@@ -695,173 +978,6 @@ const ALT_GRACE := 0.15
 var _alt_popup_btn: Button
 var _alt_grace := 0.0
 
-func _process(delta: float) -> void:
-	_update_queue_banner()
-	_layout_party_3d()
-	_check_bar_drag_end()
-	_update_gear_highlights()
-	if _alt_popup == null or not _alt_popup.visible:
-		return
-	var mouse := get_viewport().get_mouse_position()
-	var over := _alt_popup.get_global_rect().has_point(mouse)
-	if is_instance_valid(_alt_popup_btn) and _alt_popup_btn.is_visible_in_tree():
-		over = over or _alt_popup_btn.get_global_rect().has_point(mouse)
-	if over:
-		_alt_grace = ALT_GRACE
-		return
-	_alt_grace -= delta
-	if _alt_grace <= 0.0:
-		_alt_popup.visible = false
-
-func _toast_if(msg: String) -> void:
-	if msg == "":
-		return
-	if _toast_label == null:
-		_toast_label = UI.label("", 18, Color(1, 0.35, 0.3))
-		_toast_label.anchor_left = 0.5
-		_toast_label.anchor_right = 0.5
-		_toast_label.anchor_top = 1.0
-		_toast_label.anchor_bottom = 1.0
-		_toast_label.offset_left = -300
-		_toast_label.offset_right = 300
-		_toast_label.offset_top = -140
-		_toast_label.offset_bottom = -110
-		_toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		ui.add_child(_toast_label)
-	_toast_label.text = msg
-	_toast_label.add_theme_color_override("font_color", Color(1, 0.35, 0.3))
-	_toast_label.move_to_front()
-	_toast_label.modulate.a = 1.0
-	if _toast_tween:
-		_toast_tween.kill()
-	_toast_tween = create_tween()
-	_toast_tween.tween_interval(1.2)
-	_toast_tween.tween_property(_toast_label, "modulate:a", 0.0, 0.5)
-
-# --- Bank: show items, Ctrl+click multi-select, drag to trash --------------------
-
-var _bank_buttons: Array[Button] = []
-var _bank_selected := {}     # bank index -> true
-
-func _wire_bank() -> void:
-	var pd := get_node("/root/PlayerData")
-	for b in pages["Bank"].find_children("*", "Button", true, false):
-		if b.has_meta("bank_index"):
-			var idx := int(b.get_meta("bank_index"))
-			_bank_buttons.append(b)
-			b.pressed.connect(_on_bank_clicked.bind(idx))
-			# Right-click a bank item: Equip / Delete menu.
-			b.gui_input.connect(func(ev: InputEvent):
-				if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_RIGHT:
-					_bank_context_menu(idx))
-			b.set_drag_forwarding(
-				func(_pos): return _bank_drag_data(b, idx),
-				func(_pos, data): return data is Dictionary and data.get("type") == "bank",
-				func(_pos, data): _move_bank(data["indices"], idx))
-		elif b.has_meta("trash"):
-			b.set_drag_forwarding(
-				func(_pos): return null,
-				func(_pos, data): return data is Dictionary and data.get("type") == "bank",
-				func(_pos, data): _trash(data["indices"]))
-	pd.changed_late.connect(_refresh_bank)
-	_refresh_bank()
-
-func _on_bank_clicked(idx: int) -> void:
-	var pd := get_node("/root/PlayerData")
-	if Input.is_key_pressed(KEY_CTRL):
-		if _bank_selected.has(idx):
-			_bank_selected.erase(idx)
-		elif pd.bank[idx] != "":
-			_bank_selected[idx] = true
-	else:
-		_bank_selected.clear()
-		if pd.bank[idx] != "":
-			_bank_selected[idx] = true
-	_refresh_bank()
-
-func _bank_drag_data(btn: Button, idx: int) -> Variant:
-	var pd := get_node("/root/PlayerData")
-	if pd.bank[idx] == "":
-		return null
-	var indices: Array = []
-	if _bank_selected.has(idx):
-		indices = _bank_selected.keys()
-	else:
-		indices = [idx]
-	btn.set_drag_preview(UI.drag_preview(pd.bank[idx], indices.size()))
-	return {"type": "bank", "indices": indices}
-
-func _move_bank(indices: Array, to: int) -> void:
-	var moved: Array[int] = get_node("/root/PlayerData").move_bank_items(indices, to)
-	# Keep a multi-selection on the items that moved.
-	_bank_selected.clear()
-	if moved.size() > 1:
-		for i in moved:
-			_bank_selected[i] = true
-	_refresh_bank()
-
-func _bank_context_menu(idx: int) -> void:
-	var pd := get_node("/root/PlayerData")
-	var id: String = pd.bank[idx]
-	if id == "":
-		return
-	# Right-clicking part of a multi-selection offers to delete the whole selection.
-	var targets: Array = [idx]
-	if _bank_selected.has(idx) and _bank_selected.size() > 1:
-		targets = _bank_selected.keys()
-	else:
-		_bank_selected.clear()
-		_bank_selected[idx] = true
-		_refresh_bank()
-	var n := targets.size()
-	var extras: Array = []
-	if n == 1 and Items.is_mystery_rune(id):
-		extras.append(["Reveal Rune", func():
-			_bank_selected.clear()
-			_refresh_bank()
-			RuneScreens.open_reveal(ui, {"where": "bank", "index": idx}, func(msg: String):
-				_toast_ok(msg)
-				_refresh_bank())])
-	var shard_total := 0
-	for t in targets:
-		shard_total += pd.salvage_value(pd.bank[int(t)])
-	extras.append(["Salvage (+%d Rune Shards)" % shard_total if n == 1 else "Salvage %d items (+%d Rune Shards)" % [n, shard_total],
-		func():
-			UI.confirm(ui, "Salvage %s for %d Rune Shards?\nThis can't be undone." % [
-				Items.item_name(id) if n == 1 else "%d items" % n, shard_total], "Salvage", func():
-				var got: int = pd.salvage_bank_items(targets)
-				_bank_selected.clear()
-				_refresh_bank()
-				_toast_ok("+%d Rune Shards" % got))])
-	UI.item_menu(ui, id,
-		func():
-			_bank_selected.clear()
-			_toast_if(pd.equip_from_bank(idx))
-			_refresh_bank(),
-		func(): _trash(targets),
-		"Delete" if n == 1 else "Delete %d selected items" % n,
-		"" if n == 1 else "Delete %d selected items?" % n, extras)
-
-func _trash(indices: Array) -> void:
-	get_node("/root/PlayerData").delete_bank_items(indices)
-	_bank_selected.clear()
-	_refresh_bank()
-
-func _refresh_bank() -> void:
-	var pd := get_node("/root/PlayerData")
-	var used := 0
-	for b in _bank_buttons:
-		var idx := int(b.get_meta("bank_index"))
-		var id: String = pd.bank[idx]
-		if id == "":
-			_bank_selected.erase(idx)
-		else:
-			used += 1
-		UI.set_slot_item(b, id, false, _bank_selected.has(idx))
-	for l in pages["Bank"].find_children("*", "Label", true, false):
-		if l.has_meta("bank_counter"):
-			l.text = "Slots used: %d / %d" % [used, pd.BANK_SIZE]
-
 # Show equipped items in the Character tab's gear squares.
 func _refresh_gear() -> void:
 	var pd := get_node("/root/PlayerData")
@@ -869,418 +985,6 @@ func _refresh_gear() -> void:
 		if b.has_meta("slot_name"):
 			var slot := str(b.get_meta("slot_name"))
 			UI.set_slot_item(b, pd.equipment.get(slot, ""), pd.is_slot_locked(slot), false, pd.gear_runes.get(slot, ""))
-
-func _play_idle() -> void:
-	var anim: AnimationPlayer = model.find_child("AnimationPlayer", true, false)
-	if anim and anim.has_animation("mixamo_com"):
-		anim.get_animation("mixamo_com").loop_mode = Animation.LOOP_LINEAR
-		anim.play("mixamo_com")
-
-# --- UI construction ---------------------------------------------------------
-
-func _build_ui() -> void:
-	ui = CanvasLayer.new()
-	add_child(ui)
-
-	pages["Lobby"] = _build_lobby()
-	pages["Character"] = _build_character()
-	pages["Abilities & Talents"] = _build_abilities_page()
-	pages["Skill Cards"] = _build_cards_page()
-	pages["Bank"] = _build_bank_page()
-	pages["Queue"] = _build_queue_page()
-	for p in pages.values():
-		ui.add_child(p)
-
-	_build_nav_bar()
-
-	play_button = Button.new()
-	play_button.text = "PLAY"
-	play_button.anchor_left = 1.0
-	play_button.anchor_right = 1.0
-	play_button.anchor_top = 1.0
-	play_button.anchor_bottom = 1.0
-	play_button.offset_left = -250
-	play_button.offset_right = -30
-	play_button.offset_top = -100
-	play_button.offset_bottom = -30
-	play_button.add_theme_font_size_override("font_size", 30)
-	play_button.add_theme_color_override("font_color", Color(0.1, 0.07, 0.03))
-	play_button.add_theme_color_override("font_hover_color", Color(0.1, 0.07, 0.03))
-	play_button.add_theme_color_override("font_pressed_color", Color(0.1, 0.07, 0.03))
-	play_button.add_theme_stylebox_override("normal", _box(C_ACCENT, Color(1, 0.9, 0.6), 2, 8))
-	play_button.add_theme_stylebox_override("hover", _box(C_ACCENT.lightened(0.15), Color(1, 0.95, 0.75), 2, 8))
-	play_button.add_theme_stylebox_override("pressed", _box(C_ACCENT.darkened(0.15), Color(1, 0.9, 0.6), 2, 8))
-	play_button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	play_button.pressed.connect(_on_play)
-	ui.add_child(play_button)
-
-	# Friends & party panel sits left of Play.
-	friends_button = UI.button("Friends", 20, Vector2(0, 0))
-	friends_button.pressed.connect(_toggle_social)
-	friends_button.anchor_left = 1.0
-	friends_button.anchor_right = 1.0
-	friends_button.anchor_top = 1.0
-	friends_button.anchor_bottom = 1.0
-	friends_button.offset_left = -410
-	friends_button.offset_right = -265
-	friends_button.offset_top = -100
-	friends_button.offset_bottom = -30
-	friends_button.tooltip_text = "Friends & party"
-	ui.add_child(friends_button)
-
-	social = SOCIAL_PANEL.new()
-	social.visible = false
-	ui.add_child(social)
-
-	_queue_banner = _label("", 17, Color(0.55, 0.9, 1.0))
-	_queue_banner.anchor_left = 0.5
-	_queue_banner.anchor_right = 0.5
-	_queue_banner.offset_left = -400
-	_queue_banner.offset_right = 400
-	_queue_banner.offset_top = 46
-	_queue_banner.offset_bottom = 90
-	_queue_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_queue_banner.visible = false
-	ui.add_child(_queue_banner)
-
-	_build_xp_bar()
-	_build_esc_menu()
-
-# --- XP bar (bottom center, every tab) -----------------------------------------
-
-const XP_BAR_W := 640.0
-var _xp_fill: ColorRect
-var _xp_label: Label
-
-func _build_xp_bar() -> void:
-	var root := Control.new()
-	root.anchor_left = 0.5
-	root.anchor_right = 0.5
-	root.anchor_top = 1.0
-	root.anchor_bottom = 1.0
-	root.offset_left = -XP_BAR_W / 2.0
-	root.offset_right = XP_BAR_W / 2.0
-	root.offset_top = -20
-	root.offset_bottom = -6
-	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ui.add_child(root)
-	var bg := ColorRect.new()
-	bg.color = Color(0, 0, 0, 0.6)
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(bg)
-	_xp_fill = ColorRect.new()
-	_xp_fill.color = Color(0.6, 0.35, 0.95)
-	_xp_fill.position = Vector2(1, 1)
-	_xp_fill.size = Vector2(0, 12)
-	_xp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(_xp_fill)
-	_xp_label = UI.label("", 12, Color.WHITE)
-	_xp_label.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_xp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_xp_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	root.add_child(_xp_label)
-	get_node("/root/PlayerData").changed_late.connect(_update_xp_bar)
-	get_node("/root/SignalBus").xp_changed.connect(_on_xp_changed)
-	_update_xp_bar()
-
-func _on_xp_changed(_l, _x, _n) -> void:
-	_update_xp_bar()
-
-var _shards_label: Label
-
-func _refresh_shards() -> void:
-	if is_instance_valid(_shards_label):
-		_shards_label.text = "Rune Shards: %d" % int(get_node("/root/PlayerData").rune_shards)
-
-func _update_xp_bar() -> void:
-	var pd := get_node("/root/PlayerData")
-	var need: int = pd.xp_to_next(pd.level)
-	# At max level there is nothing left to earn: the whole bar is hidden.
-	(_xp_fill.get_parent() as Control).visible = need > 0
-	if need <= 0:
-		return
-	_xp_fill.size.x = (XP_BAR_W - 2.0) * clampf(float(pd.xp) / need, 0.0, 1.0)
-	_xp_label.text = "Level %d  •  %d / %d XP" % [pd.level, pd.xp, need]
-
-# --- Esc menu (Resume / Settings / Quit) --------------------------------------
-
-func _build_esc_menu() -> void:
-	esc_menu = UI.small_panel("Menu")
-	esc_menu.offset_top = -175
-	esc_menu.offset_bottom = 160
-	var content: VBoxContainer = esc_menu.get_meta("content")
-	var resume := UI.button("Resume", 18, Vector2(0, 42))
-	resume.pressed.connect(_hide_esc)
-	content.add_child(resume)
-	var settings := UI.button("Settings", 18, Vector2(0, 42))
-	settings.pressed.connect(_open_settings)
-	content.add_child(settings)
-	var macros := UI.button("Macros", 18, Vector2(0, 42))
-	macros.pressed.connect(func():
-		_hide_esc()
-		MacroWindow.open(ui, false))
-	content.add_child(macros)
-	var wipe := UI.button("Wipe Save", 18, Vector2(0, 42))
-	wipe.add_theme_color_override("font_color", Color(1, 0.45, 0.4))
-	wipe.add_theme_color_override("font_hover_color", Color(1, 0.6, 0.55))
-	wipe.tooltip_text = "Delete your character and progress. Settings and keybinds are kept."
-	wipe.pressed.connect(_open_wipe)
-	content.add_child(wipe)
-	var quit := UI.button("Quit", 18, Vector2(0, 42))
-	quit.pressed.connect(func(): get_node("/root/GameManager").quit_game())
-	content.add_child(quit)
-	esc_menu.visible = false
-	ui.add_child(esc_menu)
-
-	settings_panel = UI.small_panel("Settings")
-	settings_panel.offset_left = -250
-	settings_panel.offset_right = 250
-	settings_panel.offset_top = -250
-	settings_panel.offset_bottom = 250
-	var s_content: VBoxContainer = settings_panel.get_meta("content")
-	s_content.add_child(get_node("/root/Settings").build_settings_ui())
-	var back := UI.button("Back", 18, Vector2(0, 42))
-	back.pressed.connect(_back_from_settings)
-	s_content.add_child(back)
-	settings_panel.visible = false
-	ui.add_child(settings_panel)
-
-	# "Wipe Save" confirmation.
-	wipe_panel = UI.small_panel("Wipe Save?")
-	wipe_panel.offset_left = -230
-	wipe_panel.offset_right = 230
-	wipe_panel.offset_top = -140
-	wipe_panel.offset_bottom = 140
-	var w_content: VBoxContainer = wipe_panel.get_meta("content")
-	var warn := UI.label("This permanently deletes your character: level, XP, gear, bank, runes, talents, Skill Cards, checkpoints and stats.\n\nYour settings and keybinds are kept. The game restarts afterwards.", 14, Color(0.9, 0.9, 0.92))
-	warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	warn.custom_minimum_size = Vector2(380, 0)
-	w_content.add_child(warn)
-	var w_row := HBoxContainer.new()
-	w_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	w_row.add_theme_constant_override("separation", 10)
-	w_content.add_child(w_row)
-	var confirm := UI.button("Wipe everything", 18, Vector2(180, 42))
-	confirm.add_theme_color_override("font_color", Color(1, 0.45, 0.4))
-	confirm.add_theme_color_override("font_hover_color", Color(1, 0.6, 0.55))
-	confirm.pressed.connect(func(): get_node("/root/SaveSystem").wipe_and_restart())
-	w_row.add_child(confirm)
-	var cancel := UI.button("Cancel", 18, Vector2(120, 42))
-	cancel.pressed.connect(_back_from_wipe)
-	w_row.add_child(cancel)
-	wipe_panel.visible = false
-	ui.add_child(wipe_panel)
-
-	# Dim backdrop behind the menu that also blocks clicks on the UI below.
-	esc_shade = ColorRect.new()
-	esc_shade.color = Color(0, 0, 0, 0.45)
-	esc_shade.set_anchors_preset(Control.PRESET_FULL_RECT)
-	esc_shade.visible = false
-	ui.add_child(esc_shade)
-	ui.move_child(esc_shade, esc_menu.get_index())
-
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
-		get_viewport().set_input_as_handled()
-		if wipe_panel.visible:
-			_back_from_wipe()
-		elif settings_panel.visible:
-			_back_from_settings()
-		elif esc_menu.visible:
-			_hide_esc()
-		elif _search_query != "" and pages["Abilities & Talents"].visible:
-			_clear_search()   # Esc clears the search first
-		elif _pacts_page and _pacts_page.visible and pages["Abilities & Talents"].visible:
-			_close_pacts()   # Esc closes the Pacts page first
-		elif _book and _book.visible and pages["Abilities & Talents"].visible:
-			_close_book()   # Esc closes an open book first
-		elif pages["Queue"].visible:
-			_show_page("Lobby")   # Esc backs out of the Play screen
-		else:
-			_show_overlay(esc_menu)
-
-## Shows one of the Esc-menu panels (Menu / Settings / Wipe Save) on top of the
-## dim backdrop. The backdrop is always raised first, so the open panel can never
-## end up underneath it (that left Settings grayed out and unclickable).
-func _show_overlay(panel: Control) -> void:
-	for p in [esc_menu, settings_panel, wipe_panel]:
-		p.visible = p == panel
-	esc_shade.visible = true
-	esc_shade.move_to_front()
-	panel.move_to_front()
-
-func _hide_esc() -> void:
-	esc_menu.visible = false
-	settings_panel.visible = false
-	wipe_panel.visible = false
-	esc_shade.visible = false
-
-func _open_wipe() -> void:
-	_show_overlay(wipe_panel)
-
-func _back_from_wipe() -> void:
-	_show_overlay(esc_menu)
-
-func _open_settings() -> void:
-	_show_overlay(settings_panel)
-
-func _back_from_settings() -> void:
-	_show_overlay(esc_menu)
-
-func _build_nav_bar() -> void:
-	var bar := PanelContainer.new()
-	bar.anchor_right = 1.0
-	bar.offset_bottom = 40
-	bar.add_theme_stylebox_override("panel", _box(Color(0.04, 0.045, 0.06, 0.95), C_BORDER, 0, 0, [0, 0, 0, 2]))
-	ui.add_child(bar)
-
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 6)
-	bar.add_child(row)
-
-	var group := ButtonGroup.new()
-	# The Queue screen has no tab: it opens from the PLAY button.
-	for page_name in ["Lobby", "Character", "Abilities & Talents", "Skill Cards", "Bank"]:
-		var b := Button.new()
-		b.text = page_name
-		b.toggle_mode = true
-		b.button_group = group
-		b.custom_minimum_size = Vector2(128, 34)
-		b.add_theme_font_size_override("font_size", 15)
-		b.add_theme_color_override("font_color", C_TEXT_DIM)
-		b.add_theme_color_override("font_hover_color", Color.WHITE)
-		b.add_theme_color_override("font_pressed_color", C_ACCENT)
-		b.add_theme_color_override("font_hover_pressed_color", C_ACCENT)
-		b.add_theme_stylebox_override("normal", _box(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 4))
-		b.add_theme_stylebox_override("hover", _box(Color(1, 1, 1, 0.05), Color(0, 0, 0, 0), 0, 4))
-		b.add_theme_stylebox_override("pressed", _box(Color(1, 1, 1, 0.04), C_ACCENT, 0, 0, [0, 0, 0, 3]))
-		b.add_theme_stylebox_override("hover_pressed", _box(Color(1, 1, 1, 0.07), C_ACCENT, 0, 0, [0, 0, 0, 3]))
-		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-		b.pressed.connect(_show_page.bind(page_name))
-		row.add_child(b)
-		nav_buttons[page_name] = b
-
-	# Cogwheel (top right): opens the Esc menu (Settings, Wipe Save, Quit...).
-	var cog := Button.new()
-	cog.focus_mode = Control.FOCUS_NONE
-	cog.anchor_left = 1.0
-	cog.anchor_right = 1.0
-	cog.offset_left = -44
-	cog.offset_right = -10
-	cog.offset_top = 3
-	cog.offset_bottom = 37
-	cog.tooltip_text = "Menu (Esc)"
-	cog.add_theme_stylebox_override("normal", _box(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 6))
-	cog.add_theme_stylebox_override("hover", _box(Color(1, 1, 1, 0.07), C_BORDER, 1, 6))
-	cog.add_theme_stylebox_override("pressed", _box(Color(1, 1, 1, 0.1), C_ACCENT, 1, 6))
-	cog.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	var gear := Control.new()
-	gear.set_anchors_preset(Control.PRESET_FULL_RECT)
-	gear.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	gear.draw.connect(func(): _draw_cog(gear, C_ACCENT if gear.get_meta("hot", false) else C_TEXT_DIM.lightened(0.25)))
-	cog.add_child(gear)
-	cog.mouse_entered.connect(func():
-		gear.set_meta("hot", true)
-		gear.queue_redraw())
-	cog.mouse_exited.connect(func():
-		gear.set_meta("hot", false)
-		gear.queue_redraw())
-	cog.pressed.connect(_toggle_esc_menu)
-	ui.add_child(cog)
-
-## A cogwheel icon: toothed ring with a hole.
-func _draw_cog(c: Control, col: Color) -> void:
-	var mid := c.size / 2.0
-	var r := minf(c.size.x, c.size.y) * 0.3
-	var teeth := 8
-	for i in teeth:
-		var a := TAU * i / teeth
-		var d := Vector2(cos(a), sin(a))
-		var side := Vector2(-d.y, d.x) * r * 0.22
-		var inner := mid + d * r * 0.8
-		var outer := mid + d * r * 1.32
-		c.draw_colored_polygon(PackedVector2Array([inner - side, outer - side * 0.8, outer + side * 0.8, inner + side]), col)
-	c.draw_circle(mid, r, col)
-	c.draw_circle(mid, r * 0.42, Color(0.04, 0.045, 0.06))
-
-func _toggle_esc_menu() -> void:
-	if esc_menu.visible or settings_panel.visible or wipe_panel.visible:
-		_hide_esc()
-	else:
-		_show_overlay(esc_menu)
-
-func _full_rect_page() -> Control:
-	var page := Control.new()
-	page.set_anchors_preset(Control.PRESET_FULL_RECT)
-	page.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return page
-
-# Lobby: two empty party slots on each side of the player.
-func _build_lobby() -> Control:
-	var page := _full_rect_page()
-
-	var row := HBoxContainer.new()
-	row.anchor_left = 0.0
-	row.anchor_right = 1.0
-	row.anchor_top = 0.5
-	row.anchor_bottom = 0.5
-	row.offset_top = -110
-	row.offset_bottom = 150
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 22)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	page.add_child(row)
-	_party_row = row
-
-	for i in PARTY_SLOTS:
-		if i == PARTY_SLOTS / 2:
-			var gap := Control.new()
-			gap.custom_minimum_size = Vector2(300, 0)
-			gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			row.add_child(gap)
-		var ps := _party_slot()
-		_party_slots.append(ps)
-		row.add_child(ps)
-
-	var name_label := _label("You", 22, Color.WHITE)
-	_you_label = name_label
-	name_label.anchor_left = 0.5
-	name_label.anchor_right = 0.5
-	name_label.anchor_top = 1.0
-	name_label.anchor_bottom = 1.0
-	name_label.offset_left = -100
-	name_label.offset_right = 100
-	name_label.offset_top = -80
-	name_label.offset_bottom = -50
-	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	page.add_child(name_label)
-	return page
-
-func _party_slot() -> Control:
-	var slot := Button.new()
-	slot.custom_minimum_size = Vector2(150, 240)
-	slot.text = "+\nEmpty slot"
-	slot.add_theme_font_size_override("font_size", 18)
-	slot.add_theme_color_override("font_color", C_TEXT_DIM)
-	slot.add_theme_color_override("font_hover_color", Color.WHITE)
-	_style_party_slot(slot, false)
-	slot.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	# A member's name + level, at the top of the card (above their character).
-	var who := _label("", 15, Color.WHITE)
-	who.name = "Who"
-	who.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	who.offset_top = 8
-	who.offset_bottom = 50
-	who.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	who.visible = false
-	slot.add_child(who)
-	slot.tooltip_text = "Invite a friend"
-	slot.pressed.connect(func():
-		social.visible = true
-		social.move_to_front())
-	return slot
 
 # Character: player in the middle, gear slots down each side.
 func _build_character() -> Control:
@@ -1496,32 +1200,448 @@ func _gear_column(slots: Array, left_side: bool) -> Control:
 		col.add_child(row)
 	return col
 
-# --- Abilities & Talents -----------------------------------------------------------
-# Top: the action bar (drag abilities onto it, drag them off to remove).
-# Below: a shelf of books, one per category. Opening a book shows that
-# category's abilities on the left page and its talent tree on the right page.
-# Talent rows unlock globally: 3 points in a row of ANY tree opens the next row
-# in EVERY tree, so trees can be mixed freely.
+# --- Part: Rune Transfer --------
+var _et_panel: PanelContainer
+var _et_shade: ColorRect
+var _et_src := {}
+var _et_tgt := {}
+var _et_pick := ""          # "src" / "tgt" while choosing from the list
+var _et_src_btn: Button
+var _et_tgt_btn: Button
+var _et_list: VBoxContainer
+var _et_list_title: Label
 
-const Abilities = preload("res://scripts/abilities.gd")
-const Categories = preload("res://scripts/categories.gd")
-const PAGE_BG := Color(0.12, 0.105, 0.085, 0.98)
-const PAGE_BORDER := Color(0.32, 0.26, 0.18)
-const INK := Color(0.93, 0.88, 0.78)
-const INK_DIM := Color(0.62, 0.57, 0.5)
+func _close_rune_transfer() -> void:
+	_et_panel.visible = false
+	_et_shade.visible = false
 
-var _talent_points_label: Label
+func _build_rune_transfer() -> void:
+	_et_shade = ColorRect.new()
+	_et_shade.color = Color(0, 0, 0, 0.5)
+	_et_shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	ui.add_child(_et_shade)
+
+	_et_panel = PanelContainer.new()
+	_et_panel.anchor_left = 0.5
+	_et_panel.anchor_right = 0.5
+	_et_panel.anchor_top = 0.5
+	_et_panel.anchor_bottom = 0.5
+	_et_panel.offset_left = -260
+	_et_panel.offset_right = 260
+	_et_panel.offset_top = -230
+	_et_panel.offset_bottom = 230
+	var sb := UI.box(UI.PANEL_BG, UI.ACCENT.darkened(0.3), 2, 10)
+	sb.content_margin_left = 16
+	sb.content_margin_right = 16
+	sb.content_margin_top = 12
+	sb.content_margin_bottom = 14
+	_et_panel.add_theme_stylebox_override("panel", sb)
+	ui.add_child(_et_panel)
+
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 10)
+	_et_panel.add_child(v)
+	v.add_child(UI.label("Rune Transfer", 22, C_ACCENT))
+	var info := UI.label("The rune is learned permanently and the source item is destroyed.", 13, C_TEXT_DIM)
+	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(info)
+
+	var slots := HBoxContainer.new()
+	slots.alignment = BoxContainer.ALIGNMENT_CENTER
+	slots.add_theme_constant_override("separation", 24)
+	v.add_child(slots)
+	_et_src_btn = _et_slot_column(slots, "Source Item", "src")
+	var arrow := UI.label("→", 30, C_ACCENT)
+	arrow.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	slots.add_child(arrow)
+	_et_tgt_btn = _et_slot_column(slots, "Target Item", "tgt")
+
+	_et_list_title = UI.label("", 14, Color.WHITE)
+	v.add_child(_et_list_title)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, 170)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	v.add_child(scroll)
+	_et_list = VBoxContainer.new()
+	_et_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_et_list.add_theme_constant_override("separation", 4)
+	scroll.add_child(_et_list)
+
+	var buttons := HBoxContainer.new()
+	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons.add_theme_constant_override("separation", 10)
+	v.add_child(buttons)
+	var transfer := UI.button("Transfer", 16, Vector2(130, 38))
+	transfer.pressed.connect(_do_transfer)
+	buttons.add_child(transfer)
+	var extract := UI.button("Extract (learn only)", 16, Vector2(170, 38))
+	extract.pressed.connect(_do_extract)
+	buttons.add_child(extract)
+	var close := UI.button("Close", 16, Vector2(90, 38))
+	close.pressed.connect(_close_rune_transfer)
+	buttons.add_child(close)
+	_et_panel.visible = false
+	_et_shade.visible = false
+
+func _et_slot_column(parent: Control, title: String, mode: String) -> Button:
+	var col := VBoxContainer.new()
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	var l := UI.label(title, 14, Color.WHITE)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(l)
+	var b := UI.slot(66, "Click to choose")
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	b.pressed.connect(func():
+		_et_pick = mode
+		_refresh_rune_transfer())
+	col.add_child(b)
+	parent.add_child(col)
+	return b
+
+func _et_where(ref: Dictionary) -> String:
+	if ref.get("where") == "equip":
+		return "Equipped (%s)" % ref["slot"]
+	return "Bank"
+
+func _refresh_rune_transfer() -> void:
+	var pd := get_node("/root/PlayerData")
+	# Drop stale selections (item moved/destroyed).
+	if not _et_src.is_empty() and Items.rune_of(pd.get_item_at(_et_src)) == "":
+		_et_src = {}
+	if not _et_tgt.is_empty() and pd.get_item_at(_et_tgt) == "":
+		_et_tgt = {}
+	UI.set_slot_item(_et_src_btn, pd.get_item_at(_et_src) if not _et_src.is_empty() else "")
+	UI.set_slot_item(_et_tgt_btn, pd.get_item_at(_et_tgt) if not _et_tgt.is_empty() else "")
+	_et_src_btn.add_theme_stylebox_override("normal", UI.box(UI.BG, C_ACCENT if _et_pick == "src" else UI.BORDER, 2, 5))
+	_et_tgt_btn.add_theme_stylebox_override("normal", UI.box(UI.BG, C_ACCENT if _et_pick == "tgt" else UI.BORDER, 2, 5))
+
+	for c in _et_list.get_children():
+		c.queue_free()
+	var refs: Array[Dictionary] = []
+	if _et_pick == "src":
+		_et_list_title.text = "Choose a Source Item (with a rune):"
+		refs = pd.list_items(1)
+	elif _et_pick == "tgt":
+		_et_list_title.text = "Choose a Target Item (no rune):"
+		refs = pd.list_items(0)
+	else:
+		_et_list_title.text = "Click a slot to choose an item."
+	if _et_pick != "" and refs.is_empty():
+		_et_list.add_child(UI.label("No suitable items in your gear or bank.", 13, C_TEXT_DIM))
+	for ref in refs:
+		var item: String = pd.get_item_at(ref)
+		var row := UI.button("", 14, Vector2(0, 40))
+		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		row.text = "          %s   —   %s" % [Items.item_name(item), _et_where(ref)]
+		row.set_meta("tip_item", item)
+		row.set_meta("tip_equipped", ref.get("where") == "equip")
+		var icon := UI.slot(32, "")
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.position = Vector2(4, 4)
+		UI.set_slot_item(icon, item)
+		row.add_child(icon)
+		var mode := _et_pick
+		row.pressed.connect(func():
+			if mode == "src":
+				_et_src = ref
+				_et_pick = "tgt" if _et_tgt.is_empty() else ""
+			else:
+				_et_tgt = ref
+				_et_pick = ""
+			_refresh_rune_transfer())
+		_et_list.add_child(row)
+
+func _do_transfer() -> void:
+	var pd := get_node("/root/PlayerData")
+	if _et_src.is_empty() or _et_tgt.is_empty():
+		_toast_if("Choose a source and a target item")
+		return
+	var e := Items.rune_of(pd.get_item_at(_et_src))
+	var err: String = pd.transfer_rune(_et_src, _et_tgt)
+	if err != "":
+		_toast_if(err)
+		return
+	_toast_ok("Learned %s and applied it to %s" % [Runes.rune_name(e), Items.item_name(pd.get_item_at(_et_tgt))])
+	_et_src = {}
+	_et_pick = "src"
+	_refresh_rune_transfer()
+
+func _do_extract() -> void:
+	var pd := get_node("/root/PlayerData")
+	if _et_src.is_empty():
+		_toast_if("Choose a source item")
+		return
+	var e := Items.rune_of(pd.get_item_at(_et_src))
+	var err: String = pd.extract_rune(_et_src)
+	if err != "":
+		_toast_if(err)
+		return
+	_toast_ok("Learned %s" % Runes.rune_name(e))
+	_et_src = {}
+	_et_pick = "src"
+	_refresh_rune_transfer()
+
+# --- Part: Bank page: show items, Ctrl+click multi-select, drag to trash --------
+var _bank_buttons: Array[Button] = []
+var _bank_selected := {}     # bank index -> true
+
+func _wire_bank() -> void:
+	var pd := get_node("/root/PlayerData")
+	for b in pages["Bank"].find_children("*", "Button", true, false):
+		if b.has_meta("bank_index"):
+			var idx := int(b.get_meta("bank_index"))
+			_bank_buttons.append(b)
+			b.pressed.connect(_on_bank_clicked.bind(idx))
+			# Right-click a bank item: Equip / Delete menu.
+			b.gui_input.connect(func(ev: InputEvent):
+				if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_RIGHT:
+					_bank_context_menu(idx))
+			b.set_drag_forwarding(
+				func(_pos): return _bank_drag_data(b, idx),
+				func(_pos, data): return data is Dictionary and data.get("type") == "bank",
+				func(_pos, data): _move_bank(data["indices"], idx))
+		elif b.has_meta("trash"):
+			b.set_drag_forwarding(
+				func(_pos): return null,
+				func(_pos, data): return data is Dictionary and data.get("type") == "bank",
+				func(_pos, data): _trash(data["indices"]))
+	pd.changed_late.connect(_refresh_bank)
+	_refresh_bank()
+
+func _on_bank_clicked(idx: int) -> void:
+	var pd := get_node("/root/PlayerData")
+	if Input.is_key_pressed(KEY_CTRL):
+		if _bank_selected.has(idx):
+			_bank_selected.erase(idx)
+		elif pd.bank[idx] != "":
+			_bank_selected[idx] = true
+	else:
+		_bank_selected.clear()
+		if pd.bank[idx] != "":
+			_bank_selected[idx] = true
+	_refresh_bank()
+
+func _bank_drag_data(btn: Button, idx: int) -> Variant:
+	var pd := get_node("/root/PlayerData")
+	if pd.bank[idx] == "":
+		return null
+	var indices: Array = []
+	if _bank_selected.has(idx):
+		indices = _bank_selected.keys()
+	else:
+		indices = [idx]
+	btn.set_drag_preview(UI.drag_preview(pd.bank[idx], indices.size()))
+	return {"type": "bank", "indices": indices}
+
+func _move_bank(indices: Array, to: int) -> void:
+	var moved: Array[int] = get_node("/root/PlayerData").move_bank_items(indices, to)
+	# Keep a multi-selection on the items that moved.
+	_bank_selected.clear()
+	if moved.size() > 1:
+		for i in moved:
+			_bank_selected[i] = true
+	_refresh_bank()
+
+func _bank_context_menu(idx: int) -> void:
+	var pd := get_node("/root/PlayerData")
+	var id: String = pd.bank[idx]
+	if id == "":
+		return
+	# Right-clicking part of a multi-selection offers to delete the whole selection.
+	var targets: Array = [idx]
+	if _bank_selected.has(idx) and _bank_selected.size() > 1:
+		targets = _bank_selected.keys()
+	else:
+		_bank_selected.clear()
+		_bank_selected[idx] = true
+		_refresh_bank()
+	var n := targets.size()
+	var extras: Array = []
+	if n == 1 and Items.is_mystery_rune(id):
+		extras.append(["Reveal Rune", func():
+			_bank_selected.clear()
+			_refresh_bank()
+			RuneScreens.open_reveal(ui, {"where": "bank", "index": idx}, func(msg: String):
+				_toast_ok(msg)
+				_refresh_bank())])
+	var shard_total := 0
+	for t in targets:
+		shard_total += pd.salvage_value(pd.bank[int(t)])
+	extras.append(["Salvage (+%d Rune Shards)" % shard_total if n == 1 else "Salvage %d items (+%d Rune Shards)" % [n, shard_total],
+		func():
+			UI.confirm(ui, "Salvage %s for %d Rune Shards?\nThis can't be undone." % [
+				Items.item_name(id) if n == 1 else "%d items" % n, shard_total], "Salvage", func():
+				var got: int = pd.salvage_bank_items(targets)
+				_bank_selected.clear()
+				_refresh_bank()
+				_toast_ok("+%d Rune Shards" % got))])
+	UI.item_menu(ui, id,
+		func():
+			_bank_selected.clear()
+			_toast_if(pd.equip_from_bank(idx))
+			_refresh_bank(),
+		func(): _trash(targets),
+		"Delete" if n == 1 else "Delete %d selected items" % n,
+		"" if n == 1 else "Delete %d selected items?" % n, extras)
+
+func _trash(indices: Array) -> void:
+	get_node("/root/PlayerData").delete_bank_items(indices)
+	_bank_selected.clear()
+	_refresh_bank()
+
+func _refresh_bank() -> void:
+	var pd := get_node("/root/PlayerData")
+	var used := 0
+	for b in _bank_buttons:
+		var idx := int(b.get_meta("bank_index"))
+		var id: String = pd.bank[idx]
+		if id == "":
+			_bank_selected.erase(idx)
+		else:
+			used += 1
+		UI.set_slot_item(b, id, false, _bank_selected.has(idx))
+	for l in pages["Bank"].find_children("*", "Label", true, false):
+		if l.has_meta("bank_counter"):
+			l.text = "Slots used: %d / %d" % [used, pd.BANK_SIZE]
+
+func _build_bank_page() -> Control:
+	var page := _build_empty_page("Bank")
+	var v: VBoxContainer = page.get_child(0).get_child(0)
+	v.get_child(1).queue_free()  # drop the "Nothing here yet." line
+	# Sort buttons: by type, by quality (rarity), by rune (legendary > epic > rare > common).
+	var sort_row := HBoxContainer.new()
+	sort_row.alignment = BoxContainer.ALIGNMENT_END
+	sort_row.add_theme_constant_override("separation", 6)
+	var sort_l := UI.label("Sort:", 14, C_TEXT_DIM)
+	sort_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	sort_row.add_child(sort_l)
+	for opt in [["Type", "type", "Group by item type (weapons, then armor by slot), best first"],
+			["Quality", "quality", "Epic → Rare → Uncommon → Common"],
+			["Rune", "rune", "Runed items first: Legendary → Epic → Rare → Common runes"]]:
+		var mode: String = opt[1]
+		var b := UI.button(opt[0], 14, Vector2(84, 30))
+		b.tooltip_text = opt[2]
+		b.pressed.connect(func():
+			_bank_selected.clear()
+			get_node("/root/PlayerData").sort_bank(mode))
+		sort_row.add_child(b)
+	v.add_child(sort_row)
+	v.add_child(UI.bank_grid(15, 42, 346))
+	return page
+
+# --- Part: Esc menu (Resume / Settings / Wipe / Quit) --------
+func _build_esc_menu() -> void:
+	esc_menu = UI.small_panel("Menu")
+	esc_menu.offset_top = -175
+	esc_menu.offset_bottom = 160
+	var content: VBoxContainer = esc_menu.get_meta("content")
+	var resume := UI.button("Resume", 18, Vector2(0, 42))
+	resume.pressed.connect(_hide_esc)
+	content.add_child(resume)
+	var settings := UI.button("Settings", 18, Vector2(0, 42))
+	settings.pressed.connect(_open_settings)
+	content.add_child(settings)
+	var macros := UI.button("Macros", 18, Vector2(0, 42))
+	macros.pressed.connect(func():
+		_hide_esc()
+		MacroWindow.open(ui, false))
+	content.add_child(macros)
+	var wipe := UI.button("Wipe Save", 18, Vector2(0, 42))
+	wipe.add_theme_color_override("font_color", Color(1, 0.45, 0.4))
+	wipe.add_theme_color_override("font_hover_color", Color(1, 0.6, 0.55))
+	wipe.tooltip_text = "Delete your character and progress. Settings and keybinds are kept."
+	wipe.pressed.connect(_open_wipe)
+	content.add_child(wipe)
+	var quit := UI.button("Quit", 18, Vector2(0, 42))
+	quit.pressed.connect(func(): get_node("/root/GameManager").quit_game())
+	content.add_child(quit)
+	esc_menu.visible = false
+	ui.add_child(esc_menu)
+
+	settings_panel = UI.small_panel("Settings")
+	settings_panel.offset_left = -250
+	settings_panel.offset_right = 250
+	settings_panel.offset_top = -250
+	settings_panel.offset_bottom = 250
+	var s_content: VBoxContainer = settings_panel.get_meta("content")
+	s_content.add_child(get_node("/root/Settings").build_settings_ui())
+	var back := UI.button("Back", 18, Vector2(0, 42))
+	back.pressed.connect(_back_from_settings)
+	s_content.add_child(back)
+	settings_panel.visible = false
+	ui.add_child(settings_panel)
+
+	# "Wipe Save" confirmation.
+	wipe_panel = UI.small_panel("Wipe Save?")
+	wipe_panel.offset_left = -230
+	wipe_panel.offset_right = 230
+	wipe_panel.offset_top = -140
+	wipe_panel.offset_bottom = 140
+	var w_content: VBoxContainer = wipe_panel.get_meta("content")
+	var warn := UI.label("This permanently deletes your character: level, XP, gear, bank, runes, talents, Skill Cards, checkpoints and stats.\n\nYour settings and keybinds are kept. The game restarts afterwards.", 14, Color(0.9, 0.9, 0.92))
+	warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	warn.custom_minimum_size = Vector2(380, 0)
+	w_content.add_child(warn)
+	var w_row := HBoxContainer.new()
+	w_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	w_row.add_theme_constant_override("separation", 10)
+	w_content.add_child(w_row)
+	var confirm := UI.button("Wipe everything", 18, Vector2(180, 42))
+	confirm.add_theme_color_override("font_color", Color(1, 0.45, 0.4))
+	confirm.add_theme_color_override("font_hover_color", Color(1, 0.6, 0.55))
+	confirm.pressed.connect(func(): get_node("/root/SaveSystem").wipe_and_restart())
+	w_row.add_child(confirm)
+	var cancel := UI.button("Cancel", 18, Vector2(120, 42))
+	cancel.pressed.connect(_back_from_wipe)
+	w_row.add_child(cancel)
+	wipe_panel.visible = false
+	ui.add_child(wipe_panel)
+
+	# Dim backdrop behind the menu that also blocks clicks on the UI below.
+	esc_shade = ColorRect.new()
+	esc_shade.color = Color(0, 0, 0, 0.45)
+	esc_shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	esc_shade.visible = false
+	ui.add_child(esc_shade)
+	ui.move_child(esc_shade, esc_menu.get_index())
+
+## Shows one of the Esc-menu panels (Menu / Settings / Wipe Save) on top of the
+## dim backdrop. The backdrop is always raised first, so the open panel can never
+## end up underneath it (that left Settings grayed out and unclickable).
+func _show_overlay(panel: Control) -> void:
+	for p in [esc_menu, settings_panel, wipe_panel]:
+		p.visible = p == panel
+	esc_shade.visible = true
+	esc_shade.move_to_front()
+	panel.move_to_front()
+
+func _hide_esc() -> void:
+	esc_menu.visible = false
+	settings_panel.visible = false
+	wipe_panel.visible = false
+	esc_shade.visible = false
+
+func _open_wipe() -> void:
+	_show_overlay(wipe_panel)
+
+func _back_from_wipe() -> void:
+	_show_overlay(esc_menu)
+
+func _open_settings() -> void:
+	_show_overlay(settings_panel)
+
+func _back_from_settings() -> void:
+	_show_overlay(esc_menu)
+
+func _toggle_esc_menu() -> void:
+	if esc_menu.visible or settings_panel.visible or wipe_panel.visible:
+		_hide_esc()
+	else:
+		_show_overlay(esc_menu)
+
+# --- Part: Shelf: the Abilities & Talents page, one book per category --------
 var _shelf: PanelContainer
 var _shelf_info := {}          # category -> Label (abilities / points summary)
-var _book: PanelContainer
-var _book_cat := ""            # open book's category ("" = shelf showing)
-var _book_emblem: Control
-var _book_title: Label
-var _book_sub: Label
-var _book_abilities: VBoxContainer
-var _book_tabs: HFlowContainer
-var _book_tab_buttons := {}   # category -> its quick-switch button
-
 ## Highlight the open book's button in the quick switcher.
 func _refresh_book_tabs() -> void:
 	for c in _book_tab_buttons:
@@ -1530,33 +1650,9 @@ func _refresh_book_tabs() -> void:
 		var on: bool = c == _book_cat
 		b.add_theme_stylebox_override("normal", UI.box(col.darkened(0.7) if on else UI.BG, col if on else col.darkened(0.45), 2 if on else 1, 6))
 		b.add_theme_stylebox_override("hover", UI.box(col.darkened(0.6), col, 2, 6))
-var _book_tree: Control         # the talent page (the grid scales to fit it)
-# Search (one bar at the top of the page): on the shelf it lists matches to pick
-# from; in an open book it highlights them. Hovering an ability or a talent
-# highlights everything that mentions it (or that it mentions).
-const Keywords = preload("res://scripts/core/keywords.gd")
-const SEARCH_COL := Color(0.4, 1.0, 0.6)      # matches the search
-const FOCUS_COL := Color(1.0, 1.0, 1.0)       # the result you clicked
-const SEARCH_MAX_RESULTS := 60
-var _search_edit: LineEdit
-var _search_query := ""
-var _search_focus := ""         # entity key ("a:frostbolt", "t:frost_r1c3") picked from the results
-var _search_results: ScrollContainer
-var _search_list: GridContainer
 var _shelf_browse: Array[Control] = []   # the shelf's books (hidden while results show)
 var _shelf_hint: Label
 const SHELF_HINT := "Open a book to see its abilities and talents  •  3 talent points in a row of any book unlock the next row in every book"
-var _ability_cells := {}        # ability id -> its cell in the open book
-var _hover_key := ""            # entity key under the mouse
-var _talent_buttons := {}      # talent id -> Button (open book only)
-var _row_status: Array[Label] = []
-var _row_info: Array[Control] = []   # row label boxes, positioned by _layout_talent_canvas
-var _talent_canvas: Control     # the open book's talent grid (lines are drawn on it)
-# Grid metrics, recomputed from the page size so a whole tree fits without scrolling.
-var T_LABEL_W := 74.0           # row labels on the left of the grid
-var T_CELL := Vector2(56, 54)   # one grid cell (column x row)
-var T_BTN := 42.0               # talent button size
-
 func _build_abilities_page() -> Control:
 	var page := _full_rect_page()
 	var outer := VBoxContainer.new()
@@ -1667,8 +1763,6 @@ func _accept_bar_drop(c: Control) -> void:
 		func(_pos, data): return data is Dictionary and data.get("type") == "ability" and int(data["from"]) >= 0,
 		func(_pos, data): get_node("/root/PlayerData").clear_action_slot(int(data["from"])))
 
-# --- The shelf: one book per category --------------------------------------------------
-
 func _build_shelf() -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -1715,8 +1809,103 @@ func _build_shelf() -> PanelContainer:
 	_shelf_browse = [rune_tab, grid]
 	return panel
 
-# --- Search ---------------------------------------------------------------------------
+## The unique tab above the books: spells taught by runes (Frostfire Bolt).
+## It opens like a book, but with the runes that teach them instead of talents.
+func _shelf_rune_tab() -> Button:
+	var cat: String = Categories.RUNE
+	var col := Categories.color(cat)
+	var cover := col.darkened(0.8)
+	var b := Button.new()
+	b.focus_mode = Control.FOCUS_NONE
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.custom_minimum_size = Vector2(0, SHELF_TAB_HEIGHT)   # (it shares the height it had with the Pacts tab: the books stay where they were)
+	b.tooltip_text = "%s\n%s" % [Categories.cat_name(cat), Categories.desc(cat)]
+	b.add_theme_stylebox_override("normal", _box(cover, col.darkened(0.25), 0, 8, [2, 2, 2, 3]))
+	b.add_theme_stylebox_override("hover", _box(cover.lightened(0.06), col, 0, 8, [3, 3, 3, 3]))
+	b.add_theme_stylebox_override("pressed", _box(cover.lightened(0.1), col.lightened(0.2), 0, 8, [3, 3, 3, 3]))
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.pressed.connect(_open_book.bind(cat))
+	_accept_bar_drop(b)
+	var row := HBoxContainer.new()
+	row.set_anchors_preset(Control.PRESET_FULL_RECT)
+	row.offset_left = 14
+	row.offset_right = -14
+	row.offset_top = 2
+	row.offset_bottom = -3
+	row.add_theme_constant_override("separation", 12)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(row)
+	var emblem := Control.new()
+	emblem.custom_minimum_size = Vector2(20, 20)
+	emblem.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	emblem.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	emblem.draw.connect(func(): Categories.draw_emblem(emblem, cat))
+	row.add_child(emblem)
+	var name_l := _label(Categories.cat_name(cat), 15, col.lightened(0.35))
+	name_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(name_l)
+	var desc := _label(Categories.desc(cat), 12, C_TEXT_DIM)
+	desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	desc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	desc.clip_text = true
+	row.add_child(desc)
+	var info := _label("", 12, C_TEXT_DIM)
+	info.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(info)
+	_shelf_info[cat] = info
+	return b
 
+func _shelf_book(cat: String) -> Button:
+	var col := Categories.color(cat)
+	var cover := col.darkened(0.78)
+	var b := Button.new()
+	b.focus_mode = Control.FOCUS_NONE
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	b.custom_minimum_size = Vector2(0, 130)
+	b.tooltip_text = "%s\n%s" % [Categories.cat_name(cat), Categories.desc(cat)]
+	b.add_theme_stylebox_override("normal", _box(cover, col.darkened(0.25), 0, 8, [12, 2, 2, 2]))
+	b.add_theme_stylebox_override("hover", _box(cover.lightened(0.06), col, 0, 8, [12, 3, 3, 3]))
+	b.add_theme_stylebox_override("pressed", _box(cover.lightened(0.1), col.lightened(0.2), 0, 8, [12, 3, 3, 3]))
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.pressed.connect(_open_book.bind(cat))
+	_accept_bar_drop(b)
+
+	var v := VBoxContainer.new()
+	v.set_anchors_preset(Control.PRESET_FULL_RECT)
+	v.offset_left = 16
+	v.offset_right = -8
+	v.offset_top = 8
+	v.offset_bottom = -8
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.add_theme_constant_override("separation", 4)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(v)
+	var emblem := Control.new()
+	emblem.custom_minimum_size = Vector2(56, 56)
+	emblem.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	emblem.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	emblem.draw.connect(func(): Categories.draw_emblem(emblem, cat))
+	v.add_child(emblem)
+	var name_l := _label(Categories.cat_name(cat), 20, col.lightened(0.35))
+	name_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(name_l)
+	var info := _label("", 12, C_TEXT_DIM)
+	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(info)
+	_shelf_info[cat] = info
+	return b
+
+# --- Part: Search --------
+const SEARCH_COL := Color(0.4, 1.0, 0.6)      # matches the search
+const FOCUS_COL := Color(1.0, 1.0, 1.0)       # the result you clicked
+const SEARCH_MAX_RESULTS := 60
+var _search_edit: LineEdit
+var _search_query := ""
+var _search_focus := ""         # entity key ("a:frostbolt", "t:frost_r1c3") picked from the results
+var _search_results: ScrollContainer
+var _search_list: GridContainer
+var _hover_key := ""            # entity key under the mouse
 func _on_search_changed(text: String) -> void:
 	_search_query = text.strip_edges()
 	_search_focus = ""
@@ -1871,57 +2060,7 @@ func _update_marks() -> void:
 		var dim: bool = _search_query != "" and not matched and width == 0 and str(key) != _hover_key
 		b.modulate = Color(1, 1, 1, 0.3) if dim else Color.WHITE
 
-## The unique tab above the books: spells taught by runes (Frostfire Bolt).
-## It opens like a book, but with the runes that teach them instead of talents.
-func _shelf_rune_tab() -> Button:
-	var cat: String = Categories.RUNE
-	var col := Categories.color(cat)
-	var cover := col.darkened(0.8)
-	var b := Button.new()
-	b.focus_mode = Control.FOCUS_NONE
-	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	b.custom_minimum_size = Vector2(0, SHELF_TAB_HEIGHT)   # (it shares the height it had with the Pacts tab: the books stay where they were)
-	b.tooltip_text = "%s\n%s" % [Categories.cat_name(cat), Categories.desc(cat)]
-	b.add_theme_stylebox_override("normal", _box(cover, col.darkened(0.25), 0, 8, [2, 2, 2, 3]))
-	b.add_theme_stylebox_override("hover", _box(cover.lightened(0.06), col, 0, 8, [3, 3, 3, 3]))
-	b.add_theme_stylebox_override("pressed", _box(cover.lightened(0.1), col.lightened(0.2), 0, 8, [3, 3, 3, 3]))
-	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	b.pressed.connect(_open_book.bind(cat))
-	_accept_bar_drop(b)
-	var row := HBoxContainer.new()
-	row.set_anchors_preset(Control.PRESET_FULL_RECT)
-	row.offset_left = 14
-	row.offset_right = -14
-	row.offset_top = 2
-	row.offset_bottom = -3
-	row.add_theme_constant_override("separation", 12)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	b.add_child(row)
-	var emblem := Control.new()
-	emblem.custom_minimum_size = Vector2(20, 20)
-	emblem.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	emblem.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	emblem.draw.connect(func(): Categories.draw_emblem(emblem, cat))
-	row.add_child(emblem)
-	var name_l := _label(Categories.cat_name(cat), 15, col.lightened(0.35))
-	name_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(name_l)
-	var desc := _label(Categories.desc(cat), 12, C_TEXT_DIM)
-	desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	desc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	desc.clip_text = true
-	row.add_child(desc)
-	var info := _label("", 12, C_TEXT_DIM)
-	info.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(info)
-	_shelf_info[cat] = info
-	return b
-
-# --- Pacts: the tab above Rune Spells, and the page it opens ------------------------------
-# One Pact at a time (scripts/pacts.gd; PlayerData.pact). It can only be changed
-# here, so once a dungeon starts it is locked in.
-
-const Pacts = preload("res://scripts/pacts.gd")
+# --- Part: Pacts: the tab above Rune Spells, and the page it opens --------
 ## The two tabs above the books (Pacts, Rune Spells) and the gap between them:
 ## 28 + 4 + 28 = the 60 px the Rune Spells tab had alone.
 const SHELF_TAB_HEIGHT := 28
@@ -2121,49 +2260,17 @@ func _pact_line(what: String, text: String, col: Color) -> HBoxContainer:
 func _take_pact(id: String, book: String) -> void:
 	_toast_if(get_node("/root/PlayerData").set_pact(id, book))   # (its `changed` redraws the page)
 
-func _shelf_book(cat: String) -> Button:
-	var col := Categories.color(cat)
-	var cover := col.darkened(0.78)
-	var b := Button.new()
-	b.focus_mode = Control.FOCUS_NONE
-	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	b.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	b.custom_minimum_size = Vector2(0, 130)
-	b.tooltip_text = "%s\n%s" % [Categories.cat_name(cat), Categories.desc(cat)]
-	b.add_theme_stylebox_override("normal", _box(cover, col.darkened(0.25), 0, 8, [12, 2, 2, 2]))
-	b.add_theme_stylebox_override("hover", _box(cover.lightened(0.06), col, 0, 8, [12, 3, 3, 3]))
-	b.add_theme_stylebox_override("pressed", _box(cover.lightened(0.1), col.lightened(0.2), 0, 8, [12, 3, 3, 3]))
-	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	b.pressed.connect(_open_book.bind(cat))
-	_accept_bar_drop(b)
+# --- Part: The open book: abilities (left page) + rune page --------
+var _book: PanelContainer
+var _book_cat := ""            # open book's category ("" = shelf showing)
+var _book_emblem: Control
+var _book_title: Label
+var _book_sub: Label
+var _book_abilities: VBoxContainer
+var _book_tabs: HFlowContainer
+var _book_tab_buttons := {}   # category -> its quick-switch button
 
-	var v := VBoxContainer.new()
-	v.set_anchors_preset(Control.PRESET_FULL_RECT)
-	v.offset_left = 16
-	v.offset_right = -8
-	v.offset_top = 8
-	v.offset_bottom = -8
-	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	v.add_theme_constant_override("separation", 4)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	b.add_child(v)
-	var emblem := Control.new()
-	emblem.custom_minimum_size = Vector2(56, 56)
-	emblem.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	emblem.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	emblem.draw.connect(func(): Categories.draw_emblem(emblem, cat))
-	v.add_child(emblem)
-	var name_l := _label(Categories.cat_name(cat), 20, col.lightened(0.35))
-	name_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(name_l)
-	var info := _label("", 12, C_TEXT_DIM)
-	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(info)
-	_shelf_info[cat] = info
-	return b
-
-# --- The open book: abilities (left page) + talent tree (right page) -------------------
-
+var _ability_cells := {}        # ability id -> its cell in the open book
 func _build_book() -> PanelContainer:
 	var book := PanelContainer.new()
 	book.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -2411,7 +2518,16 @@ func _book_ability_cell(pd: Node, id: String) -> Button:
 	row.add_child(n)
 	return b
 
-# --- Talent tree of the open book ------------------------------------------------------
+# --- Part: Talent tree of the open book --------
+var _book_tree: Control         # the talent page (the grid scales to fit it)
+var _talent_buttons := {}      # talent id -> Button (open book only)
+var _row_status: Array[Label] = []
+var _row_info: Array[Control] = []   # row label boxes, positioned by _layout_talent_canvas
+var _talent_canvas: Control     # the open book's talent grid (lines are drawn on it)
+# Grid metrics, recomputed from the page size so a whole tree fits without scrolling.
+var T_LABEL_W := 74.0           # row labels on the left of the grid
+var T_CELL := Vector2(56, 54)   # one grid cell (column x row)
+var T_BTN := 42.0               # talent button size
 
 func _build_talent_tree() -> void:
 	for c in _book_tree.get_children():
@@ -2601,9 +2717,7 @@ func _padded(sb: StyleBoxFlat, m: int = 12) -> StyleBoxFlat:
 	sb.content_margin_bottom = m - 2
 	return sb
 
-# --- Skill Cards: a loadout that guarantees abilities in level-up drafts ------------
-
-const SkillCards = preload("res://scripts/skill_cards.gd")
+# --- Part: Skill Cards: a loadout that guarantees abilities in level-up drafts --------
 var _cards_row: VBoxContainer
 var _cards_tabs: HFlowContainer
 var _cards_count_label: Label
@@ -2791,13 +2905,7 @@ func _refresh_abilities() -> void:
 	if _book_cat == Categories.RUNE:
 		_refresh_rune_page()
 
-# --- Queue: pick a dungeon and go in --------------------------------------------
-# "Random Dungeon" is the real queue: you (and your party) get sent into a random
-# dungeon from the pool. Below it every dungeon can be joined on its own - for
-# testing. Enemy level = the group's average pulled toward its highest level.
-
-const DB = preload("res://scripts/dungeon/dungeon_db.gd")
-
+# --- Part: Queue: pick a dungeon and go in --------
 var _instances: Array = []
 const QUEUE_ROWS := [["Queue", "Dungeon Finder"], ["Test", "Join a specific dungeon (testing)"], ["Raid", "Raids"]]
 
@@ -3019,111 +3127,3 @@ func _enter_instance() -> void:
 		return
 	get_node("/root/GameManager").difficulty = _selected_difficulty()
 	get_node("/root/Online").start_now(_selected_key())
-
-func _build_bank_page() -> Control:
-	var page := _build_empty_page("Bank")
-	var v: VBoxContainer = page.get_child(0).get_child(0)
-	v.get_child(1).queue_free()  # drop the "Nothing here yet." line
-	# Sort buttons: by type, by quality (rarity), by rune (legendary > epic > rare > common).
-	var sort_row := HBoxContainer.new()
-	sort_row.alignment = BoxContainer.ALIGNMENT_END
-	sort_row.add_theme_constant_override("separation", 6)
-	var sort_l := UI.label("Sort:", 14, C_TEXT_DIM)
-	sort_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	sort_row.add_child(sort_l)
-	for opt in [["Type", "type", "Group by item type (weapons, then armor by slot), best first"],
-			["Quality", "quality", "Epic → Rare → Uncommon → Common"],
-			["Rune", "rune", "Runed items first: Legendary → Epic → Rare → Common runes"]]:
-		var mode: String = opt[1]
-		var b := UI.button(opt[0], 14, Vector2(84, 30))
-		b.tooltip_text = opt[2]
-		b.pressed.connect(func():
-			_bank_selected.clear()
-			get_node("/root/PlayerData").sort_bank(mode))
-		sort_row.add_child(b)
-	v.add_child(sort_row)
-	v.add_child(UI.bank_grid(15, 42, 346))
-	return page
-
-func _build_empty_page(title: String) -> Control:
-	var page := _full_rect_page()
-	var panel := PanelContainer.new()
-	panel.anchor_left = 0.5
-	panel.anchor_right = 0.5
-	panel.anchor_top = 0.5
-	panel.anchor_bottom = 0.5
-	panel.offset_left = -380
-	panel.offset_right = 380
-	panel.offset_top = -230
-	panel.offset_bottom = 260
-	panel.add_theme_stylebox_override("panel", _box(Color(0.05, 0.055, 0.075, 0.96), C_BORDER, 2, 10))
-	page.add_child(panel)
-
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 12)
-	panel.add_child(v)
-	var t := _label(title, 28, C_ACCENT)
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(t)
-	var sub := _label("Nothing here yet.", 16, C_TEXT_DIM)
-	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(sub)
-	return page
-
-# --- Behaviour ---------------------------------------------------------------
-
-func _show_page(page_name: String) -> void:
-	for k in pages:
-		pages[k].visible = (k == page_name)
-	if nav_buttons.has(page_name):
-		nav_buttons[page_name].button_pressed = true
-	else:
-		for b in nav_buttons.values():
-			b.set_pressed_no_signal(false)
-	if page_name == "Queue":
-		_refresh_queue()
-	play_button.visible = (page_name == "Lobby")
-	friends_button.visible = (page_name == "Lobby")
-	if is_instance_valid(_chat_layer):
-		_chat_layer.visible = page_name == "Lobby"   # the chat only shows in the Lobby
-	if social and page_name != "Lobby" and page_name != "Queue":
-		social.visible = false
-	# Hide the 3D character behind full-panel pages.
-	var shows_player := page_name in ["Lobby", "Character"]
-	model.visible = shows_player
-	$Pedestal.visible = shows_player
-
-## PLAY opens the dungeon / queue screen.
-func _on_play() -> void:
-	_show_page("Queue")
-
-# --- Helpers -----------------------------------------------------------------
-
-func _label(text: String, size: int, color: Color) -> Label:
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", color)
-	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
-	l.add_theme_constant_override("outline_size", 4)
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return l
-
-# borders: [left, top, right, bottom] widths; overrides `border` when given.
-func _box(bg: Color, border_color: Color, border: int, radius: int, borders: Array = []) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = bg
-	sb.border_color = border_color
-	if borders.size() == 4:
-		sb.border_width_left = borders[0]
-		sb.border_width_top = borders[1]
-		sb.border_width_right = borders[2]
-		sb.border_width_bottom = borders[3]
-	else:
-		sb.set_border_width_all(border)
-	sb.set_corner_radius_all(radius)
-	sb.content_margin_left = 8
-	sb.content_margin_right = 8
-	sb.content_margin_top = 4
-	sb.content_margin_bottom = 4
-	return sb
