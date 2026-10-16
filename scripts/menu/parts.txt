@@ -6,3 +6,4 @@ character_page CharacterPage character_page.gd
 cards_page CardsPage cards_page.gd
 book_search BookSearch book_search.gd
 pacts_page PactsPage pacts_page.gd
+talent_tree TalentTreePage talent_tree.gd

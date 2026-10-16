@@ -140,8 +140,8 @@ func _update_marks() -> void:
 	var controls := {}
 	for id in menu._ability_cells:
 		controls["a:" + str(id)] = menu._ability_cells[id]
-	for id in menu._talent_buttons:
-		controls["t:" + str(id)] = menu._talent_buttons[id]
+	for id in menu.talent_tree._talent_buttons:
+		controls["t:" + str(id)] = menu.talent_tree._talent_buttons[id]
 	for key in controls:
 		var b: Control = controls[key]
 		if not is_instance_valid(b):
