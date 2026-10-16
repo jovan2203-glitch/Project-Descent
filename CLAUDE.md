@@ -5,8 +5,11 @@ Godot 4.7 3D co-op action-RPG (dungeons, ability books, talents, runes, Pacts). 
 ## Where things are
 - `scripts/balance.gd` - every damage, cooldown, cost, duration and talent rank value. Never hard-code these elsewhere.
 - `scripts/abilities.gd`, `talents.gd`, `runes.gd`, `skill_cards.gd`, `items.gd` - content definitions.
+- `scripts/player.gd` - the player's shared core (stats, casting, targeting, damage, resources, co-op). Each spec's code is a component in `scripts/player/` (see `player_kit.gd`): a new spec gets its own component file, hooked from player.gd, never a new section in player.gd.
 - `scripts/net/` - networking. `scripts/dungeon/` - dungeons. `scripts/ui/` - interface.
-- `tests/test_*.gd` - test suites, run with the godot-ai `test_run` tool (open `res://scenes/main_menu.tscn` first).
+- `tests/test_*.gd` - test suites. Run them headless with `tools/test.sh [suite] [test]` (no editor, no stale caches), or with the godot-ai `test_run` tool (open `res://scenes/main_menu.tscn` first). Tests that check player code text read `PlayerSource.text()`.
+- `tools/balance_sim.tscn` - approximate per-spec DPS / HPS at level 50; writes `docs/BALANCE_REPORT.md` (`godot --headless --path . res://tools/balance_sim.tscn`). Rerun it after balance changes.
+- `tools/release.sh X.Y.Z` - publishes a release: tags it; GitHub Actions (`.github/workflows/`) tests, builds, zips and publishes it with the newest patch notes. Every push also runs the tests on GitHub.
 - `docs/design/` - one design file per book plus `systems.md`. Read only the file the task needs.
 - `docs/INTERACTIONS.md`, `docs/DUNGEONS.md` - interaction and dungeon reference.
 - `docs/PATCH_NOTES_YYYY-MM-DD.md` - patch notes (use the descent-patch-notes skill).
@@ -15,7 +18,7 @@ The code and balance.gd are the source of truth for numbers. Design docs record 
 
 ## How we work
 - Never run or playtest the game (no project_run, input simulation or game screenshots). The user tests and reports back.
-- After a change, run the relevant tests and check the editor log for errors. Don't list things to test; only flag something when genuinely unsure it works.
+- After a change, run the relevant tests and check the editor log for errors. Prefer `tools/test.sh` (headless) over the editor's test_run. Don't list things to test; only flag something when genuinely unsure it works.
 - Replies: short, no filler, but include the specifics.
 - "Frost Bolts" (FB) is a conversation-only damage unit (1.0 FB = one Frost Bolt's damage). Everything shown in game uses real numbers.
 - Patch notes: clean, proper wording (never the user's rough phrasing), no filler, no missing details. A new talent is written as "New talent", its name, then what it does.

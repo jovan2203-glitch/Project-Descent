@@ -49,3 +49,8 @@
 ## Launcher
 - Settings pre-launcher that pulls updates from GitHub Releases.
 - Open: Windows SmartScreen warning on launcher.exe.
+
+## Code layout and tooling
+- The player is split: `scripts/player.gd` is the shared core; each spec (and some rune / talent groups) is a component in `scripts/player/` (`player_kit.gd`: a child node with `player` = the player node). The player keeps one-line forwards for everything other scripts call on it. `tools/split_section.pl` / `split_batch.sh` / `split_tests.pl` did the split and can move further sections.
+- Tests run headless (`tools/test.sh`) and on GitHub on every push; `tools/release.sh` tags a release and GitHub builds and publishes it.
+- `tools/balance_sim.tscn` estimates every spec's damage / healing at level 50 (no talents, runes or procs) into `docs/BALANCE_REPORT.md`.
