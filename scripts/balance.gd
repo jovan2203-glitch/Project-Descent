@@ -131,10 +131,6 @@ const ICE_BARRIER_ARMOR := 3.0
 const ICE_BARRIER_TIME := 8.0
 const BATTLE_SHOUT_AP := 2.0
 const BATTLE_SHOUT_TIME := 10.0
-const SACRED_BULWARK_ARMOR := 3.0
-const SACRED_BULWARK_TIME := 8.0
-const BULWARK_RADIUS := 2.5
-const BULWARK_ICD := 0.5          # at most one retaliation burst per this many seconds
 const TAUNT_TIME := 3.0
 const BLINK_DISTANCE := 6.0
 ## Counts and times the abilities' descriptions quote (the code reads the same ones).
@@ -605,6 +601,60 @@ const CUT_STRINGS_HEAL := 1.2             # Cut the Strings: heal for each Strin
 const CUT_STRINGS_DAMAGE := 1.2           # ... Shadow damage to an enemy with a String
 const YANK_STOP := 1.5                    # Yank: metres in front of you the ally ends up
 
+## Holy healer: the Hymns (player.gd, "Holy healer: the Hymns"). Heals are in HEALS
+## (coefficients; REFERENCE_HEAL = one old Heal spell). You sing one of three
+## Hymns; your heals give Verses; singing another Hymn with VERSE_MAX of them makes
+## the Hymn you enter boom.
+const VERSE_MAX := 6                      # Verses you can hold (more are wasted)
+## What each ability gives: [Verses, the Hymn they suit] ("" = the Hymn you sing; Mercy with none).
+const VERSE_GAINS := {"psalm": [1, "mercy"], "outpour": [2, "mercy"], "lift": [1, "mercy"], "refrain": [1, "mercy"],
+	"canticle": [2, "chorus"], "exultation": [1, "chorus"], "antiphon": [1, "chorus"],
+	"shelter": [1, "vigil"], "steadyvoice": [2, "vigil"], "highnote": [1, ""]}
+const VERSE_DRAIN_EVERY := 2.0            # out of combat, one Verse fades every this many seconds
+const MERCY_HEAL_PCT := 20.0              # Mercy: your single-target heals heal this % more
+const CHORUS_SPLASH_PCT := 30.0           # Chorus: your direct heals also heal allies near the target for this %
+const CHORUS_SPLASH_TARGETS := 2          # ... this many of them
+const CHORUS_SPLASH_RADIUS := 8.0         # ... within this many metres of the target
+const VIGIL_RADIUS := 15.0                # Vigil: allies within this many metres of you ...
+const VIGIL_DR_PCT := 5.0                 # ... take this % less damage
+const VIGIL_WARD_PCT := 10.0              # ... and your heals leave a shield worth this % of the heal
+const VIGIL_WARD_TIME := 3.0              # ... for this many seconds
+const VIGIL_TELL_EVERY := 1.0             # the aura is renewed on allies every this many seconds ...
+const VIGIL_BUFF_TIME := 1.5              # ... for this long (so it fades soon after they leave it)
+const BENEDICTION_HEAL := 6.6             # boom of Mercy: a heal (3 old Heals) on your friendly target
+const CHORALE_HEAL := 2.2                 # boom of Chorus: a heal on every ally ...
+const CHORALE_RADIUS := 30.0              # ... within this many metres
+const BULWARK_SONG_PCT := 30.0            # boom of Vigil: allies take this % less damage ...
+const BULWARK_SONG_TIME := 5.0            # ... for this many seconds ...
+const BULWARK_SONG_RADIUS := 15.0         # ... within this many metres of you
+const BOOM_MATCH_PCT := 10.0              # a boom is this % stronger for each spent Verse of its colour
+const BULWARK_SONG_MATCH_TIME := 0.5      # ... Bulwark of Song lasts this much longer instead
+const FULL_CHOIR_PCT := 50.0              # Full Choir: the third of three different booms is this % stronger
+const FULL_CHOIR_REFUND := 2              # ... and gives back this many Verses of its colour
+const REFRAIN_TIME := 12.0                # Refrain: seconds its heal over time lasts ...
+const REFRAIN_TICK := 1.0                 # ... healing every this many seconds (faster with Haste)
+const CANTICLE_TARGETS := 5               # Canticle: injured allies it heals (lowest health first)
+const ANTIPHON_SELF_PCT := 50.0           # Antiphon: you are healed for this % of its heal on the target
+const SHELTER_TIME := 8.0                 # Shelter: seconds its shield lasts
+const STEADY_VOICE_PCT := 10.0            # Steady Voice: allies take this % less damage ...
+const STEADY_VOICE_TIME := 6.0            # ... for this many seconds
+const HIGH_NOTE_HEAL_PCT := 50.0          # High Note: your lowest-health ally is healed for this % of its damage ...
+const HIGH_NOTE_REACH := 30.0             # ... if within this many metres of you
+const REPRISE_PCT := 40.0                 # Reprise: repeats your last boom at this % ...
+const REPRISE_WINDOW := 6.0               # ... within this many seconds of it ...
+const REPRISE_COST := 3                   # ... for this many Verses
+const SWELL_TIME := 10.0                  # Swell: seconds every ability gives ...
+const SWELL_EXTRA := 1                    # ... this many more Verses
+const REST_PCT := 40.0                    # Rest: you take this % less damage ...
+const REST_TIME := 6.0                    # ... for this many seconds (and singing without a boom keeps your Verses)
+const MERCYS_EAR_HEALTH_PCT := 35.0       # Mercy's Ear (talent): healing an ally below this % health gives a Verse
+const MANY_VOICES_ALLIES := 3             # Many Voices (talent): a heal that lands on this many allies gives a Verse
+const WATCHFUL_HIT_PCT := 10.0            # Watchful (talent): a hit of this % of max health on an ally in your Vigil gives a Verse
+const OPEN_DOORS_COOLDOWN := 4.0          # Open Doors (talent) capstone: Shelter's cooldown
+const RESOUNDING_DAMAGE := 0.6            # Rune of Resounding (Epic): Holy damage of a boom around it ...
+const RESOUNDING_RADIUS := 8.0            # ... within this many metres (split evenly past the AoE cap)
+const OVERTURE_TIME := 3.0                # Rune of the Overture (Epic): after a boom, your next cast within this many seconds is instant
+
 ## Rune of the Open Wound (Rare): Blight is instant, with a cooldown, and opens Decay for less time.
 const OPEN_WOUND_COOLDOWN := 15.0         # seconds of cooldown Blight then has
 const OPEN_WOUND_OPEN_TIME := 8.0         # seconds it opens Decay for (instead of DECAY_OPEN_TIME)
@@ -661,12 +711,21 @@ const FROZEN_AEGIS_CAP := 1.0            # shields stack up to this x a Heal spe
 const FROZEN_AEGIS_TIME := 10.0
 const EVERLASTING_RIME_MULT := 2.0       # Everlasting Rime: Rime Shell absorbs x this
 
+## The reference heal (what the old Heal spell healed): shields and heals sized as
+## "a share of a heal" (Snow Ward, Cupped Hands, Frozen Aegis, {h:...} in tooltips) use it.
+const REFERENCE_HEAL := 2.2
+
 ## Heal / absorb coefficients (1.0 = a standard hit's worth of health).
-const HEALS := {"secondwind": 3.0, "holylight": 2.5, "regrowth": 1.8, "shieldofdawn": 0.6,
-	"heal": 2.2, "rimeshell": 1.1, "rimeslash": 1.1,
+const HEALS := {"secondwind": 3.0, "regrowth": 1.8,
+	"rimeshell": 1.1, "rimeslash": 1.1,
 	"cinderwing": 1.1,   # each of the phoenix's heals (half a Heal spell)
 	"intervalward": 1.5, # Interval Ward's shield
-	"shadowstrike": 0.15, "crusaderstrike": 0.15, "radiantarrow": 0.15,
+	# Holy healer (the Hymns), in old Heals (REFERENCE_HEAL 2.2): Psalm 1, Outpour 2.2, Lift 0.5,
+	# Refrain 1.2 (its whole heal over time), Canticle 0.6 each, Exultation 0.45 each,
+	# Antiphon 0.8 (and half that on you), Shelter's shield 1.2.
+	"psalm": 2.2, "outpour": 4.84, "lift": 1.1, "refrain": 2.64, "canticle": 1.32, "exultation": 0.99,
+	"antiphon": 1.76, "shelter": 2.64,
+	"shadowstrike": 0.15,
 	# Shadow healer (the Strings): its direct heals. (A String's own heal: STRING_HEAL.)
 	"hoist": 2.8, "patchup": 1.8, "tug": 0.6, "catscradle": 1.0}
 ## Pacts (scripts/pacts.gd; every character can hold one for a dungeon). Each has
@@ -702,7 +761,7 @@ const PACT_RESERVOIR_MANA := 15.0        # ... % less max mana
 const PACT_RESERVOIR_FLOOR := 15.0       # ... vow: never drop below this % of your mana
 
 ## Secondary hits: chain jumps, splash, retaliation, bonus hits.
-const EXTRA_HITS := {"chainlightning": 0.6, "stormshield": 0.2, "stormarrow": 0.4, "shattershot": 0.5, "sacredbulwark": 0.25,
+const EXTRA_HITS := {"chainlightning": 0.6, "stormshield": 0.2, "stormarrow": 0.4, "shattershot": 0.5,
 	"shatteringslam": 0.75, "slagskin": 0.25,   # slagskin = shatter damage per Slag stack
 	"drawthestorm": 0.3}                        # the zap each parry sends out
 ## Shatter damage (Rime Shell breaking, Frozen shattering): a Frost Bolt's worth.
@@ -913,6 +972,22 @@ const ABILITIES := {
 	"doublethread": {"cooldown": 30.0},
 	"wrench": {"damage": 1.0, "cooldown": 8.0, "cost": 1, "range": 40.0},
 	"cuppedhands": {"cooldown": 25.0, "cost": 2, "range": 40.0},
+	# Holy healer: the Hymns (see VERSE_* and the rest above). Heals are in HEALS.
+	"psalm": {"cost": 2, "cast_time": 2.0, "range": 40.0},
+	"outpour": {"cost": 4, "cast_time": 3.0, "range": 40.0},
+	"lift": {"cooldown": 8.0, "cost": 1, "range": 40.0},
+	"refrain": {"cost": 2, "range": 40.0},
+	"canticle": {"cooldown": 12.0, "cost": 3, "cast_time": 2.5, "radius": 30.0},                         # heals CANTICLE_TARGETS of them
+	"exultation": {"cost": 4, "cast_time": 2.0, "radius": 20.0},                                          # every ally within radius
+	"antiphon": {"cooldown": 15.0, "cost": 2, "range": 40.0},
+	"shelter": {"cooldown": 12.0, "cost": 2, "range": 40.0},
+	"steadyvoice": {"cooldown": 30.0, "cost": 2, "radius": 15.0},
+	"highnote": {"damage": 1.0, "cost": 2, "cast_time": 1.5, "range": 30.0},
+	"reprise": {},
+	"swell": {"cooldown": 60.0},
+	"rest": {"cooldown": 60.0},
+	"lastverse": {"cooldown": 180.0, "range": 30.0},
+	"singmercy": {}, "singchorus": {}, "singvigil": {},
 	"behinditsback": {"cooldown": 60.0},
 	"slack": {"cooldown": 60.0},
 	"notfinished": {"cooldown": 300.0, "range": 40.0},
@@ -927,14 +1002,6 @@ const ABILITIES := {
 	"insectswarm": {"damage": 0.4, "cooldown": 8.0, "cost": 2, "range": 30.0},
 	"entanglingroots": {"damage": 0.8, "cooldown": 10.0, "cost": 3, "range": 30.0},
 	"regrowth": {"cooldown": 10.0, "cost": 3},
-	# Holy
-	"heal": {"cost": 2, "cast_time": 2.2, "range": 40.0},
-	"holylight": {"cooldown": 12.0, "cost": 4},
-	"smite": {"damage": 1.3, "cooldown": 3.0, "cost": 2, "range": 30.0},
-	"crusaderstrike": {"weapon_mult": 1.0, "cooldown": 6.0, "generates": 30},
-	"radiantarrow": {"weapon_mult": 1.0, "cooldown": 6.0, "cost": 30},
-	"shieldofdawn": {"weapon_mult": 1.0, "cooldown": 6.0, "generates": 30, "threat": 4.0},
-	"sacredbulwark": {"cooldown": 20.0, "cost": 40, "threat": 4.0},
 	# Warrior
 	"slam": {"weapon_mult": 1.0, "cooldown": 2.0, "generates": 50},
 	"execute": {"weapon_mult": 3.0, "cost": 50},

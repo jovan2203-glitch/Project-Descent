@@ -75,7 +75,8 @@ const ICONED := ["frost_haste", "frost_cold_draw", "frost_black_ice", "frost_cle
 	"shadow_first_stitch", "shadow_long_thread", "shadow_spare_spool", "shadow_full_harness", "shadow_taking_the_weight",
 	"shadow_steady_hands", "shadow_heave", "shadow_long_drop", "shadow_snap_back", "shadow_give_and_take",
 	"shadow_many_hands", "shadow_lean_on_me", "shadow_left_hanging",
-	"shadow_deep_call", "shadow_ill_will", "shadow_hard_pull", "shadow_wide_pack"]
+	"shadow_deep_call", "shadow_ill_will", "shadow_hard_pull", "shadow_wide_pack",
+	"holy_mercys_ear", "holy_many_voices", "holy_watchful", "holy_key_change", "holy_open_doors"]
 
 static func draw(c: Control, id: String) -> void:
 	if not has_icon(id):
@@ -209,6 +210,32 @@ static func _hand(c: Control, at: Vector2, s: float, flip: float = 1.0) -> void:
 
 static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Color, light: Color) -> void:
 	match key:
+		# --- Holy healer: the Hymns ---
+		"holy_mercys_ear":   # an ear, and a low heart it hears
+			c.draw_arc(mid + Vector2(-4, -2) * k, 11.0 * k, PI * 0.6, PI * 2.1, 18, WHITE, 3.0 * k, true)
+			c.draw_arc(mid + Vector2(-3, -1) * k, 5.0 * k, PI * 0.8, PI * 2.0, 10, light, 2.2 * k, true)
+			c.draw_circle(mid + Vector2(11, 9) * k, 3.2 * k, Color(1.0, 0.8, 0.3))
+			c.draw_circle(mid + Vector2(16, 9) * k, 3.2 * k, Color(1.0, 0.8, 0.3))
+			c.draw_colored_polygon(_p(mid, k, [Vector2(8.2, 10), Vector2(18.8, 10), Vector2(13.5, 17)]), Color(1.0, 0.8, 0.3))
+		"holy_many_voices":   # many small mouths of light singing as one
+			for i in 5:
+				var a := PI + PI * (i + 0.5) / 5.0
+				c.draw_circle(mid + Vector2(cos(a), sin(a) + 0.7) * 14.0 * k, 3.4 * k, WHITE if i == 2 else light)
+			c.draw_arc(mid + Vector2(0, 12) * k, 9.0 * k, PI * 1.15, PI * 1.85, 10, WHITE, 2.0 * k, true)
+		"holy_watchful":   # an open eye under a blue arc
+			c.draw_arc(mid + Vector2(0, 10) * k, 18.0 * k, PI * 1.2, PI * 1.8, 14, Color(0.45, 0.7, 1.0), 3.0 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-13, 4), Vector2(-5, -3), Vector2(5, -3), Vector2(13, 4), Vector2(5, 11), Vector2(-5, 11)]), WHITE)
+			c.draw_circle(mid + Vector2(0, 4) * k, 4.2 * k, Color(0.2, 0.35, 0.7))
+		"holy_key_change":   # a key whose bit is a note
+			c.draw_arc(mid + Vector2(-9, -6) * k, 6.5 * k, 0.0, TAU, 16, WHITE, 3.0 * k, true)
+			c.draw_line(mid + Vector2(-4, -1) * k, mid + Vector2(12, 15) * k, WHITE, 3.0 * k, true)
+			c.draw_line(mid + Vector2(7, 10) * k, mid + Vector2(11, 6) * k, light, 2.5 * k, true)
+			c.draw_line(mid + Vector2(10, 13) * k, mid + Vector2(14, 9) * k, light, 2.5 * k, true)
+		"holy_open_doors":   # two doors of an arch swung open, light between them
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-4, 16), Vector2(-4, -8), Vector2(4, -8), Vector2(4, 16)]), Color(light, 0.8))
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-6, 16), Vector2(-6, -8), Vector2(-16, -12), Vector2(-16, 14)]), col.darkened(0.2))
+			c.draw_colored_polygon(_p(mid, k, [Vector2(6, 16), Vector2(6, -8), Vector2(16, -12), Vector2(16, 14)]), col.darkened(0.2))
+			c.draw_arc(mid + Vector2(0, -8) * k, 6.0 * k, PI, TAU, 10, WHITE, 2.5 * k, true)
 		# --- Shadow: the Breach for builds that dip into it ---
 		"shadow_tainted_steel":   # Baited Steel: a blade, and the hand that comes up after what it cut
 			c.draw_line(mid + Vector2(-11, 5) * k, mid + Vector2(14, -18) * k, Color(0.9, 0.9, 0.95), 4.0 * k, true)

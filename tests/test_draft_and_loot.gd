@@ -206,11 +206,11 @@ func test_item_effect_scaling() -> void:
 	assert_eq(Items.scaled_buff(use, 1.0), 11.2, "percent buffs (haste) never scale")
 
 func test_shield_abilities_need_a_shield() -> void:
-	for id in ["shieldofdawn", "sacredbulwark"]:
+	for id in ["anvil", "cinderguard"]:
 		var r := Abilities.get_resource(id)
 		assert_true(bool(r.requires_shield), "%s needs a shield" % id)
 		assert_true(Abilities.DRAFT_POOL.has(id) and SkillCards.ALL.has(id))
-	assert_eq(Abilities.category_of("shieldofdawn"), "holy")
+	assert_eq(Abilities.category_of("anvil"), "fire")
 	# (The Lightning tank's abilities need a two-handed weapon now: test_lightning_tank.gd.)
 	assert_eq(Abilities.category_of("stormshield"), "lightning")
 	assert_eq(Items.item_type(ItemDB.create("shield")), "shield")

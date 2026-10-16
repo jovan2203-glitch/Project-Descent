@@ -177,7 +177,7 @@ func test_only_abilities_with_numbers_show_scaling() -> void:
 			"winterhide", "icebarrier", "battleshout", "crucible", "flashfreeze", "rekindle"]:
 		assert_false(Abilities.has_scaling(id), "%s has nothing to scale" % id)
 		assert_false(Abilities.tooltip_bbcode(id, true).contains("Scaling"), "%s: no Scaling section" % id)
-	for id in ["frostbolt", "slam", "heal", "immolate", "hoarfrost", "snowward", "sacredbulwark", "cinderwing",
+	for id in ["frostbolt", "slam", "immolate", "hoarfrost", "snowward", "cinderwing",
 			"discharge", "groundout", "balllightning", "chainlightning", "heatsink", "kick"]:
 		assert_true(Abilities.has_scaling(id), "%s scales" % id)
 		assert_contains(Abilities.tooltip_bbcode(id, true), "Scaling", "%s: keeps its Scaling section" % id)

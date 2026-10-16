@@ -266,7 +266,7 @@ func test_heals_are_shared_along_the_strings() -> void:
 	assert_eq(p.string_share(1000), 300)
 	assert_eq(p.string_share(0), 0)
 	assert_eq(p.string_share(-50), 0)
-	for id in ["hoist", "patchup", "tug", "wrench", "heal"]:
+	for id in ["hoist", "patchup", "tug", "wrench"]:
 		assert_true(Abilities.PATHS.has(id), "%s is an ability" % id)
 		assert_true(p.shares_heal(id, true), "%s on an ally on a String is shared" % id)
 	# Not the Strings' own heals, nor the ones that reach everybody already.
@@ -295,7 +295,7 @@ func test_crossed_strings_move_damage_to_the_enemy() -> void:
 
 func test_the_rest_of_the_kit() -> void:
 	var p := _player()
-	var heal := float(Abilities.HEALS["heal"])
+	var heal := Balance.REFERENCE_HEAL
 	assert_true(_near(p.cupped_hands_coef(0), heal * 0.45))
 	assert_true(_near(p.cupped_hands_coef(1), heal * 0.65), "bigger for each String on that ally")
 	assert_true(_near(p.cupped_hands_coef(3), heal * 1.05))

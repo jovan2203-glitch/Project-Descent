@@ -1528,7 +1528,7 @@ var _book_cat := ""            # open book's category ("" = shelf showing)
 var _book_emblem: Control
 var _book_title: Label
 var _book_sub: Label
-var _book_abilities: GridContainer
+var _book_abilities: VBoxContainer
 var _book_tabs: HFlowContainer
 var _book_tab_buttons := {}   # category -> its quick-switch button
 
@@ -2241,11 +2241,9 @@ func _build_book() -> PanelContainer:
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	left.add_child(scroll)
-	_book_abilities = GridContainer.new()
-	_book_abilities.columns = 2
+	_book_abilities = VBoxContainer.new()   # one divider + 2-column grid per spec
 	_book_abilities.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_book_abilities.add_theme_constant_override("h_separation", 4)
-	_book_abilities.add_theme_constant_override("v_separation", 4)
+	_book_abilities.add_theme_constant_override("separation", 6)
 	scroll.add_child(_book_abilities)
 	# The talent grid scales itself to fill this page (no scrolling).
 	_book_tree = Control.new()
@@ -2365,17 +2363,27 @@ func _refresh_book_abilities() -> void:
 	for c in _book_abilities.get_children():
 		c.queue_free()
 	_ability_cells.clear()
-	var ids := Abilities.in_category(_book_cat)
-	if ids.is_empty():
+	var specs := Abilities.specs_in(_book_cat)
+	if specs.is_empty():
 		_book_abilities.add_child(_label("No abilities in this book yet.", 14, INK_DIM))
 		return
 	var pd := get_node("/root/PlayerData")
-	for id in ids:
-		var cell := _book_ability_cell(pd, id)
-		_book_abilities.add_child(cell)
-		_ability_cells[id] = cell
-		_add_mark(cell)
-		_wire_hover(cell, "a:" + id)
+	var col := Categories.color(_book_cat).lightened(0.35)
+	for spec in specs:
+		if spec[0] != "":
+			_book_abilities.add_child(UI.spec_divider(spec[0], col, 14))
+		var grid := GridContainer.new()
+		grid.columns = 2
+		grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		grid.add_theme_constant_override("h_separation", 4)
+		grid.add_theme_constant_override("v_separation", 4)
+		_book_abilities.add_child(grid)
+		for id in spec[1]:
+			var cell := _book_ability_cell(pd, id)
+			grid.add_child(cell)
+			_ability_cells[id] = cell
+			_add_mark(cell)
+			_wire_hover(cell, "a:" + id)
 	_update_marks()
 
 ## One ability on the book's left page: icon + name (+ learned state). Learned

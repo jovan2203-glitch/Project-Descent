@@ -1,10 +1,10 @@
 # Systems
 
 ## Books and specs
-- Books: Fire, Frost, Lightning, Arcane, Shadow, Nature, Holy, Martial (warrior/rogue/ranger combined; was "Physical"). Nature, Holy and Martial aren't designed yet.
+- Books: Fire, Frost, Lightning, Arcane, Shadow, Nature, Holy, Martial (warrior/rogue/ranger combined; was "Physical"). Nature and Martial aren't designed yet. Holy was wiped (all 7 abilities, Heal included) and is being rebuilt from docs/design/holy.md: the healer (Hymns) is built, the rest are drafts.
 - Book layout: abilities on the left page, that book's talent tree on the right. Layout symmetrical; spellbooks never change position.
-- Next: split each book's abilities into named specs (visual only) with dividers in the main-menu spellbooks and the in-game ability book, sorted by playstyle.
-- Every character (level 1 / after death) gets a basic ability of every element plus a heal, a tank spell and a taunt.
+- Specs (visual only): each book's abilities are split by playstyle under named dividers in the main-menu books and the in-game spellbook (P). Names and contents: `Abilities.SPECS`. Every ability sits in exactly one spec of its book (tests/test_books.gd). Specs: Fire - Steady Flame, Slagforged, Forge Heat, Pitch and Cinder. Frost - Hard Winter, Cold Comfort, Frostbitten Steel, Winter Hunt. Lightning - Live Current, Stormdancer, Lightning Rod, Stormstring. Arcane - Clockwork, Hall of Mirrors, Second Act, Aetherstring. Shadow - The Breach, Pack of Two, Strings Attached, Nightstring. Nature - Thornweaver, Sapwarden. Holy - Choir of One (the rest come with their specs). Martial - Warpath, Iron Line, Knife Work, Huntsman.
+- Every character (level 1 / after death) gets a basic ability of every element plus a heal (Psalm, from the Holy healer), a tank spell and a taunt.
 - Interrupts exist for mage, rogue and warrior.
 
 ## Abilities, spellbook, action bars

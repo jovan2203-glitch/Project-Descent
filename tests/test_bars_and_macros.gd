@@ -21,15 +21,15 @@ func test_action_bar_has_four_bars() -> void:
 	assert_eq(pd.ACTION_SLOTS_TOTAL, 32)
 	assert_eq(pd.action_bar.size(), 32)
 	assert_eq(pd.action_bar[0], "frostbolt", "the main bar keeps its starting abilities")
-	pd.set_action_slot(20, "heal", -1)
-	assert_eq(pd.action_bar[20], "heal", "an ability can go on an extra bar")
+	pd.set_action_slot(20, "slam", -1)
+	assert_eq(pd.action_bar[20], "slam", "an ability can go on an extra bar")
 	assert_eq(pd.action_bar[4], "", "... and leaves the slot it was in")
-	pd.set_action_slot(31, "heal", 20)
-	assert_eq(pd.action_bar[31], "heal", "moved between extra-bar slots")
+	pd.set_action_slot(31, "slam", 20)
+	assert_eq(pd.action_bar[31], "slam", "moved between extra-bar slots")
 	pd.clear_action_slot(31)
 	assert_eq(pd.action_bar[31], "")
-	pd.set_action_slot(32, "heal", -1)   # out of range: ignored
-	assert_false(pd.action_bar.has("heal"))
+	pd.set_action_slot(32, "slam", -1)   # out of range: ignored
+	assert_false(pd.action_bar.has("slam"))
 
 ## Every slot has an Input Map action; the extra ones start without a key.
 func test_every_slot_has_a_keybind_action() -> void:
@@ -48,7 +48,7 @@ func test_every_slot_has_a_keybind_action() -> void:
 	assert_eq(str(names["bar3_4"][1]), "Left bar 4")
 
 func test_macro_text_is_understood() -> void:
-	var p := Macros.parse("# opener\n/cast Trinket 1\n/use Vent Flames\nFrost Bolt\n\n/castsequence reset=6 Frost Bolt, Firebolt, heal")
+	var p := Macros.parse("# opener\n/cast Trinket 1\n/use Vent Flames\nFrost Bolt\n\n/castsequence reset=6 Frost Bolt, Firebolt, slam")
 	assert_true((p["problems"] as Array).is_empty(), str(p["problems"]))
 	var steps: Array = p["steps"]
 	assert_eq(steps.size(), 4)
@@ -56,7 +56,7 @@ func test_macro_text_is_understood() -> void:
 	assert_eq(str(steps[1]["ability"]), "ventflames", "by its name")
 	assert_eq(str(steps[2]["ability"]), "frostbolt", "a bare name works too")
 	assert_eq(str(steps[3]["kind"]), "sequence")
-	assert_eq(steps[3]["abilities"], ["frostbolt", "fireball", "heal"])
+	assert_eq(steps[3]["abilities"], ["frostbolt", "fireball", "slam"])
 	assert_eq(float(steps[3]["reset"]), 6.0)
 	# Mistakes are reported with their line, and the rest still works.
 	var bad := Macros.parse("/cast Frost Bolt\n/cast Frots Bolt\n/dance")

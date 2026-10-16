@@ -224,7 +224,7 @@ Talents themed to a book that work with every book's abilities. They key off a m
 - `Talents.MAX_PER_ROW` is 5.
 
 ## Armor and armor types
-- Armor reduces all damage taken (`Stats.armor_reduction(armor, level)` = armor / (armor + `ARMOR_DR_PER_LEVEL` x level), capped at `ARMOR_DR_CAP`). `CombatSystem.deal` folds it into the resist step with `Stats.mitigation`, for every hit that is not exact: all schools, damage over time, players and enemies alike. Armor buffs (Slag, Ice Barrier, Sacred Bulwark, Tempered's `armor%`) therefore add damage reduction.
+- Armor reduces all damage taken (`Stats.armor_reduction(armor, level)` = armor / (armor + `ARMOR_DR_PER_LEVEL` x level), capped at `ARMOR_DR_CAP`). `CombatSystem.deal` folds it into the resist step with `Stats.mitigation`, for every hit that is not exact: all schools, damage over time, players and enemies alike. Armor buffs (Slag, Ice Barrier, Tempered's `armor%`) therefore add damage reduction.
 - Armor does not block. Block chance is the Block stat alone (`Stats.total_block`): gear rolls, Strength (`BLOCK_PER_STRENGTH`) and buffs (Cinder Guard).
 - Armor types: the six armor base items (`Balance.ARMOR_PIECES`, base id -> slot weight) each have an `armor_type` in their ItemDB record (0 Cloth, 1 Light, 2 Medium, 3 Heavy), rolled in `ItemDB.create` (`ROLL_ARMOR_TYPE`) or given. `Items.get_item` replaces the template's Armor with the type's (`Items.armor_piece_stats`: weight x `ARMOR_TYPE_ARMOR` flat units, plus weight x `ARMOR_TYPE_STAT_AMOUNT` of `ARMOR_TYPE_STAT`), and sets the name (`ARMOR_PIECE_NAMES`) and the description ("Heavy Armor").
 - Records saved before types existed get `Balance.ARMOR_LEGACY_TYPE` in `ItemDB.load_records`. A new armor base item must be added to `ARMOR_PIECES`, `ARMOR_PIECE_NAMES` and `ARMOR_LEGACY_TYPE`.
@@ -261,6 +261,18 @@ Texts hold placeholders, filled when a tooltip is shown (`scripts/core/text_fill
 - `PlayerData.action_bar` has 32 slots: 0-7 the main bar, then 8 each for the top, left and right bars (off by default; Settings > Interface turns each on and sets its opacity). `Settings.slot_action(slot)` is a slot's Input Map action; the extra slots have no key until one is bound (Delete clears a key).
 - A slot holds an ability id, `trinket_1` / `trinket_2` (the Use: effect of the trinket worn there; drag a worn or bagged on-use trinket onto a slot), or a macro (`macro:<uid>`).
 - Macros (`scripts/core/macros.gd`, window `scripts/ui/macro_window.gd`, Esc > Macros): text lines `/cast X`, `/castsequence [reset=N] A, B, C`. One press runs every line: off-GCD abilities all fire, of the GCD ones the first usable is used (`Player._run_macro`). A linked ability gives the button its cooldown, charges, range check and tooltip. Stored in `PlayerData.macros`, saved in `user://macros.cfg` (kept by Wipe Save).
+
+## Holy healer: the Hymns
+Code: `player.gd`, "Holy healer: the Hymns"; numbers `balance.gd` (`VERSE_*`, `MERCY_*`, `CHORUS_*`, `VIGIL_*`, `BULWARK_SONG_*`, ...); design `docs/design/holy.md`.
+- State lives on the healer's machine: `Player.hymn`, `Player.verses` (each entry = the Hymn that Verse suits), `_booms` (for Full Choir), `_last_boom` (for Reprise), `_refrains` (Refrain's heal over time).
+- Gains: `Balance.VERSE_GAINS` via `_gain_verses` (instants in `_hymn_use`, casts in `_hymn_cast_heal`, High Note when it is released). Swell adds `SWELL_EXTRA`. Talent Verses: `_talent_verse(key, hymn)`, the talent's value = seconds between two.
+- Singing: `_sing` -> `sing_outcome(count, from, kept, resting)` -> `_boom` -> `_do_boom(h, matches, full, scale)` (Reprise calls it with `REPRISE_PCT`). Multiplier `boom_mult`, Bulwark of Song's time `bulwark_song_time`, Full Choir `is_full_choir`.
+- Casts go through `SUPPORT_CASTS` / `_release_support` (Psalm, Outpour, Canticle, Exultation); High Note is in `ENEMY_BOLTS` and heals in `_on_damage_dealt_holy`; the rest are `HYMN_INSTANTS` (`_hymn_precheck`, `_hymn_use`).
+- On every heal of mine (`_on_heal_done_hymns`, ids in `HYMN_HEALS`): Mercy's Ear, Chorus's splash (`_chorus_splash`, meter `chorus_splash`) and Vigil's shield (`vigil_ward`).
+- Party members: heals as usual (`support_ally "heal"`); less damage taken `support_ally "hymn_dr"` -> `receive_hymn_dr` (Vigil renewed every `VIGIL_TELL_EVERY` for `VIGIL_BUFF_TIME`, Steady Voice, Bulwark of Song); shields `"hymn_ward"` (Shelter, Vigil's); Watchful: the ally's `_vigil_taken` answers `"vigil_hit"`. Friendly dummies are handled locally.
+- Pictures: `scripts/hymn_ring.gd` (`show_on`, `boom`), sent as the `"hymn"` / `"hymn_boom"` fx. HUD: the VS row in `hud.gd` (`_build_verse_row`), colours `Abilities.HYMN_COLORS`.
+- Runes: Resounding (`RESOUNDING_*`, meter `resounding`), Overture (`overture_ready` in `_begin_spell`; spent when the cast starts).
+- Tests: `tests/test_hymns.gd`.
 
 ## Interrupts
 Every interrupt (`Balance.INTERRUPT_LOCKOUT`) has a cooldown of at least `INTERRUPT_SHARED_COOLDOWN`, and using one puts all the others on at least that much (`Player.interrupt_cooldowns`).

@@ -128,13 +128,13 @@ static func constants(text: String, wrap: Callable = Callable()) -> String:
 			out += str(named.get("display_name")) if named and named.get("display_name") != null else key
 			continue
 		if kind == "h":
-			# A shield worth a share of your Heal spell, as the real amount at your
-			# level and stats (with Rime Ward, like every shield you apply).
+			# A shield worth a share of the reference heal (Balance.REFERENCE_HEAL), as the
+			# real amount at your level and stats (with Rime Ward, like every shield you apply).
 			var share: Variant = balance_value(key)
 			if share is float or share is int:
 				var abilities: GDScript = load("res://scripts/abilities.gd")
-				var heal_coef: float = float(abilities.HEALS.get("heal", 0.0)) * float(share)
-				value = str(int(round(abilities.coef_damage(heal_coef, abilities.tags_of("heal")) \
+				var heal_coef: float = Balance.REFERENCE_HEAL * float(share)
+				value = str(int(round(abilities.coef_damage(heal_coef, PackedStringArray(["Spell"])) \
 					* (1.0 + abilities.talent("frost_absorb") / 100.0))))
 		elif kind == "d" or kind == "ds":
 			# A hit that is not an ability's own (a Reflection shattering): the real

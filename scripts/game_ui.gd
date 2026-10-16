@@ -478,21 +478,22 @@ func _refresh_spellbook() -> void:
 	var cats: Array = Categories.ORDER.duplicate()
 	cats.append(Categories.RUNE)   # spells taught by runes on your gear
 	cats.append("")   # abilities without a book
+	var learned := func(id: String) -> bool: return pd.has_ability(id) and not Abilities.is_trinket_slot(id)
 	for cat in cats:
-		var ids: Array[String] = []
-		for id in Abilities.ALL:
-			if Abilities.category_of(id) == cat and pd.has_ability(id) and not Abilities.is_trinket_slot(id):
-				ids.append(id)
-		if ids.is_empty():
+		var specs: Array = Abilities.specs_in(cat, learned)   # only specs you know something from
+		if specs.is_empty():
 			continue
 		var col := Categories.color(cat) if cat != "" else Color.WHITE
 		_book_list.add_child(UI.label(Categories.cat_name(cat) if cat != "" else "Other", 14, col.lightened(0.3)))
-		var flow := HFlowContainer.new()
-		flow.add_theme_constant_override("h_separation", 6)
-		flow.add_theme_constant_override("v_separation", 6)
-		_book_list.add_child(flow)
-		for id in ids:
-			flow.add_child(_spellbook_slot(id, locked, pd.action_bar.has(id)))
+		for spec in specs:
+			if spec[0] != "":
+				_book_list.add_child(UI.spec_divider(spec[0], col.lightened(0.15), 11))
+			var flow := HFlowContainer.new()
+			flow.add_theme_constant_override("h_separation", 6)
+			flow.add_theme_constant_override("v_separation", 6)
+			_book_list.add_child(flow)
+			for id in spec[1]:
+				flow.add_child(_spellbook_slot(id, locked, pd.action_bar.has(id)))
 
 func _spellbook_slot(id: String, locked: bool, on_bar: bool) -> Button:
 	var s := Abilities.make_slot(40)

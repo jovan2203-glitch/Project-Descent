@@ -913,8 +913,70 @@ func _refresh_resource_bars() -> void:
 		row.add_child(val)
 		_res_box.add_child(panel)
 		_res_rows[res] = {"segs": segs, "label": val, "last": -1}
+	_build_verse_row(pd)
+
+# --- Verses (Holy healer) ----------------------------------------------------------
+# A row of VERSE_MAX pips under the resource bars, each in the colour of the Hymn
+# its Verse suits, and the Hymn being sung. Shown while a Sing ability is on a bar.
+const SING_IDS := ["singmercy", "singchorus", "singvigil"]
+var _verse_row := {}   # {"segs": Array[ColorRect], "label": Label, "last": String}
+
+func _build_verse_row(pd: Node) -> void:
+	_verse_row = {}
+	if pd == null:
+		return
+	var wanted := false
+	for slot_id in pd.action_bar:
+		var ids: Array[String] = [slot_id]
+		if Macros.is_macro(slot_id):
+			ids = Macros.abilities_of(slot_id)
+		for id in ids:
+			if SING_IDS.has(id):
+				wanted = true
+	if not wanted:
+		return
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", _box(Color(0, 0, 0, 0.55), 6))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	panel.add_child(row)
+	var title := Label.new()
+	title.text = "VS"
+	title.custom_minimum_size = Vector2(26, 0)
+	title.add_theme_font_size_override("font_size", 15)
+	title.add_theme_color_override("font_color", Color(1.0, 0.88, 0.45))
+	row.add_child(title)
+	var segs_box := HBoxContainer.new()
+	segs_box.add_theme_constant_override("separation", 4)
+	row.add_child(segs_box)
+	var segs: Array[ColorRect] = []
+	for i in Balance.VERSE_MAX:
+		var s := ColorRect.new()
+		s.custom_minimum_size = Vector2(22, 12)
+		s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		segs_box.add_child(s)
+		segs.append(s)
+	var val := Label.new()
+	val.add_theme_font_size_override("font_size", 14)
+	row.add_child(val)
+	_res_box.add_child(panel)
+	_verse_row = {"segs": segs, "label": val, "last": "?"}
+
+func _update_verse_row() -> void:
+	if _verse_row.is_empty() or player == null or not ("verses" in player):
+		return
+	var key := "%s|%s" % [player.hymn, ",".join(PackedStringArray(player.verses))]
+	if key == _verse_row["last"]:
+		return
+	_verse_row["last"] = key
+	var segs: Array = _verse_row["segs"]
+	for i in segs.size():
+		segs[i].color = Abilities.HYMN_COLORS.get(str(player.verses[i]), SEG_EMPTY) if i < player.verses.size() else SEG_EMPTY
+	_verse_row["label"].text = str(player.HYMN_NAMES.get(player.hymn, "No Hymn"))
+	_verse_row["label"].add_theme_color_override("font_color", Abilities.HYMN_COLORS.get(player.hymn, Color(0.7, 0.7, 0.75)))
 
 func _update_resource_bars() -> void:
+	_update_verse_row()
 	for res in _res_rows:
 		var pts: int = player.resource_points(res)
 		var mx: int = int(player.resource_max(res))

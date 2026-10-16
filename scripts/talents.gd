@@ -699,6 +699,22 @@ const TALENTS := {
 		"r9c4": ["Wide Pack", 2, "During {n:runthemdown}, each bite of your Hounds hits {v} more enemies.",
 			{"key": "shadow_wide_pack", "values": [1.0, 2.0], "requires": "runthemdown"}],
 	},
+	"holy": {
+		# The healer (the Hymns: player.gd, "Holy healer: the Hymns"). Row 1: a way for
+		# each Hymn to give Verses (their value: the seconds between two of them).
+		# Row 2: Key Change on the left, Shelter's talent on the right.
+		"r1c2": ["Mercy's Ear", 2, "Healing an ally below {b:MERCYS_EAR_HEALTH_PCT}% health gives you a Mercy Verse, at most once every {v} sec.",
+			{"key": "holy_mercys_ear", "values": [6.0, 3.0]}],
+		"r1c4": ["Many Voices", 2, "A heal of yours that lands on {b:MANY_VOICES_ALLIES} or more allies at once gives you a Chorus Verse, at most once every {v} sec. Chorus's extra heals count.",
+			{"key": "holy_many_voices", "values": [6.0, 3.0]}],
+		"r1c6": ["Watchful", 2, "An ally standing in your Vigil who takes a hit of {b:WATCHFUL_HIT_PCT}% of their maximum health or more gives you a Vigil Verse, at most once every {v} sec.",
+			{"key": "holy_watchful", "values": [6.0, 3.0]}],
+		"r2c1": ["Key Change", 3, "Singing a Hymn without a boom keeps {v} of your Verses. A boom still spends them all.",
+			{"key": "holy_key_change", "values": [1.0, 2.0, 3.0]}],
+		"r2c7": ["Open Doors", 4, "{n:shelter}'s shield absorbs {v}% more.",
+			{"key": "holy_open_doors", "values": [10.0, 20.0, 30.0, 40.0], "requires": "shelter",
+			"capstone": "Its cooldown is {b:OPEN_DOORS_COOLDOWN} sec."}],
+	},
 }
 
 # --- Links ------------------------------------------------------------------------

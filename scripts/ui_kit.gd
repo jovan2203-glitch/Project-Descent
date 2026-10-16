@@ -47,6 +47,24 @@ static func label(text: String, size: int, color: Color = Color.WHITE) -> Label:
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
 
+## A spec divider in a spellbook: "——— Name ———" in the book's color.
+static func spec_divider(text: String, color: Color, size: int = 13) -> HBoxContainer:
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 8)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for i in 3:
+		if i == 1:
+			h.add_child(label(text, size, color))
+			continue
+		var line := ColorRect.new()
+		line.color = Color(color, 0.45)
+		line.custom_minimum_size = Vector2(0, 1)
+		line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		line.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		h.add_child(line)
+	return h
+
 # Standard menu button. focus_mode NONE so Space/Enter never "clicks" it
 # while you're playing (Space is jump).
 static func button(text: String, font_size: int = 17, min_size: Vector2 = Vector2(0, 38)) -> Button:

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"resounding"
+display_name = "Rune of Resounding"
+description = "Your booms also deal {d:RESOUNDING_DAMAGE} Holy damage to enemies within {b:RESOUNDING_RADIUS} m: Benediction around the ally it heals, Chorale and Bulwark of Song around you."
+color = Color(1, 0.88, 0.45, 1)
+rarity = 2
+unlock_level = 20
+trigger = 6

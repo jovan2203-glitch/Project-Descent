@@ -55,10 +55,13 @@ const PATHS := {
 	"menace_shadow": "res://data/runes/menace_shadow.tres",
 	"menace_nature": "res://data/runes/menace_nature.tres",
 	"menace_holy": "res://data/runes/menace_holy.tres",
+	# Holy healer (the Hymns)
+	"resounding": "res://data/runes/resounding.tres",
+	"overture": "res://data/runes/overture.tres",
 }
 const ALL := ["frost", "fury", "swiftness", "warding", "stormfire", "frostbound_insight",
 	"permafrost", "cold_precision", "frozen_aegis", "everlasting_rime",
-	"dull_edge", "dull_mind", "hair_trigger", "level_head", "frostfire_bolt", "polarity", "resonance", "bottled_lightning", "afterimage", "momentum", "carried_sigil", "two_way_mirror", "open_wound", "rot", "long_fall", "overload", "dusk_till_dawn",
+	"dull_edge", "dull_mind", "hair_trigger", "level_head", "frostfire_bolt", "polarity", "resonance", "bottled_lightning", "afterimage", "momentum", "carried_sigil", "two_way_mirror", "open_wound", "rot", "long_fall", "overload", "dusk_till_dawn", "resounding", "overture",
 	"menace_physical", "menace_fire", "menace_frost", "menace_lightning", "menace_arcane",
 	"menace_shadow", "menace_nature", "menace_holy"]
 

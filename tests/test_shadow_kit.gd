@@ -491,4 +491,4 @@ func test_usher_in_and_gloom_bolt_are_gone() -> void:
 	assert_eq(Talents.id_for_key("shadow_spare_spool"), "shadow_r4c5", "its slot went to the healer's Spare Spool")
 	assert_false(TalentIcons.ICONED.has("shadow_loose_grains"))
 	var bar := PlayerDataScript.default_action_bar()
-	assert_eq([bar[0], bar[1], bar[2], bar[3], bar[4]], ["frostbolt", "fireball", "lightningbolt", "heal", ""])
+	assert_eq([bar[0], bar[1], bar[2], bar[3], bar[4]], ["frostbolt", "fireball", "lightningbolt", "psalm", ""])

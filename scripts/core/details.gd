@@ -496,6 +496,10 @@ const HIT_NAMES := {
 	"crossed_strings": "Crossed Strings",
 	"first_stitch": "First Stitch",
 	"long_drop": "Long Drop",
+	"benediction": "Benediction",
+	"chorale": "Chorale",
+	"chorus_splash": "Chorus",
+	"resounding": "Resounding",
 	"auto_melee": "Auto Attack",
 	"auto_ranged": "Auto Shot",
 }
@@ -567,6 +571,8 @@ static func spell_color(id: String) -> Color:
 			return Abilities.color_of("corruption")
 		"hound_bite", "hound_lunge", "hound_drag", "stand_over":
 			return Color(0.8, 0.16, 0.3)   # the Hounds' red (Shadow melee)
+		"benediction", "chorale", "chorus_splash", "resounding":
+			return Color(1.0, 0.88, 0.45)  # holy light (Holy healer: the Hymns)
 		"string_share", "crossed_strings", "first_stitch", "long_drop":
 			return Color(0.93, 0.86, 1.0)  # the Strings' pale thread (Shadow healer)
 	return Color(0.7, 0.7, 0.75)

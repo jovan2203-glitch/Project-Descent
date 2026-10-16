@@ -981,7 +981,7 @@ func _invalidate_stats() -> void:
 var action_bar: Array[String] = default_action_bar()
 
 static func default_action_bar() -> Array[String]:
-	var bar: Array[String] = ["frostbolt", "fireball", "lightningbolt", "heal"]
+	var bar: Array[String] = ["frostbolt", "fireball", "lightningbolt", "psalm"]
 	bar.resize(ACTION_SLOTS_TOTAL)
 	for i in range(4, ACTION_SLOTS_TOTAL):
 		bar[i] = ""

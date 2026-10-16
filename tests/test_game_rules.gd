@@ -369,7 +369,6 @@ func test_attribute_choices() -> void:
 func test_cast_times_include_bonus() -> void:
 	const Balance = preload("res://scripts/balance.gd")
 	assert_eq(float(Balance.ABILITIES["frostbolt"]["cast_time"]), 1.7)
-	assert_eq(float(Balance.ABILITIES["heal"]["cast_time"]), 2.2)
 
 # --- Rune transfer -------------------------------------------------------------------
 

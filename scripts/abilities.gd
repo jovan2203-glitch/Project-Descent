@@ -8,6 +8,24 @@ const UI = preload("res://scripts/ui_kit.gd")
 # Order here = order shown in the "unplaced abilities" list.
 # Registry backed by AbilityData resources in res://data/abilities/.
 const PATHS := {
+	# Holy healer: the Hymns
+	"psalm": "res://data/abilities/psalm.tres",
+	"outpour": "res://data/abilities/outpour.tres",
+	"lift": "res://data/abilities/lift.tres",
+	"refrain": "res://data/abilities/refrain.tres",
+	"canticle": "res://data/abilities/canticle.tres",
+	"exultation": "res://data/abilities/exultation.tres",
+	"antiphon": "res://data/abilities/antiphon.tres",
+	"shelter": "res://data/abilities/shelter.tres",
+	"steadyvoice": "res://data/abilities/steadyvoice.tres",
+	"highnote": "res://data/abilities/highnote.tres",
+	"reprise": "res://data/abilities/reprise.tres",
+	"swell": "res://data/abilities/swell.tres",
+	"rest": "res://data/abilities/rest.tres",
+	"lastverse": "res://data/abilities/lastverse.tres",
+	"singmercy": "res://data/abilities/singmercy.tres",
+	"singchorus": "res://data/abilities/singchorus.tres",
+	"singvigil": "res://data/abilities/singvigil.tres",
 	"frostbolt": "res://data/abilities/frostbolt.tres",
 	"blizzard": "res://data/abilities/blizzard.tres",
 	"slam": "res://data/abilities/slam.tres",
@@ -136,10 +154,6 @@ const PATHS := {
 	"hush": "res://data/abilities/hush.tres",
 	"takeitback": "res://data/abilities/takeitback.tres",
 	"bottomless": "res://data/abilities/bottomless.tres",
-	"holylight": "res://data/abilities/holylight.tres",
-	"smite": "res://data/abilities/smite.tres",
-	"crusaderstrike": "res://data/abilities/crusaderstrike.tres",
-	"radiantarrow": "res://data/abilities/radiantarrow.tres",
 	"froststrike": "res://data/abilities/froststrike.tres",
 	"frostarrow": "res://data/abilities/frostarrow.tres",
 	"wrath": "res://data/abilities/wrath.tres",
@@ -150,9 +164,6 @@ const PATHS := {
 	"rupture": "res://data/abilities/rupture.tres",
 	"fanofknives": "res://data/abilities/fanofknives.tres",
 	"eviscerate": "res://data/abilities/eviscerate.tres",
-	# Shield abilities (warrior-style, holy book)
-	"shieldofdawn": "res://data/abilities/shieldofdawn.tres",
-	"sacredbulwark": "res://data/abilities/sacredbulwark.tres",
 	# Lightning tank: a parry tank with a two-handed weapon (draftable). Stormbreak
 	# ("stormshield") and Humming Blade ("thunderaegis") keep the ids they had as
 	# the shield abilities Stormshield Slam and Aegis of Thunder.
@@ -193,7 +204,6 @@ const PATHS := {
 	# Action-bar buttons that fire the Use: effect of the equipped trinkets
 	# Baseline kit for every character (elemental bolts, heal, tank tools)
 	"lightningbolt": "res://data/abilities/lightningbolt.tres",
-	"heal": "res://data/abilities/heal.tres",
 	"stoneguard": "res://data/abilities/stoneguard.tres",
 	"taunt": "res://data/abilities/taunt.tres",
 	# Frost: Rime Shell kit (draftable)
@@ -230,7 +240,7 @@ const PATHS := {
 ## Always available (everything the player had before the draft existed).
 ## Includes a basic spell of every element, a heal and tank tools, so a fresh
 ## (level 1 / just died) character can play any role right away.
-const BASE := ["frostbolt", "fireball", "lightningbolt", "heal", "stoneguard", "taunt",
+const BASE := ["frostbolt", "fireball", "lightningbolt", "psalm", "stoneguard", "taunt",
 	"blizzard", "slam", "execute", "steadyshot",
 	"trinket_1", "trinket_2"]
 ## Trinket bar buttons -> the equipment slot whose Use: effect they fire.
@@ -263,11 +273,12 @@ const DRAFT_POOL := ["frostnova", "icebarrier", "blink", "whirlwind",
 	"sic", "openup", "bothatonce", "runthemdown", "guarddogs", "bringitdown", "offthechain",
 	"puppetstring", "patchup", "hoist", "tug", "catscradle", "wrench", "pulltaut", "cuppedhands", "stringup", "restring",
 	"knot", "tangle", "yank", "doublethread", "behinditsback", "slack", "stillstanding", "cutthestrings", "notfinished",
-	"holylight", "smite", "crusaderstrike", "radiantarrow",
 	"froststrike", "frostarrow",
+	"outpour", "lift", "refrain", "canticle", "exultation", "antiphon", "shelter", "steadyvoice", "highnote",
+	"reprise", "swell", "rest", "lastverse", "singmercy", "singchorus", "singvigil",
 	"wrath", "insectswarm", "entanglingroots", "regrowth",
 	"sinisterstrike", "rupture", "fanofknives", "eviscerate",
-	"shieldofdawn", "sacredbulwark", "stormshield", "thunderaegis",
+	"stormshield", "thunderaegis",
 	"returnstroke", "shockring", "crossguard", "drawthestorm", "reelin", "recharge",
 	"counterspell", "kick", "pummel"]
 # Every ability that can go on the action bar (order = list order).
@@ -297,7 +308,8 @@ const ALL := ["frostbolt", "blizzard", "frostnova", "icebarrier",
 	"puppetstring", "patchup", "hoist", "tug", "catscradle", "wrench", "pulltaut", "cuppedhands", "stringup", "restring",
 	"knot", "tangle", "yank", "doublethread", "behinditsback", "slack", "stillstanding", "cutthestrings", "notfinished",
 	"wrath", "insectswarm", "entanglingroots", "regrowth",
-	"heal", "holylight", "smite", "crusaderstrike", "radiantarrow", "shieldofdawn", "sacredbulwark",
+	"psalm", "outpour", "lift", "refrain", "canticle", "exultation", "antiphon", "shelter", "steadyvoice", "highnote",
+	"singmercy", "singchorus", "singvigil", "reprise", "swell", "rest", "lastverse",
 	"slam", "execute", "whirlwind", "battleshout", "secondwind", "stoneguard", "taunt", "pummel",
 	"sinisterstrike", "rupture", "fanofknives", "eviscerate", "kick",
 	"steadyshot", "multishot", "poisonarrow",
@@ -311,7 +323,7 @@ const CATEGORY_OF := {
 	"coldspike": "frost", "sleetwave": "frost", "deepwinter": "frost", "rimelock": "frost", "snowward": "frost",
 	"winterhide": "frost", "rimeedge": "frost", "icebreaker": "frost", "icepin": "frost",
 	"shattershot": "frost", "glacialdraw": "frost", "rimefletch": "frost", "coldmark": "frost", "icyretreat": "frost",
-	"lightningbolt": "lightning", "heal": "holy", "stoneguard": "martial", "taunt": "martial",
+	"lightningbolt": "lightning", "stoneguard": "martial", "taunt": "martial",
 	"fireball": "fire", "searingstrike": "fire", "flamingarrow": "fire", "flamenova": "fire",
 	"ventflames": "fire", "coolhead": "fire", "furnacebreath": "fire", "slagskin": "fire",
 	"stoke": "fire", "embervolley": "fire", "immolate": "fire", "walloffire": "fire",
@@ -343,16 +355,18 @@ const CATEGORY_OF := {
 	"wrench": "shadow", "pulltaut": "shadow", "cuppedhands": "shadow", "stringup": "shadow", "restring": "shadow",
 	"knot": "shadow", "tangle": "shadow", "yank": "shadow", "doublethread": "shadow", "behinditsback": "shadow",
 	"slack": "shadow", "stillstanding": "shadow", "cutthestrings": "shadow", "notfinished": "shadow",
-	"holylight": "holy", "smite": "holy", "crusaderstrike": "holy", "radiantarrow": "holy",
 	"slam": "martial", "execute": "martial", "whirlwind": "martial", "battleshout": "martial",
 	"secondwind": "martial",
 	"steadyshot": "martial", "multishot": "martial", "poisonarrow": "martial",
 	"wrath": "nature", "insectswarm": "nature", "entanglingroots": "nature", "regrowth": "nature",
 	"sinisterstrike": "martial", "rupture": "martial", "fanofknives": "martial", "eviscerate": "martial",
-	"shieldofdawn": "holy", "sacredbulwark": "holy", "stormshield": "lightning", "thunderaegis": "lightning",
+	"stormshield": "lightning", "thunderaegis": "lightning",
 	"returnstroke": "lightning", "shockring": "lightning", "crossguard": "lightning", "drawthestorm": "lightning",
 	"reelin": "lightning", "recharge": "lightning",
 	"counterspell": "arcane", "kick": "martial", "pummel": "martial",
+	"psalm": "holy", "outpour": "holy", "lift": "holy", "refrain": "holy", "canticle": "holy", "exultation": "holy",
+	"antiphon": "holy", "shelter": "holy", "steadyvoice": "holy", "highnote": "holy", "reprise": "holy", "swell": "holy",
+	"rest": "holy", "lastverse": "holy", "singmercy": "holy", "singchorus": "holy", "singvigil": "holy",
 	"frostfirebolt": "rune", "polarstrike": "rune",
 }
 
@@ -371,12 +385,10 @@ const ICON_FORM := {
 	"chainlightning": "zap", "thunderstrike": "blade", "stormarrow": "arrow",
 	"arcanemissiles": "missiles", "arcanestrike": "blade", "arcaneshot": "arrow", "arcaneexplosion": "nova",
 	"corruption": "swirl", "shadowstrike": "blade", "shadowarrow": "arrow",
-	"holylight": "cross", "smite": "orb", "crusaderstrike": "blade", "radiantarrow": "arrow",
 	"froststrike": "blade", "frostarrow": "arrow",
 	"wrath": "orb", "insectswarm": "missiles", "entanglingroots": "swirl", "regrowth": "cross",
 	"sinisterstrike": "blade", "rupture": "blade", "fanofknives": "nova", "eviscerate": "blade",
-	"shieldofdawn": "shield", "sacredbulwark": "shield",
-	"lightningbolt": "zap", "heal": "cross", "stoneguard": "shield_nova", "taunt": "nova",
+	"lightningbolt": "zap", "stoneguard": "shield_nova", "taunt": "nova",
 	"rimeshell": "shield", "shatteringwave": "nova", "flashfreeze": "missiles",
 	"hoarfrost": "swirl", "shatteringslam": "blade", "rimeslash": "blade",
 	"counterspell": "interrupt", "kick": "interrupt", "pummel": "interrupt",
@@ -399,12 +411,92 @@ static func in_category(category: String) -> Array[String]:
 			out.append(id)
 	return out
 
+## Each book's abilities split by playstyle (visual only): book -> [[spec name, [ids]], ...].
+## Books show their specs in this order, each under a divider. Every ability of a
+## book sits in exactly one spec (tests/test_books.gd).
+const SPECS := {
+	"fire": [
+		["Steady Flame", ["fireball", "flamenova", "ventflames", "coolhead", "furnacebreath", "stoke", "embervolley",
+			"immolate", "walloffire", "kilnblast", "slowfuse", "rekindle", "crucible", "cinderstep", "heatsink", "cinderwing"]],
+		["Slagforged", ["slagskin", "brand", "cinderguard", "anvil"]],
+		["Forge Heat", ["searingstrike", "quench", "flare"]],
+		["Pitch and Cinder", ["flamingarrow", "pitcharrow", "cinderrain"]],
+	],
+	"frost": [
+		["Hard Winter", ["frostbolt", "blizzard", "frostnova", "iceshards", "coldspike", "sleetwave", "flashfreeze",
+			"hoarfrost", "shatteringwave", "deepwinter", "rimelock"]],
+		["Cold Comfort", ["rimeshell", "snowward", "winterhide", "icebarrier"]],
+		["Frostbitten Steel", ["froststrike", "shatteringslam", "rimeslash", "rimeedge", "icebreaker"]],
+		["Winter Hunt", ["frostarrow", "icepin", "shattershot", "glacialdraw", "rimefletch", "coldmark", "icyretreat"]],
+	],
+	"lightning": [
+		["Live Current", ["lightningbolt", "chainlightning", "forkedbolt", "discharge", "balllightning", "arcflash",
+			"livewire", "thunderhead", "groundout", "groundingsurge", "jolt", "flicker", "capacitor"]],
+		["Stormdancer", ["thunderstrike", "chargededge", "whiplash", "arccleave", "cadence", "twincurrent", "staticstep",
+			"overdrive", "splitsecond", "backcurrent", "faradayguard"]],
+		["Lightning Rod", ["stormshield", "thunderaegis", "returnstroke", "shockring", "crossguard", "reflexarc",
+			"drawthestorm", "reelin", "recharge"]],
+		["Stormstring", ["stormarrow"]],
+	],
+	"arcane": [
+		["Clockwork", ["arcanemissiles", "unravel", "glint", "scatter", "countdown", "collapse", "convergence",
+			"mirrorsigil", "arcaneexplosion", "intervalward", "rewind", "lapse", "counterspell", "blink"]],
+		["Hall of Mirrors", ["doubleup", "ripple", "missedbeat", "fullset", "standin", "tradeplaces", "decoy", "crowdofone"]],
+		["Second Act", ["arcanestrike", "swiftcut", "deepcut", "latecut", "widecut", "encore", "doubletime"]],
+		["Aetherstring", ["arcaneshot"]],
+	],
+	"shadow": [
+		["The Breach", ["blight", "erode", "corruption", "gnaw", "calldue", "spill", "pall", "takeitback", "bottomless", "hush"]],
+		["Pack of Two", ["sic", "shadowstrike", "openup", "bothatonce", "runthemdown", "guarddogs", "bringitdown", "offthechain"]],
+		["Strings Attached", ["puppetstring", "patchup", "hoist", "tug", "catscradle", "wrench", "pulltaut", "cuppedhands",
+			"stringup", "restring", "knot", "tangle", "yank", "doublethread", "behinditsback", "slack", "stillstanding",
+			"cutthestrings", "notfinished"]],
+		["Nightstring", ["shadowarrow"]],
+	],
+	"nature": [
+		["Thornweaver", ["wrath", "insectswarm", "entanglingroots"]],
+		["Sapwarden", ["regrowth"]],
+	],
+	"holy": [
+		["Choir of One", ["singmercy", "singchorus", "singvigil", "psalm", "outpour", "lift", "refrain", "canticle",
+			"exultation", "antiphon", "shelter", "steadyvoice", "highnote", "reprise", "swell", "rest", "lastverse"]],
+	],
+	"martial": [
+		["Warpath", ["slam", "execute", "whirlwind", "battleshout", "secondwind", "pummel"]],
+		["Iron Line", ["stoneguard", "taunt"]],
+		["Knife Work", ["sinisterstrike", "rupture", "eviscerate", "fanofknives", "kick"]],
+		["Huntsman", ["steadyshot", "multishot", "poisonarrow"]],
+	],
+}
+
+## A book's specs holding only the abilities `keep` accepts (all if not given),
+## empty ones dropped: [[spec name, [ids]], ...]. Abilities of the book that no
+## spec lists (a book without specs, e.g. Rune Spells) come last under "".
+static func specs_in(category: String, keep: Callable = Callable()) -> Array:
+	var out: Array = []
+	var placed := {}
+	for spec in SPECS.get(category, []):
+		var ids: Array[String] = []
+		for id in spec[1]:
+			placed[id] = true
+			if CATEGORY_OF.get(id, "") == category and (not keep.is_valid() or keep.call(id)):
+				ids.append(id)
+		if not ids.is_empty():
+			out.append([spec[0], ids])
+	var rest: Array[String] = []
+	for id in in_category(category):
+		if not placed.has(id) and (not keep.is_valid() or keep.call(id)):
+			rest.append(id)
+	if not rest.is_empty():
+		out.append(["", rest])
+	return out
+
 const RESOURCE_NAMES := ["", "mana", "energy", "rage"]
 ## Abilities that spend ALL your Energy (their tooltips say so; player.gd spends it).
 const SPENDS_ALL := ["discharge", "groundout", "recharge"]
 ## Abilities that skip the global cooldown without being an interrupt or a trinket.
 const OFF_GCD := ["groundingsurge", "capacitor", "returnstroke", "rimefletch", "rewind", "lapse", "scatter",
-	"missedbeat", "tradeplaces", "doubletime", "offthechain", "doublethread", "restring", "behinditsback"]
+	"missedbeat", "tradeplaces", "doubletime", "offthechain", "doublethread", "restring", "behinditsback", "swell"]
 ## Melee-weapon abilities used from their own range (cast_range) instead of the
 ## weapon's reach: Static Step dashes in, Whiplash lashes from afar.
 const LONG_REACH := ["staticstep", "whiplash", "reelin"]
@@ -666,6 +758,12 @@ static func talent(key: String, field: String = "values") -> float:
 	var pd: Node = tree.root.get_node_or_null("PlayerData") if tree and tree.root else null
 	return float(pd.talent_value(key, field)) if pd and pd.has_method("talent_value") else 0.0
 
+## Is talent `key`'s capstone on (it is at max rank)?
+static func capstone(key: String) -> bool:
+	var tree := _tree()
+	var pd: Node = tree.root.get_node_or_null("PlayerData") if tree and tree.root else null
+	return pd != null and pd.has_method("talent_capstone") and bool(pd.talent_capstone(key))
+
 ## Is a talent's capstone active for the player (false outside the game)?
 static func talent_capstone(key: String) -> bool:
 	var tree := _tree()
@@ -718,6 +816,8 @@ static func cooldown_of(r: Resource) -> float:
 	var key := str(COOLDOWN_TALENTS.get(str(r.id), ""))
 	if key != "" and cd > 0.0:
 		cd = maxf(cd - talent(key), 1.0)
+	if str(r.id) == "shelter" and capstone("holy_open_doors"):
+		cd = minf(cd, Balance.OPEN_DOORS_COOLDOWN)   # Open Doors (capstone)
 	return cd
 
 ## Seconds ability `r` takes to cast before Haste (Quickened Frost shortens Frost Bolts).
@@ -852,6 +952,8 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 	# What your talents change about the numbers a description quotes.
 	var radius := (float(fr.radius) if fr else 0.0) + radius_bonus(id)   # Deep Crucible
 	var absorb := 1.0 + talent("frost_absorb") / 100.0 if SHIELD_ABILITIES.has(id) else 1.0   # Rime Ward
+	if id == "shelter":
+		absorb *= 1.0 + talent("holy_open_doors") / 100.0                                 # Open Doors
 	var shatter_mult := 1.0 + talent("frost_shatterpoint") / 100.0                            # Shatterpoint
 	var hit_coef := base
 	if id == "rimeedge":
@@ -949,7 +1051,6 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		# Buffs in flat units, and other sizes worked out from balance.gd.
 		"shout_ap": fmt_amount(Balance.BATTLE_SHOUT_AP * flat),
 		"barrier_armor": fmt_amount(Balance.ICE_BARRIER_ARMOR * flat),
-		"bulwark_armor": fmt_amount(Balance.SACRED_BULWARK_ARMOR * flat),
 		"heat_sink_max": "?" if base < 0 else fmt_amount(base * per * (1.0 + Balance.HEAT_SINK_BONUS)),
 		"arcane_mana": str(int(round(Balance.ARCANE_STRIKE_MANA * Stats.mana_unit(level)))),
 		"slack_mana": str(int(round(Balance.SLACK_MANA * Stats.mana_unit(level)))),   # Slack: mana back per String out
@@ -958,8 +1059,12 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		"tug_time": TextFill.num(Balance.TUG_TIME + talent("shadow_hard_pull")),                         # Hard Pull
 		"run_down_targets": str(Balance.RUN_DOWN_TARGETS + int(round(talent("shadow_wide_pack")))),      # Wide Pack
 		# Frost, second batch.
+		# Holy healer: the booms Sing Mercy and Sing Chorus describe.
+		"benediction": fmt_amount(Balance.BENEDICTION_HEAL * per),
+		"verses": str(int((Balance.VERSE_GAINS.get(id, [0]) as Array)[0])),   # the Verses it gives
+		"chorale": fmt_amount(Balance.CHORALE_HEAL * per),
 		"winter_time": Stats.num(Balance.DEEPWINTER_TIME),
-		"ward": fmt_amount(float(HEALS.get("heal", 0.0)) * Balance.SNOW_WARD_SHARE * per * absorb),
+		"ward": fmt_amount(Balance.REFERENCE_HEAL * Balance.SNOW_WARD_SHARE * per * absorb),
 		"ward_time": Stats.num(Balance.SNOW_WARD_TIME),
 		"hide_time": Stats.num(Balance.WINTER_HIDE_TIME),
 		"hide_pct": Stats.num(Balance.WINTER_HIDE_PCT),
@@ -1420,6 +1525,18 @@ static func _draw_form(c: Control, form: String, col: Color, mid: Vector2, k: fl
 # ability's book color on its dark book background. Returns false for ids that
 # have no unique icon here (they use the custom icons in draw_icon or a form).
 
+## Holy healer: the colour of each Hymn, and of the Verses that match it
+## (the ring around the healer, the Verse pips, the Sing icons).
+const HYMN_COLORS := {"mercy": Color(1.0, 0.8, 0.3), "chorus": Color(0.95, 0.95, 1.0), "vigil": Color(0.45, 0.7, 1.0)}
+
+## A musical note (an eighth note) with its head at `at`.
+static func _note(c: Control, at: Vector2, k: float, color: Color) -> void:
+	c.draw_set_transform(at, -0.35, Vector2(1.3, 1.0))
+	c.draw_circle(Vector2.ZERO, 3.5 * k, color)
+	c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	c.draw_line(at + Vector2(3.6, -1) * k, at + Vector2(3.6, -14) * k, color, 1.8 * k, true)
+	c.draw_line(at + Vector2(3.6, -14) * k, at + Vector2(8.5, -9) * k, color, 1.8 * k, true)
+
 static func _pts(mid: Vector2, k: float, raw: Array) -> PackedVector2Array:
 	var out := PackedVector2Array()
 	for v in raw:
@@ -1541,6 +1658,104 @@ static func _draw_unique(c: Control, id: String, col: Color, mid: Vector2, k: fl
 	var light := col.lightened(0.5)
 	var white := Color(0.95, 0.95, 1.0)
 	match id:
+		# --- Holy healer: the Hymns ---
+		"psalm":
+			# An open book with a note rising off its pages.
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-15, -2), Vector2(-1, 2), Vector2(-1, 14), Vector2(-15, 10)]), light)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(15, -2), Vector2(1, 2), Vector2(1, 14), Vector2(15, 10)]), white)
+			_note(c, mid + Vector2(2, -10) * k, k, col)
+		"outpour":
+			# A tipped vessel pouring a stream of light.
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-14, -14), Vector2(0, -8), Vector2(-4, 2), Vector2(-16, -4)]), col.darkened(0.1))
+			c.draw_line(mid + Vector2(-1, -5) * k, mid + Vector2(6, 15) * k, Color(light, 0.6), 7.0 * k, true)
+			c.draw_line(mid + Vector2(-1, -5) * k, mid + Vector2(6, 15) * k, white, 2.5 * k, true)
+		"lift":
+			# Three chevrons of light rising.
+			for i in 3:
+				var y := 10.0 - i * 9.0
+				c.draw_polyline(_pts(mid, k, [Vector2(-11, y + 6), Vector2(0, y - 3), Vector2(11, y + 6)]), white if i == 2 else light, 3.0 * k, true)
+		"refrain":
+			# A circle that comes back on itself, with a note in it.
+			c.draw_arc(mid, 14.0 * k, 0.3, TAU - 0.4, 24, light, 3.0 * k, true)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(14, -6), Vector2(19, 2), Vector2(9, 2)]), light)
+			_note(c, mid + Vector2(-2, 3) * k, k * 0.8, white)
+		"canticle":
+			# Three notes along an arc.
+			for i in 3:
+				var a := PI + PI * (i + 0.5) / 3.0
+				_note(c, mid + Vector2(cos(a), sin(a) + 0.6) * 13.0 * k, k * 0.7, white if i == 1 else light)
+		"exultation":
+			# Light bursting outward in every direction.
+			for i in 16:
+				var a := TAU * i / 16.0
+				var r1 := 7.0 if i % 2 == 0 else 9.0
+				c.draw_line(mid + Vector2(cos(a), sin(a)) * r1 * k, mid + Vector2(cos(a), sin(a)) * (17.0 if i % 2 == 0 else 13.0) * k, light, 2.0 * k, true)
+			c.draw_circle(mid, 6.0 * k, white)
+		"antiphon":
+			# Two voices answering each other.
+			c.draw_arc(mid + Vector2(-8, 0) * k, 8.0 * k, -0.9, 0.9, 10, white, 2.5 * k, true)
+			c.draw_arc(mid + Vector2(-8, 0) * k, 13.0 * k, -0.8, 0.8, 10, Color(white, 0.6), 2.0 * k, true)
+			c.draw_arc(mid + Vector2(8, 0) * k, 8.0 * k, PI - 0.9, PI + 0.9, 10, light, 2.5 * k, true)
+			c.draw_arc(mid + Vector2(8, 0) * k, 13.0 * k, PI - 0.8, PI + 0.8, 10, Color(light, 0.6), 2.0 * k, true)
+		"shelter":
+			# A pointed arch of light over a small figure.
+			c.draw_polyline(_pts(mid, k, [Vector2(-14, 14), Vector2(-14, -2), Vector2(0, -16), Vector2(14, -2), Vector2(14, 14)]), light, 3.5 * k, true)
+			c.draw_circle(mid + Vector2(0, 0) * k, 3.5 * k, white)
+			c.draw_line(mid + Vector2(0, 4) * k, mid + Vector2(0, 13) * k, white, 3.0 * k, true)
+		"steadyvoice":
+			# Level sound waves spreading to both sides.
+			for i in 3:
+				var r := (6.0 + i * 5.0) * k
+				var cl := Color(white if i == 0 else light, 1.0 - i * 0.25)
+				c.draw_arc(mid, r, -0.6, 0.6, 8, cl, 2.5 * k, true)
+				c.draw_arc(mid, r, PI - 0.6, PI + 0.6, 8, cl, 2.5 * k, true)
+			c.draw_line(mid + Vector2(-16, 12) * k, mid + Vector2(16, 12) * k, light, 2.0 * k, true)
+		"highnote":
+			# A single note with a spark at its peak.
+			_note(c, mid + Vector2(-3, 6) * k, k * 1.2, white)
+			for i in 4:
+				var a := TAU * i / 4.0 + PI / 4.0
+				c.draw_line(mid + Vector2(10, -14) * k, mid + Vector2(10, -14) * k + Vector2(cos(a), sin(a)) * 5.0 * k, light, 1.8 * k, true)
+		"reprise":
+			# A repeat sign: two dots before a double bar.
+			c.draw_line(mid + Vector2(4, -14) * k, mid + Vector2(4, 14) * k, light, 2.0 * k, true)
+			c.draw_line(mid + Vector2(10, -14) * k, mid + Vector2(10, 14) * k, white, 4.5 * k, true)
+			c.draw_circle(mid + Vector2(-4, -5) * k, 3.0 * k, white)
+			c.draw_circle(mid + Vector2(-4, 5) * k, 3.0 * k, white)
+		"swell":
+			# A crescendo hairpin, widening to the right.
+			c.draw_line(mid + Vector2(-15, 0) * k, mid + Vector2(15, -11) * k, white, 3.0 * k, true)
+			c.draw_line(mid + Vector2(-15, 0) * k, mid + Vector2(15, 11) * k, light, 3.0 * k, true)
+		"rest":
+			# A musical rest: a quiet zigzag.
+			c.draw_polyline(_pts(mid, k, [Vector2(-3, -15), Vector2(5, -6), Vector2(-4, 2), Vector2(4, 8)]), white, 3.5 * k, true)
+			c.draw_arc(mid + Vector2(0, 11) * k, 4.5 * k, PI * 0.2, PI * 1.3, 8, white, 3.0 * k, true)
+		"lastverse":
+			# A figure rising under a halo.
+			c.draw_arc(mid + Vector2(0, -12) * k, 7.0 * k, 0.0, TAU, 20, light, 2.0 * k, true)
+			c.draw_circle(mid + Vector2(0, -4) * k, 4.0 * k, white)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-7, 15), Vector2(-3, 1), Vector2(3, 1), Vector2(7, 15)]), white)
+			c.draw_line(mid + Vector2(-14, 4) * k, mid + Vector2(-9, -6) * k, Color(light, 0.7), 2.0 * k, true)
+			c.draw_line(mid + Vector2(14, 4) * k, mid + Vector2(9, -6) * k, Color(light, 0.7), 2.0 * k, true)
+		"singmercy":
+			# Mercy: a heart inside the ring of the Hymn.
+			c.draw_arc(mid, 16.0 * k, 0.0, TAU, 28, HYMN_COLORS["mercy"], 2.0 * k, true)
+			c.draw_circle(mid + Vector2(-4.5, -3) * k, 5.5 * k, HYMN_COLORS["mercy"].lightened(0.3))
+			c.draw_circle(mid + Vector2(4.5, -3) * k, 5.5 * k, HYMN_COLORS["mercy"].lightened(0.3))
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-9.8, -1), Vector2(9.8, -1), Vector2(0, 11)]), HYMN_COLORS["mercy"].lightened(0.3))
+		"singchorus":
+			# Chorus: three voices together inside the ring.
+			c.draw_arc(mid, 16.0 * k, 0.0, TAU, 28, HYMN_COLORS["chorus"], 2.0 * k, true)
+			for p: Vector2 in [Vector2(-7, 3), Vector2(7, 3), Vector2(0, -6)]:
+				c.draw_circle(mid + p * k, 6.0 * k, Color(HYMN_COLORS["chorus"], 0.55))
+			c.draw_circle(mid + Vector2(0, 0) * k, 3.0 * k, white)
+		"singvigil":
+			# Vigil: a watchful eye inside the ring.
+			c.draw_arc(mid, 16.0 * k, 0.0, TAU, 28, HYMN_COLORS["vigil"], 2.0 * k, true)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-12, 0), Vector2(-5, -6), Vector2(5, -6), Vector2(12, 0), Vector2(5, 6), Vector2(-5, 6)]),
+				HYMN_COLORS["vigil"].lightened(0.2))
+			c.draw_circle(mid, 4.0 * k, Color(0.1, 0.15, 0.3))
+			c.draw_circle(mid + Vector2(-1.2, -1.2) * k, 1.4 * k, white)
 		# --- Rune spells ---
 		"polarstrike":
 			# A blade between a positive and a negative charge.
@@ -2554,47 +2769,6 @@ static func _draw_unique(c: Control, id: String, col: Color, mid: Vector2, k: fl
 			c.draw_line(mid + Vector2(0, -12) * k, mid + Vector2(0, 16) * k, light, 1.8 * k, true)
 			c.draw_rect(Rect2(mid + Vector2(8, 6) * k, Vector2(8, 3) * k), white, true)
 			c.draw_rect(Rect2(mid + Vector2(10.5, 3.5) * k, Vector2(3, 8) * k), white, true)
-		# --- Holy ---
-		"heal":
-			c.draw_circle(mid + Vector2(-5, -4) * k, 6.5 * k, light)
-			c.draw_circle(mid + Vector2(5, -4) * k, 6.5 * k, light)
-			c.draw_colored_polygon(_pts(mid, k, [Vector2(-11.5, -2), Vector2(11.5, -2), Vector2(0, 13)]), light)
-		"holylight":
-			for i in 12:
-				var a := TAU * i / 12.0
-				c.draw_line(mid + Vector2(cos(a), sin(a)) * 9.0 * k, mid + Vector2(cos(a), sin(a)) * 17.0 * k, Color(light, 0.7), 1.8 * k, true)
-			c.draw_rect(Rect2(mid + Vector2(-3, -10) * k, Vector2(6, 20) * k), white, true)
-			c.draw_rect(Rect2(mid + Vector2(-8, -4) * k, Vector2(16, 6) * k), white, true)
-		"smite":
-			c.draw_circle(mid + Vector2(0, 6) * k, 7.0 * k, Color(light, 0.5))
-			c.draw_colored_polygon(_pts(mid, k, [Vector2(-3, -16), Vector2(3, -16), Vector2(2, 4), Vector2(-2, 4)]), white)
-			c.draw_colored_polygon(_pts(mid, k, [Vector2(-5, 2), Vector2(5, 2), Vector2(0, 9)]), white)
-		"crusaderstrike":
-			# Holy hammer.
-			c.draw_line(mid + Vector2(-12, 14) * k, mid + Vector2(5, -3) * k, Color(0.5, 0.33, 0.18), 3.5 * k, true)
-			c.draw_colored_polygon(_pts(mid, k, [Vector2(-1, -9), Vector2(9, 1), Vector2(15, -5), Vector2(5, -15)]), light)
-		"radiantarrow":
-			_arrow_shaft(c, mid, k, col)
-			for i in 8:
-				var a := TAU * i / 8.0
-				c.draw_line(mid + Vector2(11, -11) * k, mid + Vector2(11, -11) * k + Vector2(cos(a), sin(a)) * 7.0 * k, light, 1.6 * k, true)
-			c.draw_circle(mid + Vector2(11, -11) * k, 3.5 * k, white)
-		"shieldofdawn":
-			var sh := _pts(mid, k, [Vector2(0, -14), Vector2(12, -9), Vector2(10, 5), Vector2(0, 14), Vector2(-10, 5), Vector2(-12, -9)])
-			c.draw_colored_polygon(sh, col.darkened(0.3))
-			c.draw_circle(mid + Vector2(0, 2) * k, 5.0 * k, Color(1.0, 0.85, 0.4))
-			for i in 5:
-				var a := PI + PI * (i + 0.5) / 5.0
-				c.draw_line(mid + Vector2(0, 2) * k + Vector2(cos(a), sin(a)) * 6.5 * k,
-					mid + Vector2(0, 2) * k + Vector2(cos(a), sin(a)) * 10.0 * k, Color(1.0, 0.85, 0.4), 1.6 * k, true)
-		"sacredbulwark":
-			for side: float in [-1.0, 1.0]:
-				c.draw_colored_polygon(_pts(mid, k, [Vector2(side * 9, -8), Vector2(side * 18, -14), Vector2(side * 16, -4),
-					Vector2(side * 18, 4), Vector2(side * 9, 4)]), Color(light, 0.7))
-			var sh := _pts(mid, k, [Vector2(0, -13), Vector2(10, -8), Vector2(8, 5), Vector2(0, 13), Vector2(-8, 5), Vector2(-10, -8)])
-			c.draw_colored_polygon(sh, col.darkened(0.2))
-			c.draw_line(mid + Vector2(0, -8) * k, mid + Vector2(0, 8) * k, white, 2.2 * k, true)
-			c.draw_line(mid + Vector2(-5, -2) * k, mid + Vector2(5, -2) * k, white, 2.2 * k, true)
 		# --- Frost ---
 		"froststrike":
 			_sword(c, mid, k, col)

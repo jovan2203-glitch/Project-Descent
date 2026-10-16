@@ -49,6 +49,7 @@ const DECOY = preload("res://scripts/decoy.gd")
 const TRACE_GHOST = preload("res://scripts/trace_ghost.gd")
 const BREACH_FX = preload("res://scripts/breach_fx.gd")
 const PUPPETEER = preload("res://scripts/puppeteer.gd")
+const HYMN_RING = preload("res://scripts/hymn_ring.gd")
 const HOUND = preload("res://scripts/hound.gd")
 const Balance = preload("res://scripts/balance.gd")
 
@@ -799,7 +800,7 @@ func _sup_heal(t: int, caster: int, amount: int) -> void:
 	var p := _local_player()
 	if t != token or p == null or not p.is_alive():
 		return
-	get_node("/root/CombatSystem").heal(body_of(caster), p, float(amount), "heal", true)   # their Heal spell
+	get_node("/root/CombatSystem").heal(body_of(caster), p, float(amount), "heal", true)   # a party member's heal
 
 ## Revive a downed party member (their machine stands them back up).
 func revive_ally(target: Node, caster: Node) -> void:
@@ -1288,6 +1289,12 @@ func _fx(t: int, member: int, kind: String, at: Vector3, target_id: String, id: 
 			var through: Variant = extra.get("to")
 			if through is Vector3:
 				TRACE_GHOST.run(w, src, at, through, int(extra.get("n", 0)))
+		"hymn":
+			# A party member's Hymn (Holy healer): the ring of glyphs around them. A picture.
+			HYMN_RING.show_on(src, str(extra.get("h", "")))
+		"hymn_boom":
+			# ... and their boom: a column of light. The healing is theirs.
+			HYMN_RING.boom(w, at, HYMN_RING.COLORS.get(str(extra.get("h", "")), Color.WHITE))
 		"strings":
 			# A party member's Strings (Shadow healer): the demon behind them and the
 			# threads over whoever they hold. A picture; the healing is theirs.
