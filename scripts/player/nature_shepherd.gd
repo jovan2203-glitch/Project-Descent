@@ -219,8 +219,8 @@ func _fawn_hop(who: Node3D, from_pos: Vector3, coef: float, left: int, healed: A
 		healed.append(who)
 		if left <= 0:
 			return
-		var near := player._allies_near(who.global_position, Balance.FAWN_REACH)
-		var shares: Array = near.map(func(a): return player._health_share_of(a))
+		var near := player.prism_kit._allies_near(who.global_position, Balance.FAWN_REACH)
+		var shares: Array = near.map(func(a): return player.hymns._health_share_of(a))
 		var taken: Array = near.map(func(a): return healed.has(a))
 		var i := fawn_pick(shares, taken)
 		if i >= 0:
@@ -229,7 +229,7 @@ func _fawn_hop(who: Node3D, from_pos: Vector3, coef: float, left: int, healed: A
 ## Wild Herd: a Fawn at each of the lowest-health allies within `radius` of me.
 func _wild_herd(radius: float) -> void:
 	var allies := player._allies_within(radius)
-	allies.sort_custom(func(a, b): return player._health_share_of(a) < player._health_share_of(b))
+	allies.sort_custom(func(a, b): return player.hymns._health_share_of(a) < player.hymns._health_share_of(b))
 	var from := player._muzzle() if player.is_inside_tree() else player.global_position
 	for i in mini(allies.size(), Balance.WILD_HERD_FAWNS):
 		_fawn(allies[i], WILD_HERD_ID, from)
@@ -332,7 +332,7 @@ func _rootguard_on(st: Node, from: Node, amount: int, time: float, on_break: Cal
 func _rootguard_broke(who: Variant) -> void:
 	if who == null or not is_instance_valid(who) or player.is_dead():
 		return
-	for a in player._allies_near((who as Node3D).global_position, Balance.ROOTGUARD_SPREAD):
+	for a in player.prism_kit._allies_near((who as Node3D).global_position, Balance.ROOTGUARD_SPREAD):
 		_add_blossom(a, 1)
 
 # Heartwood Elk: heals every ally near me, more for their Blossoms.
@@ -351,6 +351,6 @@ func _heartwood_elk(radius: float) -> void:
 			var n := _take_blossoms(a)
 			player._heal_coef(a, WeaverKit.rooted_coef(float(Abilities.HEALS[ELK_ID]), Balance.ELK_PER_BLOSSOM, n) * share, ELK_ID)
 			if n >= Balance.BLOSSOM_MAX:
-				player._hymn_dr(a, FULL_BLOOM_FX, Balance.FULL_BLOOM_PCT, Balance.FULL_BLOOM_TIME)   # Full Bloom
+				player.hymns._hymn_dr(a, FULL_BLOOM_FX, Balance.FULL_BLOOM_PCT, Balance.FULL_BLOOM_TIME)   # Full Bloom
 		player._ring_effect(radius, BLOSSOM_COLOR))
 

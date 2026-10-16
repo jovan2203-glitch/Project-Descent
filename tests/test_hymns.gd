@@ -87,17 +87,17 @@ func test_every_icon_is_its_own() -> void:
 # --- Verses ------------------------------------------------------------------------------
 
 func test_verses_cap_and_waste() -> void:
-	var v: Array = _p().verses_after_gain([], "mercy", 2)
+	var v: Array = HymnsKit.verses_after_gain([], "mercy", 2)
 	assert_eq(v, ["mercy", "mercy"])
-	v = _p().verses_after_gain(v, "chorus", 3)
+	v = HymnsKit.verses_after_gain(v, "chorus", 3)
 	assert_eq(v, ["mercy", "mercy", "chorus", "chorus", "chorus"])
-	v = _p().verses_after_gain(v, "vigil", 2)
+	v = HymnsKit.verses_after_gain(v, "vigil", 2)
 	assert_eq(v.size(), 6, "never more than VERSE_MAX")
 	assert_eq(v[5], "vigil", "the one past the cap is wasted")
-	assert_eq(_p().verses_after_gain(v, "mercy", 1), v)
+	assert_eq(HymnsKit.verses_after_gain(v, "mercy", 1), v)
 
 func test_what_each_ability_gives() -> void:
-	var g: Dictionary = _p().VERSE_GAINS
+	var g: Dictionary = HymnsKit.VERSE_GAINS
 	assert_eq(g["psalm"], [1, "mercy"])
 	assert_eq(g["outpour"], [2, "mercy"])
 	assert_eq(g["canticle"], [2, "chorus"])
@@ -110,43 +110,43 @@ func test_what_each_ability_gives() -> void:
 
 func test_singing() -> void:
 	# A full set: the Hymn you enter booms, and every Verse is spent (always, whatever the talents).
-	assert_eq(_p().sing_outcome(6, "mercy", 3, false), [true, 0])
-	assert_eq(_p().sing_outcome(6, "mercy", 0, true), [true, 0], "Rest keeps nothing through a boom")
+	assert_eq(HymnsKit.sing_outcome(6, "mercy", 3, false), [true, 0])
+	assert_eq(HymnsKit.sing_outcome(6, "mercy", 0, true), [true, 0], "Rest keeps nothing through a boom")
 	# Fewer: you lose them all ...
-	assert_eq(_p().sing_outcome(5, "mercy", 0, false), [false, 0])
+	assert_eq(HymnsKit.sing_outcome(5, "mercy", 0, false), [false, 0])
 	# ... Key Change keeps 1 / 2 / 3 ...
 	for rank in [1, 2, 3]:
-		assert_eq(_p().sing_outcome(5, "chorus", rank, false), [false, rank])
-	assert_eq(_p().sing_outcome(2, "chorus", 3, false), [false, 2], "never more than you had")
+		assert_eq(HymnsKit.sing_outcome(5, "chorus", rank, false), [false, rank])
+	assert_eq(HymnsKit.sing_outcome(2, "chorus", 3, false), [false, 2], "never more than you had")
 	# ... Rest keeps them all, and so does your first Hymn.
-	assert_eq(_p().sing_outcome(4, "vigil", 0, true), [false, 4])
-	assert_eq(_p().sing_outcome(4, "", 0, false), [false, 4])
-	assert_eq(_p().sing_outcome(6, "", 0, false), [true, 0], "a full set booms even from no Hymn")
+	assert_eq(HymnsKit.sing_outcome(4, "vigil", 0, true), [false, 4])
+	assert_eq(HymnsKit.sing_outcome(4, "", 0, false), [false, 4])
+	assert_eq(HymnsKit.sing_outcome(6, "", 0, false), [true, 0], "a full set booms even from no Hymn")
 
 func test_booms_grow_with_matching_verses() -> void:
 	var spent := ["mercy", "mercy", "chorus", "vigil", "mercy", "chorus"]
-	assert_eq(_p().matching_verses(spent, "mercy"), 3)
-	assert_eq(_p().matching_verses(spent, "vigil"), 1)
-	assert_true(_near(_p().boom_mult(0, false), 1.0))
-	assert_true(_near(_p().boom_mult(3, false), 1.3))
-	assert_true(_near(_p().boom_mult(6, false), 1.6), "at most +60%")
-	assert_true(_near(_p().boom_mult(6, true), 1.6 * 1.5), "Full Choir: 50% stronger")
+	assert_eq(HymnsKit.matching_verses(spent, "mercy"), 3)
+	assert_eq(HymnsKit.matching_verses(spent, "vigil"), 1)
+	assert_true(_near(HymnsKit.boom_mult(0, false), 1.0))
+	assert_true(_near(HymnsKit.boom_mult(3, false), 1.3))
+	assert_true(_near(HymnsKit.boom_mult(6, false), 1.6), "at most +60%")
+	assert_true(_near(HymnsKit.boom_mult(6, true), 1.6 * 1.5), "Full Choir: 50% stronger")
 	# Bulwark of Song lasts longer instead.
-	assert_true(_near(_p().bulwark_song_time(0, false), Balance.BULWARK_SONG_TIME))
-	assert_true(_near(_p().bulwark_song_time(4, false), Balance.BULWARK_SONG_TIME + 2.0))
+	assert_true(_near(HymnsKit.bulwark_song_time(0, false), Balance.BULWARK_SONG_TIME))
+	assert_true(_near(HymnsKit.bulwark_song_time(4, false), Balance.BULWARK_SONG_TIME + 2.0))
 
 func test_full_choir() -> void:
-	assert_false(_p().is_full_choir(["mercy", "chorus"]))
-	assert_true(_p().is_full_choir(["mercy", "chorus", "vigil"]))
-	assert_true(_p().is_full_choir(["vigil", "vigil", "mercy", "chorus"]), "the last three, in any order")
-	assert_false(_p().is_full_choir(["mercy", "chorus", "mercy"]))
-	assert_false(_p().is_full_choir(["chorus", "chorus", "vigil"]))
+	assert_false(HymnsKit.is_full_choir(["mercy", "chorus"]))
+	assert_true(HymnsKit.is_full_choir(["mercy", "chorus", "vigil"]))
+	assert_true(HymnsKit.is_full_choir(["vigil", "vigil", "mercy", "chorus"]), "the last three, in any order")
+	assert_false(HymnsKit.is_full_choir(["mercy", "chorus", "mercy"]))
+	assert_false(HymnsKit.is_full_choir(["chorus", "chorus", "vigil"]))
 	# (After a Full Choir the booms start counting over, so one is never part of the next.)
 
 func test_reprise() -> void:
-	assert_true(_p().reprise_ready(1.0, 3))
-	assert_false(_p().reprise_ready(1.0, 2), "costs 3 Verses")
-	assert_false(_p().reprise_ready(Balance.REPRISE_WINDOW + 0.1, 6), "only soon after a boom")
+	assert_true(HymnsKit.reprise_ready(1.0, 3))
+	assert_false(HymnsKit.reprise_ready(1.0, 2), "costs 3 Verses")
+	assert_false(HymnsKit.reprise_ready(Balance.REPRISE_WINDOW + 0.1, 6), "only soon after a boom")
 
 # --- Talents and runes ---------------------------------------------------------------------
 

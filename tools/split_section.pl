@@ -161,12 +161,15 @@ for my $line (@section) {
 		my $call = "$var.$n(" . join(', ', @names) . ")";
 		my $body = ($ret =~ /void/) ? $call : "return $call";
 		push @forwards, "func $n($params) $ret:\n\t$body\n";
-	} elsif ($line =~ /^(?:\@\w+ )?var ([a-z]\w*)\s*(?::\s*([\w\[\]]+))?/ && $outside =~ /\.\Q$1\E\b/) {
+	} elsif ($line =~ /^(?:\@\w+ )?var ([a-z]\w*)\s*(?::\s*([\w\[\]]+))?/) {
 		my ($n, $t) = ($1, $2);
+		next unless $outside =~ /\.\Q$n\E\b/;
 		my $type = defined $t ? ": $t" : '';
 		push @forwards, "var $n$type:\n\tget:\n\t\treturn $var.$n\n\tset(v):\n\t\t$var.$n = v\n";
-	} elsif ($line =~ /^const ([A-Z]\w*)/ && $outside =~ /\b(?:player|p|pl|owner_node|_player)\.\Q$1\E\b/) {
-		push @forwards, "const $1 = $class.$1\n";
+	} elsif ($line =~ /^const ([A-Z]\w*)/) {
+		my $n = $1;
+		next unless $outside =~ /\b(?:player|p|pl|owner_node|_player)\.\Q$n\E\b/;
+		push @forwards, "const $n = $class.$n\n";
 	}
 }
 s/\s+:\n/:\n/ for @forwards;

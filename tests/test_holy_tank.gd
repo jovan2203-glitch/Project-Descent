@@ -93,18 +93,18 @@ func test_mana_runs_out_in_minutes() -> void:
 
 func test_incense_cap_and_gain() -> void:
 	var p := _p()
-	assert_eq(p.incense_after(0, 10), 10)
-	assert_eq(p.incense_after(95, 10), 100, "never more than INCENSE_MAX")
-	assert_eq(p.incense_after(40, -5), 40, "no negative gains")
-	assert_eq(p.incense_for_hit(false, false), Balance.INCENSE_PER_HIT)
-	assert_eq(p.incense_for_hit(true, false), Balance.INCENSE_PER_BLOCK)
-	assert_eq(p.incense_for_hit(true, true), Balance.INCENSE_PER_BLOCK * Balance.UNFALLEN_INCENSE_MULT, "Unfallen: more")
+	assert_eq(CenserKit.incense_after(0, 10), 10)
+	assert_eq(CenserKit.incense_after(95, 10), 100, "never more than INCENSE_MAX")
+	assert_eq(CenserKit.incense_after(40, -5), 40, "no negative gains")
+	assert_eq(CenserKit.incense_for_hit(false, false), Balance.INCENSE_PER_HIT)
+	assert_eq(CenserKit.incense_for_hit(true, false), Balance.INCENSE_PER_BLOCK)
+	assert_eq(CenserKit.incense_for_hit(true, true), Balance.INCENSE_PER_BLOCK * Balance.UNFALLEN_INCENSE_MULT, "Unfallen: more")
 	assert_gt(Balance.MOTE_VALUE, Balance.INCENSE_PER_HIT, "hits give little; motes are the main source")
 
 func test_incense_gives_block_per_stack() -> void:
 	var p := _p()
-	assert_true(is_equal_approx(p.incense_block_per_stack(0.0), Balance.INCENSE_BLOCK))
-	assert_true(is_equal_approx(p.incense_block_per_stack(0.04), Balance.INCENSE_BLOCK + 0.04), "Bright Barrier")
+	assert_true(is_equal_approx(CenserKit.incense_block_per_stack(0.0), Balance.INCENSE_BLOCK))
+	assert_true(is_equal_approx(CenserKit.incense_block_per_stack(0.04), Balance.INCENSE_BLOCK + 0.04), "Bright Barrier")
 	# On a real status container: the stat grows with the stacks.
 	var owner_node: Node = track(Node.new())
 	var st: Node = StatusContainer.new()
@@ -118,22 +118,22 @@ func test_incense_gives_block_per_stack() -> void:
 
 func test_aura() -> void:
 	var p := _p()
-	assert_true(is_equal_approx(p.incense_aura_coef(100), Balance.INCENSE_AURA_FULL))
-	assert_true(is_equal_approx(p.incense_aura_coef(50), Balance.INCENSE_AURA_FULL * 0.5))
-	assert_eq(p.incense_aura_coef(0), 0.0)
-	assert_true(is_equal_approx(p.incense_aura_coef(500), Balance.INCENSE_AURA_FULL), "capped")
+	assert_true(is_equal_approx(CenserKit.incense_aura_coef(100), Balance.INCENSE_AURA_FULL))
+	assert_true(is_equal_approx(CenserKit.incense_aura_coef(50), Balance.INCENSE_AURA_FULL * 0.5))
+	assert_eq(CenserKit.incense_aura_coef(0), 0.0)
+	assert_true(is_equal_approx(CenserKit.incense_aura_coef(500), Balance.INCENSE_AURA_FULL), "capped")
 	assert_eq(Details.HIT_NAMES.get("incense_aura", ""), "Incense", "its own meter line")
 
 # --- Motes of light ---------------------------------------------------------------------
 
 func test_spending_drops_motes() -> void:
 	var p := _p()
-	assert_eq(p.motes_for_spend(100, 60.0), [10, 10, 10, 10, 10], "60 Incense in motes, at most MOTE_SPEND_MAX")
-	assert_eq(p.motes_for_spend(40, 60.0), [10, 10, 4], "24: two full motes and a smaller one")
-	assert_eq(p.motes_for_spend(30, 60.0), [10, 8])
-	assert_eq(p.motes_for_spend(100, 80.0), [10, 10, 10, 10, 10], "Deep Pour's capstone: still at most 5")
-	assert_eq(p.motes_for_spend(0, 60.0), [])
-	assert_eq(p.motes_for_spend(1, 60.0), [], "less than one Incense back: nothing")
+	assert_eq(CenserKit.motes_for_spend(100, 60.0), [10, 10, 10, 10, 10], "60 Incense in motes, at most MOTE_SPEND_MAX")
+	assert_eq(CenserKit.motes_for_spend(40, 60.0), [10, 10, 4], "24: two full motes and a smaller one")
+	assert_eq(CenserKit.motes_for_spend(30, 60.0), [10, 8])
+	assert_eq(CenserKit.motes_for_spend(100, 80.0), [10, 10, 10, 10, 10], "Deep Pour's capstone: still at most 5")
+	assert_eq(CenserKit.motes_for_spend(0, 60.0), [])
+	assert_eq(CenserKit.motes_for_spend(1, 60.0), [], "less than one Incense back: nothing")
 
 func test_picking_up_motes() -> void:
 	var src := _src()
@@ -165,11 +165,11 @@ func test_raise_the_censer() -> void:
 
 func test_unfallen() -> void:
 	var p := _p()
-	assert_eq(p.unfallen_limit(500, 300), 299, "never the last point")
-	assert_eq(p.unfallen_limit(100, 300), 100, "a hit that doesn't kill is untouched")
-	assert_eq(p.unfallen_limit(50, 1), 0)
-	assert_eq(p.unfallen_heal(1000), 300, "30% of what you took")
-	assert_eq(p.unfallen_heal(0), 0)
+	assert_eq(CenserKit.unfallen_limit(500, 300), 299, "never the last point")
+	assert_eq(CenserKit.unfallen_limit(100, 300), 100, "a hit that doesn't kill is untouched")
+	assert_eq(CenserKit.unfallen_limit(50, 1), 0)
+	assert_eq(CenserKit.unfallen_heal(1000), 300, "30% of what you took")
+	assert_eq(CenserKit.unfallen_heal(0), 0)
 	assert_contains(_src(), "amount = _unfallen_cap(amount)")
 
 # --- Talents, rune, keywords -------------------------------------------------------------

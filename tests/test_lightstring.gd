@@ -70,40 +70,40 @@ func test_numbers() -> void:
 func test_refraction_picks_another_enemy() -> void:
 	var p := _p()
 	var spots := [Vector3(0, 0, 0), Vector3(3, 0, 0), Vector3(6, 0, 0)]
-	assert_eq(p.refract_target(Vector3(2, 0, 0), spots, 0, 8.0), 1, "the closest one that isn't the target")
-	assert_eq(p.refract_target(Vector3(0, 0, 0), spots, 0, 8.0), 1, "never the shot's own target")
-	assert_eq(p.refract_target(Vector3(0, 0, 0), [Vector3(0, 0, 0)], 0, 8.0), -1, "alone: none (the shot focuses)")
-	assert_eq(p.refract_target(Vector3(0, 0, 0), [Vector3(0, 0, 0), Vector3(20, 0, 0)], 0, 8.0), -1, "too far: none")
+	assert_eq(LightstringKit.refract_target(Vector3(2, 0, 0), spots, 0, 8.0), 1, "the closest one that isn't the target")
+	assert_eq(LightstringKit.refract_target(Vector3(0, 0, 0), spots, 0, 8.0), 1, "never the shot's own target")
+	assert_eq(LightstringKit.refract_target(Vector3(0, 0, 0), [Vector3(0, 0, 0)], 0, 8.0), -1, "alone: none (the shot focuses)")
+	assert_eq(LightstringKit.refract_target(Vector3(0, 0, 0), [Vector3(0, 0, 0), Vector3(20, 0, 0)], 0, 8.0), -1, "too far: none")
 	assert_eq(Details.HIT_NAMES.get("refraction", ""), "Refraction", "its own meter line")
 	# Refracted and volley arrows are Holy procs.
 	assert_contains(_src(), "if ability_id == REFRACTION_ID or ability_id == VOLLEY_ARROW_ID:")
 
 func test_charging() -> void:
 	var p := _p()
-	var cap: float = p.prism_cap(0.0)
-	assert_true(is_equal_approx(p.gold_charged(0.0, 2.0, Balance.GOLD_CHARGE_PCT, cap), 0.5), "25% of the shot")
-	assert_true(is_equal_approx(p.gold_charged(cap - 0.1, 2.0, 25.0, cap), cap), "never past the cap")
+	var cap: float = PrismsKit.prism_cap(0.0)
+	assert_true(is_equal_approx(LightstringKit.gold_charged(0.0, 2.0, Balance.GOLD_CHARGE_PCT, cap), 0.5), "25% of the shot")
+	assert_true(is_equal_approx(LightstringKit.gold_charged(cap - 0.1, 2.0, 25.0, cap), cap), "never past the cap")
 	assert_true(Balance.AUTO_SHOT_CHARGE_PCT < Balance.GOLD_CHARGE_PCT, "auto-shots charge less")
 	assert_true(Balance.AUTO_SHOT_REFRACT_PCT < Balance.REFRACT_PCT, "and refract less")
 
 func test_sunlit_arrow() -> void:
 	var p := _p()
-	var full: float = p.prism_cap(0.0)
-	assert_eq(p.sunlit_bonus([], 0.0), 0.0)
-	assert_true(is_equal_approx(p.sunlit_bonus([full], 0.0), full * Balance.SUNLIT_DRAIN))
-	assert_true(is_equal_approx(p.sunlit_bonus([full], 20.0), full * Balance.SUNLIT_DRAIN * 1.2), "Deep Burn")
+	var full: float = PrismsKit.prism_cap(0.0)
+	assert_eq(LightstringKit.sunlit_bonus([], 0.0), 0.0)
+	assert_true(is_equal_approx(LightstringKit.sunlit_bonus([full], 0.0), full * Balance.SUNLIT_DRAIN))
+	assert_true(is_equal_approx(LightstringKit.sunlit_bonus([full], 20.0), full * Balance.SUNLIT_DRAIN * 1.2), "Deep Burn")
 	# The big moment stays a big moment: three full prisms add about +0.6, so the
 	# whole shot (1.2x a basic bow) is around a standard hit, about 1000 when it crits.
 	var bow := 0.45
-	var shot: float = 1.2 * bow + p.sunlit_bonus([full, full, full], 0.0)
+	var shot: float = 1.2 * bow + LightstringKit.sunlit_bonus([full, full, full], 0.0)
 	assert_true(shot > 0.9 and shot < 1.4, "Sunlit Arrow through three full prisms: %.2f" % shot)
 
 func test_prism_breaker_and_volley() -> void:
 	var p := _p()
-	assert_true(is_equal_approx(p.breaker_damage(0.0), Balance.BREAKER_DAMAGE))
-	var full: float = p.prism_cap(0.0)
-	assert_true(p.breaker_damage(full) < 1.2, "a full prism: about 1.0")
-	assert_true(is_equal_approx(p.volley_damage(0.0), Balance.VOLLEY_DAMAGE))
+	assert_true(is_equal_approx(LightstringKit.breaker_damage(0.0), Balance.BREAKER_DAMAGE))
+	var full: float = PrismsKit.prism_cap(0.0)
+	assert_true(LightstringKit.breaker_damage(full) < 1.2, "a full prism: about 1.0")
+	assert_true(is_equal_approx(LightstringKit.volley_damage(0.0), Balance.VOLLEY_DAMAGE))
 
 # --- Colours ----------------------------------------------------------------------------------
 
@@ -126,7 +126,7 @@ func test_colours_never_mix() -> void:
 func test_picking_a_prism_by_colour() -> void:
 	var p := _p()
 	# pick_prism works on whatever list it gets; _target_prism hands it one colour.
-	assert_eq(p.pick_prism(["p2"], [Vector3(10, 0, 0)], "p1", "", Vector3.ZERO), 0, "a mouseover of the other colour is ignored")
+	assert_eq(PrismsKit.pick_prism(["p2"], [Vector3(10, 0, 0)], "p1", "", Vector3.ZERO), 0, "a mouseover of the other colour is ignored")
 
 # --- Talents, keywords ---------------------------------------------------------------------
 

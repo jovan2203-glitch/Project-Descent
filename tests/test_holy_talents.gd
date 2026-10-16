@@ -44,26 +44,26 @@ func test_placement() -> void:
 
 func test_overflowing() -> void:
 	var p := _p()
-	assert_eq(p.overflowing_shield(100, 20.0, 1000), 20, "20% of the overhealing")
-	assert_eq(p.overflowing_shield(5000, 30.0, 1000), 100, "never more than 10% of their max health")
-	assert_eq(p.overflowing_shield(0, 30.0, 1000), 0, "no overhealing, no shield")
-	assert_eq(p.overflowing_shield(-50, 30.0, 1000), 0)
+	assert_eq(HolyTalentsKit.overflowing_shield(100, 20.0, 1000), 20, "20% of the overhealing")
+	assert_eq(HolyTalentsKit.overflowing_shield(5000, 30.0, 1000), 100, "never more than 10% of their max health")
+	assert_eq(HolyTalentsKit.overflowing_shield(0, 30.0, 1000), 0, "no overhealing, no shield")
+	assert_eq(HolyTalentsKit.overflowing_shield(-50, 30.0, 1000), 0)
 	assert_contains(PlayerSource.text(), "_overflowing(tgt, amount, id)")
 
 func test_penitent_and_zeal() -> void:
 	var p := _p()
-	assert_true(p.penitent_hit(150, 1000), "15% of max health")
-	assert_false(p.penitent_hit(149, 1000))
-	assert_false(p.penitent_hit(500, 0))
-	assert_true(p.zeal_counts(30.0), "a 30 sec cooldown counts")
-	assert_false(p.zeal_counts(29.9))
+	assert_true(HolyTalentsKit.penitent_hit(150, 1000), "15% of max health")
+	assert_false(HolyTalentsKit.penitent_hit(149, 1000))
+	assert_false(HolyTalentsKit.penitent_hit(500, 0))
+	assert_true(HolyTalentsKit.zeal_counts(30.0), "a 30 sec cooldown counts")
+	assert_false(HolyTalentsKit.zeal_counts(29.9))
 
 func test_radiance_counts_holy_heals() -> void:
 	var p := _p()
 	for id in ["psalm", "outpour", "gleam", "brightlance", "absolve", "benediction", "prism_shatter", "light_mote"]:
-		assert_true(p.is_holy_heal(id), "%s is a Holy heal" % id)
+		assert_true(HolyTalentsKit.is_holy_heal(id), "%s is a Holy heal" % id)
 	for id in ["secondwind", "patchup", "lifesteal"]:
-		assert_false(p.is_holy_heal(id), "%s is not" % id)
+		assert_false(HolyTalentsKit.is_holy_heal(id), "%s is not" % id)
 
 func test_hooks_are_in_place() -> void:
 	var src := PlayerSource.text()
@@ -91,10 +91,10 @@ func test_no_empty_slots() -> void:
 
 func test_second_breath() -> void:
 	var p := _p()
-	assert_true(p.second_breath(200, 1000, 400), "20% to 60%: a save")
-	assert_false(p.second_breath(300, 1000, 400), "it has to start below 30%")
-	assert_false(p.second_breath(200, 1000, 250), "and end above 50%")
-	assert_false(p.second_breath(0, 0, 100))
+	assert_true(HolyTalentsKit.second_breath(200, 1000, 400), "20% to 60%: a save")
+	assert_false(HolyTalentsKit.second_breath(300, 1000, 400), "it has to start below 30%")
+	assert_false(HolyTalentsKit.second_breath(200, 1000, 250), "and end above 50%")
+	assert_false(HolyTalentsKit.second_breath(0, 0, 100))
 
 func test_shared_hooks() -> void:
 	var src := PlayerSource.text()

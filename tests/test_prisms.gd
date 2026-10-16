@@ -49,9 +49,9 @@ func test_the_kit_is_in_the_holy_book() -> void:
 func test_nothing_to_do_with_the_hymns() -> void:
 	var p := _p()
 	for id in KIT:
-		assert_false(p.HYMN_HEALS.has(id), "%s is not a Hymn heal" % id)
+		assert_false(HymnsKit.HYMN_HEALS.has(id), "%s is not a Hymn heal" % id)
 		assert_false(Balance.VERSE_GAINS.has(id), "%s gives no Verses" % id)
-		assert_false(p.HYMN_INSTANTS.has(id), "%s is not a Hymn instant" % id)
+		assert_false(HymnsKit.HYMN_INSTANTS.has(id), "%s is not a Hymn instant" % id)
 
 func test_every_icon_is_its_own() -> void:
 	var src := FileAccess.get_file_as_string("res://scripts/abilities.gd")
@@ -84,44 +84,44 @@ func test_on_beam() -> void:
 	var p := _p()
 	var me := Vector3.ZERO
 	var tank := Vector3(10, 0, 0)
-	assert_true(p.on_beam(me, tank, Vector3(5, 0, 0), 1.0), "right on the line")
-	assert_true(p.on_beam(me, tank, Vector3(5, 0, 0.9), 1.0), "just beside it")
-	assert_false(p.on_beam(me, tank, Vector3(5, 0, 1.5), 1.0), "too far beside it")
-	assert_true(p.on_beam(me, tank, Vector3(5, 0, 1.5), 2.0), "Clear Glass: a wider line")
-	assert_false(p.on_beam(me, tank, Vector3(-2, 0, 0), 1.0), "behind me")
-	assert_false(p.on_beam(me, tank, Vector3(12, 0, 0), 1.0), "past the target")
-	assert_true(p.on_beam(me, tank, Vector3(5, 3, 0), 1.0), "height doesn't matter (seen from above)")
-	assert_false(p.on_beam(me, me, Vector3(0.1, 0, 0), 1.0), "no beam to myself")
+	assert_true(PrismsKit.on_beam(me, tank, Vector3(5, 0, 0), 1.0), "right on the line")
+	assert_true(PrismsKit.on_beam(me, tank, Vector3(5, 0, 0.9), 1.0), "just beside it")
+	assert_false(PrismsKit.on_beam(me, tank, Vector3(5, 0, 1.5), 1.0), "too far beside it")
+	assert_true(PrismsKit.on_beam(me, tank, Vector3(5, 0, 1.5), 2.0), "Clear Glass: a wider line")
+	assert_false(PrismsKit.on_beam(me, tank, Vector3(-2, 0, 0), 1.0), "behind me")
+	assert_false(PrismsKit.on_beam(me, tank, Vector3(12, 0, 0), 1.0), "past the target")
+	assert_true(PrismsKit.on_beam(me, tank, Vector3(5, 3, 0), 1.0), "height doesn't matter (seen from above)")
+	assert_false(PrismsKit.on_beam(me, me, Vector3(0.1, 0, 0), 1.0), "no beam to myself")
 
 func test_charge_and_cap() -> void:
 	var p := _p()
-	var cap: float = p.prism_cap(0.0)
+	var cap: float = PrismsKit.prism_cap(0.0)
 	assert_true(is_equal_approx(cap, 3.0 * Balance.REFERENCE_HEAL), "3 old Heals")
-	assert_true(is_equal_approx(p.prism_cap(40.0), cap * 1.4), "Deep Crystal")
-	assert_true(is_equal_approx(p.prism_charged(0.0, 4.0, cap), 1.0), "25% of the heal")
-	assert_true(is_equal_approx(p.prism_charged(cap - 0.1, 4.0, cap), cap), "never more than the cap")
+	assert_true(is_equal_approx(PrismsKit.prism_cap(40.0), cap * 1.4), "Deep Crystal")
+	assert_true(is_equal_approx(PrismsKit.prism_charged(0.0, 4.0, cap), 1.0), "25% of the heal")
+	assert_true(is_equal_approx(PrismsKit.prism_charged(cap - 0.1, 4.0, cap), cap), "never more than the cap")
 
 func test_amplify() -> void:
 	var p := _p()
-	assert_true(is_equal_approx(p.amplify_mult(0, 0.0), 1.0))
-	assert_true(is_equal_approx(p.amplify_mult(3, 0.0), 1.3), "+10% per prism")
-	assert_true(is_equal_approx(p.amplify_mult(3, 10.0), 1.6), "Sharp Facets")
+	assert_true(is_equal_approx(PrismsKit.amplify_mult(0, 0.0), 1.0))
+	assert_true(is_equal_approx(PrismsKit.amplify_mult(3, 0.0), 1.3), "+10% per prism")
+	assert_true(is_equal_approx(PrismsKit.amplify_mult(3, 10.0), 1.6), "Sharp Facets")
 
 # --- Shattering, moving, targeting --------------------------------------------------------
 
 func test_shatter() -> void:
 	var p := _p()
-	assert_true(is_equal_approx(p.shatter_share(6.0, 3), 2.0), "split evenly")
-	assert_true(is_equal_approx(p.shatter_share(6.0, 0), 6.0), "no division by zero")
-	assert_true(is_equal_approx(p.shatter_damage(6.6, 6.6, 0.0), Balance.PRISM_SHATTER_DAMAGE), "full prism: full damage")
-	assert_true(is_equal_approx(p.shatter_damage(3.3, 6.6, 0.0), Balance.PRISM_SHATTER_DAMAGE * 0.5), "half full: half")
-	assert_true(is_equal_approx(p.shatter_damage(6.6, 6.6, 20.0), Balance.PRISM_SHATTER_DAMAGE * 1.2), "Prismatic Burst")
+	assert_true(is_equal_approx(PrismsKit.shatter_share(6.0, 3), 2.0), "split evenly")
+	assert_true(is_equal_approx(PrismsKit.shatter_share(6.0, 0), 6.0), "no division by zero")
+	assert_true(is_equal_approx(PrismsKit.shatter_damage(6.6, 6.6, 0.0), Balance.PRISM_SHATTER_DAMAGE), "full prism: full damage")
+	assert_true(is_equal_approx(PrismsKit.shatter_damage(3.3, 6.6, 0.0), Balance.PRISM_SHATTER_DAMAGE * 0.5), "half full: half")
+	assert_true(is_equal_approx(PrismsKit.shatter_damage(6.6, 6.6, 20.0), Balance.PRISM_SHATTER_DAMAGE * 1.2), "Prismatic Burst")
 	assert_eq(Details.HIT_NAMES.get("prism_shatter", ""), "Prism Shatter", "its own meter line")
 
 func test_realign_keeps_the_shape() -> void:
 	var p := _p()
 	var old := [Vector3(0, 0, 0), Vector3(2, 0, 0), Vector3(1, 0, 2)]
-	var got: Array = p.realign_spots(old, Vector3(10, 0, 10))
+	var got: Array = PrismsKit.realign_spots(old, Vector3(10, 0, 10))
 	assert_eq(got.size(), 3)
 	for i in 3:
 		for j in 3:
@@ -135,12 +135,12 @@ func test_picking_a_prism() -> void:
 	var p := _p()
 	var keys := ["p1", "p2", "p3"]
 	var spots := [Vector3(0, 0, 0), Vector3(10, 0, 0), Vector3(20, 0, 0)]
-	assert_eq(p.pick_prism(keys, spots, "p3", "p2", Vector3.ZERO), 2, "the mouseover one first")
-	assert_eq(p.pick_prism(keys, spots, "", "p2", Vector3.ZERO), 1, "then the one I clicked")
-	assert_eq(p.pick_prism(keys, spots, "", "", Vector3(19, 0, 0)), 2, "else my closest")
-	assert_eq(p.pick_prism(keys, spots, "gone", "", Vector3(1, 0, 0)), 0, "a mouseover that isn't mine is ignored")
-	assert_eq(p.pick_prism([], [], "", "", Vector3.ZERO), -1, "none")
-	assert_eq(p.closest_index(spots, Vector3(9, 0, 0)), 1, "Move Prism: the one closest to the mouse")
+	assert_eq(PrismsKit.pick_prism(keys, spots, "p3", "p2", Vector3.ZERO), 2, "the mouseover one first")
+	assert_eq(PrismsKit.pick_prism(keys, spots, "", "p2", Vector3.ZERO), 1, "then the one I clicked")
+	assert_eq(PrismsKit.pick_prism(keys, spots, "", "", Vector3(19, 0, 0)), 2, "else my closest")
+	assert_eq(PrismsKit.pick_prism(keys, spots, "gone", "", Vector3(1, 0, 0)), 0, "a mouseover that isn't mine is ignored")
+	assert_eq(PrismsKit.pick_prism([], [], "", "", Vector3.ZERO), -1, "none")
+	assert_eq(PrismsKit.closest_index(spots, Vector3(9, 0, 0)), 1, "Move Prism: the one closest to the mouse")
 
 func test_prism_rules_in_the_code() -> void:
 	var src := _src()

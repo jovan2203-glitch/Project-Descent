@@ -140,7 +140,7 @@ func _tick_weaver() -> void:
 			gone = true
 	if gone:
 		_sync_mulch()
-	elif now - _mulch_told >= Player.PRISM_RETELL:
+	elif now - _mulch_told >= PrismsKit.PRISM_RETELL:
 		_tell_mulch()
 
 ## The picture of my patches (and the party is told, so they see them faint).

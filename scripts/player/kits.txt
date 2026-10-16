@@ -2,3 +2,8 @@ venomstring VenomstringKit nature_venomstring.gd
 colossus ColossusKit nature_colossus.gd
 shepherd ShepherdKit nature_shepherd.gd
 weaver WeaverKit nature_weaver.gd
+holy_talents HolyTalentsKit holy_talents.gd
+lightstring LightstringKit holy_lightstring.gd
+prism_kit PrismsKit holy_prisms.gd
+censer CenserKit holy_censer.gd
+hymns HymnsKit holy_hymns.gd
