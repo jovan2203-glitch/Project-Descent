@@ -1,3 +1,4 @@
 queue_page QueuePage queue_page.gd
 bank_page BankPage bank_page.gd
 esc EscMenuPart esc_menu_part.gd
+lobby_page LobbyPage lobby_page.gd
