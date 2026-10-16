@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"singvigil"
 display_name = "Sing Vigil"
-description = "You sing Vigil: allies within {b:VIGIL_RADIUS} m of you, you included, take {b:VIGIL_DR_PCT}% less damage, and your heals leave a shield worth {b:VIGIL_WARD_PCT}% of the heal for {b:VIGIL_WARD_TIME} sec. With {b:VERSE_MAX} Verses, entering Vigil booms with Bulwark of Song: allies within {b:BULWARK_SONG_RADIUS} m of you take {b:BULWARK_SONG_PCT}% less damage for {b:BULWARK_SONG_TIME} sec. With fewer, singing it costs you your Verses."
+description = "You sing Vigil: allies within {b:VIGIL_RADIUS} m of you, you included, take {b:VIGIL_DR_PCT}% less damage, and your heals leave a shield worth {b:VIGIL_WARD_PCT}% of the heal for {b:VIGIL_WARD_TIME} sec. With {b:VERSE_MAX} Verses, entering Vigil booms with Bulwark of Song: allies within {b:BULWARK_SONG_RADIUS} m of you take {b:BULWARK_SONG_PCT}% less damage for {bulwark_time} sec. With fewer, singing it costs you your Verses."
 tags = PackedStringArray("Holy", "Spell")
 cast_type = 0
 cast_time = 0.0

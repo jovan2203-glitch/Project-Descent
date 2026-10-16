@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"infuse"
+display_name = "Infuse"
+description = "Fills one of your white prisms (the one you target, or else your closest) with light, up to full."
+tags = PackedStringArray("Holy", "Spell")
+cast_type = 0
+cast_time = 0.0
+requires_target = false
+weapon_requirement = 0
+resource_type = 1
+damage = 0.0
+damage_type = &"holy"

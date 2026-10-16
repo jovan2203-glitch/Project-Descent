@@ -432,6 +432,36 @@ static func _draw_item_shape(c: Control, base: String, slot: String, col: Color,
 			c.draw_line(m + Vector2(-1, 5) * k, m + Vector2(-9, 13) * k, Color(0.35, 0.22, 0.12), 3.5 * k, true)
 			if base == "venom_fang":
 				c.draw_circle(m + Vector2(12, -4) * k, 2.0 * k, blade)
+		"ritual_dagger":
+			var pts := PackedVector2Array([m + Vector2(-3, 3) * k, m + Vector2(12, -12) * k, m + Vector2(3, 3) * k])
+			c.draw_colored_polygon(pts, col)
+			c.draw_line(m + Vector2(-6, 0) * k, m + Vector2(3, 9) * k, gold, 3.0 * k, true)
+			c.draw_line(m + Vector2(-1, 5) * k, m + Vector2(-9, 13) * k, Color(0.25, 0.15, 0.3), 3.5 * k, true)
+			c.draw_circle(m + Vector2(-10, 14) * k, 2.5 * k, Color(0.8, 0.6, 1.0))
+		"runed_blade":
+			var tip := m + Vector2(14, -14) * k
+			var guard := m + Vector2(-6, 6) * k
+			c.draw_line(guard, tip, col, 4.0 * k, true)
+			for f in [0.3, 0.55, 0.8]:
+				c.draw_circle(guard.lerp(tip, f), 1.4 * k, Color(0.85, 0.95, 1.0))
+			c.draw_line(m + Vector2(-11, 1) * k, m + Vector2(-1, 11) * k, gold, 3.5 * k, true)
+			c.draw_line(guard, m + Vector2(-12, 12) * k, Color(0.25, 0.25, 0.4), 3.5 * k, true)
+		"tome":
+			c.draw_rect(Rect2(m + Vector2(-11, -14) * k, Vector2(22, 28) * k), col, true)
+			c.draw_rect(Rect2(m + Vector2(-11, -14) * k, Vector2(4, 28) * k), dark, true)
+			c.draw_rect(Rect2(m + Vector2(9, -12) * k, Vector2(2, 24) * k), Color(0.95, 0.92, 0.8), true)
+			c.draw_circle(m + Vector2(2, 0) * k, 4.5 * k, gold)
+		"wand":
+			c.draw_line(m + Vector2(-12, 13) * k, m + Vector2(9, -8) * k, col, 3.0 * k, true)
+			c.draw_line(m + Vector2(-12, 13) * k, m + Vector2(-5, 6) * k, dark, 3.5 * k, true)
+			c.draw_circle(m + Vector2(11, -10) * k, 5.0 * k, Color(0.6, 0.85, 1.0, 0.35))
+			c.draw_circle(m + Vector2(11, -10) * k, 2.8 * k, Color(0.85, 0.95, 1.0))
+		"lantern":
+			c.draw_arc(m + Vector2(0, -11) * k, 5.0 * k, PI, TAU, 12, dark, 2.0 * k, true)
+			c.draw_rect(Rect2(m + Vector2(-9, -11) * k, Vector2(18, 4) * k), col, true)
+			c.draw_rect(Rect2(m + Vector2(-7, -7) * k, Vector2(14, 16) * k), Color(1.0, 0.92, 0.55), true)
+			c.draw_circle(m + Vector2(0, 1) * k, 4.0 * k, Color(1, 1, 0.9))
+			c.draw_rect(Rect2(m + Vector2(-9, 9) * k, Vector2(18, 4) * k), col, true)
 		"shield":
 			var pts := PackedVector2Array([m + Vector2(-12, -13) * k, m + Vector2(12, -13) * k, m + Vector2(11, 3) * k,
 				m + Vector2(0, 15) * k, m + Vector2(-11, 3) * k])

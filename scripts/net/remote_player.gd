@@ -16,6 +16,7 @@ var member_id := 0
 var display_name := ""
 var health := 10
 var max_health := 10
+var hurt_at := -100.0   # when their health last dropped (seconds; Watchful Eye)
 ## Mirrored from the owner (Net.send_support_state): a Rime Shell is up, and
 ## lockout effects (Weakened Soul...) -> time they end.
 var has_rime_shell := false
@@ -96,6 +97,8 @@ func apply_state(pos: Vector3, yaw: float, anim_state: String, hp: int, mhp: int
 		rotation.y = yaw
 	var now_downed := hp <= 0 and anim_state == "downed"
 	var changed := hp != health or mhp != max_health or now_downed != downed
+	if hp < health:
+		hurt_at = Time.get_ticks_msec() / 1000.0   # (a healer's Watchful Eye asks when they were last hit)
 	health = hp
 	max_health = mhp
 	downed = now_downed

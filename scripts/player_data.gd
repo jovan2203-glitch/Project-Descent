@@ -934,6 +934,10 @@ func _compute_total_stats() -> Dictionary:
 	for extra in [talent_stats(), level_stats(), boon_stats(), attribute_stats()]:
 		for stat in extra:
 			out[stat] = float(out.get(stat, 0.0)) + float(extra[stat])
+	# Steadfast (an open Holy talent): Block.
+	var steadfast := talent_value("holy_steadfast")
+	if steadfast > 0.0:
+		out[Stats.BLOCK] = float(out.get(Stats.BLOCK, 0.0)) + steadfast
 	# Frozen Mind: Spell Power equal to a % of your Intellect.
 	var int_sp := talent_value("frost_int_sp")
 	if int_sp > 0.0:

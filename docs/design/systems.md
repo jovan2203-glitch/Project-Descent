@@ -3,8 +3,9 @@
 ## Books and specs
 - Books: Fire, Frost, Lightning, Arcane, Shadow, Nature, Holy, Martial (warrior/rogue/ranger combined; was "Physical"). Nature and Martial aren't designed yet. Holy was wiped (all 7 abilities, Heal included) and is being rebuilt from docs/design/holy.md: the healer (Hymns) is built, the rest are drafts.
 - Book layout: abilities on the left page, that book's talent tree on the right. Layout symmetrical; spellbooks never change position.
-- Specs (visual only): each book's abilities are split by playstyle under named dividers in the main-menu books and the in-game spellbook (P). Names and contents: `Abilities.SPECS`. Every ability sits in exactly one spec of its book (tests/test_books.gd). Specs: Fire - Steady Flame, Slagforged, Forge Heat, Pitch and Cinder. Frost - Hard Winter, Cold Comfort, Frostbitten Steel, Winter Hunt. Lightning - Live Current, Stormdancer, Lightning Rod, Stormstring. Arcane - Clockwork, Hall of Mirrors, Second Act, Aetherstring. Shadow - The Breach, Pack of Two, Strings Attached, Nightstring. Nature - Thornweaver, Sapwarden. Holy - Choir of One (the rest come with their specs). Martial - Warpath, Iron Line, Knife Work, Huntsman.
+- Specs (visual only): each book's abilities are split by playstyle under named dividers in the main-menu books and the in-game spellbook (P). Names and contents: `Abilities.SPECS`. Every ability sits in exactly one spec of its book (tests/test_books.gd). Specs: Fire - Steady Flame, Slagforged, Forge Heat, Pitch and Cinder. Frost - Hard Winter, Cold Comfort, Frostbitten Steel, Winter Hunt. Lightning - Live Current, Stormdancer, Lightning Rod, Stormstring. Arcane - Clockwork, Hall of Mirrors, Second Act, Aetherstring. Shadow - The Breach, Pack of Two, Strings Attached, Nightstring. Nature - Thornweaver, Sapwarden. Holy - Choir of One, Line of Light, Lightstring, Censer Bearer (the rest come with their specs). Martial - Warpath, Iron Line, Knife Work, Huntsman.
 - Every character (level 1 / after death) gets a basic ability of every element plus a heal (Psalm, from the Holy healer), a tank spell and a taunt.
+- Mana: every spec that uses mana runs out eventually, after roughly 5-7 minutes of nonstop combat (not soon). Mana costs are in points (10% of base mana) and may be fractions.
 - Interrupts exist for mage, rogue and warrior.
 
 ## Abilities, spellbook, action bars
@@ -15,6 +16,7 @@
 - Extra action bars (above main and both sides), opacity settings, keybinds. On-use trinkets can go on bars.
 - Macros (Esc menu in game and main menu): sequence abilities or several off-GCD things on one button, icon from in-game icons; linking a spell at the top shows its cooldown and tooltip.
 - Abilities & Talents search (global and per book, keyword matching, also on runes screen); hovering highlights mentions both ways.
+- Mouseover casting (Settings > Interface, off by default), like WoW: pressing an ability with the mouse over a legal target (enemy, ally or you, or your prism) uses it there without changing your target; an illegal one is ignored.
 
 ## Runes
 - Rarities: Legendary (build-defining, max 1), Epic (max 4, no duplicates), Rare/Common (up to 3 of the same, some unique at 1). Menace threat runes: one per damage type, only one Menace at a time.
@@ -40,6 +42,7 @@
 
 ## Items and meters
 - Gear has level requirements; higher stats = higher level. Every bank gets basic starter weapons. Shift over an item compares with the equipped one (green/red).
+- Off Hand: shields, plus non-weapon spellcasting off hands (Worn Tome, Ashwood Wand) and the Brass Lantern (Armor, Strength, Constitution: the Holy tank's off hand; the tank works with any off hand item). Any one-handed melee weapon also fits it (dual wield). Caster one-handers: Ritual Dagger, Runed Blade (Intellect + Spell Power). These are base templates; stats will be tuned later. Abilities check the off hand with `Abilities.offhand_type()`.
 - Damage/healing meter (per-spell breakdown, buff-uptime tab); every added-damage source has its own line.
 - Give item works in game and in the main menu.
 

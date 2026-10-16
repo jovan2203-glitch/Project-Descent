@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"absolve"
+display_name = "Absolve"
+description = "Spends up to {b:ABSOLVE_MAX} Incense and heals you for up to {absolve_full} (less when it spends less). Drops motes of light worth {b:MOTE_SPEND_PCT}% of what it spent."
+tags = PackedStringArray("Ability", "Holy", "Heal", "Defensive")
+cast_type = 0
+cast_time = 0.0
+requires_target = false
+requires_off_hand = true
+weapon_requirement = 1
+resource_type = 1
+damage = 0.0
+damage_type = &"holy"

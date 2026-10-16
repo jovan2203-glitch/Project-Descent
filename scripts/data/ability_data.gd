@@ -26,6 +26,8 @@ enum WeaponRequirement { NONE, MELEE, RANGED }
 @export var weapon_requirement: WeaponRequirement = WeaponRequirement.NONE
 ## Needs a shield equipped in the Off Hand.
 @export var requires_shield: bool = false
+## Needs an off hand item (tome, wand, lantern...; not a weapon or shield) in the Off Hand.
+@export var requires_off_hand: bool = false
 ## Needs a two-handed weapon in the Main Hand (with weapon_requirement MELEE: a
 ## two-handed melee weapon).
 @export var requires_two_hand: bool = false
@@ -35,7 +37,8 @@ enum WeaponRequirement { NONE, MELEE, RANGED }
 
 @export_group("Cost")
 @export var resource_type: ResourceType = ResourceType.NONE
-@export var resource_cost: int = 0
+## Mana costs are in points (10% of base mana each) and may be fractions; Energy and Rage are whole.
+@export var resource_cost: float = 0.0
 ## Resource gained on use (e.g. Slam generates rage).
 @export var resource_generated: int = 0
 

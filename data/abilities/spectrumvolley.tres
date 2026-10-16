@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"spectrumvolley"
+display_name = "Spectrum Volley"
+description = "For {b:VOLLEY_TIME} sec, each of your gold prisms shoots the nearest enemy within {b:VOLLEY_RADIUS} m of it {bev:VOLLEY_EVERY}, for {volley_dmg} Holy damage plus more for its light."
+tags = PackedStringArray("Ability", "Holy", "Ranged", "AoE")
+cast_type = 0
+cast_time = 0.0
+requires_target = false
+weapon_requirement = 2
+resource_type = 2
+damage = 0.0
+damage_type = &"holy"

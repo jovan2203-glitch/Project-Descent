@@ -32,6 +32,12 @@ const PATHS := {
 	"dagger": "res://data/items/dagger.tres",
 	"venom_fang": "res://data/items/venom_fang.tres",
 	"shield": "res://data/items/shield.tres",
+	# Spellcasting off hands and one-handers (base templates, tune later)
+	"tome": "res://data/items/tome.tres",
+	"wand": "res://data/items/wand.tres",
+	"lantern": "res://data/items/lantern.tres",   # the Holy tank's off hand
+	"ritual_dagger": "res://data/items/ritual_dagger.tres",
+	"runed_blade": "res://data/items/runed_blade.tres",
 	# Trinkets (Equip: procs / Use: actives)
 	"storm_idol": "res://data/items/storm_idol.tres",
 	"phoenix_ember": "res://data/items/phoenix_ember.tres",
@@ -49,6 +55,7 @@ const PATHS := {
 const ALL := ["helmet", "chestplate", "sword", "bow",
 	"amulet", "pauldrons", "cloak", "gloves", "leggings", "boots", "ring_focus", "ring_might",
 	"staff", "greatsword", "dagger", "venom_fang", "shield",
+	"tome", "wand", "lantern", "ritual_dagger", "runed_blade",
 	"storm_idol", "phoenix_ember", "berserker_tooth", "arcane_clockwork",
 	"frost_shard", "sand_hourglass", "sacred_reliquary"]
 const Stats = preload("res://scripts/core/stats.gd")
@@ -284,6 +291,12 @@ static func item_type(item: String) -> String:
 static func is_one_handed_melee(item: String) -> bool:
 	var d := get_item(item)
 	return str(d.get("weapon", "")) == "melee" and not bool(d.get("locks_offhand", false))
+
+## Is this an off hand item (tome, wand, lantern...): made for the Off Hand,
+## not a weapon and not a shield?
+static func is_off_hand_item(item: String) -> bool:
+	var d := get_item(item)
+	return str(d.get("slot", "")) == "Off Hand" and not d.has("weapon") and str(d.get("item_type", "")) != "shield"
 
 ## An effect's description with {amount} (damage / heal) and {buff} (buff size)
 ## filled in for this item's level.

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"prismarrow"
+display_name = "Prism Arrow"
+description = "Shoots an arrow to a spot up to {range} m away, where it plants a gold prism for {prism_time} sec. Holds {b:PRISM_ARROW_CHARGES} charges. Your prisms of both colours count toward {b:PRISM_MAX}; a new one replaces the oldest."
+tags = PackedStringArray("Ability", "Holy", "Ranged")
+cast_type = 0
+cast_time = 0.0
+requires_target = false
+weapon_requirement = 2
+resource_type = 2
+damage = 0.0
+damage_type = &"holy"

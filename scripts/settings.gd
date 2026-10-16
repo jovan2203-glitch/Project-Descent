@@ -112,6 +112,9 @@ const UI_OPACITY_MIN := 0.3
 const HUD_GROUP := "hud_fade"
 var ui_scale := 1.0     # whole UI (menus, HUD, windows)
 var ui_opacity := 1.0   # in-game HUD only (Esc menu / Settings / map stay solid)
+## Mouseover casting (like WoW's): pressing an ability while the mouse is over a
+## legal target for it uses it on that target, without changing your target.
+var mouseover_casting := false
 signal interface_changed
 
 func apply_interface() -> void:
@@ -154,6 +157,15 @@ func build_interface_ui() -> Control:
 	op_s.drag_ended.connect(func(_value_changed): save())
 	_row(grid, "HUD opacity", op_s)
 	grid.add_child(op_l)
+	var mo := CheckButton.new()
+	mo.focus_mode = Control.FOCUS_NONE
+	mo.button_pressed = mouseover_casting
+	mo.tooltip_text = "Press an ability while your mouse is over a legal target for it (an enemy, an ally, or one of your prisms) to use it on that target, without changing your target."
+	mo.toggled.connect(func(pressed: bool):
+		mouseover_casting = pressed
+		save())
+	_row(grid, "Mouseover casting", mo)
+	grid.add_child(Control.new())
 	# Extra action bars: on / off and how see-through each one is.
 	v.add_child(UI.label("Extra action bars", 15, UI.ACCENT))
 	var bars := GridContainer.new()
@@ -257,6 +269,7 @@ func _load() -> void:
 		volumes[bus] = clampf(float(cfg.get_value("audio", bus, volumes[bus])), 0.0, 1.0)
 	ui_scale = clampf(float(cfg.get_value("ui", "scale", ui_scale)), UI_SCALE_MIN, UI_SCALE_MAX)
 	ui_opacity = clampf(float(cfg.get_value("ui", "opacity", ui_opacity)), UI_OPACITY_MIN, 1.0)
+	mouseover_casting = bool(cfg.get_value("ui", "mouseover_casting", mouseover_casting))
 	var eb: Variant = cfg.get_value("ui", "extra_bars", [])
 	var eo: Variant = cfg.get_value("ui", "extra_bar_opacity", [])
 	for i in EXTRA_BARS.size():
@@ -287,6 +300,7 @@ func save() -> void:
 	cfg.set_value("ui", "chat_size", chat_size)
 	cfg.set_value("ui", "scale", ui_scale)
 	cfg.set_value("ui", "opacity", ui_opacity)
+	cfg.set_value("ui", "mouseover_casting", mouseover_casting)
 	cfg.set_value("ui", "extra_bars", extra_bars)
 	cfg.set_value("ui", "extra_bar_opacity", extra_bar_opacity)
 	cfg.save(PATH)

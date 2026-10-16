@@ -31,6 +31,9 @@ const WANT := [
 	["shadow_lean_and_hungry", "shadow_fed"], ["shadow_fed", "shadow_worked_up"],
 	["shadow_long_night", "shadow_take_it_with_you"], ["shadow_pincer", "shadow_again"],
 	["shadow_long_thread", "shadow_spare_spool"],
+	["holy_wide_arc", "holy_deep_pour"],
+	["holy_wide_burst", "holy_prismatic_burst"],
+	["holy_deep_burn", "holy_long_volley"],
 ]
 
 ## Where every talent that changed slot sits now: key -> id.

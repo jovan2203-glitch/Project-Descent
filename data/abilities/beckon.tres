@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"beckon"
+display_name = "Guiding Ray"
+description = "Flicks a ray of light from your censer at an enemy up to {range} m away, dealing {hit} Holy damage with {threat}x threat. Gives {b:BECKON_INCENSE} Incense and drops a mote of light at the enemy."
+tags = PackedStringArray("Ability", "Holy", "Ranged")
+cast_type = 0
+cast_time = 0.0
+requires_target = true
+requires_off_hand = true
+weapon_requirement = 1
+resource_type = 1
+damage = 0.0
+damage_type = &"holy"

@@ -50,6 +50,10 @@ const TRACE_GHOST = preload("res://scripts/trace_ghost.gd")
 const BREACH_FX = preload("res://scripts/breach_fx.gd")
 const PUPPETEER = preload("res://scripts/puppeteer.gd")
 const HYMN_RING = preload("res://scripts/hymn_ring.gd")
+const CENSER = preload("res://scripts/censer.gd")
+const LIGHT_MOTE = preload("res://scripts/light_mote.gd")
+const PRISM = preload("res://scripts/prism.gd")
+const LIGHT_BEAM = preload("res://scripts/light_beam.gd")
 const HOUND = preload("res://scripts/hound.gd")
 const Balance = preload("res://scripts/balance.gd")
 
@@ -1292,6 +1296,38 @@ func _fx(t: int, member: int, kind: String, at: Vector3, target_id: String, id: 
 		"hymn":
 			# A party member's Hymn (Holy healer): the ring of glyphs around them. A picture.
 			HYMN_RING.show_on(src, str(extra.get("h", "")))
+		"censer":
+			# A party member's censer (Holy tank): how bright it is, whether it is out,
+			# and Raise the Censer. A picture; the rules run on their machine.
+			CENSER.show_on(src, int(extra.get("n", 0)), bool(extra.get("on", false)))
+			if extra.has("up"):
+				CENSER.raise(src, at, float(extra.get("h", 4.0)), float(extra.get("up", 0.0)), float(extra.get("r", 10.0)))
+		"censer_flash":
+			CENSER.flash(src)
+		"prisms":
+			# A party member's prisms (Holy healer #2): where they stand and how full,
+			# shown faint. A picture; only their beams charge them.
+			var pkeys := []
+			for row in extra.get("p", []):
+				if row is Array and row.size() >= 5:
+					var pkey := "%d:%s" % [member, str(row[0])]
+					pkeys.append(pkey)
+					PRISM.place(w, pkey, Vector3(float(row[1]), float(row[2]), float(row[3])), float(row[4]), false, false,
+						row.size() > 5 and str(row[5]) == "gold")
+			PRISM.keep_only(w.get_tree(), "%d:" % member, pkeys)
+		"prism_burst":
+			PRISM.shatter(w.get_tree(), "%d:%s" % [member, str(extra.get("k", ""))])
+		"beam":
+			var to: Variant = extra.get("to")
+			if to is Vector3:
+				LIGHT_BEAM.flash(w, at, to, Color(0.95, 0.97, 1.0))
+		"motes":
+			# ... and their motes of light: faint here, only they can pick them up.
+			var mkey := "%d:%s" % [member, str(extra.get("k", ""))]
+			if extra.has("t"):
+				LIGHT_MOTE.spawn(w, at, mkey, false, float(extra.get("t", 10.0)))
+			else:
+				LIGHT_MOTE.take(w.get_tree(), mkey, src)
 		"hymn_boom":
 			# ... and their boom: a column of light. The healing is theirs.
 			HYMN_RING.boom(w, at, HYMN_RING.COLORS.get(str(extra.get("h", "")), Color.WHITE))

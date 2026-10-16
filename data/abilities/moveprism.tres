@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"moveprism"
+display_name = "Move Prism"
+description = "Your prism (either colour) closest to your mouse flickers over to the spot under your mouse, up to {range} m away. It keeps its light and its time."
+tags = PackedStringArray("Holy", "Spell")
+cast_type = 0
+cast_time = 0.0
+requires_target = false
+weapon_requirement = 0
+resource_type = 1
+damage = 0.0
+damage_type = &"holy"

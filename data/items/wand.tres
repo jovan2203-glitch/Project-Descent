@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GearItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/gear_item_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"wand"
+display_name = "Ashwood Wand"
+description = "Off Hand wand  •  Spellcasting"
+color = Color(0.75, 0.6, 0.4, 1)
+slot = 13
+item_type = &"wand"
+stats = {"spell_power": 1, "crit_rating": 168}

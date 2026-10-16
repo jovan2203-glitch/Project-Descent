@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"mendingray"
+display_name = "Mending Ray"
+description = "Channels a beam of light into an ally, healing them for {heal} over the channel. Each tick's beam charges the white prisms it passes through."
+tags = PackedStringArray("Holy", "Spell", "Heal")
+cast_type = 2
+cast_time = 0.0
+requires_target = false
+weapon_requirement = 0
+resource_type = 1
+damage = 0.0
+damage_type = &"holy"

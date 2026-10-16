@@ -112,7 +112,7 @@ const LAYOUTS := {
 	"arcane": [[0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 2, 4, 6], [0, 1, 3, 5, 6], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [0, 2, 4, 6], [1, 2, 4, 5], [0, 2, 4, 6], [1, 2, 3, 4, 5]],
 	"shadow": [[0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5]],
 	"nature": [[2, 4], [0, 3, 6], [1, 5], [2, 3, 4], [0, 1, 5, 6], [2, 4], [1, 3, 5], [1, 5], [2, 3, 4], [1, 5]],
-	"holy": [[1, 3, 5], [0, 6], [2, 4], [1, 3, 5], [1, 5], [2, 3, 4], [0, 6], [1, 2, 4, 5], [2, 4], [2, 3, 4]],
+	"holy": [[0, 1, 3, 5, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5]],
 	# (One book where Warrior, Rogue and Ranger used to be three.)
 	"martial": [[1, 3, 5], [0, 2, 4, 6], [1, 5], [2, 3, 4], [0, 3, 6], [1, 2, 4, 5], [2, 4], [1, 3, 5], [0, 2, 4, 6], [2, 3, 4]],
 }
@@ -714,6 +714,115 @@ const TALENTS := {
 		"r2c7": ["Open Doors", 4, "{n:shelter}'s shield absorbs {v}% more.",
 			{"key": "holy_open_doors", "values": [10.0, 20.0, 30.0, 40.0], "requires": "shelter",
 			"capstone": "Its cooldown is {b:OPEN_DOORS_COOLDOWN} sec."}],
+		# Open talents (Holy in theme, useful to anyone): the edges of row 1, the
+		# middle of row 2, the right of row 3 and the edges of row 9. Long Note
+		# (Hymns) sits under Key Change.
+		"r1c1": ["Grace", 3, "Your heals on others heal {v}% more.",
+			{"key": "holy_grace", "values": [2.0, 4.0, 6.0]}],
+		"r1c7": ["Burnished", 3, "Your Holy damage is increased by {v}%.",
+			{"key": "holy_burnished", "values": [2.0, 4.0, 6.0]}],
+		"r2c4": ["Steadfast", 3, "Increases your Block chance by {v}%.",
+			{"key": "holy_steadfast", "values": [2.0, 3.0, 4.0]}],
+		"r3c1": ["Long Note", 3, "Bulwark of Song lasts {v} sec longer.",
+			{"key": "holy_long_note", "values": [1.0, 2.0, 3.0]}],
+		"r3c7": ["Overflowing", 3, "{v}% of your overhealing becomes a shield on that ally for {b:OVERFLOWING_TIME} sec, up to {b:OVERFLOWING_CAP_PCT}% of their maximum health. A bigger one replaces a smaller one.",
+			{"key": "holy_overflowing", "values": [10.0, 20.0, 30.0]}],
+		"r9c1": ["Penitent", 3, "After you take a hit worth {b:PENITENT_HIT_PCT}% of your maximum health, your next heal on yourself is {v}% stronger.",
+			{"key": "holy_penitent", "values": [10.0, 20.0, 30.0]}],
+		"r9c7": ["Zeal", 2, "After you use an ability with a cooldown of {b:ZEAL_COOLDOWN} sec or more, you move {v}% faster for {b:ZEAL_TIME} sec.",
+			{"key": "holy_zeal", "values": [5.0, 10.0]}],
+		# Shared by several specs: Clear Mind, Sheltering Light and Second Breath for both
+		# healers; Long Glass for both prism specs (the second healer and the archer).
+		"r2c2": ["Clear Mind", 3, "Your Holy heals cost {v}% less mana.",
+			{"key": "holy_clear_mind", "values": [3.0, 6.0, 9.0]}],
+		"r2c6": ["Sheltering Light", 3, "Your Holy shields absorb {v}% more: Shelter, Vigil's Ward, Prism Ward and Overflowing's shield.",
+			{"key": "holy_sheltering_light", "values": [10.0, 20.0, 30.0]}],
+		"r5c4": ["Long Glass", 2, "Your prisms of both colours last {v} sec longer.",
+			{"key": "holy_long_glass", "values": [15.0, 30.0]}],
+		"r10c6": ["Second Breath", 2, "When a heal of yours lifts an ally from below {b:SECOND_BREATH_LOW_PCT}% to above {b:SECOND_BREATH_HIGH_PCT}% health, you get {v}% of your maximum mana back.",
+			{"key": "holy_second_breath", "values": [1.0, 2.0]}],
+		# More for each spec (the room once kept for a melee and a caster): the tank down
+		# the left, the archer down the middle, the Hymns and the Prisms on the right.
+		"r4c1": ["Heavy Chain", 2, "{n:censerswing} gives {v} more Incense.",
+			{"key": "holy_heavy_chain", "values": [1.0, 2.0], "requires": "censerswing"}],
+		"r5c1": ["Absolution", 3, "{n:absolve} heals {v}% more.",
+			{"key": "holy_absolution", "values": [10.0, 20.0, 30.0], "requires": "absolve"}],
+		"r10c2": ["Unbroken", 2, "{n:unfallen} lasts {v} sec longer.",
+			{"key": "holy_unbroken", "values": [1.0, 2.0], "requires": "unfallen"}],
+		"r3c4": ["Glimmering", 3, "{n:glimmershot} deals {v}% more damage.",
+			{"key": "holy_glimmering", "values": [5.0, 10.0, 15.0], "requires": "glimmershot"}],
+		"r7c4": ["Steady Aim", 2, "{n:refractingshot}'s cast is {v} sec shorter.",
+			{"key": "holy_steady_aim", "values": [0.25, 0.5], "requires": "refractingshot"}],
+		"r4c7": ["Swelling Chorus", 3, "Chorus's extra heals heal {v}% more.",
+			{"key": "holy_swelling_chorus", "values": [10.0, 20.0, 30.0], "requires": "singchorus"}],
+		"r5c7": ["Quick Lance", 2, "{n:brightlance}'s cast is {v} sec shorter.",
+			{"key": "holy_quick_lance", "values": [0.25, 0.5], "requires": "brightlance"}],
+		# The last six (the tree is full at 50): the archer's middle column, the tank
+		# left, the Hymns and the Prisms right; Watchful Eye for both healers.
+		"r8c4": ["Full Quiver", 2, "{n:prismarrow} recharges {v} sec faster.",
+			{"key": "holy_full_quiver", "values": [2.0, 4.0], "requires": "prismarrow"}],
+		"r9c4": ["Wide Break", 2, "{n:prismbreaker} reaches {v} m further.",
+			{"key": "holy_wide_break", "values": [2.0, 4.0], "requires": "prismbreaker"}],
+		"r6c1": ["Watchful Eye", 2, "Your heals on an ally who was hit in the last {b:WATCHFUL_EYE_WINDOW} sec heal {v}% more.",
+			{"key": "holy_watchful_eye", "values": [10.0, 20.0]}],
+		"r6c7": ["Last Rites", 2, "{n:lastverse}'s cooldown is {v} sec shorter.",
+			{"key": "holy_last_rites", "values": [30.0, 60.0], "requires": "lastverse"}],
+		"r7c3": ["Bright Motes", 2, "Your motes of light heal {v}% more.",
+			{"key": "holy_bright_motes", "values": [25.0, 50.0], "requires": "censerswing"}],
+		"r7c5": ["Steady Ray", 2, "{n:mendingray} heals {v}% more.",
+			{"key": "holy_steady_ray", "values": [10.0, 20.0], "requires": "mendingray"}],
+		# The bottom row: one 5-rank talent per side (the tank left, the archer in the
+		# middle, both healers right).
+		"r10c3": ["Censer's Weight", 5, "Your censer abilities, Incense and Bright Burst deal {v}% more damage.",
+			{"key": "holy_censers_weight", "values": [3.0, 6.0, 9.0, 12.0, 15.0]}],
+		"r10c4": ["Sunsteel", 5, "Your Lightstring shots, refracted arrows and Spectrum Volley's arrows deal {v}% more damage.",
+			{"key": "holy_sunsteel", "values": [3.0, 6.0, 9.0, 12.0, 15.0]}],
+		"r10c5": ["Radiance", 5, "Your Holy heals heal {v}% more.",
+			{"key": "holy_radiance", "values": [2.0, 4.0, 6.0, 8.0, 10.0]}],
+		# The tank (the Censer: player.gd, "Holy tank: the Censer"), down the left side:
+		# motes of light and the barrier first, then Hallowed Arc -> Pour Out, Raise the Censer.
+		"r3c3": ["Mote Magnet", 2, "You pick up motes of light from {v} m further away.",
+			{"key": "holy_mote_magnet", "values": [1.0, 2.0]}],
+		"r4c2": ["Bright Barrier", 3, "Each stack of Incense gives {v}% more Block.",
+			{"key": "holy_bright_barrier", "values": [0.02, 0.04, 0.06]}],
+		"r5c2": ["Lingering Light", 2, "Your motes of light last {v} sec longer.",
+			{"key": "holy_lingering_light", "values": [3.0, 6.0]}],
+		"r6c3": ["Wide Arc", 2, "{n:hallowedarc} reaches {v} m further.",
+			{"key": "holy_wide_arc", "values": [1.0, 2.0], "requires": "hallowedarc"}],
+		"r7c1": ["Deep Pour", 3, "{n:pourout} deals {v}% more damage.",
+			{"key": "holy_deep_pour", "values": [10.0, 20.0, 30.0], "requires": "pourout",
+			"capstone": "It drops motes of light worth {b:DEEP_POUR_MOTE_PCT}% of what it spent."}],
+		"r8c2": ["High Censer", 2, "{n:raisethecenser}'s cooldown is {v} sec shorter.",
+			{"key": "holy_high_censer", "values": [15.0, 30.0], "requires": "raisethecenser"}],
+		# The second healer (the Prisms: player.gd, "Holy healer: the Prisms"), down the right
+		# side: the beam and the prisms first, then shattering them (Wide Burst -> Prismatic Burst), Realign.
+		"r3c5": ["Clear Glass", 2, "Your beams pass through prisms up to {v} m further from their line.",
+			{"key": "holy_clear_glass", "values": [0.5, 1.0]}],
+		"r4c6": ["Deep Crystal", 3, "Your prisms hold {v}% more light.",
+			{"key": "holy_deep_crystal", "values": [20.0, 40.0, 60.0]}],
+		"r5c6": ["Sharp Facets", 2, "A heal is {v}% stronger for each prism it passes through, on top of the usual.",
+			{"key": "holy_sharp_facets", "values": [5.0, 10.0]}],
+		"r6c5": ["Wide Burst", 2, "Your prisms reach allies and enemies {v} m further when they shatter.",
+			{"key": "holy_wide_burst", "values": [2.0, 4.0], "requires": "shatterall"}],
+		"r7c7": ["Prismatic Burst", 3, "Your shattering prisms deal {v}% more damage.",
+			{"key": "holy_prismatic_burst", "values": [20.0, 40.0, 60.0], "requires": "shatterall"}],
+		"r8c6": ["Quick Realign", 2, "{n:realign}'s cooldown is {v} sec shorter.",
+			{"key": "holy_quick_realign", "values": [5.0, 10.0], "requires": "realign"}],
+		# The archer (Lightstring: player.gd, "Holy archer: Lightstring"), its archery
+		# talents grouped down the middle: refraction first, then Sunlit Arrow -> Spectrum Volley.
+		"r4c4": ["Wide Fan", 2, "Your refracted arrows find enemies up to {v} m further from the prism.",
+			{"key": "holy_wide_fan", "values": [2.0, 4.0]}],
+		"r6c4": ["Split Light", 3, "Your refracted arrows deal {v}% more damage.",
+			{"key": "holy_split_light", "values": [10.0, 20.0, 30.0]}],
+		"r8c3": ["Bright Quiver", 2, "Your auto-shots charge your gold prisms {v}% more.",
+			{"key": "holy_bright_quiver", "values": [50.0, 100.0]}],
+		"r8c5": ["Deep Burn", 3, "{n:sunlitarrow} deals {v}% more damage from the light it drains.",
+			{"key": "holy_deep_burn", "values": [10.0, 20.0, 30.0], "requires": "sunlitarrow",
+			"capstone": "It leaves {b:DEEP_BURN_KEEP_PCT}% of the light in each prism."}],
+		"r9c3": ["Swift Light", 2, "{n:stepoflight}'s cooldown is {v} sec shorter.",
+			{"key": "holy_swift_light", "values": [5.0, 10.0], "requires": "stepoflight"}],
+		"r9c5": ["Long Volley", 2, "{n:spectrumvolley} lasts {v} sec longer.",
+			{"key": "holy_long_volley", "values": [2.0, 4.0], "requires": "spectrumvolley"}],
 	},
 }
 
@@ -786,6 +895,13 @@ const LINKS := [
 	["shadow_pincer", "shadow_again"],
 	# The healer: how long a String lasts, then how soon a used-up one is back.
 	["shadow_long_thread", "shadow_spare_spool"],
+	# --- Holy ---
+	# The tank: Hallowed Arc's talent opens Pour Out's.
+	["holy_wide_arc", "holy_deep_pour"],
+	# The second healer: Wide Burst opens Prismatic Burst.
+	["holy_wide_burst", "holy_prismatic_burst"],
+	# The archer: Deep Burn opens Long Volley (straight down).
+	["holy_deep_burn", "holy_long_volley"],
 ]
 
 static var _db := {}

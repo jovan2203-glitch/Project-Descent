@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"singchorus"
 display_name = "Sing Chorus"
-description = "You sing Chorus: your heals on a single ally also heal up to {b:CHORUS_SPLASH_TARGETS} other allies within {b:CHORUS_SPLASH_RADIUS} m of them for {b:CHORUS_SPLASH_PCT}%. With {b:VERSE_MAX} Verses, entering Chorus booms with Chorale: every ally within {b:CHORALE_RADIUS} m of you, you included, is healed for {chorale}. With fewer, singing it costs you your Verses."
+description = "You sing Chorus: your heals on a single ally also heal up to {b:CHORUS_SPLASH_TARGETS} other allies within {b:CHORUS_SPLASH_RADIUS} m of them for {chorus_pct}%. With {b:VERSE_MAX} Verses, entering Chorus booms with Chorale: every ally within {b:CHORALE_RADIUS} m of you, you included, is healed for {chorale}. With fewer, singing it costs you your Verses."
 tags = PackedStringArray("Holy", "Spell")
 cast_type = 0
 cast_time = 0.0

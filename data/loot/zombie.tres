@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="LootTableData" load_steps=27 format=3]
+[gd_resource type="Resource" script_class="LootTableData" load_steps=32 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/loot_table_data.gd" id="1_table"]
 [ext_resource type="Script" path="res://scripts/data/loot_entry_data.gd" id="2_entry"]
@@ -88,6 +88,31 @@ script = ExtResource("2_entry")
 item_id = &"shield"
 weight = 1.0
 
+[sub_resource type="Resource" id="P_tome"]
+script = ExtResource("2_entry")
+item_id = &"tome"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_wand"]
+script = ExtResource("2_entry")
+item_id = &"wand"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_lantern"]
+script = ExtResource("2_entry")
+item_id = &"lantern"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_ritual_dagger"]
+script = ExtResource("2_entry")
+item_id = &"ritual_dagger"
+weight = 1.0
+
+[sub_resource type="Resource" id="P_runed_blade"]
+script = ExtResource("2_entry")
+item_id = &"runed_blade"
+weight = 1.0
+
 [sub_resource type="Resource" id="P_storm_idol"]
 script = ExtResource("2_entry")
 item_id = &"storm_idol"
@@ -126,7 +151,7 @@ weight = 1.0
 [resource]
 script = ExtResource("1_table")
 chance_drops = Array[Resource]([SubResource("Entry_helmet"), SubResource("Entry_chest"), SubResource("Entry_bow"), SubResource("Entry_sword")])
-pool = Array[Resource]([SubResource("P_amulet"), SubResource("P_pauldrons"), SubResource("P_cloak"), SubResource("P_gloves"), SubResource("P_leggings"), SubResource("P_boots"), SubResource("P_ring_focus"), SubResource("P_ring_might"), SubResource("P_staff"), SubResource("P_greatsword"), SubResource("P_dagger"), SubResource("P_venom_fang"), SubResource("P_shield"), SubResource("P_storm_idol"), SubResource("P_phoenix_ember"), SubResource("P_berserker_tooth"), SubResource("P_arcane_clockwork"), SubResource("P_frost_shard"), SubResource("P_sand_hourglass"), SubResource("P_sacred_reliquary")])
+pool = Array[Resource]([SubResource("P_amulet"), SubResource("P_pauldrons"), SubResource("P_cloak"), SubResource("P_gloves"), SubResource("P_leggings"), SubResource("P_boots"), SubResource("P_ring_focus"), SubResource("P_ring_might"), SubResource("P_staff"), SubResource("P_greatsword"), SubResource("P_dagger"), SubResource("P_venom_fang"), SubResource("P_shield"), SubResource("P_tome"), SubResource("P_wand"), SubResource("P_lantern"), SubResource("P_ritual_dagger"), SubResource("P_runed_blade"), SubResource("P_storm_idol"), SubResource("P_phoenix_ember"), SubResource("P_berserker_tooth"), SubResource("P_arcane_clockwork"), SubResource("P_frost_shard"), SubResource("P_sand_hourglass"), SubResource("P_sacred_reliquary")])
 pool_rolls = 1
 nothing_weight = 12.0
 rarity_weights = PackedFloat32Array(70, 22, 7, 1)

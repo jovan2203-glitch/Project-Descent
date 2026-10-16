@@ -55,6 +55,7 @@ func take_damage(amount: int) -> void:
 	if health <= 0 or amount <= 0 or god_mode:
 		return
 	amount = _still_standing_limit(amount)   # Still Standing: the Strings hold off a killing blow
+	amount = _unfallen_cap(amount)           # Unfallen: nothing can kill me
 	if amount <= 0:
 		return
 	health = max(health - amount, 0)
@@ -320,6 +321,7 @@ func _ready() -> void:
 			_acted = true)
 	_bus().cast_finished.connect(_on_spell_cast_for_shards)
 	_bus().cast_finished.connect(_cold_precision_on_cast)
+	_bus().cast_finished.connect(_zeal_on_cast)   # Zeal (an open Holy talent)
 	_bus().ability_used.connect(_cold_precision_on_use)
 	_bus().damage_dealt.connect(_on_damage_dealt_frost)
 	_bus().damage_dealt.connect(_on_damage_dealt_fire)
@@ -383,12 +385,13 @@ func _build_target_ring() -> void:
 	add_child(target_ring)
 
 func _update_target_ring() -> void:
-	if not _has_valid_target():
+	var shown := displayed_target()   # (not a mouseover cast's)
+	if shown == null or not shown.is_alive():
 		target_ring.visible = false
 		return
-	var r := Combat.hitbox_radius(target)
-	var p := target.global_position
-	target_ring.global_position = Vector3(p.x, Combat.feet_y(target) + 0.05, p.z)
+	var r := Combat.hitbox_radius(shown)
+	var p := shown.global_position
+	target_ring.global_position = Vector3(p.x, Combat.feet_y(shown) + 0.05, p.z)
 	target_ring.scale = Vector3(r * 2.0, 1.0, r * 2.0)
 	target_ring.visible = true
 
@@ -475,8 +478,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			_update_placement(event.position)
 			if not placement_valid:
 				_error("Not in line of sight")
-			elif gcd_left > 0.0:
+			elif gcd_left > 0.0 and on_gcd(placing_id):
 				pass   # still on the global cooldown: keep aiming, click again
+			elif (placing_id == SET_PRISM_ID or placing_id == REALIGN_ID or placing_id == PRISM_ARROW_ID) and _prism_place_error(placing_id, cast_point) != "":
+				_error(_prism_place_error(placing_id, cast_point))   # (out of range: keep aiming)
 			elif placing_id == CINDER_RAIN_ID and _cinder_rain_error(cast_point) != "":
 				_error(_cinder_rain_error(cast_point))   # out of range: keep aiming
 			elif placing_id == DECOY_ID and _decoy_error(cast_point) != "":
@@ -487,6 +492,8 @@ func _unhandled_input(event: InputEvent) -> void:
 					_start_crucible(cast_point)
 				elif placing_id == DECOY_ID:
 					_start_decoy(cast_point)
+				elif placing_id == SET_PRISM_ID or placing_id == REALIGN_ID or placing_id == PRISM_ARROW_ID:
+					_start_prism_place(placing_id, cast_point)
 				elif placing_id == CINDER_RAIN_ID:
 					_start_cinder_rain(cast_point)
 				elif placing_id == THUNDERHEAD_ID:
@@ -574,11 +581,13 @@ func use_ability(id: String) -> void:
 		return
 	if not cancelling_placement:
 		_bus().ability_used.emit(id)
+	_mouseover_begin(id)   # Mouseover casting: a legal target under the mouse goes first
 	_auto_target(id)   # no target: the closest enemy this could be used on
 	_acting = true
 	_acted = false
 	_use_ability_now(id)
 	_acting = false
+	_mouseover_end()
 	_use_result = _acted
 	# An instant ability went off (casts start the GCD in _begin_spell).
 	if _acted and on_gcd(id) and gcd_left <= 0.0:
@@ -591,7 +600,7 @@ func use_ability(id: String) -> void:
 const ENEMY_BOLTS := ["frostbolt", "fireball", "lightningbolt", "immolate",
 	"kilnblast", "slowfuse", "rekindle", "frostfirebolt", "coldspike", "chainlightning", "discharge",
 	"livewire", "forkedbolt", "unravel", "countdown", "convergence",
-	"blight", "erode", "highnote"]
+	"blight", "erode", "highnote", "piercinglight"]
 
 # --- Where projectiles leave from: the right hand ------------------------------------
 var _skel: Skeleton3D
@@ -615,7 +624,7 @@ func _muzzle() -> Vector3:
 	# A strange pose (or a model swap) must never fire from somewhere silly.
 	return p if p.distance_to(global_position) < 1.6 else fallback
 ## Cast-time spells aimed at an ally / you / (Rime Shell) an enemy, or nothing.
-const SUPPORT_CASTS := ["rimeshell", "flashfreeze", "hoist", "patchup", "psalm", "outpour", "canticle", "exultation"]
+const SUPPORT_CASTS := ["rimeshell", "flashfreeze", "hoist", "patchup", "psalm", "outpour", "canticle", "exultation", "brightlance"]
 ## Instant abilities every character has (handled like drafted ones).
 const BASE_INSTANTS := ["stoneguard", "taunt"]
 
@@ -709,6 +718,23 @@ func _use_ability_now(id: String) -> void:
 					_error(decoy_err)
 				else:
 					_begin_placement(id)
+		"setprism", "realign", "prismarrow":
+			# Holy healer #2: ground-targeted and instant, like Decoy.
+			if placing and placing_id == id:
+				cancel_placement()
+			else:
+				cancel_placement()
+				var prism_err := _prism_place_error(id)
+				if prism_err != "":
+					_error(prism_err)
+				else:
+					_begin_placement(id)
+		"refractingshot":
+			cancel_placement()
+			_start_refracting_shot()
+		"mendingray":
+			cancel_placement()
+			_start_mending_ray()
 		"trinket_1", "trinket_2":
 			_use_trinket(id)
 		_:
@@ -740,6 +766,7 @@ func _setup_status() -> void:
 		_on_stats_changed()
 		_sync_support_state()
 		_sync_reflections()
+		_sync_censer()
 		_bus().buffs_changed.emit())
 
 ## Final stat value: base + gear/talents/level/boons + buffs, primary stats
@@ -834,6 +861,7 @@ func _on_level_up(new_level: int) -> void:
 func heal(amount: float, ability_id: String = "") -> void:
 	if is_dead():
 		return
+	amount *= _holy_heal_mult(ability_id)   # Radiance
 	_combat().heal(self, self, amount * _pact_heal_mult(), ability_id)   # (my Pact: Shepherd)
 
 ## Real damage of a 1.0 coefficient for me: my level's standard hit (CombatSystem).
@@ -867,6 +895,11 @@ func deal_damage(enemy: Node, base: float, ability_id: String, is_proc: bool = f
 		return 0
 	if ability_id == FROSTFIRE and damage_type == "":
 		return _frostfire_hit(enemy, base, is_proc)
+	if ability_id == REFRACTION_ID or ability_id == VOLLEY_ARROW_ID:
+		# Holy archer: arrows from a gold prism (not abilities of their own) are Holy procs.
+		damage_type = "holy"
+		tags = PackedStringArray(LIGHTSTRING_TAGS)
+		is_proc = true
 	var at: Vector3 = enemy.global_position
 	var info = _combat().ability_hit(self, enemy, base, ability_id, is_proc, damage_type, tags)
 	if not is_proc and not info.avoided():
@@ -1077,6 +1110,8 @@ func resource_cost(id: String, with_storm_cycle: bool = true) -> float:
 		var pd := get_node_or_null("/root/PlayerData")
 		if pd:
 			cost *= 1.0 - float(pd.talent_value("frost_discipline")) / 100.0   # Cold Discipline
+	if is_holy_heal(id):
+		cost *= 1.0 - _talent("holy_clear_mind") / 100.0   # Clear Mind (both Holy healers)
 	return cost
 
 ## One mana "point" at your level (10% of your base mana).
@@ -1410,6 +1445,7 @@ func _on_damage_modify(info: RefCounted) -> void:
 	if info.source != self:
 		return
 	_pact_outgoing(info)        # my Pact: more or less damage dealt
+	_holy_talents_outgoing(info)   # Burnished, Censer's Weight, Sunsteel
 	# Scatter: the darts of the Sigil Darts it split hit harder.
 	if _bolt_tag == SCATTER_FX and str(info.ability_id) == SIGIL_DARTS_ID:
 		info.add_bonus(Balance.SCATTER_PCT, SCATTER_LABEL)
@@ -1752,8 +1788,10 @@ func _try_auto_attack(moving: bool) -> void:
 	var dir := enemy.global_position - global_position
 	rotation.y = atan2(-dir.x, -dir.z)
 	if w["weapon"] == "ranged":
+		var shot := float(w["damage"]) * Balance.AUTO_ATTACK_MULT
+		shot *= _auto_shot_line(enemy, shot)   # Holy archer: through my gold prisms
 		ARROW.spawn(get_tree().current_scene, _muzzle(),
-			enemy, self, float(w["damage"]) * Balance.AUTO_ATTACK_MULT, "auto_ranged")
+			enemy, self, shot, "auto_ranged")
 	else:
 		deal_damage(enemy, float(w["damage"]) * Balance.AUTO_ATTACK_MULT, "auto_melee")
 		_slash_effect(heat_tint(heat_stacks()))   # the swing glows hotter with Heat
@@ -1857,6 +1895,9 @@ func _select_target_at(screen_pos: Vector2) -> void:
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
 	if hit and hit.collider.has_method("set_targeted") and can_see(hit.collider):
 		_set_target(hit.collider)
+		return
+	# My prisms (Holy healer #2): a click makes one my prism target.
+	if _click_prism(screen_pos, cam):
 		return
 	# Party members: picked on screen (they have no clickable collision).
 	var ally := _ally_at(screen_pos, cam)
@@ -2045,6 +2086,10 @@ func _begin_spell(spell: String, display_name: String, duration: float, channel:
 		duration = maxf(duration - _talent("frost_bolt_cast"), 0.2)   # Quickened Frost
 	elif spell == "lightningbolt":
 		duration = maxf(duration - _talent("lightning_quick_fuse"), 0.2)   # Quick Fuse
+	elif spell == REFRACTING_SHOT_ID:
+		duration = maxf(duration - _talent("holy_steady_aim"), 0.2)   # Steady Aim
+	elif spell == BRIGHT_LANCE_ID:
+		duration = maxf(duration - _talent("holy_quick_lance"), 0.2)   # Quick Lance
 	elif spell == GLACIAL_DRAW_ID:
 		duration = thin_ice_cast(duration, _talent("frost_thin_ice"), _chilled_by_me(target))   # Thin Ice
 	elif spell == HOIST_ID:
@@ -2122,6 +2167,10 @@ func _release_cast() -> void:
 		_ember_volley_tick(true)   # the last ember (the channel was paid for when it started)
 		_bus().cast_finished.emit(spell)
 		return
+	if spell == MENDING_RAY_ID:
+		_mending_ray_tick(true)   # the last ticks (the channel was paid for when it started)
+		_bus().cast_finished.emit(spell)
+		return
 	if spell == SIGIL_DARTS_ID:
 		_sigil_darts_tick(true)    # the last dart (the same)
 		_bus().cast_finished.emit(spell)
@@ -2156,6 +2205,9 @@ func _release_cast() -> void:
 	_instinct_cast = false
 	if spell == "steadyshot":
 		_release_steady_shot()
+		return
+	if spell == REFRACTING_SHOT_ID:
+		_loose_refracting_shot()   # Holy archer
 		return
 	if spell == GLACIAL_DRAW_ID:
 		_loose_glacial_draw()
@@ -2230,6 +2282,9 @@ func _release_cast() -> void:
 		return
 	if spell == "immolate":
 		_immolate_spread(target)   # recast on a target that already has mine: it jumps to others
+	if spell == PIERCING_LIGHT_ID:
+		_piercing_light(target)   # Holy healer #2: a beam, not a bolt
+		return
 	if spell == HIGH_NOTE_ID:
 		_gain_verses(spell)   # Holy healer: its Verse (its heal comes when it lands: _on_damage_dealt_holy)
 	FROST_BOLT.spawn(get_tree().current_scene, _muzzle(), target, self,
@@ -2253,6 +2308,8 @@ func _begin_placement(id: String = "blizzard") -> void:
 		r = blizzard_radius()
 	elif id == CRUCIBLE_ID:
 		r = crucible_radius()   # Deep Crucible
+	elif id == SET_PRISM_ID or id == REALIGN_ID or id == PRISM_ARROW_ID:
+		r = 1.0   # (where the prism / the middle of the group lands)
 	(aoe_indicator.mesh as QuadMesh).size = Vector2(r * 2.0, r * 2.0)
 	aoe_indicator.visible = true
 	_update_placement(get_viewport().get_mouse_position())
@@ -2305,6 +2362,10 @@ func _process(_delta: float) -> void:
 	_tick_overdrive()
 	_tick_standing_charge(_delta)
 	_tick_reflections()
+	_tick_censer()
+	_tick_prisms()
+	_tick_lightstring(_delta)
+	_mouseover_tick()
 	_tick_traces()
 	_tick_dig_in(_delta)
 	_update_target_ring()
@@ -2364,7 +2425,7 @@ func _physics_process(delta: float) -> void:
 		or _glint_cast or _overture_cast)
 	if steady:
 		var aimed: bool = current_spell == "steadyshot" or current_spell in ENEMY_BOLTS or current_spell == "embervolley" \
-			or current_spell == GLACIAL_DRAW_ID or current_spell == SIGIL_DARTS_ID
+			or current_spell == GLACIAL_DRAW_ID or current_spell == SIGIL_DARTS_ID or current_spell == REFRACTING_SHOT_ID
 		if (aimed and not _has_valid_target()) or (current_spell in SUPPORT_CASTS and not _support_target_ok()):
 			_cancel_cast()
 			steady = false
@@ -2374,6 +2435,8 @@ func _physics_process(delta: float) -> void:
 				_ember_volley_tick()     # a channel on the move launches as it goes, like one standing still
 			elif current_spell == SIGIL_DARTS_ID:
 				_sigil_darts_tick()
+			elif current_spell == MENDING_RAY_ID:
+				_mending_ray_tick()
 			if not casting:
 				steady = false
 			elif cast_timer <= 0.0:
@@ -2382,6 +2445,7 @@ func _physics_process(delta: float) -> void:
 
 	if casting and not steady:
 		var targeted: bool = current_spell in ENEMY_BOLTS or current_spell == "embervolley" or current_spell == GLACIAL_DRAW_ID \
+			or current_spell == REFRACTING_SHOT_ID \
 			or current_spell == SIGIL_DARTS_ID
 		var lost_target := targeted and not _has_valid_target()
 		if current_spell in SUPPORT_CASTS and not _support_target_ok():
@@ -2404,6 +2468,8 @@ func _physics_process(delta: float) -> void:
 				_ember_volley_tick()
 			elif current_spell == SIGIL_DARTS_ID:
 				_sigil_darts_tick()
+			elif current_spell == MENDING_RAY_ID:
+				_mending_ray_tick()
 			if not casting:   # channel ended (broken, or target killed)
 				move_and_slide()
 				return
@@ -2491,6 +2557,9 @@ func _use_drafted(id: String) -> void:
 	if bool(res.get("requires_shield")) and not has_shield():
 		_error("Requires a shield")
 		return
+	if bool(res.get("requires_off_hand")) and not has_off_hand_item():
+		_error("Requires an off hand")
+		return
 	if bool(res.get("requires_two_hand")) and not has_two_hander():
 		_error("Requires a two-handed weapon")
 		return
@@ -2543,6 +2612,12 @@ func _use_drafted(id: String) -> void:
 			_string_use(id, res)   # Shadow healer: the Strings
 		"lift", "refrain", "antiphon", "shelter", "steadyvoice", "reprise", "swell", "rest", "lastverse", "singmercy", "singchorus", "singvigil":
 			_hymn_use(id, res)   # Holy healer: the Hymns
+		CENSER_SWING_ID, HALLOWED_ARC_ID, BECKON_ID, POUR_OUT_ID, ABSOLVE_ID, AUREOLE_ID, GATHER_ID, RAISE_CENSER_ID, UNFALLEN_ID:
+			_censer_use(id, res)   # Holy tank: the Censer
+		MOVE_PRISM_ID, GLEAM_ID, PRISM_WARD_ID, SHATTER_PRISM_ID, SHATTER_ALL_ID, INFUSE_ID, KALEIDOSCOPE_ID:
+			_prism_use(id, res)   # Holy healer #2: the Prisms
+		GLIMMER_SHOT_ID, SUNLIT_ARROW_ID, PRISM_BREAKER_ID, STEP_OF_LIGHT_ID, SPECTRUM_VOLLEY_ID:
+			_lightstring_use(id, res)   # Holy archer: Lightstring
 		"hoarfrost":
 			FROST_BOLT.spawn(get_tree().current_scene, muzzle, target, self, false, id, 0.0)   # Hoarfrost is its on-hit effect
 		"iceshards":
@@ -2928,6 +3003,12 @@ func _drafted_precheck(id: String, _res: Resource, w: Dictionary) -> String:
 		return _string_precheck(id)   # Shadow healer
 	if HYMN_INSTANTS.has(id):
 		return _hymn_precheck(id)    # Holy healer
+	if CENSER_IDS.has(id):
+		return _censer_precheck(id)  # Holy tank
+	if PRISM_INSTANTS.has(id):
+		return _prism_precheck(id)   # Holy healer #2
+	if LIGHTSTRING_INSTANTS.has(id):
+		return _lightstring_precheck(id)   # Holy archer
 	match id:
 		"blink", "cinderstep", "flicker", "staticstep", "icyretreat":
 			if surge_active():
@@ -3000,6 +3081,11 @@ func ring_effect(radius: float, color: Color) -> void:
 func has_shield() -> bool:
 	var pd := get_node_or_null("/root/PlayerData")
 	return pd != null and Items.item_type(str(pd.equipment.get("Off Hand", ""))) == "shield"
+
+## An off hand item (tome, wand, lantern...) in the Off Hand: not a weapon or shield.
+func has_off_hand_item() -> bool:
+	var pd := get_node_or_null("/root/PlayerData")
+	return pd != null and Items.is_off_hand_item(str(pd.equipment.get("Off Hand", "")))
 
 ## Shield bash visual: a quick flat pulse in front of you.
 func _shield_bash_effect(color: Color) -> void:
@@ -3183,6 +3269,13 @@ func _pick_support_target(id: String) -> Array:
 		if err != "":
 			return [null, err]
 		return [target, "enemy"]
+	# Mouseover casting: the ally (or me) under the mouse, if it is a legal target.
+	if _mo_ally != null and is_instance_valid(_mo_ally) and _mo_ally.is_alive():
+		if is_same(_mo_ally, self):
+			return [self, "self"]
+		if global_position.distance_to(_mo_ally.global_position) <= float(res.cast_range) and can_see(_mo_ally) \
+				and not (lock_id != "" and _mo_ally.has_method("has_lockout") and _mo_ally.has_lockout(lock_id)):
+			return [_mo_ally, "ally"]
 	if has_friendly_target():
 		if global_position.distance_to(friendly_target.global_position) > float(res.cast_range):
 			return [null, "Target out of range"]
@@ -3270,6 +3363,8 @@ func _release_support(spell: String) -> void:
 			_string_cast_heal(spell, tgt, kind)   # Shadow healer
 		"psalm", "outpour", "canticle", "exultation":
 			_hymn_cast_heal(spell, tgt, kind)   # Holy healer
+		"brightlance":
+			_prism_cast_heal(spell, tgt, kind)   # Holy healer #2 (the Prisms)
 
 ## A Rime Shell lands on me (from me or a party member): 20% less damage taken,
 ## a shield of `amount`, and Weakened Soul. When the shield breaks it shatters
@@ -8411,7 +8506,8 @@ func _cross_pct() -> float:
 ## (And my Pact's: the Shepherd. A heal on myself gets that one in heal().)
 func _others_heal_mult(tgt: Variant) -> float:
 	var other: bool = tgt != null and is_instance_valid(tgt) and not is_same(tgt, self)
-	return many_hands_mult(other, _talent("shadow_many_hands")) * (_pact_heal_mult() if other else 1.0)
+	var grace := 1.0 + _talent("holy_grace") / 100.0 if other else 1.0   # Grace (an open Holy talent)
+	return many_hands_mult(other, _talent("shadow_many_hands")) * (_pact_heal_mult() if other else 1.0) * grace
 
 func _steady(coef: float) -> float:
 	return steady_heal(coef, _talent("shadow_steady_hands"))
@@ -8992,6 +9088,8 @@ func _show_strings() -> void:
 func _heal_exact(tgt: Variant, amount: int, id: String) -> void:   # untyped: may be a freed node
 	if amount <= 0 or tgt == null or not is_instance_valid(tgt) or not (tgt is Node):
 		return
+	_overflowing(tgt, amount, id)   # Overflowing: the overhealing becomes a shield
+	_second_breath(tgt, amount, id)   # Second Breath: a big save gives mana back
 	if is_same(tgt, self) or (tgt as Node).is_in_group("friendly"):
 		_combat().heal(self, tgt, float(amount), id, true)
 		return
@@ -9003,6 +9101,9 @@ func _heal_exact(tgt: Variant, amount: int, id: String) -> void:   # untyped: ma
 ## The same for a coefficient `coef` (it scales with my power like spell `id`). Returns the amount.
 func _heal_coef(tgt: Variant, coef: float, id: String) -> int:
 	# (Many Hands and my Pact on someone else; my Pact alone on myself, since this heal does not go through heal().)
+	coef *= _holy_heal_mult(id)   # Radiance
+	if not is_same(tgt, self) and hit_recently(tgt, Balance.WATCHFUL_EYE_WINDOW):
+		coef *= 1.0 + _talent("holy_watchful_eye") / 100.0   # Watchful Eye (both Holy healers)
 	var amount: int = _combat().heal_amount(self, coef * (_pact_heal_mult() if is_same(tgt, self) else _others_heal_mult(tgt)), id)
 	_heal_exact(tgt, amount, id)
 	return amount
@@ -9542,7 +9643,12 @@ func _pact_heal_mult() -> float:
 ## What a heal landing on me is multiplied by (CombatSystem.heal asks).
 func heal_taken_mult(source: Node, _ability_id: String = "") -> float:
 	var id := pact_id()
-	return PACTS.heal_taken_mult(id, _pact_now_broken, is_same(source, self)) if id != "" else 1.0
+	var mult := PACTS.heal_taken_mult(id, _pact_now_broken, is_same(source, self)) if id != "" else 1.0
+	# Penitent (an open Holy talent): my next heal on myself after a big hit is stronger (and that uses it up).
+	if is_same(source, self) and status != null and status.has(PENITENT_FX):
+		status.remove(PENITENT_FX)
+		mult *= 1.0 + _talent("holy_penitent") / 100.0
+	return mult
 
 ## The vow was broken: the Pact works against me until the dungeon ends.
 func _break_pact(why: String) -> void:
@@ -10231,6 +10337,8 @@ func _my_burn_on(enemy: Variant) -> bool:   # untyped: may be a freed enemy
 
 ## Number shown on an action-bar button with charges ("" = none).
 func charges_text(id: String) -> String:
+	if id == PRISM_ARROW_ID:
+		return str(_prism_arrows)   # Holy archer: Prism Arrow's charges
 	if id == "iceshards":
 		return str(int(ice_shard_charges))
 	if id == VENT_ID and _vent_max() > 1:
@@ -10848,9 +10956,11 @@ func _on_hit_taken(info: RefCounted) -> void:
 	_melee_kit_hit_taken(info)   # Reflex Arc, Faraday Guard, Back-Current
 	_parry_kit_hit_taken(info)   # Return Stroke, Humming Blade, Quick Wrists, Draw the Storm
 	_reflection_kit_hit_taken(info)   # a dodge (or Stand-In) shatters a Reflection
+	_censer_hit_taken(info)   # Incense from hits and blocks; Unfallen counts the damage
 	_mirror_finish(info)   # Mirror Finish: what I dodge, parry or block hurts the attacker
 	_tempered(info)   # Tempered: a block gives Armor for a while
 	_spite_on_hit_taken(info)   # Spite: taking damage boosts my next spell or ability
+	_penitent_hit(info)   # Penitent: a big hit makes my next heal on myself stronger
 
 # --- Heat Sink ------------------------------------------------------------------------------
 # For HEAT_SINK_TIME seconds HEAT_SINK_PCT% of the damage I take is stored instead
@@ -11919,7 +12029,7 @@ const OVERTURE_FX := "overture"
 const SHELTER_FX := "shelter"
 const VIGIL_WARD_FX := "vigil_ward"
 const HYMN_DR_NAMES := {VIGIL_FX: "Vigil", STEADY_VOICE_FX: "Steady Voice", BULWARK_SONG_FX: "Bulwark of Song", REST_FX: "Rest"}
-const HYMN_WARD_NAMES := {SHELTER_FX: "Shelter", VIGIL_WARD_FX: "Vigil's Ward"}
+const HYMN_WARD_NAMES := {SHELTER_FX: "Shelter", VIGIL_WARD_FX: "Vigil's Ward", PRISM_WARD_FX: "Prism Ward", OVERFLOWING_FX: "Overflowing"}   # (the Prisms' shield uses the same path)
 const HOLY_LIGHT := Color(1.0, 0.88, 0.45)
 
 var hymn := ""              # the Hymn I sing ("" = none yet)
@@ -12080,7 +12190,7 @@ func _do_boom(h: String, matches: int, full: bool, scale: float) -> void:
 			for a in _allies_within(Balance.CHORALE_RADIUS):
 				_heal_coef(a, Balance.CHORALE_HEAL * mult, BOOM_IDS[h])
 		"vigil":
-			var t := bulwark_song_time(matches, full)
+			var t := bulwark_song_time(matches, full) + _talent("holy_long_note")   # + Long Note
 			for a in _allies_within(Balance.BULWARK_SONG_RADIUS):
 				_hymn_dr(a, BULWARK_SONG_FX, Balance.BULWARK_SONG_PCT * scale, t)
 	# Rune of Resounding: the boom strikes the enemies around it as well.
@@ -12264,7 +12374,7 @@ func _chorus_splash(healed: Node3D, amount: int) -> void:
 	near.sort_custom(func(a, b): return healed.global_position.distance_squared_to(a.global_position) \
 		< healed.global_position.distance_squared_to(b.global_position))
 	near = near.slice(0, Balance.CHORUS_SPLASH_TARGETS)
-	var share := int(round(amount * Balance.CHORUS_SPLASH_PCT / 100.0))
+	var share := int(round(amount * Balance.CHORUS_SPLASH_PCT / 100.0 * (1.0 + _talent("holy_swelling_chorus") / 100.0)))   # + Swelling Chorus
 	for a in near:
 		_heal_exact(a, share, CHORUS_SPLASH_ID)
 	if near.size() + 1 >= Balance.MANY_VOICES_ALLIES:
@@ -12301,6 +12411,8 @@ func _hymn_dr(who: Variant, fx_id: String, pct: float, time: float) -> void:
 func _hymn_ward(who: Variant, fx_id: String, amount: int, time: float) -> void:
 	if who == null or not is_instance_valid(who) or amount <= 0:
 		return
+	if HYMN_WARD_NAMES.has(fx_id):
+		amount = int(round(float(amount) * (1.0 + _talent("holy_sheltering_light") / 100.0)))   # Sheltering Light
 	if is_same(who, self):
 		_hymn_ward_on(status, self, fx_id, amount, time)
 	elif (who as Node).is_in_group("friendly"):
@@ -12390,3 +12502,1414 @@ func verses_text(id: String) -> String:
 	if SING_IDS.has(id) or id == "reprise" or id == "lastverse":
 		return str(verses.size())
 	return ""
+
+# --- Holy tank: the Censer --------------------------------------------------------------------
+# An off hand item (tome, wand, lantern; not a shield) and heavy armor. The censer
+# is not an item: my first censer ability makes it appear at my side, hanging on
+# a chain of light (the picture is scripts/censer.gd), and it fades CENSER_LINGER
+# seconds after combat ends. Its fullness is Incense, a stacking buff (up to
+# INCENSE_MAX): each stack gives Block, and enemies around me take a little Holy
+# damage with high threat. Hits I take and block give a little Incense, my
+# abilities a little more, but most of it lies on the ground as motes of light
+# (scripts/light_mote.gd): my builders knock them loose from enemies, and spending
+# Incense drops part of it as motes again. I pick one up by walking over it: it
+# gives Incense and heals me. Only I can pick up mine; the party sees them faint.
+# Raise the Censer sends it over the enemies for a while (a mass grab that sheds
+# motes); while it is away my Incense gives no Block and no aura. Numbers are in
+# balance.gd; the talents (Mote Magnet, Bright Barrier, Lingering Light, Wide Arc,
+# Deep Pour, High Censer) in talents.gd.
+
+const CENSER = preload("res://scripts/censer.gd")
+const LIGHT_MOTE = preload("res://scripts/light_mote.gd")
+const INCENSE_FX := "incense"
+const AUREOLE_FX := "aureole"
+const UNFALLEN_FX := "unfallen"
+const CENSER_SWING_ID := "censerswing"
+const HALLOWED_ARC_ID := "hallowedarc"
+const BECKON_ID := "beckon"
+const POUR_OUT_ID := "pourout"
+const ABSOLVE_ID := "absolve"
+const AUREOLE_ID := "aureole"
+const GATHER_ID := "gatherthelight"
+const RAISE_CENSER_ID := "raisethecenser"
+const UNFALLEN_ID := "unfallen"
+const CENSER_IDS := [CENSER_SWING_ID, HALLOWED_ARC_ID, BECKON_ID, POUR_OUT_ID, ABSOLVE_ID, AUREOLE_ID,
+	GATHER_ID, RAISE_CENSER_ID, UNFALLEN_ID]
+## Meter / log ids of the aura, a mote's heal and the Rune of the Bright Burst (own lines: Details.HIT_NAMES).
+const INCENSE_AURA_ID := "incense_aura"
+const LIGHT_MOTE_ID := "light_mote"
+const BRIGHT_BURST_ID := "bright_burst"
+const BRIGHT_BURST_RUNE := "bright_burst"
+const CENSER_TAGS := ["Holy", "Ability", "AoE"]
+## Seconds between telling the party again how bright my censer is.
+const CENSER_RETELL := 3.0
+
+var _censer_on := false           # is my censer out?
+var _censer_off_at := 0.0         # when it fades (out of combat)
+var _censer_shown := -1           # Incense the picture shows (and the party was told)
+var _censer_shown_on := false
+var _censer_told := 0.0
+var _incense_fx: Resource
+var _incense_stash := 0           # Incense kept while the censer is raised (it gives nothing then)
+var _raised_until := 0.0
+var _raise_at := Vector3.ZERO
+var _raise_next_shed := 0.0
+var _aura_next := 0.0
+var _motes: Array = []            # my motes: {"key": String, "pos": Vector3, "until": float, "value": int}
+var _mote_seq := 0
+var _unfallen_taken := 0          # damage taken during Unfallen
+var _unfallen_was := false
+
+## How much Incense I have (while the censer is raised: what it will give back).
+func incense() -> int:
+	if censer_raised():
+		return _incense_stash
+	return status.stacks_of(INCENSE_FX) if status != null else 0
+
+func censer_raised() -> bool:
+	return _raised_until > 0.0
+
+func censer_out() -> bool:
+	return _censer_on
+
+## My motes of light on the ground: [{"key", "pos", "until", "value"}].
+func motes() -> Array:
+	return _motes
+
+## Incense after gaining `more` on top of `have` (never more than INCENSE_MAX).
+static func incense_after(have: int, more: int) -> int:
+	return clampi(have + maxi(more, 0), 0, Balance.INCENSE_MAX)
+
+## Block each stack of Incense gives (`bright` = Bright Barrier's value).
+static func incense_block_per_stack(bright: float) -> float:
+	return Balance.INCENSE_BLOCK + maxf(bright, 0.0)
+
+## Aura damage (coefficient) of one tick with `stacks` Incense.
+static func incense_aura_coef(stacks: int) -> float:
+	return Balance.INCENSE_AURA_FULL * float(clampi(stacks, 0, Balance.INCENSE_MAX)) / float(Balance.INCENSE_MAX)
+
+## The motes spending `spent` Incense drops at `pct` %: the Incense each holds.
+## Each holds MOTE_VALUE; what is left over makes one smaller mote; at most MOTE_SPEND_MAX.
+static func motes_for_spend(spent: int, pct: float) -> Array:
+	var worth := int(floor(float(maxi(spent, 0)) * maxf(pct, 0.0) / 100.0))
+	var out := []
+	while worth > 0 and out.size() < Balance.MOTE_SPEND_MAX:
+		var v := mini(worth, Balance.MOTE_VALUE)
+		out.append(v)
+		worth -= v
+	return out
+
+## Incense a hit I take gives (`blocked`; during Unfallen: more).
+static func incense_for_hit(blocked: bool, unfallen: bool) -> int:
+	var n := Balance.INCENSE_PER_BLOCK if blocked else Balance.INCENSE_PER_HIT
+	return n * (Balance.UNFALLEN_INCENSE_MULT if unfallen else 1)
+
+## What Unfallen lets through of a hit of `amount` with `health_left`: never the last point.
+static func unfallen_limit(amount: int, health_left: int) -> int:
+	return clampi(amount, 0, maxi(health_left - 1, 0))
+
+## Health Unfallen gives back when it ends, for `taken` damage taken during it.
+static func unfallen_heal(taken: int) -> int:
+	return int(round(maxf(float(taken), 0.0) * Balance.UNFALLEN_HEAL_PCT / 100.0))
+
+## Mote pickup reach (+ Mote Magnet).
+func mote_reach() -> float:
+	return Balance.MOTE_PICKUP + _talent("holy_mote_magnet")
+
+## Seconds a mote lies on the ground (+ Lingering Light).
+func mote_time() -> float:
+	return Balance.MOTE_TIME + _talent("holy_lingering_light")
+
+func _incense_buff() -> Resource:
+	var per := incense_block_per_stack(_talent("holy_bright_barrier"))   # + Bright Barrier
+	if _incense_fx == null or not is_equal_approx(float(_incense_fx.stat_modifiers.get(Stats.BLOCK, 0.0)), per):
+		_incense_fx = StatusContainer.make_buff(INCENSE_FX, "Incense", Stats.BLOCK, per,
+			Balance.INCENSE_TIME, Balance.INCENSE_MAX, CENSER.LIGHT)
+		_incense_fx.tags = PackedStringArray(["Holy"])
+		_incense_fx.description = "The light in your censer. Each stack gives Block, and enemies around you take Holy damage."
+	return _incense_fx
+
+## My censer appears (my first censer ability) and stays while I fight.
+func _censer_appear() -> void:
+	if not _censer_on:
+		_censer_on = true
+		_ring_effect(0.9, CENSER.LIGHT)
+	_censer_off_at = 0.0
+	_sync_censer()
+
+## Gain `more` Incense (never more than INCENSE_MAX). Any gain makes it last its
+## full time again. While the censer is raised it is kept for when it comes back.
+func _gain_incense(more: int) -> void:
+	if status == null or more <= 0 or is_dead():
+		return
+	if censer_raised():
+		_incense_stash = incense_after(_incense_stash, more)
+		_sync_censer()
+		return
+	var want := incense_after(incense(), more)
+	if not status.apply(_incense_buff(), self):
+		return
+	if status.stacks_of(INCENSE_FX) != want:
+		status.set_stacks(INCENSE_FX, want)
+
+## Spend up to `n` Incense: returns how much was spent. Part of it drops as
+## motes of light around `near` (`pct` % of it).
+func _spend_incense(n: int, near: Vector3, pct: float = Balance.MOTE_SPEND_PCT) -> int:
+	var spent := mini(maxi(n, 0), incense())
+	if spent <= 0:
+		return 0
+	if censer_raised():
+		_incense_stash -= spent
+	else:
+		status.spend_stacks(INCENSE_FX, spent)
+	for v in motes_for_spend(spent, pct):
+		_drop_mote(near, int(v))
+	_sync_censer()
+	return spent
+
+## Drop a mote of light holding `value` Incense somewhere around `near`.
+func _drop_mote(near: Vector3, value: int = Balance.MOTE_VALUE) -> void:
+	if value <= 0 or not is_inside_tree():
+		return
+	var a := randf() * TAU
+	var d := randf_range(Balance.MOTE_SCATTER_MIN, Balance.MOTE_SCATTER_MAX)
+	var at := Vector3(near.x + cos(a) * d, Combat.feet_y(self), near.z + sin(a) * d)
+	_mote_seq += 1
+	var key := "m%d" % _mote_seq
+	var life := mote_time()
+	_motes.append({"key": key, "pos": at, "until": Time.get_ticks_msec() / 1000.0 + life, "value": value})
+	LIGHT_MOTE.spawn(get_tree().current_scene, at, key, true, life)
+	_net_fx("motes", at, null, {"k": key, "t": life})
+	# Too many: the oldest fades.
+	while _motes.size() > Balance.MOTE_MAX:
+		var old: Dictionary = _motes.pop_front()
+		LIGHT_MOTE.clear(get_tree(), str(old["key"]))
+		_net_fx("motes", global_position, null, {"k": str(old["key"])})
+
+## Where an enemy stands (or I do, with none).
+func _mote_spot(e: Variant) -> Vector3:
+	if e != null and is_instance_valid(e) and e is Node3D:
+		return e.global_position
+	return global_position
+
+## Pick up the mote at index `i`: its Incense, a little healing, the Bright Burst.
+func _pick_up_mote(i: int) -> void:
+	var m: Dictionary = _motes[i]
+	_motes.remove_at(i)
+	LIGHT_MOTE.take(get_tree(), str(m["key"]), self)
+	_net_fx("motes", global_position, null, {"k": str(m["key"])})
+	_gain_incense(int(m.get("value", Balance.MOTE_VALUE)))
+	if health < max_health:
+		heal(Balance.MOTE_HEAL_SHARE * Balance.REFERENCE_HEAL * (1.0 + _talent("holy_bright_motes") / 100.0), LIGHT_MOTE_ID)   # + Bright Motes
+	if _has_rune(BRIGHT_BURST_RUNE):
+		_bright_burst()
+
+## Rune of the Bright Burst: a burst of light around me (a proc with its own line).
+func _bright_burst() -> void:
+	var hit := _enemies_within(Balance.BRIGHT_BURST_RADIUS)
+	var coef := Balance.BRIGHT_BURST_DAMAGE * Balance.aoe_share(hit.size())
+	for e in hit:
+		_censer_proc_hit(e, coef, BRIGHT_BURST_ID, Balance.BRIGHT_BURST_THREAT)
+	_ring_effect(Balance.BRIGHT_BURST_RADIUS, CENSER.LIGHT)
+
+## A Holy proc hit of the censer (aura, Bright Burst): high threat, feeds nothing.
+func _censer_proc_hit(e: Node, coef: float, id: String, threat: float) -> void:
+	if not is_instance_valid(e) or not e.is_alive() or coef <= 0.0:
+		return
+	var hit := DamageInfo.make(self, e, coef, id)
+	hit.tags = PackedStringArray(CENSER_TAGS)
+	hit.damage_type = "holy"
+	hit.threat_multiplier = threat
+	hit.is_proc = true
+	hit.no_empower = true
+	_combat().deal(hit)
+
+## Every frame: motes picked up or faded, Unfallen ending, the aura, the raised
+## censer, the censer fading out of combat, the party told again now and then.
+func _tick_censer() -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	# Motes: walk over one to pick it up (my own only).
+	if not _motes.is_empty():
+		var reach := mote_reach()
+		var i := _motes.size() - 1
+		while i >= 0:
+			var m: Dictionary = _motes[i]
+			var p: Vector3 = m["pos"]
+			if now >= float(m["until"]):
+				_motes.remove_at(i)
+			elif not is_dead() and Vector2(global_position.x - p.x, global_position.z - p.z).length() <= reach:
+				_pick_up_mote(i)
+			i = mini(i - 1, _motes.size() - 1)
+	# Unfallen ran out: heal for part of what I took.
+	var unfallen_now: bool = status != null and status.has(UNFALLEN_FX)
+	if _unfallen_was and not unfallen_now:
+		var back := unfallen_heal(_unfallen_taken)
+		_unfallen_taken = 0
+		if back > 0 and not is_dead():
+			_combat().heal(self, self, float(back), UNFALLEN_ID, true)
+	_unfallen_was = unfallen_now
+	if not _censer_on:
+		return
+	# Raised: it sheds motes, then comes back with what it kept.
+	if censer_raised():
+		if now >= _raise_next_shed:
+			_raise_next_shed = now + Balance.RAISE_CENSER_SHED_EVERY
+			_drop_mote(_raise_at)
+		if now >= _raised_until:
+			_end_raise()
+	elif incense() > 0 and in_combat and now >= _aura_next:
+		_aura_next = now + Balance.INCENSE_AURA_EVERY
+		var hit := _enemies_within(Balance.INCENSE_AURA_RADIUS)
+		var coef := incense_aura_coef(incense()) * Balance.aoe_share(hit.size())
+		for e in hit:
+			_censer_proc_hit(e, coef, INCENSE_AURA_ID, Balance.INCENSE_AURA_THREAT)
+	# Out of combat it fades a little later.
+	if in_combat or censer_raised():
+		_censer_off_at = 0.0
+	elif _censer_off_at <= 0.0:
+		_censer_off_at = now + Balance.CENSER_LINGER
+	elif now >= _censer_off_at:
+		_censer_on = false
+		_censer_off_at = 0.0
+		_sync_censer()
+		return
+	if now - _censer_told >= CENSER_RETELL:
+		_tell_censer()
+
+## My buffs changed (or the censer did): the picture shows it, and the party is told.
+func _sync_censer() -> void:
+	var n := incense()
+	if n == _censer_shown and _censer_on == _censer_shown_on:
+		return
+	_censer_shown = n
+	_censer_shown_on = _censer_on
+	if _censer_on or get_node_or_null(CENSER.NODE_NAME) != null:
+		CENSER.show_on(self, n, _censer_on)
+	_tell_censer()
+
+func _tell_censer() -> void:
+	_censer_told = Time.get_ticks_msec() / 1000.0
+	_net_fx("censer", global_position, null, {"n": maxi(_censer_shown, 0), "on": _censer_on})
+
+## Something hit me (_on_hit_taken): a little Incense, more for a block; the
+## barrier flashes on a block; Unfallen counts what I took.
+func _censer_hit_taken(info: RefCounted) -> void:
+	if status != null and status.has(UNFALLEN_FX) and not info.blocked:
+		_unfallen_taken += maxi(int(info.amount), 0)
+	if not _censer_on or bool(info.is_dot) or bool(info.dodged) or bool(info.parried):
+		return
+	_gain_incense(incense_for_hit(bool(info.blocked), status.has(UNFALLEN_FX)))
+	if info.blocked:
+		CENSER.flash(self)
+		_net_fx("censer_flash", global_position)
+
+## take_damage: during Unfallen nothing can kill me.
+func _unfallen_cap(amount: int) -> int:
+	if status == null or not status.has(UNFALLEN_FX):
+		return amount
+	return unfallen_limit(amount, health)
+
+## Why a censer ability can't be used right now ("" = it can).
+func _censer_precheck(id: String) -> String:
+	match id:
+		POUR_OUT_ID, AUREOLE_ID:
+			if censer_raised():
+				return "Your censer is raised"
+			var need := Balance.POUR_OUT_MIN if id == POUR_OUT_ID else Balance.AUREOLE_COST
+			if incense() < need:
+				return "Your censer holds too little light"
+		ABSOLVE_ID:
+			if censer_raised():
+				return "Your censer is raised"
+			if incense() <= 0:
+				return "Your censer is empty"
+			if health >= max_health:
+				return "Already at full health"
+		GATHER_ID:
+			if _motes.is_empty():
+				return "You have no motes of light"
+		RAISE_CENSER_ID:
+			if censer_raised():
+				return "Your censer is already raised"
+	return ""
+
+## One of the censer's abilities (paid for and put on cooldown by _use_drafted).
+func _censer_use(id: String, res: Resource) -> void:
+	_censer_appear()
+	var col := CENSER.LIGHT
+	var near := _mote_spot(target if _has_valid_target() else null)
+	match id:
+		CENSER_SWING_ID:
+			deal_damage(target, float(res.damage), id)
+			_slash_effect(col)
+			_gain_incense(Balance.CENSER_SWING_INCENSE + int(round(_talent("holy_heavy_chain"))))   # + Heavy Chain
+			_drop_mote(near)
+		HALLOWED_ARC_ID:
+			var reach := float(res.radius) + Abilities.radius_bonus(id)   # + Wide Arc
+			var hit := _enemies_within(reach)
+			var coef := float(res.damage) * Balance.aoe_share(hit.size())
+			var loose := 0
+			for e in hit:
+				if not is_instance_valid(e) or not e.is_alive():
+					continue
+				deal_damage(e, coef, id)
+				if loose < Balance.HALLOWED_ARC_MOTES:
+					_drop_mote(e.global_position)
+					loose += 1
+			_gain_incense(Balance.HALLOWED_ARC_INCENSE * hit.size())
+			_ring_effect(reach, col)
+			_ring_effect(reach * 0.6, CENSER.GOLD)
+		BECKON_ID:
+			deal_damage(target, float(res.damage), id)
+			_gain_incense(Balance.BECKON_INCENSE)
+			_drop_mote(near)
+			_ring_effect(0.8, col, near)
+		POUR_OUT_ID:
+			_pour_out(res)
+		ABSOLVE_ID:
+			var spent := _spend_incense(Balance.ABSOLVE_MAX, near)
+			if spent > 0:
+				heal(Balance.ABSOLVE_PER_STACK * Balance.REFERENCE_HEAL * float(spent) * (1.0 + _talent("holy_absolution") / 100.0), id)   # + Absolution
+			_ring_effect(1.2, Color(0.45, 1.0, 0.5))
+			_ring_effect(0.8, col)
+		AUREOLE_ID:
+			_spend_incense(Balance.AUREOLE_COST, near)
+			var blaze := StatusContainer.make_buff(AUREOLE_FX, Abilities.ability_name(id), Stats.BLOCK, Balance.AUREOLE_BLOCK,
+				Balance.AUREOLE_TIME, 1, col)
+			blaze.tags = PackedStringArray(["Holy"])
+			blaze.description = "Your barrier of light blazes: more Block."
+			status.apply(blaze, self)
+			CENSER.flash(self)
+			_ring_effect(1.3, col)
+		GATHER_ID:
+			while not _motes.is_empty():
+				_pick_up_mote(_motes.size() - 1)
+			_ring_effect(1.5, col)
+		RAISE_CENSER_ID:
+			_raise_censer(res)
+		UNFALLEN_ID:
+			var fx := StatusContainer.make_buff(UNFALLEN_FX, Abilities.ability_name(id), Stats.BLOCK, 0.0, Balance.UNFALLEN_TIME + _talent("holy_unbroken"), 1, col)   # + Unbroken
+			fx.stat_modifiers = {}
+			fx.tags = PackedStringArray(["Holy"])
+			fx.description = "Nothing can kill you. Hits give more Incense. When it ends, you heal for part of the damage you took."
+			_unfallen_taken = 0
+			status.apply(fx, self)
+			_ring_effect(1.6, col)
+			_ring_effect(1.0, Color(1, 1, 1))
+
+## Pour Out: every bit of Incense in one wave of light around me. More than
+## AOE_TARGET_CAP enemies share that many hits' damage.
+func _pour_out(res: Resource) -> void:
+	var have := incense()
+	var pct := Balance.DEEP_POUR_MOTE_PCT if _capstone("holy_deep_pour") else Balance.MOTE_SPEND_PCT   # Deep Pour's capstone
+	var reach := float(res.radius)
+	var hit := _enemies_within(reach)
+	var per := Balance.POUR_OUT_PER_STACK * (1.0 + _talent("holy_deep_pour") / 100.0)   # Deep Pour
+	var coef := per * float(have) * Balance.aoe_share(hit.size())
+	for e in hit:
+		if is_instance_valid(e) and e.is_alive():
+			deal_damage(e, coef, POUR_OUT_ID)
+	_spend_incense(have, _mote_spot(hit[0] if not hit.is_empty() else null), pct)
+	_ring_effect(reach, CENSER.LIGHT)
+	_ring_effect(reach * 0.66, Color(1, 1, 1))
+	_ring_effect(reach * 0.33, CENSER.GOLD)
+
+## Raise the Censer: it rises over my target and hangs there. Enemies around it
+## must attack me for a while, and it sheds motes; my Incense is kept for later
+## and gives no Block or aura meanwhile.
+func _raise_censer(res: Resource) -> void:
+	var spot: Node3D = target if _has_valid_target() else self
+	_raise_at = Vector3(spot.global_position.x, Combat.feet_y(spot), spot.global_position.z)
+	var now := Time.get_ticks_msec() / 1000.0
+	var kept: int = status.stacks_of(INCENSE_FX)
+	_raised_until = now + Balance.RAISE_CENSER_TIME   # (first: incense() reads the stash from here on)
+	_incense_stash = kept
+	status.remove(INCENSE_FX)
+	_raise_next_shed = now + Balance.RAISE_CENSER_SHED_EVERY
+	for e in _enemies_near(_raise_at, float(res.radius)):
+		_net_taunt(e, Balance.RAISE_CENSER_TAUNT)
+	CENSER.raise(self, _raise_at, Balance.RAISE_CENSER_HEIGHT, Balance.RAISE_CENSER_TIME, float(res.radius))
+	_censer_told = now
+	_net_fx("censer", _raise_at, null, {"n": _incense_stash, "on": true, "up": Balance.RAISE_CENSER_TIME,
+		"h": Balance.RAISE_CENSER_HEIGHT, "r": float(res.radius)})
+	_ring_effect(float(res.radius), CENSER.LIGHT, _raise_at)
+
+## The raised censer comes back: what it kept is Incense again.
+func _end_raise() -> void:
+	_raised_until = 0.0
+	var back := _incense_stash
+	_incense_stash = 0
+	if back > 0:
+		_gain_incense(back)
+	_sync_censer()
+
+# --- Mouseover casting ------------------------------------------------------------------------
+# A setting (Settings > Interface), like WoW's: pressing an ability while the
+# mouse is over a legal target for it uses it on that target, without changing
+# my target. Enemy abilities: the enemy under the mouse (target is swapped for
+# that one use, or until that cast lands / is cancelled; the ring and the target
+# frame keep showing my real one: displayed_target). Ally spells: the ally (or
+# me) under the mouse (_pick_support_target asks first). Prism abilities: my
+# prism under the mouse. A mouseover that isn't legal is ignored.
+
+var _mo_swapped := false          # is `target` a mouseover's right now?
+var _mo_prev_target: Node3D = null
+var _mo_ally: Node3D = null       # the ally under the mouse for this press
+var _mo_prism := ""               # the key of my prism under the mouse for this press
+
+## The enemy target to show (ring, target frame): never a mouseover cast's.
+func displayed_target() -> Node3D:
+	if _mo_swapped:
+		return _mo_prev_target if is_instance_valid(_mo_prev_target) else null
+	return target
+
+func mouseover_on() -> bool:
+	var s := get_node_or_null("/root/Settings")
+	return s != null and bool(s.get("mouseover_casting"))
+
+## Before an ability is used: look under the mouse for a legal target for it.
+func _mouseover_begin(id: String) -> void:
+	_mo_ally = null
+	_mo_prism = ""
+	if not mouseover_on() or not is_inside_tree():
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var at := get_viewport().get_mouse_position()
+	if PRISM_TARGET_IDS.has(id):
+		_mo_prism = _prism_at(at, cam)
+	elif _needs_enemy_target(id):
+		var e: Node3D = _enemy_at(at, cam)
+		if e != null and e != target and _target_error(e) == "" and _in_ability_range(id, e):
+			if not _mo_swapped:
+				_mo_prev_target = target
+			_mo_swapped = true
+			target = e
+	else:
+		_mo_ally = _mouseover_ally_at(at, cam)
+
+## After the ability was used: forget the mouseover (a swapped enemy target is
+## kept while the cast it started is still going: _mouseover_tick puts it back).
+func _mouseover_end() -> void:
+	_mo_ally = null
+	_mo_prism = ""
+	if _mo_swapped and not casting:
+		_mouseover_restore()
+
+func _mouseover_restore() -> void:
+	target = _mo_prev_target if is_instance_valid(_mo_prev_target) and _mo_prev_target.is_alive() else null
+	_mo_prev_target = null
+	_mo_swapped = false
+
+## Every frame: a mouseover cast that ended gives my real target back.
+func _mouseover_tick() -> void:
+	if _mo_swapped and not casting:
+		_mouseover_restore()
+
+## The enemy under the mouse (the same ray as clicking one), or null.
+func _enemy_at(screen_pos: Vector2, cam: Camera3D) -> Node3D:
+	var from := cam.project_ray_origin(screen_pos)
+	var to := from + cam.project_ray_normal(screen_pos) * 200.0
+	var query := PhysicsRayQueryParameters3D.create(from, to, 1 | ENEMY_LAYER_MASK, [get_rid()])
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if hit and hit.collider is Node3D and hit.collider.has_method("set_targeted") and hit.collider.is_alive() and can_see(hit.collider):
+		return hit.collider
+	return null
+
+## The ally under the mouse: a party member, or me.
+func _mouseover_ally_at(screen_pos: Vector2, cam: Camera3D) -> Node3D:
+	var ally := _ally_at(screen_pos, cam)
+	if ally != null:
+		return ally
+	for h in [0.3, 0.9, 1.5]:
+		var p: Vector3 = global_position + Vector3(0, h - 0.9, 0)
+		if not cam.is_position_behind(p) and cam.unproject_position(p).distance_to(screen_pos) < ALLY_PICK_PX:
+			return self
+	return null
+
+# --- Holy healer: the Prisms ------------------------------------------------------------------
+# The second Holy healer (nothing to do with the Hymns). I place up to PRISM_MAX
+# floating prisms (the picture: scripts/prism.gd). My direct heals send a beam
+# from me to the ally (scripts/light_beam.gd); every prism of mine the beam
+# passes through stores part of the heal as light, and the heal is stronger for
+# each. Shattering a prism heals the allies around it with its light (split
+# evenly) and hurts the enemies there. My heals never target a prism: only
+# Shatter Prism and Infuse do (the prism under the mouse with mouseover
+# casting, the one I clicked, or else my closest). Realign and Move Prism move
+# them (they flicker out and in). Own only: only my beams charge my prisms; the
+# party sees them. Numbers are in balance.gd; the talents (Clear Glass, Deep
+# Crystal, Sharp Facets, Wide Burst, Prismatic Burst, Quick Realign) in talents.gd.
+
+const PRISM = preload("res://scripts/prism.gd")
+const LIGHT_BEAM = preload("res://scripts/light_beam.gd")
+const SET_PRISM_ID := "setprism"
+const MOVE_PRISM_ID := "moveprism"
+const MENDING_RAY_ID := "mendingray"
+const BRIGHT_LANCE_ID := "brightlance"
+const GLEAM_ID := "gleam"
+const PRISM_WARD_ID := "prismward"
+const PIERCING_LIGHT_ID := "piercinglight"
+const REALIGN_ID := "realign"
+const SHATTER_PRISM_ID := "shatterprism"
+const SHATTER_ALL_ID := "shatterall"
+const INFUSE_ID := "infuse"
+const KALEIDOSCOPE_ID := "kaleidoscope"
+## The instants of the kit (_use_drafted -> _prism_use).
+const PRISM_INSTANTS := [MOVE_PRISM_ID, GLEAM_ID, PRISM_WARD_ID, SHATTER_PRISM_ID, SHATTER_ALL_ID, INFUSE_ID, KALEIDOSCOPE_ID]
+## Abilities used on one of my prisms.
+const PRISM_TARGET_IDS := [SHATTER_PRISM_ID, INFUSE_ID, "prismbreaker", "stepoflight"]
+const PRISM_WARD_FX := "prism_ward"
+const KALEIDOSCOPE_FX := "kaleidoscope"
+## Meter / log id of a shattering prism's heal and damage (its own line: Details.HIT_NAMES).
+const PRISM_SHATTER_ID := "prism_shatter"
+const PRISM_LIGHT := Color(0.95, 0.97, 1.0)
+const PRISM_RETELL := 3.0
+## How close (on screen) the mouse has to be to a prism to pick it.
+const PRISM_PICK_PX := 40.0
+
+var _prisms: Array = []           # my prisms, oldest first: {"key", "pos", "light", "until"}
+var _prism_seq := 0
+var prism_target := ""            # the key of the prism I clicked ("" = none)
+var _prisms_told := 0.0
+var _ray_who: Variant = null      # Mending Ray: who it heals ...
+var _ray_left := 0                # ... and the ticks it has left
+
+## My prisms: [{"key", "pos" (on the ground), "light", "until"}].
+func prisms() -> Array:
+	return _prisms
+
+## Is `p` on the beam from `from` to `to`? Within `width` metres of the line
+## (seen from above) and between the two ends.
+static func on_beam(from: Vector3, to: Vector3, p: Vector3, width: float) -> bool:
+	var a := Vector2(from.x, from.z)
+	var b := Vector2(to.x, to.z)
+	var q := Vector2(p.x, p.z)
+	var ab := b - a
+	var len2 := ab.length_squared()
+	if len2 < 0.0001:
+		return false
+	var t := (q - a).dot(ab) / len2
+	if t <= 0.0 or t >= 1.0:
+		return false
+	return q.distance_to(a + ab * t) <= width
+
+## The most light a prism holds (`deep` = Deep Crystal's %), as a heal coefficient.
+static func prism_cap(deep: float) -> float:
+	return Balance.PRISM_CAP_HEALS * Balance.REFERENCE_HEAL * (1.0 + maxf(deep, 0.0) / 100.0)
+
+## A prism's light after a beam carrying `coef` passes through it.
+static func prism_charged(light: float, coef: float, cap: float) -> float:
+	return minf(maxf(light, 0.0) + maxf(coef, 0.0) * Balance.PRISM_CHARGE_PCT / 100.0, cap)
+
+## How much stronger a heal is after passing through `n` prisms (`sharp` = Sharp Facets' %).
+static func amplify_mult(n: int, sharp: float) -> float:
+	return 1.0 + float(maxi(n, 0)) * (Balance.PRISM_AMPLIFY_PCT + maxf(sharp, 0.0)) / 100.0
+
+## The share of a shattering prism's `light` each of `allies` allies gets.
+static func shatter_share(light: float, allies: int) -> float:
+	return maxf(light, 0.0) / float(maxi(allies, 1))
+
+## Damage (coefficient) a shattering prism deals with `light` of `cap` (`burst` = Prismatic Burst's %).
+static func shatter_damage(light: float, cap: float, burst: float) -> float:
+	if cap <= 0.0:
+		return 0.0
+	return Balance.PRISM_SHATTER_DAMAGE * clampf(light / cap, 0.0, 1.0) * (1.0 + maxf(burst, 0.0) / 100.0)
+
+## Realign: where prisms standing at `old` go around `center`. Each keeps its
+## offset from the middle of the group, so the shape stays the same.
+static func realign_spots(old: Array, center: Vector3) -> Array:
+	var out := []
+	if old.is_empty():
+		return out
+	var mid := Vector3.ZERO
+	for p in old:
+		mid += p
+	mid /= float(old.size())
+	for p in old:
+		var off: Vector3 = p - mid
+		out.append(Vector3(center.x + off.x, center.y, center.z + off.z))
+	return out
+
+## Index of the point in `points` closest to `to` (seen from above), -1 if none.
+static func closest_index(points: Array, to: Vector3) -> int:
+	var best := -1
+	var best_d := INF
+	for i in points.size():
+		var p: Vector3 = points[i]
+		var d := Vector2(p.x - to.x, p.z - to.z).length_squared()
+		if d < best_d:
+			best_d = d
+			best = i
+	return best
+
+## Which prism a prism ability goes to: the mouseover one, else the one I
+## clicked, else my closest. Returns its index (-1 = none).
+static func pick_prism(keys: Array, spots: Array, mouseover: String, clicked: String, me: Vector3) -> int:
+	if mouseover != "" and keys.has(mouseover):
+		return keys.find(mouseover)
+	if clicked != "" and keys.has(clicked):
+		return keys.find(clicked)
+	return closest_index(spots, me)
+
+func _my_prism_cap() -> float:
+	return prism_cap(_talent("holy_deep_crystal"))   # + Deep Crystal
+
+func _prism_index(key: String) -> int:
+	for i in _prisms.size():
+		if str(_prisms[i]["key"]) == key:
+			return i
+	return -1
+
+func _prism_spots() -> Array:
+	var out := []
+	for p in _prisms:
+		out.append(p["pos"])
+	return out
+
+func _prism_keys() -> Array:
+	var out := []
+	for p in _prisms:
+		out.append(str(p["key"]))
+	return out
+
+## The prism a prism ability goes to (index into _prisms, -1 = none). `kind`:
+## "white", "gold", or "" for either colour.
+func _target_prism(kind: String = "white") -> int:
+	var keys := []
+	var spots := []
+	var at := []
+	for i in _prisms.size():
+		if kind == "" or str(_prisms[i].get("kind", "white")) == kind:
+			keys.append(str(_prisms[i]["key"]))
+			spots.append(_prisms[i]["pos"])
+			at.append(i)
+	var j := pick_prism(keys, spots, _mo_prism, prism_target, global_position)
+	return int(at[j]) if j >= 0 else -1
+
+## How many of my prisms are of `kind` ("white" / "gold").
+func prisms_of(kind: String) -> int:
+	var n := 0
+	for p in _prisms:
+		if str(p.get("kind", "white")) == kind:
+			n += 1
+	return n
+
+## The key of my prism under the mouse ("" = none).
+func _prism_at(screen_pos: Vector2, cam: Camera3D) -> String:
+	var best := ""
+	var best_d := PRISM_PICK_PX
+	for p in _prisms:
+		var at: Vector3 = p["pos"] + Vector3(0, Balance.PRISM_HOVER, 0)
+		if cam.is_position_behind(at):
+			continue
+		var d := cam.unproject_position(at).distance_to(screen_pos)
+		if d < best_d:
+			best_d = d
+			best = str(p["key"])
+	return best
+
+## A heal / shield / damage beam from me to `to`, carrying `coef`. Every WHITE
+## prism of mine on it is charged (gold ones are the archer's: the beam passes
+## them by); returns how much stronger the heal is for them (Kaleidoscope: every
+## white prism counts, wherever it is).
+func _prism_beam(to: Vector3, coef: float) -> float:
+	var from := global_position
+	var width := Balance.PRISM_BEAM_WIDTH + _talent("holy_clear_glass")   # + Clear Glass
+	var all: bool = status != null and status.has(KALEIDOSCOPE_FX)
+	var cap := _my_prism_cap()
+	var n := 0
+	for p in _prisms:
+		if str(p.get("kind", "white")) != "white":
+			continue
+		if all or on_beam(from, to, p["pos"], width):
+			p["light"] = prism_charged(float(p["light"]), coef, cap)
+			n += 1
+	var start := _muzzle() if is_inside_tree() else from
+	LIGHT_BEAM.flash(get_tree().current_scene, start, to + Vector3(0, 0.9, 0), PRISM_LIGHT)
+	_net_fx("beam", start, null, {"to": to + Vector3(0, 0.9, 0)})
+	if n > 0:
+		_sync_prisms()
+	return amplify_mult(n, _talent("holy_sharp_facets"))   # + Sharp Facets
+
+## A heal of the kit on `who` (`coef` before the prisms): through the beam.
+func _prism_heal(who: Variant, coef: float, id: String) -> void:
+	if who == null or not is_instance_valid(who):
+		return
+	var mult := _prism_beam((who as Node3D).global_position, coef)
+	_heal_coef(who, coef * mult, id)
+
+## Set Prism, Realign, Prism Arrow (ground-targeted).
+func _prism_place_error(id: String, point: Variant = null) -> String:
+	if id == PRISM_ARROW_ID:
+		if _weapon().get("weapon", "") != "ranged":
+			return "Requires a bow"
+		if _prism_arrows <= 0:
+			return "%s is not ready yet" % Abilities.ability_name(id)
+	elif cooldown_left(id) > 0.0:
+		return "%s is not ready yet" % Abilities.ability_name(id)
+	if id == REALIGN_ID and _prisms.is_empty():
+		return "You have no prisms"
+	if point is Vector3:
+		var reach := float(Abilities.get_resource(id).cast_range)
+		if Vector2(point.x - global_position.x, point.z - global_position.z).length() > reach:
+			return "Out of range"
+	return ""
+
+func _start_prism_place(id: String, point: Vector3) -> void:
+	var err := _prism_place_error(id, point)
+	if err != "":
+		_error(err)
+		return
+	if not _pay(id):
+		return
+	var ground := Vector3(point.x, Combat.feet_y(self), point.z)
+	if id == PRISM_ARROW_ID:
+		_prism_arrow_used()   # (charges)
+		LIGHT_BEAM.flash(get_tree().current_scene, _muzzle(), ground + Vector3(0, Balance.PRISM_HOVER, 0), PRISM.GOLD)   # (the arrow's streak)
+		_add_prism(ground, "gold")
+	else:
+		cooldowns[id] = Abilities.cooldown_of(Abilities.get_resource(id))   # (Quick Realign)
+		if id == SET_PRISM_ID:
+			_add_prism(ground, "white")
+		else:
+			_realign(ground)
+	if on_gcd(id):
+		_start_gcd()
+	_bus().cast_finished.emit(id)
+
+## A new prism of `kind` ("white": the healer's; "gold": the archer's). Both
+## colours count toward PRISM_MAX: past it, my oldest goes, whatever its colour.
+func _add_prism(at: Vector3, kind: String = "white") -> void:
+	_prism_seq += 1
+	var key := "p%d" % _prism_seq
+	_prisms.append({"key": key, "pos": at, "light": 0.0, "kind": kind,
+		"until": Time.get_ticks_msec() / 1000.0 + _prism_time()})   # (+ Long Glass)
+	while _prisms.size() > _prism_max():   # (Rune of the Fourth Facet: one more)
+		var old: Dictionary = _prisms.pop_front()
+		PRISM.remove(get_tree(), "me:" + str(old["key"]))
+	_sync_prisms()
+
+## Realign: every prism flickers over to `center`, in the same shape, and its time starts over.
+func _realign(center: Vector3) -> void:
+	var spots := realign_spots(_prism_spots(), center)
+	var until := Time.get_ticks_msec() / 1000.0 + _prism_time()   # (+ Long Glass)
+	for i in _prisms.size():
+		_prisms[i]["pos"] = spots[i]
+		_prisms[i]["until"] = until
+	_sync_prisms()
+
+## The ground point under the mouse (and whether I can see it).
+func _mouse_ground() -> Array:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return [null, false]
+	var at := get_viewport().get_mouse_position()
+	var plane := Plane(Vector3.UP, Combat.feet_y(self))
+	var hit: Variant = plane.intersects_ray(cam.project_ray_origin(at), cam.project_ray_normal(at))
+	if hit == null:
+		return [null, false]
+	var seen := Combat.line_of_sight(get_world_3d(), Combat.sight_point(self), (hit as Vector3) + Vector3(0, 0.3, 0))
+	return [hit, seen]
+
+## Why a prism ability can't be used right now ("" = it can).
+func _prism_precheck(id: String) -> String:
+	match id:
+		GLEAM_ID, PRISM_WARD_ID:
+			var pick := _pick_support_target(id)
+			if pick[0] == null and str(pick[1]) != "":
+				return str(pick[1])
+		MOVE_PRISM_ID:
+			if _prisms.is_empty():
+				return "You have no prisms"
+			var g := _mouse_ground()
+			if g[0] == null or not bool(g[1]):
+				return "Not in line of sight"
+			var p: Vector3 = g[0]
+			if Vector2(p.x - global_position.x, p.z - global_position.z).length() > float(Abilities.get_resource(id).cast_range):
+				return "Out of range"
+		SHATTER_PRISM_ID, SHATTER_ALL_ID, INFUSE_ID:
+			if prisms_of("white") <= 0:
+				return "You have no white prisms"
+			if id == INFUSE_ID:
+				var i := _target_prism()
+				if i >= 0 and float(_prisms[i]["light"]) >= _my_prism_cap():
+					return "That prism is full"
+	return ""
+
+## One of the kit's instants (paid for and put on cooldown by _use_drafted).
+func _prism_use(id: String, res: Resource) -> void:
+	match id:
+		GLEAM_ID:
+			var who: Node3D = _pick_support_target(id)[0]
+			if who:
+				_prism_heal(who, float(Abilities.HEALS[id]), id)
+		PRISM_WARD_ID:
+			var who: Node3D = _pick_support_target(id)[0]
+			if who:
+				var coef := float(Abilities.HEALS[id])
+				var mult := _prism_beam(who.global_position, coef)
+				_hymn_ward(who, PRISM_WARD_FX, _combat().heal_amount(self, coef * mult, id), Balance.PRISM_WARD_TIME)
+				_ring_effect(1.0, PRISM_LIGHT, who.global_position)
+		MOVE_PRISM_ID:
+			var g := _mouse_ground()
+			if g[0] != null:
+				var spot: Vector3 = g[0]
+				var i := closest_index(_prism_spots(), spot)
+				if i >= 0:
+					_prisms[i]["pos"] = Vector3(spot.x, Combat.feet_y(self), spot.z)
+					_sync_prisms()
+		SHATTER_PRISM_ID:
+			var i := _target_prism()
+			if i >= 0:
+				_shatter_prism(i)
+		SHATTER_ALL_ID:
+			# Every white prism (gold ones are the archer's: Prism Breaker).
+			for i in range(_prisms.size() - 1, -1, -1):
+				if i < _prisms.size() and str(_prisms[i].get("kind", "white")) == "white":
+					_shatter_prism(i)
+		INFUSE_ID:
+			var i := _target_prism()
+			if i >= 0:
+				_prisms[i]["light"] = _my_prism_cap()
+				_ring_effect(1.0, PRISM_LIGHT, _prisms[i]["pos"])
+				_sync_prisms()
+		KALEIDOSCOPE_ID:
+			var fx := StatusContainer.make_buff(KALEIDOSCOPE_FX, Abilities.ability_name(id), Stats.BLOCK, 0.0,
+				Balance.KALEIDOSCOPE_TIME, 1, PRISM_LIGHT)
+			fx.stat_modifiers = {}
+			fx.tags = PackedStringArray(["Holy"])
+			fx.description = "Your heals' beams pass through every white prism you have, wherever it stands."
+			status.apply(fx, self)
+			_ring_effect(1.4, PRISM_LIGHT)
+
+## The prism at index `i` shatters: its light heals the allies around it (split
+## evenly between them) and it hurts the enemies there (both a proc line).
+func _shatter_prism(i: int) -> void:
+	var p: Dictionary = _prisms[i]
+	_prisms.remove_at(i)
+	var at: Vector3 = p["pos"]
+	var light := float(p["light"])
+	var reach := Balance.PRISM_SHATTER_RADIUS + _talent("holy_wide_burst")   # + Wide Burst
+	var allies := _allies_near(at, reach)
+	var share := shatter_share(light, allies.size())
+	for a in allies:
+		_heal_coef(a, share, PRISM_SHATTER_ID)
+	var foes := _enemies_near(at, reach)
+	var coef := shatter_damage(light, _my_prism_cap(), _talent("holy_prismatic_burst")) * Balance.aoe_share(foes.size())   # + Prismatic Burst
+	if coef > 0.0:
+		for e in foes:
+			deal_damage(e, coef, PRISM_SHATTER_ID, true, "holy", PackedStringArray(["Holy", "Spell", "AoE"]))
+	PRISM.shatter(get_tree(), "me:" + str(p["key"]))
+	_net_fx("prism_burst", at, null, {"k": str(p["key"]), "r": reach})
+	_ring_effect(reach, PRISM_LIGHT, at)
+	if str(p["key"]) == prism_target:
+		prism_target = ""
+	_sync_prisms()
+
+## Allies (me included) within `radius` of `point`.
+func _allies_near(point: Vector3, radius: float) -> Array:
+	var out: Array = []
+	var me_d := Vector2(global_position.x - point.x, global_position.z - point.z).length()
+	if is_alive() and me_d <= radius:
+		out.append(self)
+	for a in get_tree().get_nodes_in_group("remote_player") + get_tree().get_nodes_in_group("friendly"):
+		if a is Node3D and a.is_alive() and Vector2(a.global_position.x - point.x, a.global_position.z - point.z).length() <= radius:
+			out.append(a)
+	return out
+
+## Mending Ray (a channel on an ally): paid when it starts, its heal in ticks.
+func _start_mending_ray() -> void:
+	var id := MENDING_RAY_ID
+	if casting or not is_on_floor():
+		return
+	var pick := _pick_support_target(id)
+	if pick[0] == null:
+		if str(pick[1]) != "":
+			_error(str(pick[1]))
+		return
+	if not _pay(id):
+		return
+	_ray_who = pick[0]
+	cast_point = (pick[0] as Node3D).global_position
+	var res := Abilities.get_resource(id)
+	_begin_spell(id, str(res.display_name), float(res.cast_time), true)
+	_ray_left = Balance.MENDING_RAY_TICKS if casting and current_spell == id else 0
+
+## The ticks of Mending Ray that are due by now (`final` = all that are left).
+func _mending_ray_tick(final: bool = false) -> void:
+	if _ray_left <= 0:
+		return
+	if _ray_who == null or not is_instance_valid(_ray_who) or not (_ray_who as Node3D).is_alive():
+		_ray_left = 0
+		if casting:
+			_cancel_cast()
+		return
+	cast_point = (_ray_who as Node3D).global_position   # (I keep facing them)
+	var ticks := Balance.MENDING_RAY_TICKS
+	var due := ticks
+	if not final:
+		var every := maxf(cast_duration / ticks, 0.01)
+		due = mini(int(floor((cast_duration - maxf(cast_timer, 0.0)) / every + 0.0001)), ticks)
+	var coef := float(Abilities.HEALS[MENDING_RAY_ID]) / float(ticks) * (1.0 + _talent("holy_steady_ray") / 100.0)   # + Steady Ray
+	while ticks - _ray_left < due:
+		_ray_left -= 1
+		_prism_heal(_ray_who, coef, MENDING_RAY_ID)
+
+## Bright Lance landed (_release_support).
+func _prism_cast_heal(spell: String, tgt: Variant, kind: String) -> void:
+	var who: Variant = tgt if kind == "ally" and tgt != null and is_instance_valid(tgt) else self
+	_prism_heal(who, float(Abilities.HEALS.get(spell, 0.0)), spell)
+
+## Piercing Light landed (_release of a bolt): a beam into the enemy. The prisms
+## on it store part of its damage as light.
+func _piercing_light(tgt: Node3D) -> void:
+	if tgt == null or not is_instance_valid(tgt) or not tgt.is_alive():
+		return
+	var coef := float(Abilities.get_resource(PIERCING_LIGHT_ID).damage)
+	_prism_beam(tgt.global_position, coef)
+	deal_damage(tgt, coef, PIERCING_LIGHT_ID)
+
+## Every frame: prisms that ran out fade, and the party is told again now and then.
+func _tick_prisms() -> void:
+	if _prisms.is_empty():
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	var gone := false
+	for i in range(_prisms.size() - 1, -1, -1):
+		if now >= float(_prisms[i]["until"]):
+			PRISM.remove(get_tree(), "me:" + str(_prisms[i]["key"]))
+			_prisms.remove_at(i)
+			gone = true
+	if gone:
+		_sync_prisms()
+	elif now - _prisms_told >= PRISM_RETELL:
+		_tell_prisms()
+
+## The picture of my prisms (and the party is told): where they stand, how full.
+## (A prism that appears somewhere new flickers in: scripts/prism.gd.)
+func _sync_prisms() -> void:
+	var cap := _my_prism_cap()
+	var keys := []
+	for p in _prisms:
+		var key := "me:" + str(p["key"])
+		keys.append(key)
+		PRISM.place(get_tree().current_scene, key, p["pos"] + Vector3(0, Balance.PRISM_HOVER, 0), float(p["light"]) / cap,
+			true, str(p["key"]) == prism_target, str(p.get("kind", "white")) == "gold")
+	PRISM.keep_only(get_tree(), "me:", keys)
+	_tell_prisms()
+
+func _tell_prisms() -> void:
+	_prisms_told = Time.get_ticks_msec() / 1000.0
+	var cap := _my_prism_cap()
+	var list := []
+	for p in _prisms:
+		var pos: Vector3 = p["pos"]
+		list.append([str(p["key"]), pos.x, pos.y + Balance.PRISM_HOVER, pos.z, float(p["light"]) / cap, str(p.get("kind", "white"))])
+	_net_fx("prisms", global_position, null, {"p": list})
+
+## A click on one of my prisms makes it my prism target (Shatter Prism, Infuse).
+func _click_prism(screen_pos: Vector2, cam: Camera3D) -> bool:
+	var key := _prism_at(screen_pos, cam)
+	if key == "":
+		return false
+	prism_target = key
+	_sync_prisms()
+	return true
+
+# --- Holy archer: Lightstring -----------------------------------------------------------------
+# A bow and Energy. It shares my prisms with the second healer, but by colour:
+# Prism Arrow plants GOLD prisms, and only arrows use those (heals use only the
+# white ones; light never moves between the colours; PRISM_MAX counts both).
+# Every shot is a line from me to the enemy. Each gold prism on it fires a
+# refracted arrow at another enemy near it (none: the shot is stronger instead)
+# and stores part of the shot's damage as light; my auto-shots do this too, more
+# weakly. Sunlit Arrow drains that light as damage, Prism Breaker shatters a gold
+# prism into the enemies around it, Step of Light takes me to a prism, and
+# Spectrum Volley makes the gold prisms shoot by themselves. Numbers are in
+# balance.gd; the talents (Wide Fan, Split Light, Bright Quiver, Deep Burn,
+# Swift Light, Long Volley) in talents.gd.
+
+const PRISM_ARROW_ID := "prismarrow"
+const GLIMMER_SHOT_ID := "glimmershot"
+const REFRACTING_SHOT_ID := "refractingshot"
+const SUNLIT_ARROW_ID := "sunlitarrow"
+const PRISM_BREAKER_ID := "prismbreaker"
+const STEP_OF_LIGHT_ID := "stepoflight"
+const SPECTRUM_VOLLEY_ID := "spectrumvolley"
+## The instants of the kit (_use_drafted -> _lightstring_use).
+const LIGHTSTRING_INSTANTS := [GLIMMER_SHOT_ID, SUNLIT_ARROW_ID, PRISM_BREAKER_ID, STEP_OF_LIGHT_ID, SPECTRUM_VOLLEY_ID]
+## Meter / log ids of a refracted arrow and a Spectrum Volley arrow (own lines: Details.HIT_NAMES).
+const REFRACTION_ID := "refraction"
+const VOLLEY_ARROW_ID := "volley_arrow"
+const VOLLEY_FX := "spectrum_volley"
+const LIGHTSTRING_TAGS := ["Holy", "Ability", "Ranged", "Projectile"]
+
+var _prism_arrows := Balance.PRISM_ARROW_CHARGES   # Prism Arrow's charges ...
+var _prism_arrow_recharge := 0.0                    # ... and seconds until the next one (0 = all there)
+var _volley_next := 0.0
+
+## The enemy (index into `spots`) a prism at `prism` refracts at: the closest one
+## within `radius` that isn't the shot's own target (`skip`), -1 = none.
+static func refract_target(prism: Vector3, spots: Array, skip: int, radius: float) -> int:
+	var best := -1
+	var best_d := INF
+	for i in spots.size():
+		if i == skip:
+			continue
+		var s: Vector3 = spots[i]
+		var d := Vector2(s.x - prism.x, s.z - prism.z).length()
+		if d <= radius and d < best_d:
+			best_d = d
+			best = i
+	return best
+
+## A gold prism's light after a shot of `coef` passes through it (charging `pct` %).
+static func gold_charged(light: float, coef: float, pct: float, cap: float) -> float:
+	return minf(maxf(light, 0.0) + maxf(coef, 0.0) * maxf(pct, 0.0) / 100.0, cap)
+
+## Sunlit Arrow's bonus damage (coefficient) for the light it drains (`deep` = Deep Burn's %).
+static func sunlit_bonus(lights: Array, deep: float) -> float:
+	var total := 0.0
+	for l in lights:
+		total += maxf(float(l), 0.0)
+	return total * Balance.SUNLIT_DRAIN * (1.0 + maxf(deep, 0.0) / 100.0)
+
+## Prism Breaker's damage (coefficient) for a gold prism holding `light`.
+static func breaker_damage(light: float) -> float:
+	return Balance.BREAKER_DAMAGE + maxf(light, 0.0) * Balance.BREAKER_LIGHT
+
+## A Spectrum Volley arrow's damage (coefficient) from a gold prism holding `light`.
+static func volley_damage(light: float) -> float:
+	return Balance.VOLLEY_DAMAGE + maxf(light, 0.0) * Balance.VOLLEY_LIGHT
+
+## A shot from me at `tgt` carrying `coef`: every gold prism on its line refracts
+## (`refract` % of the shot, at another enemy near it) or focuses (the shot is
+## stronger), and stores `charge` % of it as light. `drain` (Sunlit Arrow): the
+## light is taken as bonus damage instead. Returns {"mult", "bonus"}.
+func _arrow_line(tgt: Node3D, coef: float, refract: float, charge: float, drain: bool = false) -> Dictionary:
+	var out := {"mult": 1.0, "bonus": 0.0}
+	if tgt == null or not is_instance_valid(tgt) or prisms_of("gold") <= 0:
+		return out
+	var from := global_position
+	var to := tgt.global_position
+	var cap := _my_prism_cap()
+	var reach := Balance.REFRACT_RADIUS + _talent("holy_wide_fan")   # + Wide Fan
+	var split := 1.0 + _talent("holy_split_light") / 100.0          # + Split Light
+	var drained := []
+	var changed := false
+	for p in _prisms:
+		if str(p.get("kind", "white")) != "gold" or not on_beam(from, to, p["pos"], Balance.PRISM_BEAM_WIDTH):
+			continue
+		changed = true
+		var at: Vector3 = p["pos"]
+		var near := _enemies_near(at, reach, tgt)
+		if not near.is_empty() and refract > 0.0:
+			var other: Node3D = near[0]
+			ARROW.spawn(get_tree().current_scene, at + Vector3(0, Balance.PRISM_HOVER, 0), other, self,
+				coef * refract / 100.0 * split, REFRACTION_ID)
+		else:
+			out["mult"] = float(out["mult"]) + Balance.REFRACT_FOCUS_PCT / 100.0
+		if drain:
+			drained.append(float(p["light"]))
+			p["light"] = float(p["light"]) * (Balance.DEEP_BURN_KEEP_PCT / 100.0 if _capstone("holy_deep_burn") else 0.0)
+		else:
+			p["light"] = gold_charged(float(p["light"]), coef, charge, cap)
+	if drain:
+		out["bonus"] = sunlit_bonus(drained, _talent("holy_deep_burn"))   # + Deep Burn
+	if changed:
+		_sync_prisms()
+	return out
+
+## A bow shot of the kit at my target: the line, then the arrow.
+func _lightstring_shot(id: String, refract: float, drain: bool = false) -> void:
+	if not _has_valid_target():
+		return
+	var w := _weapon()
+	var coef := _weapon_hit(w, Abilities.get_resource(id))
+	var line := _arrow_line(target, coef, refract, Balance.GOLD_CHARGE_PCT, drain)
+	var dir := target.global_position - global_position
+	rotation.y = atan2(-dir.x, -dir.z)
+	ARROW.spawn(get_tree().current_scene, _muzzle(), target, self, coef * float(line["mult"]) + float(line["bonus"]), id)
+
+## Why a Lightstring ability can't be used right now ("" = it can).
+func _lightstring_precheck(id: String) -> String:
+	match id:
+		PRISM_BREAKER_ID:
+			if prisms_of("gold") <= 0:
+				return "You have no gold prisms"
+		STEP_OF_LIGHT_ID:
+			if _prisms.is_empty():
+				return "You have no prisms"
+			var i := _target_prism("")
+			var p: Vector3 = _prisms[i]["pos"]
+			if Vector2(p.x - global_position.x, p.z - global_position.z).length() > float(Abilities.get_resource(id).cast_range):
+				return "Out of range"
+		SPECTRUM_VOLLEY_ID:
+			if prisms_of("gold") <= 0:
+				return "You have no gold prisms"
+	return ""
+
+## One of the kit's instants (paid for and put on cooldown by _use_drafted).
+func _lightstring_use(id: String, _res: Resource) -> void:
+	match id:
+		GLIMMER_SHOT_ID:
+			_lightstring_shot(id, Balance.REFRACT_PCT)
+		SUNLIT_ARROW_ID:
+			_lightstring_shot(id, Balance.REFRACT_PCT, true)
+		PRISM_BREAKER_ID:
+			var i := _target_prism("gold")
+			if i >= 0:
+				_break_prism(i)
+		STEP_OF_LIGHT_ID:
+			var i := _target_prism("")
+			if i >= 0:
+				var p: Vector3 = _prisms[i]["pos"]
+				var back := Vector3(global_position.x - p.x, 0.0, global_position.z - p.z)
+				back = back.normalized() if back.length() > 0.01 else Vector3.BACK
+				var from := global_position
+				var land := p + back * Balance.STEP_OF_LIGHT_OFFSET
+				global_position = Vector3(land.x, global_position.y, land.z)
+				_ring_effect(0.8, PRISM.GOLD, from)
+				_ring_effect(0.8, PRISM.GOLD)
+		SPECTRUM_VOLLEY_ID:
+			var fx := StatusContainer.make_buff(VOLLEY_FX, Abilities.ability_name(id), Stats.BLOCK, 0.0,
+				Balance.VOLLEY_TIME + _talent("holy_long_volley"), 1, PRISM.GOLD)   # + Long Volley
+			fx.stat_modifiers = {}
+			fx.tags = PackedStringArray(["Holy"])
+			fx.description = "Your gold prisms shoot the enemies near them."
+			status.apply(fx, self)
+			_volley_next = Time.get_ticks_msec() / 1000.0
+
+## Prism Breaker: the gold prism at index `i` shatters into the enemies around it.
+func _break_prism(i: int) -> void:
+	var p: Dictionary = _prisms[i]
+	_prisms.remove_at(i)
+	var at: Vector3 = p["pos"]
+	LIGHT_BEAM.flash(get_tree().current_scene, _muzzle(), at + Vector3(0, Balance.PRISM_HOVER, 0), PRISM.GOLD)
+	var reach := Balance.BREAKER_RADIUS + _talent("holy_wide_break")   # + Wide Break
+	var foes := _enemies_near(at, reach)
+	var coef := breaker_damage(float(p["light"])) * Balance.aoe_share(foes.size())
+	for e in foes:
+		deal_damage(e, coef, PRISM_BREAKER_ID)
+	PRISM.shatter(get_tree(), "me:" + str(p["key"]))
+	_net_fx("prism_burst", at, null, {"k": str(p["key"])})
+	_ring_effect(reach, PRISM.GOLD, at)
+	if str(p["key"]) == prism_target:
+		prism_target = ""
+	_sync_prisms()
+
+## Refracting Shot: a bow cast (like Glacial Draw).
+func _start_refracting_shot() -> void:
+	var id := REFRACTING_SHOT_ID
+	if casting:
+		return
+	if cooldown_left(id) > 0.0:
+		_error("%s is not ready yet" % Abilities.ability_name(id))
+		return
+	var w := _weapon()
+	if w.get("weapon", "") != "ranged":
+		_error("Requires a bow")
+		return
+	if not _has_valid_target():
+		_error("No target")
+		return
+	if not _in_weapon_range(target, float(w["attack_range"])):
+		_error("Target out of range")
+		return
+	var sight_err := _target_error(target)
+	if sight_err != "":
+		_error(sight_err)
+		return
+	if not can_afford(id, true):
+		return
+	_begin_spell(id, Abilities.ability_name(id), float(Abilities.get_resource(id).cast_time))
+
+## Refracting Shot's arrow leaves the bow.
+func _loose_refracting_shot() -> void:
+	cooldowns[REFRACTING_SHOT_ID] = Abilities.cooldown_of(Abilities.get_resource(REFRACTING_SHOT_ID))
+	if _weapon().get("weapon", "") != "ranged":
+		_error("Requires a bow")
+		return
+	_lightstring_shot(REFRACTING_SHOT_ID, Balance.REFRACTING_SHOT_PCT)
+
+## An auto-shot at `enemy` worth `coef`: through my gold prisms, weakly. Returns
+## how much stronger it is (focused prisms).
+func _auto_shot_line(enemy: Node3D, coef: float) -> float:
+	if prisms_of("gold") <= 0:
+		return 1.0
+	var charge := Balance.AUTO_SHOT_CHARGE_PCT * (1.0 + _talent("holy_bright_quiver") / 100.0)   # + Bright Quiver
+	return float(_arrow_line(enemy, coef, Balance.AUTO_SHOT_REFRACT_PCT, charge)["mult"])
+
+## Prism Arrow's charges.
+func _prism_arrow_used() -> void:
+	_prism_arrows = maxi(_prism_arrows - 1, 0)
+	var cd := Abilities.cooldown_of(Abilities.get_resource(PRISM_ARROW_ID))
+	if _prism_arrow_recharge <= 0.0:
+		_prism_arrow_recharge = cd
+	if _prism_arrows <= 0:
+		cooldowns[PRISM_ARROW_ID] = _prism_arrow_recharge
+	else:
+		cooldowns.erase(PRISM_ARROW_ID)
+
+## Every frame: Prism Arrow recharging, Spectrum Volley shooting.
+func _tick_lightstring(delta: float) -> void:
+	if _prism_arrow_recharge > 0.0:
+		_prism_arrow_recharge -= delta
+		if _prism_arrow_recharge <= 0.0:
+			_prism_arrows = mini(_prism_arrows + 1, Balance.PRISM_ARROW_CHARGES)
+			_prism_arrow_recharge = Abilities.cooldown_of(Abilities.get_resource(PRISM_ARROW_ID)) \
+				if _prism_arrows < Balance.PRISM_ARROW_CHARGES else 0.0
+	if status == null or not status.has(VOLLEY_FX):
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	if now < _volley_next:
+		return
+	_volley_next = now + Balance.VOLLEY_EVERY
+	for p in _prisms:
+		if str(p.get("kind", "white")) != "gold":
+			continue
+		var at: Vector3 = p["pos"]
+		var near := _enemies_near(at, Balance.VOLLEY_RADIUS)
+		if near.is_empty():
+			continue
+		ARROW.spawn(get_tree().current_scene, at + Vector3(0, Balance.PRISM_HOVER, 0), near[0], self,
+			volley_damage(float(p["light"])), VOLLEY_ARROW_ID)
+
+# --- Holy: the open talents and the bottom row ------------------------------------------------
+# Open (useful to anyone): Grace (my heals on others: _others_heal_mult), Steadfast
+# (Block: PlayerData), Burnished (my Holy damage), Overflowing (overhealing becomes
+# a shield), Penitent (a big hit makes my next heal on myself stronger: also
+# heal_taken_mult), Zeal (faster after a long cooldown). The bottom row: Censer's
+# Weight (the tank), Sunsteel (the archer), Radiance (both healers). Long Note is
+# in _do_boom. Numbers: talents.gd and balance.gd.
+
+const OVERFLOWING_FX := "overflowing"
+const PENITENT_FX := "penitent"
+const ZEAL_FX := "zeal"
+## Holy heals that aren't an ability of the book (Radiance counts them too).
+const HOLY_HEAL_PROCS := ["benediction", "chorale", "chorus_splash", "antiphon_self", "prism_shatter", "light_mote"]
+## The tank's and the archer's procs (Censer's Weight, Sunsteel count them too).
+const CENSER_PROCS := ["incense_aura", "bright_burst"]
+const LIGHTSTRING_PROCS := ["refraction", "volley_arrow"]
+
+## Radiance: what a heal of `id` of mine is multiplied by (Holy heals only).
+func _holy_heal_mult(id: String) -> float:
+	var r := _talent("holy_radiance")
+	if r <= 0.0 or id == "":
+		return 1.0
+	return 1.0 + r / 100.0 if is_holy_heal(id) else 1.0
+
+## Is `id` a Holy heal (an ability of the Holy book, or one of its heal procs)?
+static func is_holy_heal(id: String) -> bool:
+	return HOLY_HEAL_PROCS.has(id) or Abilities.category_of(id) == "holy"
+
+## Burnished, Censer's Weight, Sunsteel: my outgoing hits (_on_damage_modify).
+func _holy_talents_outgoing(info: RefCounted) -> void:
+	var burn := _talent("holy_burnished")
+	if burn > 0.0 and str(info.damage_type) == "holy":
+		info.add_bonus(burn, "Burnished")
+	var id := str(info.ability_id)
+	var weight := _talent("holy_censers_weight")
+	if weight > 0.0 and (CENSER_IDS.has(id) or CENSER_PROCS.has(id)):
+		info.add_bonus(weight, "Censer's Weight")
+	if _talent("holy_glimmering") > 0.0 and id == GLIMMER_SHOT_ID:
+		info.add_bonus(_talent("holy_glimmering"), "Glimmering")
+	var steel := _talent("holy_sunsteel")
+	if steel > 0.0 and (LIGHTSTRING_INSTANTS.has(id) or id == REFRACTING_SHOT_ID or LIGHTSTRING_PROCS.has(id)):
+		info.add_bonus(steel, "Sunsteel")
+
+## Overflowing: the shield from `over` overhealing (`pct` %), never more than
+## OVERFLOWING_CAP_PCT % of `max_hp`.
+static func overflowing_shield(over: int, pct: float, max_hp: int) -> int:
+	if over <= 0 or pct <= 0.0:
+		return 0
+	var cap := int(floor(float(maxi(max_hp, 0)) * Balance.OVERFLOWING_CAP_PCT / 100.0))
+	return mini(int(round(float(over) * pct / 100.0)), cap)
+
+## A heal of `amount` of mine is about to land on `tgt`: what it overheals
+## becomes a shield (not from lifesteal, nor from a shield of its own).
+func _overflowing(tgt: Variant, amount: int, id: String) -> void:
+	var pct := _talent("holy_overflowing")
+	if pct <= 0.0 or id == "lifesteal":
+		return
+	var h: Variant = (tgt as Node).get("health")
+	var mh: Variant = (tgt as Node).get("max_health")
+	if h == null or mh == null:
+		return
+	var over := amount - maxi(int(mh) - int(h), 0)
+	var shield := overflowing_shield(over, pct, int(mh))
+	if shield > 0:
+		_hymn_ward(tgt, OVERFLOWING_FX, shield, Balance.OVERFLOWING_TIME)
+
+## Penitent: is a hit of `amount` big enough (vs `max_hp`)?
+static func penitent_hit(amount: int, max_hp: int) -> bool:
+	return max_hp > 0 and float(amount) >= float(max_hp) * Balance.PENITENT_HIT_PCT / 100.0
+
+## Penitent: a big hit (not a damage over time tick) readies my next heal on myself.
+func _penitent_hit(info: RefCounted) -> void:
+	if _talent("holy_penitent") <= 0.0 or bool(info.is_dot) or not penitent_hit(int(info.amount), max_health):
+		return
+	var fx := StatusContainer.make_buff(PENITENT_FX, "Penitent", Stats.BLOCK, 0.0, Balance.PENITENT_TIME, 1, HOLY_LIGHT)
+	fx.stat_modifiers = {}
+	fx.tags = PackedStringArray(["Holy"])
+	fx.description = "Your next heal on yourself is stronger."
+	status.apply(fx, self)
+
+## Zeal: does using ability `id` (cooldown `cd`) count? A cooldown of ZEAL_COOLDOWN or more.
+static func zeal_counts(cd: float) -> bool:
+	return cd >= Balance.ZEAL_COOLDOWN
+
+func _zeal_on_cast(id: Variant) -> void:
+	var pct := _talent("holy_zeal")
+	if pct <= 0.0 or status == null or is_dead():
+		return
+	var res := Abilities.get_resource(str(id))
+	if res == null or not zeal_counts(Abilities.cooldown_of(res)):
+		return
+	status.apply(StatusContainer.make_buff(ZEAL_FX, "Zeal", Stats.MOVE_SPEED, pct, Balance.ZEAL_TIME, 1, HOLY_LIGHT), self)
+
+# --- Holy: talents shared by several specs ----------------------------------------------------
+# Clear Mind (resource_cost) and Sheltering Light (_hymn_ward) for both healers,
+# Second Breath (here) for both healers, Long Glass (here) for both prism specs,
+# and the Rune of the Fourth Facet (Epic: one more prism).
+
+const FOURTH_FACET_RUNE := "fourth_facet"
+
+## Second Breath: does a heal of `amount` on someone at `h` of `mh` health lift
+## them from below SECOND_BREATH_LOW_PCT % to above SECOND_BREATH_HIGH_PCT %?
+static func second_breath(h: int, mh: int, amount: int) -> bool:
+	if mh <= 0 or amount <= 0:
+		return false
+	var before := float(h) / float(mh) * 100.0
+	var after := float(mini(h + amount, mh)) / float(mh) * 100.0
+	return before < Balance.SECOND_BREATH_LOW_PCT and after > Balance.SECOND_BREATH_HIGH_PCT
+
+## A heal of `amount` of mine is about to land on `tgt`: a big save gives me mana back.
+func _second_breath(tgt: Variant, amount: int, id: String) -> void:
+	var pct := _talent("holy_second_breath")
+	if pct <= 0.0 or id == "" or id == "lifesteal":
+		return
+	var h: Variant = (tgt as Node).get("health")
+	var mh: Variant = (tgt as Node).get("max_health")
+	if h == null or mh == null or not second_breath(int(h), int(mh), amount):
+		return
+	_gain("mana", resource_max("mana") * pct / 100.0)
+
+## How long a prism lasts (+ Long Glass).
+func _prism_time() -> float:
+	return Balance.PRISM_TIME + _talent("holy_long_glass")
+
+## How many prisms I can have (Rune of the Fourth Facet: one more).
+func _prism_max() -> int:
+	return Balance.PRISM_MAX + (1 if _has_rune(FOURTH_FACET_RUNE) else 0)
+
+## Was `who` hit in the last `window` seconds? Me: what I took; a party member's
+## puppet: when its health last dropped (RemotePlayer.hurt_at). (Watchful Eye.)
+func hit_recently(who: Variant, window: float) -> bool:
+	if who == null or not is_instance_valid(who):
+		return false
+	if is_same(who, self):
+		return damage_taken_recently(window) > 0
+	var at: Variant = (who as Node).get("hurt_at")
+	return at != null and Time.get_ticks_msec() / 1000.0 - float(at) <= window

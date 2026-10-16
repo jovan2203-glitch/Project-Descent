@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"fourth_facet"
+display_name = "Rune of the Fourth Facet"
+description = "You can have one more prism, of either colour."
+color = Color(0.95, 0.97, 1, 1)
+rarity = 2
+unlock_level = 20
+trigger = 6

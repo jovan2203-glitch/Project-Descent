@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"piercinglight"
+display_name = "Piercing Light"
+description = "Sends a beam of light at an enemy, dealing {hit} Holy damage. White prisms it passes through store {b:PRISM_CHARGE_PCT}% of the damage as light."
+tags = PackedStringArray("Holy", "Spell")
+cast_type = 1
+cast_time = 0.0
+requires_target = true
+weapon_requirement = 0
+resource_type = 1
+damage = 0.0
+damage_type = &"holy"

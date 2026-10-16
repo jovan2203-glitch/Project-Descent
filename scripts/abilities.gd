@@ -26,6 +26,37 @@ const PATHS := {
 	"singmercy": "res://data/abilities/singmercy.tres",
 	"singchorus": "res://data/abilities/singchorus.tres",
 	"singvigil": "res://data/abilities/singvigil.tres",
+	# Holy tank: the Censer
+	"censerswing": "res://data/abilities/censerswing.tres",
+	"hallowedarc": "res://data/abilities/hallowedarc.tres",
+	"beckon": "res://data/abilities/beckon.tres",
+	"pourout": "res://data/abilities/pourout.tres",
+	"absolve": "res://data/abilities/absolve.tres",
+	"aureole": "res://data/abilities/aureole.tres",
+	"gatherthelight": "res://data/abilities/gatherthelight.tres",
+	"raisethecenser": "res://data/abilities/raisethecenser.tres",
+	"unfallen": "res://data/abilities/unfallen.tres",
+	# Holy healer #2: the Prisms
+	"setprism": "res://data/abilities/setprism.tres",
+	"moveprism": "res://data/abilities/moveprism.tres",
+	"mendingray": "res://data/abilities/mendingray.tres",
+	"brightlance": "res://data/abilities/brightlance.tres",
+	"gleam": "res://data/abilities/gleam.tres",
+	"prismward": "res://data/abilities/prismward.tres",
+	"piercinglight": "res://data/abilities/piercinglight.tres",
+	"realign": "res://data/abilities/realign.tres",
+	"shatterprism": "res://data/abilities/shatterprism.tres",
+	"shatterall": "res://data/abilities/shatterall.tres",
+	"infuse": "res://data/abilities/infuse.tres",
+	"kaleidoscope": "res://data/abilities/kaleidoscope.tres",
+	# Holy archer: Lightstring
+	"prismarrow": "res://data/abilities/prismarrow.tres",
+	"glimmershot": "res://data/abilities/glimmershot.tres",
+	"refractingshot": "res://data/abilities/refractingshot.tres",
+	"sunlitarrow": "res://data/abilities/sunlitarrow.tres",
+	"prismbreaker": "res://data/abilities/prismbreaker.tres",
+	"stepoflight": "res://data/abilities/stepoflight.tres",
+	"spectrumvolley": "res://data/abilities/spectrumvolley.tres",
 	"frostbolt": "res://data/abilities/frostbolt.tres",
 	"blizzard": "res://data/abilities/blizzard.tres",
 	"slam": "res://data/abilities/slam.tres",
@@ -276,6 +307,9 @@ const DRAFT_POOL := ["frostnova", "icebarrier", "blink", "whirlwind",
 	"froststrike", "frostarrow",
 	"outpour", "lift", "refrain", "canticle", "exultation", "antiphon", "shelter", "steadyvoice", "highnote",
 	"reprise", "swell", "rest", "lastverse", "singmercy", "singchorus", "singvigil",
+	"censerswing", "hallowedarc", "beckon", "pourout", "absolve", "aureole", "gatherthelight", "raisethecenser", "unfallen",
+	"setprism", "moveprism", "mendingray", "brightlance", "gleam", "prismward", "piercinglight", "realign", "shatterprism", "shatterall", "infuse", "kaleidoscope",
+	"prismarrow", "glimmershot", "refractingshot", "sunlitarrow", "prismbreaker", "stepoflight", "spectrumvolley",
 	"wrath", "insectswarm", "entanglingroots", "regrowth",
 	"sinisterstrike", "rupture", "fanofknives", "eviscerate",
 	"stormshield", "thunderaegis",
@@ -310,6 +344,9 @@ const ALL := ["frostbolt", "blizzard", "frostnova", "icebarrier",
 	"wrath", "insectswarm", "entanglingroots", "regrowth",
 	"psalm", "outpour", "lift", "refrain", "canticle", "exultation", "antiphon", "shelter", "steadyvoice", "highnote",
 	"singmercy", "singchorus", "singvigil", "reprise", "swell", "rest", "lastverse",
+	"censerswing", "hallowedarc", "beckon", "pourout", "absolve", "aureole", "gatherthelight", "raisethecenser", "unfallen",
+	"setprism", "moveprism", "mendingray", "brightlance", "gleam", "prismward", "piercinglight", "realign", "shatterprism", "shatterall", "infuse", "kaleidoscope",
+	"prismarrow", "glimmershot", "refractingshot", "sunlitarrow", "prismbreaker", "stepoflight", "spectrumvolley",
 	"slam", "execute", "whirlwind", "battleshout", "secondwind", "stoneguard", "taunt", "pummel",
 	"sinisterstrike", "rupture", "fanofknives", "eviscerate", "kick",
 	"steadyshot", "multishot", "poisonarrow",
@@ -367,6 +404,12 @@ const CATEGORY_OF := {
 	"psalm": "holy", "outpour": "holy", "lift": "holy", "refrain": "holy", "canticle": "holy", "exultation": "holy",
 	"antiphon": "holy", "shelter": "holy", "steadyvoice": "holy", "highnote": "holy", "reprise": "holy", "swell": "holy",
 	"rest": "holy", "lastverse": "holy", "singmercy": "holy", "singchorus": "holy", "singvigil": "holy",
+	"censerswing": "holy", "hallowedarc": "holy", "beckon": "holy", "pourout": "holy", "absolve": "holy", "aureole": "holy",
+	"gatherthelight": "holy", "raisethecenser": "holy", "unfallen": "holy",
+	"setprism": "holy", "moveprism": "holy", "mendingray": "holy", "brightlance": "holy", "gleam": "holy", "prismward": "holy",
+	"piercinglight": "holy", "realign": "holy", "shatterprism": "holy", "shatterall": "holy", "infuse": "holy", "kaleidoscope": "holy",
+	"prismarrow": "holy", "glimmershot": "holy", "refractingshot": "holy", "sunlitarrow": "holy", "prismbreaker": "holy",
+	"stepoflight": "holy", "spectrumvolley": "holy",
 	"frostfirebolt": "rune", "polarstrike": "rune",
 }
 
@@ -460,6 +503,11 @@ const SPECS := {
 	"holy": [
 		["Choir of One", ["singmercy", "singchorus", "singvigil", "psalm", "outpour", "lift", "refrain", "canticle",
 			"exultation", "antiphon", "shelter", "steadyvoice", "highnote", "reprise", "swell", "rest", "lastverse"]],
+		["Censer Bearer", ["censerswing", "hallowedarc", "beckon", "pourout", "absolve", "aureole", "gatherthelight",
+			"raisethecenser", "unfallen"]],
+		["Line of Light", ["setprism", "moveprism", "mendingray", "brightlance", "gleam", "prismward", "piercinglight",
+			"realign", "shatterprism", "shatterall", "infuse", "kaleidoscope"]],
+		["Lightstring", ["glimmershot", "prismarrow", "refractingshot", "sunlitarrow", "prismbreaker", "stepoflight", "spectrumvolley"]],
 	],
 	"martial": [
 		["Warpath", ["slam", "execute", "whirlwind", "battleshout", "secondwind", "pummel"]],
@@ -496,10 +544,11 @@ const RESOURCE_NAMES := ["", "mana", "energy", "rage"]
 const SPENDS_ALL := ["discharge", "groundout", "recharge"]
 ## Abilities that skip the global cooldown without being an interrupt or a trinket.
 const OFF_GCD := ["groundingsurge", "capacitor", "returnstroke", "rimefletch", "rewind", "lapse", "scatter",
-	"missedbeat", "tradeplaces", "doubletime", "offthechain", "doublethread", "restring", "behinditsback", "swell"]
+	"missedbeat", "tradeplaces", "doubletime", "offthechain", "doublethread", "restring", "behinditsback", "swell",
+	"aureole", "gatherthelight", "unfallen", "setprism", "moveprism", "shatterall", "prismarrow", "stepoflight"]
 ## Melee-weapon abilities used from their own range (cast_range) instead of the
 ## weapon's reach: Static Step dashes in, Whiplash lashes from afar.
-const LONG_REACH := ["staticstep", "whiplash", "reelin"]
+const LONG_REACH := ["staticstep", "whiplash", "reelin", "beckon", "raisethecenser"]
 
 ## Does ability `id` have to be within the equipped weapon's reach of its target?
 static func uses_weapon_reach(id: String) -> bool:
@@ -564,7 +613,7 @@ static func cost_amount(r: Resource) -> int:
 	if p and p.has_method("resource_cost"):
 		return int(round(float(p.resource_cost(str(r.id)))))
 	if RESOURCE_NAMES[r.resource_type] != "mana":
-		return int(r.resource_cost)
+		return int(round(r.resource_cost))
 	return int(round(float(r.resource_cost) * Stats.mana_unit(Stats._player_level())))
 
 static func _build_tip(r: Resource, desc: String = "", haste: float = 1.0) -> String:
@@ -591,6 +640,8 @@ static func _build_tip(r: Resource, desc: String = "", haste: float = 1.0) -> St
 		req.append(weapon_need(r))
 	if r.get("requires_shield"):
 		req.append("a shield")
+	if r.get("requires_off_hand"):
+		req.append("an off hand")
 	if r.requires_target:
 		req.append("a target")
 	if not req.is_empty():
@@ -664,11 +715,21 @@ static func has_dual_wield_equipped() -> bool:
 
 ## Is a shield equipped in the Off Hand?
 static func has_shield_equipped() -> bool:
+	return offhand_type() == "shield"
+
+## Is an off hand item (tome, wand, lantern...; not a weapon or shield) in the Off Hand?
+static func has_off_hand_item_equipped() -> bool:
+	var tree := _tree()
+	var pd: Node = tree.root.get_node_or_null("PlayerData") if tree and tree.root else null
+	return pd != null and Items.is_off_hand_item(str(pd.equipment.get("Off Hand", "")))
+
+## item_type of the Off Hand item ("shield", "tome", "wand", "lantern", "dagger"...), "" if empty.
+static func offhand_type() -> String:
 	var tree := _tree()
 	var pd: Node = tree.root.get_node_or_null("PlayerData") if tree and tree.root else null
 	if pd == null:
-		return false
-	return Items.item_type(str(pd.equipment.get("Off Hand", ""))) == "shield"
+		return ""
+	return Items.item_type(str(pd.equipment.get("Off Hand", "")))
 
 ## Tooltip of a trinket bar button: the equipped trinket's Use: effect.
 static func _trinket_tooltip(id: String) -> String:
@@ -702,8 +763,9 @@ static func generated_of(id: String) -> int:
 	var extra := talent("lightning_honed_edge") if id == "chargededge" else 0.0
 	return int(r.resource_generated) + int(round(extra))
 
-static func cost_of(id: String) -> int:
-	return int(info(id).get("cost", 0))
+## Base cost (Mana in points, which may be fractions; Energy / Rage whole).
+static func cost_of(id: String) -> float:
+	return float(info(id).get("cost", 0.0))
 
 static func ability_name(id: String) -> String:
 	return info(id).get("name", "")
@@ -742,7 +804,7 @@ const Keywords = preload("res://scripts/core/keywords.gd")
 const Macros = preload("res://scripts/core/macros.gd")
 ## Talents that widen an ability: [talent key, metres of RADIUS per point of the
 ## talent's value]. Deep Crucible gives width, so half of it is radius.
-const RADIUS_TALENTS := {"crucible": ["fire_deep_crucible", 0.5], "ripple": ["arcane_wide_rings", 1.0]}
+const RADIUS_TALENTS := {"crucible": ["fire_deep_crucible", 0.5], "ripple": ["arcane_wide_rings", 1.0], "hallowedarc": ["holy_wide_arc", 1.0]}
 
 ## Metres your talents add to ability `id`'s radius (the game and its {radius} / {width} use this).
 static func radius_bonus(id: String) -> float:
@@ -805,7 +867,8 @@ static func effect_time_bonus(res: Resource, talent_of: Callable) -> float:
 
 ## Talents that shorten an ability's cooldown: ability id -> talent key (its
 ## value = seconds taken off).
-const COOLDOWN_TALENTS := {"winterhide": "frost_thick_hide"}
+const COOLDOWN_TALENTS := {"winterhide": "frost_thick_hide", "raisethecenser": "holy_high_censer", "realign": "holy_quick_realign", "stepoflight": "holy_swift_light",
+	"prismarrow": "holy_full_quiver", "lastverse": "holy_last_rites"}
 
 ## Ability `r`'s cooldown in seconds with your talents (the game and the
 ## tooltips both use this). Thick Hide shortens Winter Hide's.
@@ -827,6 +890,10 @@ static func base_cast_time(r: Resource) -> float:
 		t = maxf(t - talent("frost_bolt_cast"), 0.2)
 	elif str(r.id) == "lightningbolt":
 		t = maxf(t - talent("lightning_quick_fuse"), 0.2)   # Quick Fuse
+	elif str(r.id) == "refractingshot":
+		t = maxf(t - talent("holy_steady_aim"), 0.2)   # Steady Aim
+	elif str(r.id) == "brightlance":
+		t = maxf(t - talent("holy_quick_lance"), 0.2)   # Quick Lance
 	return t
 
 ## Real damage of a hit of coefficient `coef` carrying `tags` (before crits,
@@ -952,6 +1019,10 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 	# What your talents change about the numbers a description quotes.
 	var radius := (float(fr.radius) if fr else 0.0) + radius_bonus(id)   # Deep Crucible
 	var absorb := 1.0 + talent("frost_absorb") / 100.0 if SHIELD_ABILITIES.has(id) else 1.0   # Rime Ward
+	if id == "mendingray":
+		absorb *= 1.0 + talent("holy_steady_ray") / 100.0                                # Steady Ray (its heal)
+	if id == "shelter" or id == "prismward":
+		absorb *= 1.0 + talent("holy_sheltering_light") / 100.0                           # Sheltering Light
 	if id == "shelter":
 		absorb *= 1.0 + talent("holy_open_doors") / 100.0                                 # Open Doors
 	var shatter_mult := 1.0 + talent("frost_shatterpoint") / 100.0                            # Shatterpoint
@@ -1063,6 +1134,25 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		"benediction": fmt_amount(Balance.BENEDICTION_HEAL * per),
 		"verses": str(int((Balance.VERSE_GAINS.get(id, [0]) as Array)[0])),   # the Verses it gives
 		"chorale": fmt_amount(Balance.CHORALE_HEAL * per),
+		"bulwark_time": TextFill.num(Balance.BULWARK_SONG_TIME + talent("holy_long_note")),   # Long Note
+		"prism_time": TextFill.num(Balance.PRISM_TIME + talent("holy_long_glass")),   # Long Glass
+		# Holy tank: the Censer (per stack of Incense, and a mote's heal).
+		"pour_full": fmt_amount(Balance.POUR_OUT_PER_STACK * Balance.INCENSE_MAX * per * (1.0 + talent("holy_deep_pour") / 100.0)),   # Deep Pour
+		"pour_motes": TextFill.num(Balance.DEEP_POUR_MOTE_PCT if talent_capstone("holy_deep_pour") else Balance.MOTE_SPEND_PCT),
+		"absolve_full": fmt_amount(Balance.ABSOLVE_PER_STACK * Balance.ABSOLVE_MAX * Balance.REFERENCE_HEAL * per * (1.0 + talent("holy_absolution") / 100.0)),   # Absolution
+		"swing_incense": str(Balance.CENSER_SWING_INCENSE + int(round(talent("holy_heavy_chain")))),   # Heavy Chain
+		"unfallen_time": TextFill.num(Balance.UNFALLEN_TIME + talent("holy_unbroken")),   # Unbroken
+		"chorus_pct": TextFill.num(Balance.CHORUS_SPLASH_PCT * (1.0 + talent("holy_swelling_chorus") / 100.0)),   # Swelling Chorus
+		"mote_heal": fmt_amount(Balance.MOTE_HEAL_SHARE * Balance.REFERENCE_HEAL * per),
+		# Holy healer #2: a shattering prism (Wide Burst, Prismatic Burst).
+		"shatter_radius": TextFill.num(Balance.PRISM_SHATTER_RADIUS + talent("holy_wide_burst")),
+		"shatter_dmg": fmt_amount(Balance.PRISM_SHATTER_DAMAGE * per * (1.0 + talent("holy_prismatic_burst") / 100.0)),
+		# Holy archer: the light a full prism holds, as damage (Deep Burn).
+		"sunlit_full": fmt_amount(Balance.PRISM_CAP_HEALS * Balance.REFERENCE_HEAL * Balance.SUNLIT_DRAIN * per * (1.0 + talent("holy_deep_burn") / 100.0)),
+		"breaker_dmg": fmt_amount(Balance.BREAKER_DAMAGE * per),
+		"breaker_radius": TextFill.num(Balance.BREAKER_RADIUS + talent("holy_wide_break")),   # Wide Break
+		"breaker_full": fmt_amount((Balance.BREAKER_DAMAGE + Balance.PRISM_CAP_HEALS * Balance.REFERENCE_HEAL * Balance.BREAKER_LIGHT) * per),
+		"volley_dmg": fmt_amount(Balance.VOLLEY_DAMAGE * per),
 		"winter_time": Stats.num(Balance.DEEPWINTER_TIME),
 		"ward": fmt_amount(Balance.REFERENCE_HEAL * Balance.SNOW_WARD_SHARE * per * absorb),
 		"ward_time": Stats.num(Balance.SNOW_WARD_TIME),
@@ -1156,6 +1246,8 @@ static func tooltip_bbcode(id: String, detailed: bool = false) -> String:
 		req.append(weapon_need(r))
 	if r.get("requires_shield"):
 		req.append("a shield")
+	if r.get("requires_off_hand"):
+		req.append("an off hand")
 	if r.requires_target:
 		req.append("a target")
 	if not req.is_empty():
@@ -1163,7 +1255,8 @@ static func tooltip_bbcode(id: String, detailed: bool = false) -> String:
 			or (r.weapon_requirement == 2 and w.get("weapon", "") != "ranged") \
 			or (bool(r.get("requires_two_hand")) and not has_two_hander_equipped()) \
 			or (bool(r.get("requires_dual_wield")) and not has_dual_wield_equipped()) \
-			or (bool(r.get("requires_shield")) and not has_shield_equipped())
+			or (bool(r.get("requires_shield")) and not has_shield_equipped()) \
+			or (bool(r.get("requires_off_hand")) and not has_off_hand_item_equipped())
 		lines.append(_c(Color(1, 0.4, 0.35) if missing else dim, "Requires " + _join_and(req)))
 	if is_interrupt(id):
 		lines.append(_c(dim, interrupt_note()))
@@ -1530,6 +1623,21 @@ static func _draw_form(c: Control, form: String, col: Color, mid: Vector2, k: fl
 const HYMN_COLORS := {"mercy": Color(1.0, 0.8, 0.3), "chorus": Color(0.95, 0.95, 1.0), "vigil": Color(0.45, 0.7, 1.0)}
 
 ## A musical note (an eighth note) with its head at `at`.
+## A small censer (Holy tank icons): a round body under a domed lid, glowing.
+static func _censer(c: Control, at: Vector2, k: float, body: Color, glow: Color) -> void:
+	c.draw_circle(at, 9.0 * k, Color(glow, 0.25))
+	c.draw_circle(at + Vector2(0, 1.5) * k, 5.5 * k, body.darkened(0.15))
+	c.draw_arc(at + Vector2(0, -1) * k, 5.0 * k, PI, TAU, 10, body.lightened(0.3), 2.0 * k, true)
+	c.draw_circle(at + Vector2(0, 1.5) * k, 2.2 * k, glow)
+
+## A small prism (Holy healer #2 icons): a crystal, two triangles point to point.
+static func _prism(c: Control, at: Vector2, k: float, body: Color, edge: Color) -> void:
+	var top := PackedVector2Array([at + Vector2(0, -12) * k, at + Vector2(7, 0) * k, at + Vector2(-7, 0) * k])
+	var bottom := PackedVector2Array([at + Vector2(-7, 0) * k, at + Vector2(7, 0) * k, at + Vector2(0, 9) * k])
+	c.draw_colored_polygon(top, body)
+	c.draw_colored_polygon(bottom, body.darkened(0.15))
+	c.draw_line(at + Vector2(0, -12) * k, at + Vector2(0, 9) * k, edge, 1.2 * k, true)
+
 static func _note(c: Control, at: Vector2, k: float, color: Color) -> void:
 	c.draw_set_transform(at, -0.35, Vector2(1.3, 1.0))
 	c.draw_circle(Vector2.ZERO, 3.5 * k, color)
@@ -1737,6 +1845,175 @@ static func _draw_unique(c: Control, id: String, col: Color, mid: Vector2, k: fl
 			c.draw_colored_polygon(_pts(mid, k, [Vector2(-7, 15), Vector2(-3, 1), Vector2(3, 1), Vector2(7, 15)]), white)
 			c.draw_line(mid + Vector2(-14, 4) * k, mid + Vector2(-9, -6) * k, Color(light, 0.7), 2.0 * k, true)
 			c.draw_line(mid + Vector2(14, 4) * k, mid + Vector2(9, -6) * k, Color(light, 0.7), 2.0 * k, true)
+		# --- Holy tank: the Censer ---
+		"censerswing":
+			# The censer swung on its chain, a trail of light behind it.
+			c.draw_line(mid + Vector2(-14, -14) * k, mid + Vector2(4, 2) * k, light, 2.0 * k, true)
+			c.draw_arc(mid + Vector2(-14, -14) * k, 24.0 * k, 0.25, 1.35, 12, Color(white, 0.5), 3.0 * k, true)
+			_censer(c, mid + Vector2(6, 5) * k, k, col, white)
+		"hallowedarc":
+			# A full circle swept by the censer.
+			c.draw_arc(mid, 15.0 * k, 0.0, TAU, 32, Color(light, 0.75), 3.0 * k, true)
+			c.draw_line(mid, mid + Vector2(10, -11) * k, light, 1.8 * k, true)
+			_censer(c, mid + Vector2(11, -12) * k, k * 0.7, col, white)
+			c.draw_circle(mid, 3.0 * k, white)
+		"beckon":
+			# A ray of light flicked out to the side, curling back.
+			_censer(c, mid + Vector2(-9, 4) * k, k * 0.8, col, white)
+			c.draw_line(mid + Vector2(-4, 2) * k, mid + Vector2(15, -10) * k, white, 2.5 * k, true)
+			c.draw_arc(mid + Vector2(13, -6) * k, 4.0 * k, -PI * 0.5, PI * 0.6, 8, light, 2.0 * k, true)
+		"pourout":
+			# The censer tipped, a wave of light pouring out under it.
+			_censer(c, mid + Vector2(-5, -8) * k, k * 0.8, col, white)
+			for i in 3:
+				c.draw_arc(mid + Vector2(0, 16) * k, (8.0 + i * 5.0) * k, PI * 1.1, PI * 1.9, 12, Color(white if i == 0 else light, 1.0 - i * 0.25), 2.5 * k, true)
+		"absolve":
+			# Light falling into an open hand.
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-13, 6), Vector2(13, 6), Vector2(9, 14), Vector2(-9, 14)]), light)
+			for x in [-6, 0, 6]:
+				c.draw_circle(mid + Vector2(x, -6.0 - absf(x) * 0.6) * k, 2.6 * k, white)
+			c.draw_line(mid + Vector2(0, -15) * k, mid + Vector2(0, 2) * k, Color(white, 0.5), 2.0 * k, true)
+		"aureole":
+			# A blazing ring of light around a small figure.
+			for i in 12:
+				var a := TAU * i / 12.0
+				c.draw_line(mid + Vector2(cos(a), sin(a)) * 13.0 * k, mid + Vector2(cos(a), sin(a)) * 17.0 * k, light, 2.0 * k, true)
+			c.draw_arc(mid, 12.0 * k, 0.0, TAU, 28, white, 2.5 * k, true)
+			c.draw_circle(mid + Vector2(0, -3) * k, 3.5 * k, white)
+			c.draw_line(mid + Vector2(0, 1) * k, mid + Vector2(0, 8) * k, white, 3.0 * k, true)
+		"gatherthelight":
+			# Motes streaming in toward the middle.
+			c.draw_circle(mid, 4.5 * k, white)
+			for i in 6:
+				var a := TAU * i / 6.0 + 0.3
+				var far := mid + Vector2(cos(a), sin(a)) * 15.0 * k
+				c.draw_line(far, mid + Vector2(cos(a), sin(a)) * 7.0 * k, Color(light, 0.6), 1.6 * k, true)
+				c.draw_circle(far, 2.4 * k, light)
+		"raisethecenser":
+			# The censer high up, rays of light falling from it.
+			_censer(c, mid + Vector2(0, -9) * k, k * 0.8, col, white)
+			for x in [-10, 0, 10]:
+				c.draw_line(mid + Vector2(x * 0.3, -2) * k, mid + Vector2(x, 15) * k, Color(light, 0.7), 2.0 * k, true)
+			c.draw_line(mid + Vector2(-15, 15) * k, mid + Vector2(15, 15) * k, light, 2.0 * k, true)
+		"unfallen":
+			# A figure standing inside a column of light.
+			c.draw_rect(Rect2(mid + Vector2(-8, -16) * k, Vector2(16, 32) * k), Color(light, 0.3), true)
+			c.draw_line(mid + Vector2(-8, -16) * k, mid + Vector2(-8, 16) * k, light, 1.5 * k, true)
+			c.draw_line(mid + Vector2(8, -16) * k, mid + Vector2(8, 16) * k, light, 1.5 * k, true)
+			c.draw_circle(mid + Vector2(0, -7) * k, 3.5 * k, white)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-5, 13), Vector2(-3, -2), Vector2(3, -2), Vector2(5, 13)]), white)
+		# --- Holy healer #2: the Prisms ---
+		"setprism":
+			# A crystal set down on the ground, with a small plus.
+			_prism(c, mid + Vector2(-3, 2) * k, k, light, white)
+			c.draw_line(mid + Vector2(-14, 15) * k, mid + Vector2(10, 15) * k, light, 2.0 * k, true)
+			c.draw_line(mid + Vector2(12, -14) * k, mid + Vector2(12, -6) * k, white, 2.5 * k, true)
+			c.draw_line(mid + Vector2(8, -10) * k, mid + Vector2(16, -10) * k, white, 2.5 * k, true)
+		"moveprism":
+			# A crystal flickering from one spot to another.
+			_prism(c, mid + Vector2(-9, 4) * k, k * 0.7, Color(light, 0.35), Color(white, 0.35))
+			_prism(c, mid + Vector2(8, -4) * k, k * 0.8, light, white)
+			c.draw_line(mid + Vector2(-4, 4) * k, mid + Vector2(2, -1) * k, Color(white, 0.6), 1.6 * k, true)
+		"mendingray":
+			# A steady beam into a small figure.
+			c.draw_line(mid + Vector2(-16, 10) * k, mid + Vector2(8, -2) * k, light, 4.0 * k, true)
+			c.draw_line(mid + Vector2(-16, 10) * k, mid + Vector2(8, -2) * k, white, 1.6 * k, true)
+			c.draw_circle(mid + Vector2(11, -8) * k, 3.5 * k, white)
+			c.draw_line(mid + Vector2(11, -4) * k, mid + Vector2(11, 5) * k, white, 3.0 * k, true)
+		"brightlance":
+			# A long spear of light, point up.
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(0, -16), Vector2(4, -6), Vector2(1.5, 15), Vector2(-1.5, 15), Vector2(-4, -6)]), white)
+			c.draw_line(mid + Vector2(-9, -4) * k, mid + Vector2(9, -4) * k, light, 2.0 * k, true)
+		"gleam":
+			# A quick four-pointed sparkle.
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(0, -14), Vector2(3, -3), Vector2(14, 0), Vector2(3, 3), Vector2(0, 14),
+				Vector2(-3, 3), Vector2(-14, 0), Vector2(-3, -3)]), white)
+			c.draw_circle(mid, 3.0 * k, light)
+		"prismward":
+			# A shield shape cut like a crystal.
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(0, -15), Vector2(13, -8), Vector2(10, 7), Vector2(0, 15), Vector2(-10, 7), Vector2(-13, -8)]), Color(light, 0.55))
+			c.draw_polyline(_pts(mid, k, [Vector2(0, -15), Vector2(0, 15)]), white, 1.5 * k, true)
+			c.draw_polyline(_pts(mid, k, [Vector2(-13, -8), Vector2(0, 0), Vector2(13, -8)]), white, 1.5 * k, true)
+		"piercinglight":
+			# A thin beam stabbing through a mark.
+			c.draw_line(mid + Vector2(-16, 14) * k, mid + Vector2(16, -14) * k, white, 2.0 * k, true)
+			c.draw_arc(mid + Vector2(6, -5) * k, 6.0 * k, 0.0, TAU, 16, Color(1.0, 0.5, 0.35), 2.2 * k, true)
+			c.draw_circle(mid + Vector2(-16, 14) * k, 2.5 * k, light)
+		"realign":
+			# Three crystals in a triangle, arrows turning around them.
+			for p in [Vector2(0, -9), Vector2(-9, 7), Vector2(9, 7)]:
+				_prism(c, mid + p * k, k * 0.45, light, white)
+			c.draw_arc(mid, 15.0 * k, -0.4, 1.2, 10, Color(white, 0.7), 2.0 * k, true)
+			c.draw_arc(mid, 15.0 * k, PI - 0.4, PI + 1.2, 10, Color(white, 0.7), 2.0 * k, true)
+		"shatterprism":
+			# One crystal breaking into shards.
+			_prism(c, mid, k * 0.7, light, white)
+			for i in 6:
+				var a := TAU * i / 6.0 + 0.4
+				c.draw_line(mid + Vector2(cos(a), sin(a)) * 10.0 * k, mid + Vector2(cos(a), sin(a)) * 15.0 * k, white, 2.0 * k, true)
+		"shatterall":
+			# Three crystals breaking at once.
+			for p in [Vector2(0, -8), Vector2(-9, 7), Vector2(9, 7)]:
+				_prism(c, mid + p * k, k * 0.4, light, white)
+				for i in 4:
+					var a := TAU * i / 4.0 + 0.8
+					c.draw_line(mid + p * k + Vector2(cos(a), sin(a)) * 5.0 * k, mid + p * k + Vector2(cos(a), sin(a)) * 8.0 * k, Color(white, 0.8), 1.4 * k, true)
+		"infuse":
+			# Light pouring down into a crystal.
+			_prism(c, mid + Vector2(0, 5) * k, k * 0.75, light, white)
+			for x in [-5, 0, 5]:
+				c.draw_line(mid + Vector2(x, -16) * k, mid + Vector2(x * 0.4, -6) * k, Color(white, 0.75), 1.8 * k, true)
+		"kaleidoscope":
+			# A ring of coloured facets.
+			var hues: Array[Color] = [Color(1.0, 0.5, 0.5), Color(1.0, 0.85, 0.4), Color(0.5, 1.0, 0.6), Color(0.45, 0.75, 1.0), Color(0.8, 0.55, 1.0), Color(1.0, 1.0, 1.0)]
+			for i in 6:
+				var a0 := TAU * i / 6.0
+				var a1 := TAU * (i + 1) / 6.0
+				c.draw_colored_polygon(PackedVector2Array([mid, mid + Vector2(cos(a0), sin(a0)) * 15.0 * k,
+					mid + Vector2(cos(a1), sin(a1)) * 15.0 * k]), Color(hues[i], 0.8))
+			c.draw_circle(mid, 4.0 * k, white)
+		# --- Holy archer: Lightstring (gold prisms) ---
+		"prismarrow":
+			# An arrow with a crystal for a head, stuck in the ground.
+			c.draw_line(mid + Vector2(-12, -14) * k, mid + Vector2(2, 2) * k, Color(0.7, 0.55, 0.35), 2.5 * k, true)
+			_prism(c, mid + Vector2(5, 6) * k, k * 0.6, Color(1.0, 0.82, 0.35), white)
+			c.draw_line(mid + Vector2(-14, 15) * k, mid + Vector2(14, 15) * k, light, 2.0 * k, true)
+		"glimmershot":
+			# A short golden arrow with a spark at its tip.
+			c.draw_line(mid + Vector2(-14, 10) * k, mid + Vector2(10, -6) * k, Color(1.0, 0.85, 0.4), 2.5 * k, true)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(14, -9), Vector2(6, -8), Vector2(10, -2)]), white)
+			c.draw_circle(mid + Vector2(14, -9) * k, 3.0 * k, Color(white, 0.6))
+		"refractingshot":
+			# One arrow hitting a crystal and splitting into three.
+			c.draw_line(mid + Vector2(-16, 0) * k, mid + Vector2(-3, 0) * k, white, 2.5 * k, true)
+			_prism(c, mid + Vector2(0, 2) * k, k * 0.5, Color(1.0, 0.82, 0.35), white)
+			for dy in [-9, 0, 9]:
+				c.draw_line(mid + Vector2(4, 0) * k, mid + Vector2(16, dy) * k, Color(1.0, 0.9, 0.5), 2.0 * k, true)
+		"sunlitarrow":
+			# An arrow inside a small sun.
+			c.draw_circle(mid, 9.0 * k, Color(1.0, 0.8, 0.3, 0.5))
+			for i in 8:
+				var a := TAU * i / 8.0
+				c.draw_line(mid + Vector2(cos(a), sin(a)) * 11.0 * k, mid + Vector2(cos(a), sin(a)) * 15.0 * k, Color(1.0, 0.85, 0.4), 2.0 * k, true)
+			c.draw_line(mid + Vector2(-12, 12) * k, mid + Vector2(12, -12) * k, white, 2.5 * k, true)
+		"prismbreaker":
+			# An arrow through a cracked crystal.
+			_prism(c, mid + Vector2(2, 2) * k, k * 0.8, Color(1.0, 0.82, 0.35), white)
+			c.draw_polyline(_pts(mid, k, [Vector2(-2, -8), Vector2(3, -2), Vector2(-1, 3), Vector2(4, 9)]), Color(0.3, 0.2, 0.1), 1.6 * k, true)
+			c.draw_line(mid + Vector2(-16, -14) * k, mid + Vector2(14, 14) * k, white, 2.0 * k, true)
+		"stepoflight":
+			# A figure fading out on the left, whole again beside a crystal.
+			c.draw_circle(mid + Vector2(-10, -5) * k, 3.0 * k, Color(white, 0.35))
+			c.draw_line(mid + Vector2(-10, -1) * k, mid + Vector2(-10, 8) * k, Color(white, 0.35), 3.0 * k, true)
+			c.draw_circle(mid + Vector2(3, -5) * k, 3.0 * k, white)
+			c.draw_line(mid + Vector2(3, -1) * k, mid + Vector2(3, 8) * k, white, 3.0 * k, true)
+			_prism(c, mid + Vector2(12, 4) * k, k * 0.45, Color(1.0, 0.82, 0.35), white)
+		"spectrumvolley":
+			# Three crystals, each shooting a ray outward.
+			for p in [Vector2(-9, 8), Vector2(0, -6), Vector2(9, 8)]:
+				_prism(c, mid + p * k, k * 0.4, Color(1.0, 0.82, 0.35), white)
+				var away: Vector2 = p.normalized()
+				c.draw_line(mid + p * k + away * 5.0 * k, mid + p * k + away * 12.0 * k, Color(1.0, 0.9, 0.5), 1.8 * k, true)
 		"singmercy":
 			# Mercy: a heart inside the ring of the Hymn.
 			c.draw_arc(mid, 16.0 * k, 0.0, TAU, 28, HYMN_COLORS["mercy"], 2.0 * k, true)

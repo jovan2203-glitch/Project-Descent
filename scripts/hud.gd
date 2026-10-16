@@ -134,7 +134,7 @@ func _tf_bar(parent: Control, h: float, col: Color) -> Array:
 func _current_target() -> Node:
 	if player == null:
 		return null
-	var t = player.get("target")
+	var t = player.displayed_target() if player.has_method("displayed_target") else player.get("target")   # (not a mouseover cast's)
 	if t != null and is_instance_valid(t) and t.is_alive():
 		return t
 	var f = player.get("friendly_target")

@@ -58,10 +58,14 @@ const PATHS := {
 	# Holy healer (the Hymns)
 	"resounding": "res://data/runes/resounding.tres",
 	"overture": "res://data/runes/overture.tres",
+	# Holy tank (the Censer)
+	"bright_burst": "res://data/runes/bright_burst.tres",
+	# Prisms (the second Holy healer and the Holy archer)
+	"fourth_facet": "res://data/runes/fourth_facet.tres",
 }
 const ALL := ["frost", "fury", "swiftness", "warding", "stormfire", "frostbound_insight",
 	"permafrost", "cold_precision", "frozen_aegis", "everlasting_rime",
-	"dull_edge", "dull_mind", "hair_trigger", "level_head", "frostfire_bolt", "polarity", "resonance", "bottled_lightning", "afterimage", "momentum", "carried_sigil", "two_way_mirror", "open_wound", "rot", "long_fall", "overload", "dusk_till_dawn", "resounding", "overture",
+	"dull_edge", "dull_mind", "hair_trigger", "level_head", "frostfire_bolt", "polarity", "resonance", "bottled_lightning", "afterimage", "momentum", "carried_sigil", "two_way_mirror", "open_wound", "rot", "long_fall", "overload", "dusk_till_dawn", "resounding", "overture", "bright_burst", "fourth_facet",
 	"menace_physical", "menace_fire", "menace_frost", "menace_lightning", "menace_arcane",
 	"menace_shadow", "menace_nature", "menace_holy"]
 

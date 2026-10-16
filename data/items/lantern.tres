@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GearItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/gear_item_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"lantern"
+display_name = "Brass Lantern"
+description = "Off Hand lantern  •  Enables lantern abilities"
+color = Color(0.95, 0.78, 0.35, 1)
+slot = 13
+item_type = &"lantern"
+stats = {"armor": 2, "strength": 1, "constitution": 1}

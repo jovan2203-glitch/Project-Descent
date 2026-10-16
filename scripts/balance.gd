@@ -655,6 +655,112 @@ const RESOUNDING_DAMAGE := 0.6            # Rune of Resounding (Epic): Holy dama
 const RESOUNDING_RADIUS := 8.0            # ... within this many metres (split evenly past the AoE cap)
 const OVERTURE_TIME := 3.0                # Rune of the Overture (Epic): after a boom, your next cast within this many seconds is instant
 
+## Holy tank: the Censer (player.gd, "Holy tank: the Censer"). Not an item: your
+## first censer ability makes it appear at your side; it fades out of combat. Its
+## fullness is Incense, a buff of up to INCENSE_MAX stacks. Abilities give little;
+## most of it lies on the ground as motes of light that you walk over to collect.
+## Spending Incense drops part of it as motes again. (Mana costs, cooldowns,
+## ranges and radii are in ABILITIES; heal sizes are coefficients like HEALS.)
+const INCENSE_MAX := 100                  # Incense: the most stacks (a full censer)
+const INCENSE_TIME := 30.0                # ... seconds it lasts; any gain makes it last this long again (spending doesn't)
+const INCENSE_BLOCK := 0.15               # ... % Block each stack gives (the barrier of light)
+const INCENSE_AURA_FULL := 0.06          # ... damage (coefficient) at a full censer (less with fewer stacks), every tick, to enemies around you ...
+const INCENSE_AURA_RADIUS := 5.0          # ... within this many metres ...
+const INCENSE_AURA_EVERY := 1.0           # ... every this many seconds ...
+const INCENSE_AURA_THREAT := 4.0          # ... with this threat multiplier (split evenly past the AoE cap)
+const INCENSE_PER_HIT := 1                # Incense for each hit you take ...
+const INCENSE_PER_BLOCK := 2              # ... or block
+const CENSER_LINGER := 3.0                # the censer fades this many seconds after you leave combat
+const MOTE_VALUE := 10                    # a mote of light: the Incense it holds ...
+const MOTE_HEAL_SHARE := 0.1             # ... the heal it gives when you pick it up, in old Heals (REFERENCE_HEAL)
+const MOTE_TIME := 10.0                   # ... seconds it lies on the ground
+const MOTE_PICKUP := 1.2                  # ... metres you have to come within to pick it up
+const MOTE_SCATTER_MIN := 2.0             # ... it lands this many metres ...
+const MOTE_SCATTER_MAX := 5.0             # ... to this many metres from the enemy (from you with none)
+const MOTE_MAX := 12                      # the most motes you can have on the ground (the oldest fades first)
+const MOTE_SPEND_PCT := 60.0              # spending Incense drops motes worth this % of what was spent ...
+const MOTE_SPEND_MAX := 5                 # ... at most this many per spend
+const CENSER_SWING_INCENSE := 3           # Censer Swing: Incense it gives (and it knocks 1 mote loose from the target)
+const HALLOWED_ARC_INCENSE := 1           # Hallowed Arc: Incense for each enemy hit ...
+const HALLOWED_ARC_MOTES := 3             # ... and a mote knocked loose from each, at most this many
+const BECKON_INCENSE := 3                 # Beckon: Incense it gives (and it drops 1 mote at the target)
+const POUR_OUT_MIN := 30                  # Pour Out: needs this much Incense; spends all of it ...
+const POUR_OUT_PER_STACK := 0.03          # ... damage (coefficient) per stack spent, to enemies within its radius
+const ABSOLVE_MAX := 40                   # Absolve: spends up to this much Incense ...
+const ABSOLVE_PER_STACK := 0.05           # ... heals you for this many old Heals (REFERENCE_HEAL) per stack spent
+const AUREOLE_COST := 30                  # Aureole: spends this much Incense ...
+const AUREOLE_BLOCK := 25.0               # ... for this much more Block ...
+const AUREOLE_TIME := 5.0                 # ... for this many seconds
+const RAISE_CENSER_TIME := 8.0            # Raise the Censer: seconds it hangs over the enemies ...
+const RAISE_CENSER_HEIGHT := 4.0          # ... this many metres up
+const RAISE_CENSER_TAUNT := 4.0           # ... enemies within its radius of it must attack you for this many seconds
+const RAISE_CENSER_SHED_EVERY := 1.0      # ... it sheds a mote around itself every this many seconds
+const UNFALLEN_TIME := 8.0                # Unfallen: seconds you can't drop below 1 health ...
+const UNFALLEN_INCENSE_MULT := 2          # ... hits give this many times the Incense ...
+const UNFALLEN_HEAL_PCT := 30.0           # ... and when it ends you heal for this % of the damage taken during it
+const DEEP_POUR_MOTE_PCT := 80.0          # Deep Pour (talent) capstone: Pour Out drops motes worth this % instead
+const BRIGHT_BURST_DAMAGE := 0.15         # Rune of the Bright Burst (Epic): picking up a mote deals this Holy damage ...
+const BRIGHT_BURST_RADIUS := 5.0          # ... to enemies within this many metres (split evenly past the AoE cap)
+const BRIGHT_BURST_THREAT := 4.0          # ... with this threat multiplier
+
+## Holy healer #2: the Prisms (player.gd, "Holy healer: the Prisms"). Nothing to do
+## with the Hymns. You place floating prisms; your direct heals fire a beam from
+## you to the ally, and every prism the beam passes through stores some of the
+## heal as light (and makes the heal stronger). Shattering a prism heals the
+## allies around it with its light and hurts the enemies there. Light is in heal
+## coefficients (like HEALS; REFERENCE_HEAL = one old Heal). (Mana costs,
+## cooldowns, cast times and ranges are in ABILITIES, heal sizes in HEALS.)
+const PRISM_MAX := 3                      # prisms you can have (a new one replaces the oldest)
+const PRISM_TIME := 60.0                  # seconds a prism lasts
+const PRISM_HOVER := 1.6                  # metres it floats over the ground
+const PRISM_BEAM_WIDTH := 1.0             # a prism is on a beam within this many metres of its line
+const PRISM_CHARGE_PCT := 25.0            # each prism on the beam stores this % of the heal as light ...
+const PRISM_CAP_HEALS := 3.0             # ... up to this much light, in old Heals (REFERENCE_HEAL)
+const PRISM_AMPLIFY_PCT := 10.0           # a heal is this % stronger for each prism it passed through
+const PRISM_SHATTER_RADIUS := 8.0         # a shattering prism heals the allies (its light, split between them) ...
+const PRISM_SHATTER_DAMAGE := 1.0         # ... and hurts the enemies within this many metres: this damage (coefficient) at full light
+const PRISM_FLICKER_TIME := 0.25          # moving a prism: seconds it flickers out, then in
+const MENDING_RAY_TICKS := 6              # Mending Ray: its heal comes in this many ticks over the channel
+const PRISM_WARD_TIME := 8.0              # Prism Ward: seconds its shield lasts
+const KALEIDOSCOPE_TIME := 10.0           # Kaleidoscope: seconds your beams pass through every prism
+
+## Holy archer: Lightstring (player.gd, "Holy archer: Lightstring"). Prisms come in
+## two colours: the healer's white ones work only with heals, the archer's gold
+## ones only with arrows (light never turns from one into the other); the
+## PRISM_MAX limit counts both. Every shot is a line from you to the enemy: each
+## gold prism it passes through fires a refracted arrow at another enemy near it
+## (none: the shot is stronger instead) and stores part of the damage as light.
+const REFRACT_PCT := 40.0                 # a refracted arrow hits for this % of the shot ...
+const REFRACT_RADIUS := 8.0               # ... at another enemy within this many metres of the prism
+const REFRACT_FOCUS_PCT := 10.0           # no other enemy there: the shot is this % stronger for that prism
+const GOLD_CHARGE_PCT := 25.0             # a gold prism on the line stores this % of the shot's damage as light (same cap as white)
+const AUTO_SHOT_CHARGE_PCT := 10.0        # auto-shots: charge this % instead ...
+const AUTO_SHOT_REFRACT_PCT := 20.0       # ... and refract for this % instead
+const PRISM_ARROW_CHARGES := 2            # Prism Arrow: charges (its cooldown is the recharge)
+const REFRACTING_SHOT_PCT := 60.0         # Refracting Shot: its refracted arrows hit for this % instead
+const SUNLIT_DRAIN := 0.03                # Sunlit Arrow: bonus damage (coefficient) per point of light it drains (three full prisms: about +0.6)
+const DEEP_BURN_KEEP_PCT := 25.0          # Deep Burn (talent) capstone: Sunlit Arrow leaves this % of the light
+const BREAKER_DAMAGE := 0.6               # Prism Breaker: damage (coefficient) of the shattering prism ...
+const BREAKER_LIGHT := 0.06               # ... plus this much per point of its light (a full prism: about +0.4) ...
+const BREAKER_RADIUS := 8.0               # ... to enemies within this many metres (split past the AoE cap)
+const STEP_OF_LIGHT_OFFSET := 1.2         # Step of Light: you appear this many metres from the prism
+const VOLLEY_TIME := 8.0                  # Spectrum Volley: seconds ...
+const VOLLEY_EVERY := 1.0                 # ... each gold prism fires every this many seconds ...
+const VOLLEY_DAMAGE := 0.4                # ... an arrow of this damage (coefficient) ...
+const VOLLEY_LIGHT := 0.02                # ... plus this much per point of its light
+const VOLLEY_RADIUS := 8.0                # ... at the nearest enemy within this many metres
+
+## Holy open talents (their per-rank numbers are in talents.gd; these are the fixed parts).
+const OVERFLOWING_TIME := 6.0             # Overflowing: seconds the shield from overhealing lasts ...
+const OVERFLOWING_CAP_PCT := 10.0         # ... at most this % of the ally's maximum health
+const PENITENT_HIT_PCT := 15.0            # Penitent: a hit worth this % of your maximum health ...
+const PENITENT_TIME := 10.0               # ... makes your next heal on yourself stronger, for up to this many seconds
+const ZEAL_COOLDOWN := 30.0               # Zeal: using an ability with at least this cooldown ...
+const ZEAL_TIME := 4.0                    # ... makes you faster for this many seconds
+const SECOND_BREATH_LOW_PCT := 30.0       # Second Breath: a heal of yours that lifts an ally from below this % health ...
+const SECOND_BREATH_HIGH_PCT := 50.0      # ... to above this % gives you mana back
+const WATCHFUL_EYE_WINDOW := 2.0          # Watchful Eye: your heals on an ally hit within this many seconds heal more
+
 ## Rune of the Open Wound (Rare): Blight is instant, with a cooldown, and opens Decay for less time.
 const OPEN_WOUND_COOLDOWN := 15.0         # seconds of cooldown Blight then has
 const OPEN_WOUND_OPEN_TIME := 8.0         # seconds it opens Decay for (instead of DECAY_OPEN_TIME)
@@ -727,7 +833,9 @@ const HEALS := {"secondwind": 3.0, "regrowth": 1.8,
 	"antiphon": 1.76, "shelter": 2.64,
 	"shadowstrike": 0.15,
 	# Shadow healer (the Strings): its direct heals. (A String's own heal: STRING_HEAL.)
-	"hoist": 2.8, "patchup": 1.8, "tug": 0.6, "catscradle": 1.0}
+	"hoist": 2.8, "patchup": 1.8, "tug": 0.6, "catscradle": 1.0,
+	# Holy healer #2 (the Prisms), in old Heals: Mending Ray 1.5 (all ticks), Bright Lance 1.8, Gleam 0.5, Prism Ward 1.2 (shield).
+	"mendingray": 3.3, "brightlance": 3.96, "gleam": 1.1, "prismward": 2.64}
 ## Pacts (scripts/pacts.gd; every character can hold one for a dungeon). Each has
 ## a bonus, a drawback and a vow. Break the vow and the bonus turns into the same
 ## amount as a penalty until the dungeon ends; the drawback stays.
@@ -988,6 +1096,37 @@ const ABILITIES := {
 	"rest": {"cooldown": 60.0},
 	"lastverse": {"cooldown": 180.0, "range": 30.0},
 	"singmercy": {}, "singchorus": {}, "singvigil": {},
+	# Holy tank: the Censer (Mana in points; INCENSE_* and the rest above)
+	"censerswing": {"damage": 0.7, "cost": 0.4, "threat": 4.0},
+	"hallowedarc": {"damage": 0.5, "cooldown": 8.0, "cost": 1, "radius": 8.0, "threat": 4.0},
+	"beckon": {"damage": 0.4, "cooldown": 10.0, "cost": 1, "range": 25.0, "threat": 6.0},
+	"pourout": {"cooldown": 12.0, "cost": 2, "radius": 8.0, "threat": 6.0},                              # damage = POUR_OUT_PER_STACK per stack
+	"absolve": {"cooldown": 10.0, "cost": 1.5},                                                           # heal = ABSOLVE_PER_STACK per stack
+	"aureole": {"cooldown": 20.0},
+	"gatherthelight": {"cooldown": 30.0},
+	"raisethecenser": {"cooldown": 90.0, "cost": 2, "radius": 10.0, "range": 30.0},                        # radius = how far from it enemies are grabbed
+	"unfallen": {"cooldown": 120.0},
+	# Holy healer #2: the Prisms (PRISM_* above; heals in HEALS)
+	"setprism": {"cooldown": 8.0, "cost": 0.5, "range": 30.0},
+	"moveprism": {"cooldown": 5.0, "cost": 1, "range": 30.0},
+	"mendingray": {"cost": 3, "cast_time": 3.0, "range": 40.0},
+	"brightlance": {"cost": 3.5, "cast_time": 2.5, "range": 40.0},
+	"gleam": {"cost": 1, "range": 40.0},
+	"prismward": {"cooldown": 15.0, "cost": 2, "range": 40.0},
+	"piercinglight": {"damage": 1.0, "cost": 1.5, "cast_time": 1.5, "range": 30.0},
+	"realign": {"cooldown": 20.0, "range": 30.0},
+	"shatterprism": {"range": 40.0},
+	"shatterall": {"cooldown": 20.0},
+	"infuse": {"cooldown": 45.0, "cost": 1, "range": 40.0},
+	"kaleidoscope": {"cooldown": 120.0},
+	# Holy archer: Lightstring (Energy, a bow; REFRACT_* and the rest above)
+	"prismarrow": {"cooldown": 12.0, "cost": 15, "range": 30.0},                                         # cooldown = one charge's recharge
+	"glimmershot": {"weapon_mult": 1.0, "cost": 20},
+	"refractingshot": {"weapon_mult": 2.0, "cooldown": 8.0, "cost": 30, "cast_time": 2.0},
+	"sunlitarrow": {"weapon_mult": 1.2, "cooldown": 12.0, "cost": 30},
+	"prismbreaker": {"cooldown": 15.0, "cost": 25, "range": 40.0},
+	"stepoflight": {"cooldown": 20.0, "range": 40.0},
+	"spectrumvolley": {"cooldown": 120.0},
 	"behinditsback": {"cooldown": 60.0},
 	"slack": {"cooldown": 60.0},
 	"notfinished": {"cooldown": 300.0, "range": 40.0},

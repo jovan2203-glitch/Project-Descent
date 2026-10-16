@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="GearItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/gear_item_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"runed_blade"
+display_name = "Runed Blade"
+description = "One-handed sword  •  Melee, spellcasting"
+color = Color(0.55, 0.75, 1, 1)
+slot = 12
+item_type = &"sword"
+stats = {"intellect": 1, "spell_power": 1}
+weapon_type = 1
+weapon_damage = 0.4
+attack_range = 1.0
+attack_interval = 1.0
