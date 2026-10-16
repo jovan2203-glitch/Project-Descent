@@ -1,1 +1,2 @@
 queue_page QueuePage queue_page.gd
+bank_page BankPage bank_page.gd
