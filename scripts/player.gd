@@ -486,6 +486,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_error(_cinder_rain_error(cast_point))   # out of range: keep aiming
 			elif placing_id == DECOY_ID and _decoy_error(cast_point) != "":
 				_error(_decoy_error(cast_point))         # (the same for Decoy)
+			elif (placing_id == MOSSBACK_ID or placing_id == VIPERS_ID) and _finisher_place_error(placing_id, cast_point) != "":
+				_error(_finisher_place_error(placing_id, cast_point))   # (Nature finishers: keep aiming)
 			else:
 				cancel_placement()
 				if placing_id == CRUCIBLE_ID:
@@ -502,6 +504,8 @@ func _unhandled_input(event: InputEvent) -> void:
 					_start_collapse(cast_point)
 				elif placing_id == PALL_ID:
 					_start_pall(cast_point)
+				elif placing_id == MOSSBACK_ID or placing_id == VIPERS_ID:
+					_start_finisher(placing_id, cast_point)
 				else:
 					_start_blizzard(cast_point)
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
@@ -600,7 +604,7 @@ func use_ability(id: String) -> void:
 const ENEMY_BOLTS := ["frostbolt", "fireball", "lightningbolt", "immolate",
 	"kilnblast", "slowfuse", "rekindle", "frostfirebolt", "coldspike", "chainlightning", "discharge",
 	"livewire", "forkedbolt", "unravel", "countdown", "convergence",
-	"blight", "erode", "highnote", "piercinglight"]
+	"blight", "erode", "highnote", "piercinglight", "thornshot", "briartiger"]
 
 # --- Where projectiles leave from: the right hand ------------------------------------
 var _skel: Skeleton3D
@@ -624,7 +628,7 @@ func _muzzle() -> Vector3:
 	# A strange pose (or a model swap) must never fire from somewhere silly.
 	return p if p.distance_to(global_position) < 1.6 else fallback
 ## Cast-time spells aimed at an ally / you / (Rime Shell) an enemy, or nothing.
-const SUPPORT_CASTS := ["rimeshell", "flashfreeze", "hoist", "patchup", "psalm", "outpour", "canticle", "exultation", "brightlance"]
+const SUPPORT_CASTS := ["rimeshell", "flashfreeze", "hoist", "patchup", "psalm", "outpour", "canticle", "exultation", "brightlance", "dewfall", "fawn"]
 ## Instant abilities every character has (handled like drafted ones).
 const BASE_INSTANTS := ["stoneguard", "taunt"]
 
@@ -640,6 +644,9 @@ func _use_ability_now(id: String) -> void:
 	if id in SUPPORT_CASTS:
 		cancel_placement()
 		_start_support_cast(id)
+		return
+	if id == MOSSBACK_ID or id == VIPERS_ID:
+		_use_finisher(id)   # Nature caster: the enemy under the mouse, else a circle on the mulch to use
 		return
 	match id:
 		"blizzard", "crucible":
@@ -732,6 +739,9 @@ func _use_ability_now(id: String) -> void:
 		"refractingshot":
 			cancel_placement()
 			_start_refracting_shot()
+		"adderarrow":
+			cancel_placement()
+			_start_adder_arrow()   # Nature archer (a bow cast; instant after Fang Arrow)
 		"mendingray":
 			cancel_placement()
 			_start_mending_ray()
@@ -893,6 +903,9 @@ func deal_damage(enemy: Node, base: float, ability_id: String, is_proc: bool = f
 		damage_type: String = "", tags: PackedStringArray = PackedStringArray()) -> int:
 	if enemy == null or not is_instance_valid(enemy) or not enemy.is_alive():
 		return 0
+	if POISON_ARROWS.has(ability_id):
+		_poison_landed(enemy, ability_id, base)   # Nature archer: the arrow carries a poison, not a hit
+		return 0
 	if ability_id == FROSTFIRE and damage_type == "":
 		return _frostfire_hit(enemy, base, is_proc)
 	if ability_id == REFRACTION_ID or ability_id == VOLLEY_ARROW_ID:
@@ -939,6 +952,10 @@ func _frostfire_hit(enemy: Node, base: float, is_proc: bool) -> int:
 ## splash hits (dealt as procs) never chain again.
 func _on_hit_extra(enemy: Node, at: Vector3, id: String) -> void:
 	match id:
+		FANG_ARROW_ID:
+			_fang_landed(enemy)   # Nature archer: my poisons on it last longer
+		THORNSHOT_ID:
+			_thornshot_landed(enemy, at)   # Nature caster: Thornburst, and every few a patch of mulch
 		"chainlightning":
 			# Leaping Arc: it leaps to the nearest other enemies. A leap with no new
 			# enemy to reach comes back to the target instead, weaker.
@@ -2209,6 +2226,9 @@ func _release_cast() -> void:
 	if spell == REFRACTING_SHOT_ID:
 		_loose_refracting_shot()   # Holy archer
 		return
+	if spell == ADDER_ARROW_ID:
+		_loose_adder_arrow()   # Nature archer
+		return
 	if spell == GLACIAL_DRAW_ID:
 		_loose_glacial_draw()
 		return
@@ -2284,6 +2304,9 @@ func _release_cast() -> void:
 		_immolate_spread(target)   # recast on a target that already has mine: it jumps to others
 	if spell == PIERCING_LIGHT_ID:
 		_piercing_light(target)   # Holy healer #2: a beam, not a bolt
+		return
+	if spell == BRIAR_TIGER_ID:
+		_briar_tiger(target)   # Nature caster: the tiger strikes when its picture does
 		return
 	if spell == HIGH_NOTE_ID:
 		_gain_verses(spell)   # Holy healer: its Verse (its heal comes when it lands: _on_damage_dealt_holy)
@@ -2364,6 +2387,10 @@ func _process(_delta: float) -> void:
 	_tick_reflections()
 	_tick_censer()
 	_tick_prisms()
+	_tick_weaver()
+	_tick_shepherd()
+	_tick_colossus()
+	_tick_venom(_delta)
 	_tick_lightstring(_delta)
 	_mouseover_tick()
 	_tick_traces()
@@ -2425,7 +2452,8 @@ func _physics_process(delta: float) -> void:
 		or _glint_cast or _overture_cast)
 	if steady:
 		var aimed: bool = current_spell == "steadyshot" or current_spell in ENEMY_BOLTS or current_spell == "embervolley" \
-			or current_spell == GLACIAL_DRAW_ID or current_spell == SIGIL_DARTS_ID or current_spell == REFRACTING_SHOT_ID
+			or current_spell == GLACIAL_DRAW_ID or current_spell == SIGIL_DARTS_ID or current_spell == REFRACTING_SHOT_ID \
+			or current_spell == ADDER_ARROW_ID
 		if (aimed and not _has_valid_target()) or (current_spell in SUPPORT_CASTS and not _support_target_ok()):
 			_cancel_cast()
 			steady = false
@@ -2445,7 +2473,7 @@ func _physics_process(delta: float) -> void:
 
 	if casting and not steady:
 		var targeted: bool = current_spell in ENEMY_BOLTS or current_spell == "embervolley" or current_spell == GLACIAL_DRAW_ID \
-			or current_spell == REFRACTING_SHOT_ID \
+			or current_spell == REFRACTING_SHOT_ID or current_spell == ADDER_ARROW_ID \
 			or current_spell == SIGIL_DARTS_ID
 		var lost_target := targeted and not _has_valid_target()
 		if current_spell in SUPPORT_CASTS and not _support_target_ok():
@@ -2571,7 +2599,7 @@ func _use_drafted(id: String) -> void:
 			_error("No target")
 			return
 		var sight_err := _target_error(target)
-		if sight_err != "":
+		if sight_err != "" and id != THORNWING_ID:   # (Thornwing dives from above: no line of sight needed)
 			_error(sight_err)
 			return
 		# (Static Step and Whiplash need a weapon but reach as far as their own range.)
@@ -2618,6 +2646,14 @@ func _use_drafted(id: String) -> void:
 			_prism_use(id, res)   # Holy healer #2: the Prisms
 		GLIMMER_SHOT_ID, SUNLIT_ARROW_ID, PRISM_BREAKER_ID, STEP_OF_LIGHT_ID, SPECTRUM_VOLLEY_ID:
 			_lightstring_use(id, res)   # Holy archer: Lightstring
+		MOSSBACK_ID, THORNWING_ID, VIPERS_ID, STAG_ID:
+			_weaver_use(id, res)   # Nature caster: the Weaver
+		ROOTGUARD_ID, OWL_ID, ELK_ID, WILD_HERD_ID:
+			_shepherd_use(id, res)   # Nature healer: the Shepherd
+		VINE_FIST_ID, GRASP_ID, STOMP_ID, GIANTS_HANDS_ID, HEARTSAP_ID, AWAKEN_ID:
+			_colossus_use(id, res)   # Nature tank: the Colossus
+		FANG_ARROW_ID, ADDER_ARROW_ID, ASP_ARROW_ID, KRAIT_ARROW_ID, VENOM_BURST_ID, SPITTING_VOLLEY_ID, BLOAT_ARROW_ID, COIL_BACK_ID, VENOM_SURGE_ID:
+			_venom_use(id, res, w)   # Nature archer: Venomstring
 		"hoarfrost":
 			FROST_BOLT.spawn(get_tree().current_scene, muzzle, target, self, false, id, 0.0)   # Hoarfrost is its on-hit effect
 		"iceshards":
@@ -2660,8 +2696,7 @@ func _use_drafted(id: String) -> void:
 		# Spell projectiles (tinted by book: Fire, Lightning, Shadow, Holy)
 		"groundout":
 			_ground_out()
-		"corruption", \
-				"wrath", "insectswarm", "entanglingroots":
+		"corruption":
 			FROST_BOLT.spawn(get_tree().current_scene, muzzle, target, self, false, id, float(res.damage))
 		"intervalward":
 			_interval_ward()
@@ -2820,9 +2855,6 @@ func _use_drafted(id: String) -> void:
 			for e in hit:
 				deal_damage(e, float(res.damage) * share, id)
 			_ring_effect(float(res.radius), Abilities.color_of(id))
-		"regrowth":
-			heal(float(Abilities.HEALS[id]), id)
-			_ring_effect(1.2, Abilities.color_of(id))
 		"fanofknives":
 			for e in _enemies_within(float(res.radius)):
 				deal_damage(e, _weapon_hit(w, res), id)
@@ -3009,6 +3041,12 @@ func _drafted_precheck(id: String, _res: Resource, w: Dictionary) -> String:
 		return _prism_precheck(id)   # Holy healer #2
 	if LIGHTSTRING_INSTANTS.has(id):
 		return _lightstring_precheck(id)   # Holy archer
+	if SHEPHERD_INSTANTS.has(id):
+		return _shepherd_precheck(id)   # Nature healer
+	if COLOSSUS_IDS.has(id):
+		return _colossus_precheck(id)   # Nature tank
+	if VENOM_INSTANTS.has(id) or id == ADDER_ARROW_ID:
+		return _venom_precheck(id)   # Nature archer
 	match id:
 		"blink", "cinderstep", "flicker", "staticstep", "icyretreat":
 			if surge_active():
@@ -3037,7 +3075,7 @@ func _drafted_precheck(id: String, _res: Resource, w: Dictionary) -> String:
 		"multishot":
 			if _multishot_targets(float(w["attack_range"])).is_empty():
 				return "No enemies in range"
-		"secondwind", "regrowth":
+		"secondwind":
 			if health >= max_health:
 				return "Already at full health"
 		"iceshards":
@@ -3365,6 +3403,8 @@ func _release_support(spell: String) -> void:
 			_hymn_cast_heal(spell, tgt, kind)   # Holy healer
 		"brightlance":
 			_prism_cast_heal(spell, tgt, kind)   # Holy healer #2 (the Prisms)
+		"dewfall", "fawn":
+			_shepherd_cast_heal(spell, tgt, kind)   # Nature healer: the Shepherd
 
 ## A Rime Shell lands on me (from me or a party member): 20% less damage taken,
 ## a shield of `amount`, and Weakened Soul. When the shield breaks it shatters
@@ -9430,6 +9470,22 @@ func receive_support(kind: String, from: Node, data: Dictionary) -> void:
 					_combat().float_text(self, "%s (%d)" % [HYMN_WARD_NAMES[ward_id], int(data.get("amount", 0))], HOLY_LIGHT, false)
 		"vigil_hit":
 			_talent_verse("holy_watchful", "vigil")   # (I am the healer: a big hit landed on an ally in my Vigil)
+		# The Nature healer's Shepherd (player.gd, "Nature healer: the Shepherd").
+		"blossom":
+			_blossoms_shown(status, from, int(data.get("n", 0)), float(data.get("t", 0.0)))
+		"owl":
+			_owl_watched(from, float(data.get("t", 0.0)))
+		"owl_hit":
+			_owl_dive(from)   # (I am the healer: my owl's ally was hit)
+		"rootguard":
+			if is_alive():
+				var healer := from
+				_rootguard_on(status, from, int(data.get("amount", 0)), float(data.get("time", 0.0)), func():
+					if _net() and is_instance_valid(healer):
+						_net().support_ally(healer, self, "rootguard_broke", {}))
+				_combat().float_text(self, "%s (%d)" % [Abilities.ability_name(ROOTGUARD_ID), int(data.get("amount", 0))], BLOSSOM_COLOR, false)
+		"rootguard_broke":
+			_rootguard_broke(from)   # (I am the healer: my shield on that ally was used up)
 
 ## Where the Strings `from` has on me stand: n = how many (0 = none any more),
 ## t = seconds they have left, cross = % of my damage that is crossed away.
@@ -10337,6 +10393,8 @@ func _my_burn_on(enemy: Variant) -> bool:   # untyped: may be a freed enemy
 
 ## Number shown on an action-bar button with charges ("" = none).
 func charges_text(id: String) -> String:
+	if id == MOSSBACK_ID or id == VIPERS_ID:
+		return str(_mulch.size())   # Nature caster: my patches of mulch
 	if id == PRISM_ARROW_ID:
 		return str(_prism_arrows)   # Holy archer: Prism Arrow's charges
 	if id == "iceshards":
@@ -10938,6 +10996,8 @@ func _on_hit_taken(info: RefCounted) -> void:
 		return
 	_crossed_taken(info)   # Crossed Strings: what it spared me goes to the enemy at the other end
 	_vigil_taken(info)     # Watchful: a big hit while I stand in a healer's Vigil
+	_owl_taken(info)       # a Nature healer's Owl watching over me dives
+	_colossus_hit_taken(info)   # Nature tank: hits on my Giant's Hands give Sap
 	# Heat Sink: what it spared me is stored for the burst.
 	if _heat_on and status.has(HEAT_SINK_ID) and not info.blocked and int(info.amount) > 0:
 		_heat_stored += heat_sink_stored(float(info.amount), float(info.bonus_pct), Balance.HEAT_SINK_PCT)
@@ -12028,7 +12088,7 @@ const SWELL_FX := "swell"
 const OVERTURE_FX := "overture"
 const SHELTER_FX := "shelter"
 const VIGIL_WARD_FX := "vigil_ward"
-const HYMN_DR_NAMES := {VIGIL_FX: "Vigil", STEADY_VOICE_FX: "Steady Voice", BULWARK_SONG_FX: "Bulwark of Song", REST_FX: "Rest"}
+const HYMN_DR_NAMES := {VIGIL_FX: "Vigil", STEADY_VOICE_FX: "Steady Voice", BULWARK_SONG_FX: "Bulwark of Song", REST_FX: "Rest", "full_bloom": "Full Bloom"}   # (Full Bloom: the Nature healer's, same path)
 const HYMN_WARD_NAMES := {SHELTER_FX: "Shelter", VIGIL_WARD_FX: "Vigil's Ward", PRISM_WARD_FX: "Prism Ward", OVERFLOWING_FX: "Overflowing"}   # (the Prisms' shield uses the same path)
 const HOLY_LIGHT := Color(1.0, 0.88, 0.45)
 
@@ -12460,9 +12520,11 @@ func _vigil_taken(info: RefCounted) -> void:
 
 static func make_hymn_dr_fx(fx_id: String, pct: float, time: float) -> Resource:
 	var color: Color = Abilities.HYMN_COLORS["vigil"] if fx_id != REST_FX else HOLY_LIGHT
+	if fx_id == FULL_BLOOM_FX:
+		color = BLOSSOM_COLOR
 	var fx := StatusContainer.make_buff(fx_id, str(HYMN_DR_NAMES.get(fx_id, fx_id)), fx_id, 0.0, time, 1, color)
 	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Holy", "Defensive"])
+	fx.tags = PackedStringArray(["Nature" if fx_id == FULL_BLOOM_FX else "Holy", "Defensive"])
 	fx.damage_mod_pct = -absf(pct)
 	fx.modifies_incoming = true
 	fx.mod_affects_dots = true
@@ -13913,3 +13975,1437 @@ func hit_recently(who: Variant, window: float) -> bool:
 		return damage_taken_recently(window) > 0
 	var at: Variant = (who as Node).get("hurt_at")
 	return at != null and Time.get_ticks_msec() / 1000.0 - float(at) <= window
+
+# --- Nature caster: the Weaver ------------------------------------------------------------------
+# Creatures woven of vines or grown from the ground, each here for one strike
+# (the picture: scripts/nature_creature.gd). Woven ones (Briar Tiger, Thornwing)
+# leave a patch of mulch on the ground where they strike (scripts/mulch_patch.gd);
+# rooted finishers (Mossback, Choking Vipers) use up every patch of mine near
+# their target and grow with each; Greenwood Stag carries every patch to the
+# target. Thornshot is the filler: thorns also burst from my patches near its
+# target (Thornburst), and every few that land leave a patch. Own only: the
+# party sees my patches faint and nothing of theirs touches mine. Numbers:
+# balance.gd (MULCH_* and the rest); the talent: Hunting Party.
+
+const MULCH = preload("res://scripts/mulch_patch.gd")
+const NATURE_CREATURE = preload("res://scripts/nature_creature.gd")
+const THORNSHOT_ID := "thornshot"
+const BRIAR_TIGER_ID := "briartiger"
+const MOSSBACK_ID := "mossback"
+const THORNWING_ID := "thornwing"
+const VIPERS_ID := "chokingvipers"
+const STAG_ID := "greenwoodstag"
+## The instants of the kit (_use_drafted -> _weaver_use).
+const WEAVER_INSTANTS := [MOSSBACK_ID, THORNWING_ID, VIPERS_ID, STAG_ID]
+## Meter / log id of Thornburst (its own line: Details.HIT_NAMES).
+const THORNBURST_ID := "thornburst"
+const THORNBURST_TAGS := ["Nature", "Spell", "AoE"]
+const VIPERS_TAGS := ["Nature", "Spell", "DoT"]
+const CHOKED_FX := preload("res://data/effects/choked.tres")
+## The Mulch buff on me (one stack per patch).
+const MULCH_FX := "mulch"
+
+var _mulch: Array = []            # my patches, oldest first: {"key", "pos", "until"}
+var _mulch_seq := 0
+var _mulch_told := 0.0
+var _thornshots_landed := 0       # Thornshots that landed (every THORNSHOT_PATCH_EVERY-th leaves a patch)
+var _tigers := 0                  # Briar Tigers cast (Hunting Party's capstone: every second one)
+var _vipers: Array = []           # Choking Vipers on enemies: {"target", "coef", "ticks", "next", "every"}
+var _mulch_fx: Resource = null
+
+## My patches: [{"key", "pos" (on the ground), "until"}].
+func mulch() -> Array:
+	return _mulch
+
+# Rules as static functions (tests/test_nature.gd).
+
+## Indices of the `spots` within `reach` of `at` (flat distance).
+static func mulch_within(spots: Array, at: Vector3, reach: float) -> Array:
+	var out := []
+	for i in spots.size():
+		var p: Vector3 = spots[i]
+		if Vector2(p.x - at.x, p.z - at.z).length() <= reach:
+			out.append(i)
+	return out
+
+## A rooted finisher's damage (coefficient): its own `base`, + `per` for each of `patches`.
+static func rooted_coef(base: float, per: float, patches: int) -> float:
+	return base + per * maxi(patches, 0)
+
+## Indices of the `points` (enemies) within `radius` of any of the `spots`: each once.
+static func near_any(points: Array, spots: Array, radius: float) -> Array:
+	var out := []
+	for i in points.size():
+		var e: Vector3 = points[i]
+		for s in spots:
+			var p: Vector3 = s
+			if Vector2(p.x - e.x, p.z - e.z).length() <= radius:
+				out.append(i)
+				break
+	return out
+
+## Where the stag sets `n` patches down around `center`: one alone in the middle, more in a ring.
+static func stag_spots(n: int, center: Vector3, ring: float) -> Array:
+	var out := []
+	if n <= 0:
+		return out
+	if n == 1:
+		return [center]
+	for i in n:
+		var a := TAU * i / n
+		out.append(center + Vector3(cos(a) * ring, 0.0, sin(a) * ring))
+	return out
+
+## How many ticks Choking Vipers makes with `haste` (a multiplier: 1.2 = 20% Haste).
+## Each tick is the same size, so Haste makes more of them.
+static func vipers_ticks(haste: float) -> int:
+	return maxi(int(round(Balance.VIPERS_TIME * maxf(haste, 0.01) / Balance.VIPERS_TICK)), 1)
+
+## Is the `n`-th Briar Tiger (from 1) one that Hunting Party's capstone doubles up?
+static func hunting_party_turn(n: int) -> bool:
+	return n > 0 and n % 2 == 0
+
+func _mulch_spots() -> Array:
+	var out := []
+	for p in _mulch:
+		out.append(p["pos"])
+	return out
+
+func _ground_under(who: Node3D) -> Vector3:
+	return Vector3(who.global_position.x, Combat.feet_y(who), who.global_position.z)
+
+## A new patch at `at`. Past MULCH_MAX, my oldest goes.
+func _add_mulch(at: Vector3) -> void:
+	_mulch_seq += 1
+	var key := "m%d" % _mulch_seq
+	_mulch.append({"key": key, "pos": at, "until": Time.get_ticks_msec() / 1000.0 + Balance.MULCH_TIME})
+	while _mulch.size() > Balance.MULCH_MAX:
+		var old: Dictionary = _mulch.pop_front()
+		if is_inside_tree():
+			MULCH.remove(get_tree(), "me:" + str(old["key"]))
+	_sync_mulch()
+
+## Use up every patch within MULCH_REACH of `at`: returns [how many, the middle of where they were].
+func _use_mulch(at: Vector3) -> Array:
+	var used := mulch_within(_mulch_spots(), at, Balance.MULCH_REACH)
+	var mid := Vector3.ZERO
+	for j in range(used.size() - 1, -1, -1):
+		var p: Dictionary = _mulch[int(used[j])]
+		mid += p["pos"]
+		if is_inside_tree():
+			MULCH.remove(get_tree(), "me:" + str(p["key"]))
+		_mulch.remove_at(int(used[j]))
+	if not used.is_empty():
+		mid /= used.size()
+		_sync_mulch()
+	return [used.size(), mid]
+
+func _tick_weaver() -> void:
+	_tick_vipers()
+	if _mulch.is_empty():
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	var gone := false
+	for i in range(_mulch.size() - 1, -1, -1):
+		if now >= float(_mulch[i]["until"]):
+			MULCH.remove(get_tree(), "me:" + str(_mulch[i]["key"]))
+			_mulch.remove_at(i)
+			gone = true
+	if gone:
+		_sync_mulch()
+	elif now - _mulch_told >= PRISM_RETELL:
+		_tell_mulch()
+
+## The picture of my patches (and the party is told, so they see them faint).
+func _sync_mulch() -> void:
+	_sync_mulch_buff()
+	if not is_inside_tree():
+		return
+	var keys := []
+	for p in _mulch:
+		var key := "me:" + str(p["key"])
+		keys.append(key)
+		MULCH.place(get_tree().current_scene, key, p["pos"], true)
+	MULCH.keep_only(get_tree(), "me:", keys)
+	_tell_mulch()
+
+func _tell_mulch() -> void:
+	_mulch_told = Time.get_ticks_msec() / 1000.0
+	var list := []
+	for p in _mulch:
+		var pos: Vector3 = p["pos"]
+		list.append([str(p["key"]), pos.x, pos.y, pos.z])
+	_net_fx("mulch", global_position, null, {"p": list})
+
+## A creature of `kind` from `start` to strike at `end` (here, and faint for the party).
+func _creature(kind: String, start: Vector3, end: Vector3) -> void:
+	if not is_inside_tree():
+		return
+	NATURE_CREATURE.spawn(get_tree().current_scene, kind, start, end)
+	_net_fx("creature", start, null, {"k": kind, "to": end})
+
+## After `delay` sec, `strike` runs (a creature's hit lands when its picture strikes).
+func _after(delay: float, strike: Callable) -> void:
+	if not is_inside_tree():
+		strike.call()
+		return
+	get_tree().create_timer(delay).timeout.connect(strike)
+
+## A woven creature (`kind`) strikes `enemy` for `coef`, then leaves a patch where it struck.
+func _woven_strike(kind: String, enemy: Node3D, coef: float, id: String, is_proc: bool = false) -> void:
+	var spot := _ground_under(enemy)
+	_creature(kind, _muzzle() if is_inside_tree() else global_position, enemy.global_position + Vector3(0, 0.6, 0))
+	_after(Balance.WOVEN_STRIKE_DELAY, func():
+		if is_dead():
+			return
+		if is_instance_valid(enemy) and enemy.is_alive():
+			spot = _ground_under(enemy)
+			deal_damage(enemy, coef, id, is_proc)
+		_add_mulch(spot))
+
+## Briar Tiger's cast finished (from _release_cast).
+func _briar_tiger(enemy: Node3D) -> void:
+	if enemy == null or not is_instance_valid(enemy):
+		return
+	var coef := float(Abilities.get_resource(BRIAR_TIGER_ID).damage) * (1.0 + _talent("nature_hunting_party") / 100.0)   # Hunting Party
+	_tigers += 1
+	_woven_strike("tiger", enemy, coef, BRIAR_TIGER_ID)
+	if _capstone("nature_hunting_party") and hunting_party_turn(_tigers):
+		# Hunting Party's capstone: more tigers, at other enemies near the target.
+		var others := _enemies_near(enemy.global_position, Balance.HUNTING_PARTY_RADIUS, enemy)
+		for i in mini(others.size(), Balance.HUNTING_PARTY_EXTRA):
+			_woven_strike("tiger", others[i], coef, BRIAR_TIGER_ID, true)
+
+## A Thornshot landed on `enemy` (from _on_hit_extra): Thornburst, and every few a patch.
+func _thornshot_landed(enemy: Node, at: Vector3) -> void:
+	var near := mulch_within(_mulch_spots(), at, Balance.MULCH_REACH)
+	if not near.is_empty():
+		var spots := []
+		for i in near:
+			spots.append(_mulch[int(i)]["pos"])
+		var foes := _enemies_near(at, Balance.MULCH_REACH + Balance.THORNBURST_RADIUS)
+		var points := []
+		for e in foes:
+			points.append((e as Node3D).global_position)
+		var hit := near_any(points, spots, Balance.THORNBURST_RADIUS)
+		var share := Balance.aoe_share(hit.size())
+		for i in hit:
+			deal_damage(foes[int(i)], Balance.THORNBURST_DAMAGE * share, THORNBURST_ID, true, "nature", PackedStringArray(THORNBURST_TAGS))
+		for s in spots:
+			_ring_effect(Balance.THORNBURST_RADIUS * 0.5, MULCH.GLOW, s)
+	_thornshots_landed += 1
+	if _thornshots_landed % Balance.THORNSHOT_PATCH_EVERY == 0 and enemy is Node3D:
+		_add_mulch(_ground_under(enemy))
+
+## One of the kit's instants (paid for and put on cooldown by _use_drafted).
+func _weaver_use(id: String, res: Resource) -> void:
+	if not _has_valid_target():
+		return
+	var enemy: Node3D = target
+	var foot := _ground_under(enemy)
+	match id:
+		THORNWING_ID:
+			_woven_strike("hawk", enemy, float(res.damage), id)
+		MOSSBACK_ID:
+			_mossback(enemy, foot)   # (the mouseover path: the mulch near the enemy)
+		VIPERS_ID:
+			_choking_vipers(foot)
+		STAG_ID:
+			var start: Vector3 = _mulch[_mulch.size() - 1]["pos"] if not _mulch.is_empty() else global_position
+			_creature("stag", start, foot)
+			_after(Balance.ROOTED_STRIKE_DELAY, func():
+				if is_dead():
+					return
+				var alive: bool = is_instance_valid(enemy) and enemy.is_alive()
+				if alive:
+					deal_damage(enemy, float(res.damage), id)
+				_stag_carry(_ground_under(enemy) if alive else foot))
+
+## Greenwood Stag: every patch of mine moves to `center` (each keeps its time).
+func _stag_carry(center: Vector3) -> void:
+	var spots := stag_spots(_mulch.size(), center, Balance.MULCH_RING)
+	for i in _mulch.size():
+		_mulch[i]["pos"] = spots[i]
+	_sync_mulch()
+
+## Choking Vipers on `enemy`: `coef` in all over VIPERS_TIME, in equal ticks
+## (Haste: more of them). Recasting on the same enemy starts it over.
+func _start_vipers(enemy: Node, coef: float) -> void:
+	for i in range(_vipers.size() - 1, -1, -1):
+		if _vipers[i]["target"] == enemy:
+			_vipers.remove_at(i)
+	var base_ticks := maxi(int(round(Balance.VIPERS_TIME / Balance.VIPERS_TICK)), 1)
+	var every := Balance.VIPERS_TICK / haste_mult()
+	_vipers.append({"target": enemy, "coef": coef / base_ticks, "ticks": vipers_ticks(haste_mult()),
+		"next": Time.get_ticks_msec() / 1000.0 + every, "every": every})
+
+func _tick_vipers() -> void:
+	if _vipers.is_empty():
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	for i in range(_vipers.size() - 1, -1, -1):
+		var v: Dictionary = _vipers[i]
+		var e: Node = v["target"]
+		if not is_instance_valid(e) or not e.is_alive() or int(v["ticks"]) <= 0:
+			_vipers.remove_at(i)
+			continue
+		if now < float(v["next"]):
+			continue
+		v["ticks"] = int(v["ticks"]) - 1
+		v["next"] = float(v["next"]) + float(v["every"])
+		var info = _combat().ability_hit_info(self, e, float(v["coef"]), VIPERS_ID, true, "nature", PackedStringArray(VIPERS_TAGS))
+		info.is_dot = true
+		_combat().deal(info)
+
+## Mossback / Choking Vipers pressed: with the mouse over a legal enemy
+## (mouseover casting), straight at it with the mulch near it; otherwise a
+## circle to place on the patches to use (pressing it again puts it away).
+func _use_finisher(id: String) -> void:
+	if placing and placing_id == id:
+		cancel_placement()
+		return
+	cancel_placement()
+	if _finisher_mouseover():
+		_use_drafted(id)
+		return
+	_begin_placement(id)
+
+## Is the enemy under the mouse my target for this press (mouseover casting)?
+func _finisher_mouseover() -> bool:
+	if not mouseover_on() or not is_inside_tree():
+		return false
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return false
+	var e: Node3D = _enemy_at(get_viewport().get_mouse_position(), cam)
+	return e != null and e == target
+
+## Why the finisher's circle can't go down at `point` ("" = it can).
+func _finisher_place_error(id: String, point: Vector3) -> String:
+	if Vector2(point.x - global_position.x, point.z - global_position.z).length() > float(Abilities.get_resource(id).cast_range):
+		return "Out of range"
+	if id == MOSSBACK_ID:
+		if not _has_valid_target():
+			return "No target"
+		var sight := _target_error(target)
+		if sight != "":
+			return sight
+		if global_position.distance_to(target.global_position) > float(Abilities.get_resource(id).cast_range):
+			return "Target out of range"
+	elif _enemies_near(point, float(Abilities.get_resource(id).radius)).is_empty():
+		return "No enemies there"
+	return ""
+
+## The circle went down at `point`: the finisher uses the patches inside it.
+func _start_finisher(id: String, point: Vector3) -> void:
+	var err := _finisher_place_error(id, point)
+	if err != "":
+		_error(err)
+		return
+	if not _pay(id):
+		return
+	if on_gcd(id):
+		_start_gcd()
+	var center := Vector3(point.x, Combat.feet_y(self), point.z)
+	if id == MOSSBACK_ID:
+		_mossback(target, center)
+	else:
+		_choking_vipers(center)
+	_bus().cast_finished.emit(id)
+
+## Mossback: the patches within MULCH_REACH of `center` grow a bear that mauls `enemy`.
+func _mossback(enemy: Node3D, center: Vector3) -> void:
+	var res := Abilities.get_resource(MOSSBACK_ID)
+	var foot := _ground_under(enemy)
+	var used := _use_mulch(center)
+	var coef := rooted_coef(float(res.damage), Balance.MOSSBACK_PER_PATCH, int(used[0]))
+	var start: Vector3 = used[1] if int(used[0]) > 0 else foot + (global_position - foot).normalized() * 1.5
+	_creature("bear", start, foot)
+	_after(Balance.ROOTED_STRIKE_DELAY, func():
+		if not is_dead() and is_instance_valid(enemy) and enemy.is_alive():
+			deal_damage(enemy, coef, MOSSBACK_ID))
+
+## Choking Vipers: the patches within MULCH_REACH of `center` feed vipers that
+## choke every enemy within its radius of `center` (split past the AoE cap).
+func _choking_vipers(center: Vector3) -> void:
+	var res := Abilities.get_resource(VIPERS_ID)
+	var used := _use_mulch(center)
+	var total := rooted_coef(float(res.damage), Balance.VIPERS_PER_PATCH, int(used[0]))
+	var foes := _enemies_near(center, float(res.radius))
+	var coef := total * Balance.aoe_share(foes.size())
+	for e in foes:
+		_creature("viper", _ground_under(e), (e as Node3D).global_position)
+		_combat().apply_effect(self, e, CHOKED_FX, VIPERS_ID, PackedStringArray(VIPERS_TAGS))
+		_start_vipers(e, coef)
+
+## The Mulch buff on me: one stack per patch (gone with the last one).
+func _sync_mulch_buff() -> void:
+	if status == null:
+		return
+	var n := _mulch.size()
+	if n <= 0:
+		status.remove(MULCH_FX)
+		return
+	if _mulch_fx == null:
+		_mulch_fx = StatusContainer.make_buff(MULCH_FX, "Mulch", Stats.BLOCK, 0.0, Balance.MULCH_TIME, Balance.MULCH_MAX, MULCH.GLOW)
+		_mulch_fx.stat_modifiers = {}
+		_mulch_fx.show_time = false
+		_mulch_fx.tags = PackedStringArray(["Nature"])
+		_mulch_fx.description = "Patches of mulch your woven creatures left. Mossback and Choking Vipers use up the ones near where they strike."
+	status.apply(_mulch_fx, self)
+	if status.stacks_of(MULCH_FX) != n:
+		status.set_stacks(MULCH_FX, n)
+
+# --- Nature healer: the Shepherd ----------------------------------------------------------------
+# The Weaver's healing twin: creatures woven of vines or grown from the ground,
+# each here for one heal (the picture: scripts/nature_creature.gd). Woven ones
+# (Fawn, Owl) leave Blossoms on the allies they heal, two when the heal is more
+# than the ally was missing; rooted ones (Rootguard, Heartwood Elk) use up the
+# Blossoms on their allies and heal or shield more for each. Dewfall is the
+# filler (stronger on an ally with Blossoms, uses none). Wild Herd sends a Fawn
+# at each of the lowest-health allies.
+# Everything is decided here, on the healer's machine: who holds how many
+# Blossoms, every heal. A party member is told through Net.support_ally (their
+# Player.receive_support): the Blossom buff, the Owl watching them, Rootguard's
+# shield; they answer "owl_hit" (they were hit: the owl dives) and
+# "rootguard_broke" (the shield was used up). A friendly dummy is handled here.
+# Own only: only my rooted creatures use my Blossoms. Numbers: balance.gd
+# (BLOSSOM_*, FAWN_*, ...; heals in HEALS); the talent: Running Herd.
+
+const DEWFALL_ID := "dewfall"
+const FAWN_ID := "fawn"
+const ROOTGUARD_ID := "rootguard"
+const OWL_ID := "owl"
+const ELK_ID := "heartwoodelk"
+const WILD_HERD_ID := "wildherd"
+## The instants of the kit (_use_drafted -> _shepherd_use). Dewfall and Fawn are cast: SUPPORT_CASTS.
+const SHEPHERD_INSTANTS := [ROOTGUARD_ID, OWL_ID, ELK_ID, WILD_HERD_ID]
+## Meter / log id of the owl's strike (its own line: Details.HIT_NAMES).
+const OWL_STRIKE_ID := "owlstrike"
+const OWL_STRIKE_TAGS := ["Nature", "Spell"]
+const BLOSSOM_FX := "blossom"       # on an ally: my Blossoms (per caster, stacks = how many)
+const OWL_FX := "owl_watch"         # on an ally: my owl watching over them
+const ROOTGUARD_FX := "rootguard"   # on an ally: Rootguard's shield
+const FULL_BLOOM_FX := "full_bloom" # less damage taken (through the Hymns' path: HYMN_DR_NAMES)
+const BLOSSOM_COLOR := Color(1.0, 0.62, 0.82)
+
+var _blossoms := {}   # ally instance id -> {"who", "n", "until"}
+var _owls := {}       # ally instance id -> {"who", "until"}: my owls watching
+var _fawns := 0       # Fawns sent (Running Herd's capstone: every second one)
+var _blossom_fx: Resource = null
+# The other end: owls somebody (I, or a party member) has watching over me.
+var _owl_from := {}   # caster instance id -> {"from", "until"}
+
+# Rules as static functions (tests/test_nature.gd).
+
+## `have` Blossoms and `k` more: never past BLOSSOM_MAX.
+static func blossom_add(have: int, k: int) -> int:
+	return clampi(have + maxi(k, 0), 0, Balance.BLOSSOM_MAX)
+
+## Dewfall's heal multiplier on an ally with `n` Blossoms.
+static func dewfall_mult(n: int) -> float:
+	return 1.0 + Balance.DEWFALL_PER_BLOSSOM / 100.0 * maxi(n, 0)
+
+## Is a heal of `amount` more than the `missing` health (the ally gets an extra Blossom)?
+static func overheals(amount: int, missing: int) -> bool:
+	return amount > maxi(missing, 0)
+
+## Fawn's next ally: the lowest health share among those not `taken` yet (-1 = none).
+static func fawn_pick(shares: Array, taken: Array) -> int:
+	var best := -1
+	var best_f := INF
+	for i in shares.size():
+		if i < taken.size() and bool(taken[i]):
+			continue
+		if float(shares[i]) < best_f:
+			best_f = float(shares[i])
+			best = i
+	return best
+
+## How many times a Fawn bounces: the `nth` one sent, with Running Herd's capstone or not.
+static func fawn_bounces(nth: int, capstone: bool) -> int:
+	return Balance.FAWN_BOUNCES + (Balance.RUNNING_HERD_EXTRA if capstone and nth > 0 and nth % 2 == 0 else 0)
+
+## My Blossoms on `who` (0 when they ran out).
+func blossoms_on(who: Variant) -> int:   # untyped: may be a freed node
+	if who == null or not is_instance_valid(who) or not (who is Node):
+		return 0
+	var e: Variant = _blossoms.get((who as Node).get_instance_id())
+	return int(e["n"]) if e != null and float(e["until"]) > _str_now() else 0
+
+## `k` more Blossoms on `who` (their time starts over).
+func _add_blossom(who: Node3D, k: int) -> void:
+	if who == null or not is_instance_valid(who) or k <= 0:
+		return
+	var n := blossom_add(blossoms_on(who), k)
+	_blossoms[who.get_instance_id()] = {"who": who, "n": n, "until": _str_now() + Balance.BLOSSOM_TIME}
+	_show_blossoms(who, n, Balance.BLOSSOM_TIME)
+
+## Use up my Blossoms on `who`: how many there were.
+func _take_blossoms(who: Node3D) -> int:
+	var n := blossoms_on(who)
+	if who != null and is_instance_valid(who):
+		_blossoms.erase(who.get_instance_id())
+		if n > 0:
+			_show_blossoms(who, 0, 0.0)
+	return n
+
+## The Blossom buff on `who`, on whichever machine they live.
+func _show_blossoms(who: Node3D, n: int, time: float) -> void:
+	if is_same(who, self):
+		_blossoms_shown(status, self, n, time)
+	elif who.is_in_group("friendly"):
+		_blossoms_shown(who.get_node_or_null("Status"), self, n, time)
+	elif _net():
+		_net().support_ally(who, self, "blossom", {"n": n, "t": time})
+
+func _blossoms_shown(st: Node, from: Node, n: int, time: float) -> void:
+	if st == null:
+		return
+	if n <= 0 or time <= 0.0:
+		st.remove_from(BLOSSOM_FX, from)
+		return
+	if _blossom_fx == null:
+		_blossom_fx = make_blossom_fx()
+	if not st.has_from(BLOSSOM_FX, from):
+		st.apply(_blossom_fx, from)
+	st.set_stacks_from(BLOSSOM_FX, from, n)
+	st.set_remaining_from(BLOSSOM_FX, from, time)
+
+static func make_blossom_fx() -> Resource:
+	var fx := StatusContainer.make_buff(BLOSSOM_FX, "Blossom", BLOSSOM_FX, 0.0, Balance.BLOSSOM_TIME, Balance.BLOSSOM_MAX, BLOSSOM_COLOR)
+	fx.stat_modifiers = {}
+	fx.stack_mode = 0   # (its stacks and time are set by the healer)
+	fx.per_caster = true
+	fx.tags = PackedStringArray(["Nature"])
+	fx.description = "Flowers a healer's woven creatures left. Their rooted creatures use them up and heal or shield you more for each."
+	return fx
+
+static func make_owl_fx(time: float) -> Resource:
+	var fx := StatusContainer.make_buff(OWL_FX, "Owl", OWL_FX, 0.0, time, 1, BLOSSOM_COLOR)
+	fx.stat_modifiers = {}
+	fx.per_caster = true
+	fx.tags = PackedStringArray(["Nature"])
+	fx.description = "An owl watches over you. The first time you are hit, it dives to heal you."
+	return fx
+
+static func make_rootguard_fx(time: float) -> Resource:
+	var fx := StatusContainer.make_buff(ROOTGUARD_FX, "Rootguard", ROOTGUARD_FX, 0.0, time, 1, BLOSSOM_COLOR)
+	fx.stat_modifiers = {}
+	fx.tags = PackedStringArray(["Nature", "Defensive"])
+	fx.description = "Roots wrapped around you absorb damage."
+	return fx
+
+func _tick_shepherd() -> void:
+	if _blossoms.is_empty() and _owls.is_empty():
+		return
+	var now := _str_now()
+	for key in _blossoms.keys():
+		var e: Dictionary = _blossoms[key]
+		if float(e["until"]) <= now or not is_instance_valid(e["who"]):
+			_blossoms.erase(key)   # (the buff on them runs out by itself)
+	for key in _owls.keys():
+		var e: Dictionary = _owls[key]
+		if float(e["until"]) <= now:
+			_owls.erase(key)
+			var who: Variant = e["who"]
+			if who != null and is_instance_valid(who) and who.is_alive() and not is_dead():
+				_add_blossom(who, 1)   # nothing hit them: it lands and leaves a Blossom
+
+## Why a Shepherd instant can't be used right now ("" = it can).
+func _shepherd_precheck(id: String) -> String:
+	if id == OWL_ID or id == ROOTGUARD_ID:
+		var pick := _pick_support_target(id)
+		if pick[0] == null:
+			return str(pick[1]) if str(pick[1]) != "" else "No target"
+	return ""
+
+func _shepherd_use(id: String, res: Resource) -> void:
+	match id:
+		OWL_ID:
+			var who: Node3D = _pick_support_target(id)[0]
+			if who:
+				_owl(who)
+		ROOTGUARD_ID:
+			var who: Node3D = _pick_support_target(id)[0]
+			if who:
+				_rootguard(who)
+		ELK_ID:
+			_heartwood_elk(float(res.radius))
+		WILD_HERD_ID:
+			_wild_herd(float(res.radius))
+
+## Dewfall's or Fawn's cast finished (from _release_support).
+func _shepherd_cast_heal(spell: String, tgt: Variant, _kind: String) -> void:
+	if tgt == null or not is_instance_valid(tgt) or not tgt.is_alive():
+		return
+	var who: Node3D = tgt
+	if spell == DEWFALL_ID:
+		_heal_coef(who, float(Abilities.HEALS[DEWFALL_ID]) * dewfall_mult(blossoms_on(who)), DEWFALL_ID)
+		_ring_effect(0.9, BLOSSOM_COLOR, who.global_position)
+	else:
+		_fawn(who, FAWN_ID, _muzzle() if is_inside_tree() else global_position)
+
+## A woven creature's heal of `coef` on `who`: a Blossom, two if it overheals.
+func _woven_heal(who: Node3D, coef: float, id: String) -> void:
+	var h: Variant = who.get("health")
+	var mh: Variant = who.get("max_health")
+	var missing := int(mh) - int(h) if h != null and mh != null else 1 << 30
+	var amount := _heal_coef(who, coef, id)
+	_add_blossom(who, 2 if overheals(amount, missing) else 1)
+
+# Fawn: a chain from ally to ally.
+
+func _fawn(first: Node3D, id: String, from_pos: Vector3) -> void:
+	_fawns += 1
+	var hops := fawn_bounces(_fawns, _capstone("nature_running_herd"))   # Running Herd's capstone
+	var coef := float(Abilities.HEALS[FAWN_ID]) * (1.0 + _talent("nature_running_herd") / 100.0)   # Running Herd
+	_fawn_hop(first, from_pos, coef, hops, [], id)
+
+## The fawn leaps from `from_pos` to `who`, heals them, then on to the next ally (`left` more).
+func _fawn_hop(who: Node3D, from_pos: Vector3, coef: float, left: int, healed: Array, id: String) -> void:
+	_creature("fawn", from_pos, who.global_position + Vector3(0, 0.5, 0))
+	_after(Balance.WOVEN_STRIKE_DELAY, func():
+		if is_dead() or not is_instance_valid(who) or not who.is_alive():
+			return
+		_woven_heal(who, coef, id)
+		healed.append(who)
+		if left <= 0:
+			return
+		var near := _allies_near(who.global_position, Balance.FAWN_REACH)
+		var shares: Array = near.map(func(a): return _health_share_of(a))
+		var taken: Array = near.map(func(a): return healed.has(a))
+		var i := fawn_pick(shares, taken)
+		if i >= 0:
+			_fawn_hop(near[i], who.global_position + Vector3(0, 0.5, 0), coef * Balance.FAWN_FALLOFF, left - 1, healed, id))
+
+## Wild Herd: a Fawn at each of the lowest-health allies within `radius` of me.
+func _wild_herd(radius: float) -> void:
+	var allies := _allies_within(radius)
+	allies.sort_custom(func(a, b): return _health_share_of(a) < _health_share_of(b))
+	var from := _muzzle() if is_inside_tree() else global_position
+	for i in mini(allies.size(), Balance.WILD_HERD_FAWNS):
+		_fawn(allies[i], WILD_HERD_ID, from)
+
+# Owl: watches an ally, dives when they are hit.
+
+func _owl(who: Node3D) -> void:
+	_owls[who.get_instance_id()] = {"who": who, "until": _str_now() + Balance.OWL_TIME}
+	if is_same(who, self):
+		_owl_watched(self, Balance.OWL_TIME)
+	elif who.is_in_group("friendly"):
+		var st: Node = who.get_node_or_null("Status")
+		if st:
+			st.apply(make_owl_fx(Balance.OWL_TIME), self)
+	elif _net():
+		_net().support_ally(who, self, "owl", {"t": Balance.OWL_TIME})
+	_ring_effect(1.0, BLOSSOM_COLOR, who.global_position)
+
+## An owl of `from`'s watches over me for `time` sec.
+func _owl_watched(from: Node, time: float) -> void:
+	if from == null or not is_instance_valid(from) or status == null or is_dead():
+		return
+	_owl_from[from.get_instance_id()] = {"from": from, "until": _str_now() + time}
+	status.apply(make_owl_fx(time), from)
+	status.set_remaining_from(OWL_FX, from, time)
+
+## A hit on me (_on_hit_taken): every owl watching over me dives.
+func _owl_taken(info: RefCounted) -> void:
+	if _owl_from.is_empty() or info.avoided():
+		return
+	var now := _str_now()
+	for key in _owl_from.keys():
+		var from: Variant = _owl_from[key]["from"]
+		var live := float(_owl_from[key]["until"]) > now
+		_owl_from.erase(key)
+		if from == null or not is_instance_valid(from):
+			continue
+		status.remove_from(OWL_FX, from)
+		if not live:
+			continue
+		if is_same(from, self):
+			_owl_dive(self, info.source)
+		elif _net():
+			_net().support_ally(from, self, "owl_hit", {})
+
+## My owl over `who` dives: it heals them and strikes `attacker` (or the nearest enemy to them).
+func _owl_dive(who: Node3D, attacker: Variant = null) -> void:
+	if who == null or not is_instance_valid(who) or not _owls.has(who.get_instance_id()):
+		return
+	_owls.erase(who.get_instance_id())
+	if is_dead() or not who.is_alive():
+		return
+	_creature("owl", who.global_position + Vector3(0, 4.0, 0), who.global_position + Vector3(0, 1.0, 0))
+	_after(Balance.WOVEN_STRIKE_DELAY, func():
+		if is_dead() or not is_instance_valid(who) or not who.is_alive():
+			return
+		_woven_heal(who, float(Abilities.HEALS[OWL_ID]), OWL_ID)
+		var foe: Variant = attacker if attacker != null and is_instance_valid(attacker) and (attacker as Node).is_in_group("enemies") \
+			and attacker.is_alive() and _flat_dist(who.global_position, attacker.global_position) <= Balance.OWL_REACH else _nearest_enemy_to(who.global_position, Balance.OWL_REACH)
+		if foe != null:
+			deal_damage(foe, float(Abilities.get_resource(OWL_ID).damage), OWL_STRIKE_ID, true, "nature", PackedStringArray(OWL_STRIKE_TAGS)))
+
+func _nearest_enemy_to(point: Vector3, radius: float) -> Node3D:
+	var best: Node3D = null
+	var best_d := INF
+	for e in _enemies_near(point, radius):
+		var d := _flat_dist(point, (e as Node3D).global_position)
+		if d < best_d:
+			best_d = d
+			best = e
+	return best
+
+static func _flat_dist(a: Vector3, b: Vector3) -> float:
+	return Vector2(a.x - b.x, a.z - b.z).length()
+
+# Rootguard: a shield of roots.
+
+func _rootguard(who: Node3D) -> void:
+	var n := _take_blossoms(who)
+	var coef := rooted_coef(float(Abilities.HEALS[ROOTGUARD_ID]), Balance.ROOTGUARD_PER_BLOSSOM, n)
+	var amount := int(round(_combat().heal_amount(self, coef, ROOTGUARD_ID) * absorb_mult()))   # (Rime Ward: bigger shields)
+	_creature("roots", _ground_under(who), who.global_position)
+	if is_same(who, self):
+		_rootguard_on(status, self, amount, Balance.ROOTGUARD_TIME, func(): _rootguard_broke(self))
+	elif who.is_in_group("friendly"):
+		_rootguard_on(who.get_node_or_null("Status"), self, amount, Balance.ROOTGUARD_TIME, func(): _rootguard_broke(who))
+	elif _net():
+		_net().support_ally(who, self, "rootguard", {"amount": amount, "time": Balance.ROOTGUARD_TIME})
+	_combat().float_text(who, "%s (%d)" % [Abilities.ability_name(ROOTGUARD_ID), amount], BLOSSOM_COLOR, false)
+
+## Rootguard's shield of `amount` (from `from`) on whoever owns Status `st`; `on_break` when used up.
+func _rootguard_on(st: Node, from: Node, amount: int, time: float, on_break: Callable) -> void:
+	if st == null or amount <= 0:
+		return
+	st.apply(make_rootguard_fx(time), from)
+	st.set_remaining(ROOTGUARD_FX, time)
+	st.set_absorb(ROOTGUARD_FX, amount, on_break)
+
+## My Rootguard on `who` was used up: a Blossom on every ally near them.
+func _rootguard_broke(who: Variant) -> void:
+	if who == null or not is_instance_valid(who) or is_dead():
+		return
+	for a in _allies_near((who as Node3D).global_position, Balance.ROOTGUARD_SPREAD):
+		_add_blossom(a, 1)
+
+# Heartwood Elk: heals every ally near me, more for their Blossoms.
+
+func _heartwood_elk(radius: float) -> void:
+	var allies := _allies_within(radius)
+	var share := Balance.aoe_share(allies.size())
+	var feet := _ground_under(self)
+	_creature("elk", feet + global_transform.basis.z * 1.5, feet)
+	_after(Balance.ROOTED_STRIKE_DELAY, func():
+		if is_dead():
+			return
+		for a in allies:
+			if not is_instance_valid(a) or not a.is_alive():
+				continue
+			var n := _take_blossoms(a)
+			_heal_coef(a, rooted_coef(float(Abilities.HEALS[ELK_ID]), Balance.ELK_PER_BLOSSOM, n) * share, ELK_ID)
+			if n >= Balance.BLOSSOM_MAX:
+				_hymn_dr(a, FULL_BLOOM_FX, Balance.FULL_BLOOM_PCT, Balance.FULL_BLOOM_TIME)   # Full Bloom
+		_ring_effect(radius, BLOSSOM_COLOR))
+
+# --- Nature tank: the Colossus ---------------------------------------------------------------
+# A huge vine giant fights through me, one limb at a time: each ability weaves
+# one limb behind me for one strike or block (the picture: scripts/nature_creature.gd),
+# then it unravels. Vine Fist (the Rage builder) punches over my shoulder, Grasp's
+# hand carries an enemy to my feet, Stomp's foot comes down around me and leaves
+# thorny roots, Giant's Hands close around me as a shield that bursts when it
+# goes, Heartsap opens the chest behind me to heal, and Awaken raises the whole
+# giant for a while.
+# Sap (a buff on me) heals me every second while I have it; Vine Fist, Stomp and
+# hits on the Hands give it, Heartsap uses it all. Everything is on my own
+# machine: the hits are mine, the party sees the limbs faint ("creature" fx).
+# Numbers: balance.gd (SAP_*, VINE_FIST_*, STOMP_*, GIANTS_HANDS_*, HEARTSAP_*,
+# AWAKEN_*, GRASP_*); the talent: Thick Sap.
+
+const VINE_FIST_ID := "vinefist"
+const GRASP_ID := "grasp"
+const STOMP_ID := "stomp"
+const GIANTS_HANDS_ID := "giantshands"
+const HEARTSAP_ID := "heartsap"
+const AWAKEN_ID := "awaken"
+const COLOSSUS_IDS := [VINE_FIST_ID, GRASP_ID, STOMP_ID, GIANTS_HANDS_ID, HEARTSAP_ID, AWAKEN_ID]
+## Meter / log ids of what isn't an ability's own hit (their own lines: Details.HIT_NAMES).
+const STOMP_ROOTS_ID := "stomproots"
+const GIANTS_SLAM_ID := "giantsslam"
+const SAP_HEAL_ID := "sap"
+const COLOSSUS_TAGS := ["Ability", "Nature", "Melee"]
+const STOMP_ROOTS_TAGS := ["Ability", "Nature", "DoT"]
+const SAP_FX := "sap"
+const GIANTS_HANDS_FX := "giantshands"
+const AWAKEN_FX := "awaken"
+const GRASPED_FX := preload("res://data/effects/grasped.tres")
+const SAP_COLOR := Color(1.0, 0.72, 0.25)
+
+var _sap_fx: Resource = null
+var _sap_next := 0.0         # when Sap next heals me
+var _hands_on := false       # Giant's Hands is up (it bursts when it goes)
+var _stomp_roots := []       # [{"at", "radius", "coef", "ticks", "next", "every"}]
+var _grasped := {}           # enemy instance id -> until: held by my Grasp (Stomp hits them twice as hard)
+
+# Rules as static functions (tests/test_nature.gd).
+
+## `have` Sap and `more`: never past SAP_MAX.
+static func sap_after(have: int, more: int) -> int:
+	return clampi(have + maxi(more, 0), 0, Balance.SAP_MAX)
+
+## Health `n` Sap heals each second on a character with `max_hp`.
+static func sap_heal(max_hp: int, n: int) -> float:
+	return float(max_hp) * Balance.SAP_HEAL_PCT / 100.0 * float(clampi(n, 0, Balance.SAP_MAX))
+
+## Heartsap's heal, in % of maximum health, using `n` Sap (`more_pct`: Thick Sap).
+static func heartsap_pct(n: int, more_pct: float) -> float:
+	return (Balance.HEARTSAP_BASE_PCT + Balance.HEARTSAP_PER_SAP * float(maxi(n, 0))) * (1.0 + more_pct / 100.0)
+
+## Sap a Stomp that hit `hits` enemies gives.
+static func stomp_sap(hits: int) -> int:
+	return 2 if hits >= Balance.STOMP_SAP_HITS else (1 if hits > 0 else 0)
+
+## Giant's Hands' shield on a character with `max_hp` (`awake`: during Awaken; `absorb`: Rime Ward).
+static func hands_amount(max_hp: int, awake: bool, absorb: float = 1.0) -> int:
+	var pct := Balance.GIANTS_HANDS_PCT * ((1.0 + Balance.AWAKEN_HANDS_PCT / 100.0) if awake else 1.0)
+	return int(round(float(max_hp) * pct / 100.0 * absorb))
+
+## How much Sap I have.
+func sap() -> int:
+	return status.stacks_of(SAP_FX) if status != null else 0
+
+func awakened() -> bool:
+	return status != null and status.has(AWAKEN_FX)
+
+## Gain `more` Sap (more during Awaken); its time starts over.
+func _gain_sap(more: int) -> void:
+	if status == null or more <= 0 or is_dead():
+		return
+	if awakened():
+		more *= Balance.AWAKEN_SAP_MULT
+	var want := sap_after(sap(), more)
+	if _sap_fx == null:
+		_sap_fx = StatusContainer.make_buff(SAP_FX, "Sap", Stats.BLOCK, 0.0, Balance.SAP_TIME, Balance.SAP_MAX, SAP_COLOR)
+		_sap_fx.stat_modifiers = {}
+		_sap_fx.tags = PackedStringArray(["Nature"])
+		_sap_fx.description = "Sap glowing in your bark heals you every second. Heartsap uses it all up."
+	if not status.apply(_sap_fx, self):
+		return
+	if status.stacks_of(SAP_FX) != want:
+		status.set_stacks(SAP_FX, want)
+	status.set_remaining(SAP_FX, Balance.SAP_TIME)
+
+func _tick_colossus() -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	# Sap heals me once a second.
+	if status != null and status.has(SAP_FX) and now >= _sap_next:
+		_sap_next = now + 1.0
+		if not is_dead() and health < max_health:
+			heal(sap_heal(max_health, sap()), SAP_HEAL_ID)
+	# Giant's Hands went (used up or ran out): they burst open.
+	if _hands_on and (status == null or not status.has(GIANTS_HANDS_FX)):
+		_hands_on = false
+		_hands_burst()
+	if not _grasped.is_empty():
+		for key in _grasped.keys():
+			if float(_grasped[key]) <= now:
+				_grasped.erase(key)
+	_tick_stomp_roots(now)
+
+## Why a Colossus ability can't be used right now ("" = it can).
+func _colossus_precheck(id: String) -> String:
+	if id == HEARTSAP_ID and sap() <= 0:
+		return "You have no Sap"
+	return ""
+
+## One of the Colossus' abilities (paid for and put on cooldown by _use_drafted).
+func _colossus_use(id: String, res: Resource) -> void:
+	match id:
+		VINE_FIST_ID:
+			_vine_fist(res)
+		GRASP_ID:
+			_grasp()
+		STOMP_ID:
+			_stomp(res)
+		GIANTS_HANDS_ID:
+			_giants_hands()
+		HEARTSAP_ID:
+			_heartsap()
+		AWAKEN_ID:
+			_awaken()
+
+## Behind my shoulder, where the giant's fist comes from.
+func _shoulder() -> Vector3:
+	return global_position + Vector3(0, 2.2, 0) + global_transform.basis.z * 0.8
+
+func _vine_fist(res: Resource) -> void:
+	if not _has_valid_target():
+		return
+	var foe: Node3D = target
+	var others: Array = _enemies_near(foe.global_position, Balance.VINE_FIST_REACH, foe).slice(0, Balance.VINE_FIST_EXTRA)
+	var awake := awakened()
+	_creature("fist", _shoulder(), foe.global_position + Vector3(0, 0.8, 0))
+	_after(Balance.WOVEN_STRIKE_DELAY, func():
+		if is_dead():
+			return
+		if is_instance_valid(foe) and foe.is_alive():
+			deal_damage(foe, float(res.damage), VINE_FIST_ID)
+			if awake and is_instance_valid(foe) and foe.is_alive():
+				deal_damage(foe, float(res.damage), VINE_FIST_ID)   # Awaken: it hits twice
+		for o in others:
+			if is_instance_valid(o) and o.is_alive():
+				deal_damage(o, Balance.VINE_FIST_SPLASH, VINE_FIST_ID)
+		if awake:
+			# ... and slams the ground around me.
+			var near := _enemies_within(Balance.AWAKEN_SLAM_RADIUS)
+			var share := Balance.aoe_share(near.size())
+			for e in near:
+				deal_damage(e, Balance.AWAKEN_SLAM * share, GIANTS_SLAM_ID, true, "nature", PackedStringArray(COLOSSUS_TAGS))
+			_ring_effect(Balance.AWAKEN_SLAM_RADIUS, SAP_COLOR)
+		_gain_sap(1))
+
+## Grasp: a hand rises under my target and drops it at my feet; it must attack me and is held.
+func _grasp() -> void:
+	if not _has_valid_target():
+		return
+	var foe: Node3D = target
+	_creature("hand", _ground_under(foe), _ground_under(self))
+	var gap := Combat.hitbox_radius(foe) + Combat.hitbox_radius(self) + Balance.GRASP_GAP
+	var to := reel_in_point(global_position, foe.global_position, gap)
+	to.y = foe.global_position.y + (Combat.feet_y(self) - Combat.feet_y(foe))   # onto my level
+	var net := _net()
+	if net:
+		net.pull(foe, self, to, Balance.GRASP_TAUNT)
+	elif foe.has_method("pull_to"):
+		foe.pull_to(self, to, Balance.GRASP_TAUNT, Balance.REEL_IN_DRAG_TIME)
+	else:
+		_net_taunt(foe, Balance.GRASP_TAUNT)
+	_after(Balance.REEL_IN_DRAG_TIME, func():
+		if is_dead() or not is_instance_valid(foe) or not foe.is_alive():
+			return
+		_combat().apply_effect(self, foe, GRASPED_FX, GRASP_ID, PackedStringArray(COLOSSUS_TAGS))
+		_grasped[foe.get_instance_id()] = Time.get_ticks_msec() / 1000.0 + Balance.GRASP_HOLD)
+
+## Is `e` held by my Grasp right now?
+func grasped(e: Node) -> bool:
+	return e != null and is_instance_valid(e) and float(_grasped.get(e.get_instance_id(), 0.0)) > Time.get_ticks_msec() / 1000.0
+
+## Stomp: the foot comes down around me; every enemy there must attack me. Roots stay in the cracks.
+func _stomp(res: Resource) -> void:
+	var reach := Balance.AWAKEN_STOMP_RADIUS if awakened() else float(res.radius)
+	var feet := _ground_under(self)
+	_creature("foot", feet + global_transform.basis.z * 0.5, feet - global_transform.basis.z * 1.2)
+	_after(Balance.ROOTED_STRIKE_DELAY, func():
+		if is_dead():
+			return
+		var foes := _enemies_within(reach)
+		var share := Balance.aoe_share(foes.size())
+		for e in foes:
+			var mult := Balance.STOMP_HELD_MULT if grasped(e) else 1.0
+			deal_damage(e, float(res.damage) * share * mult, STOMP_ID)
+			_net_taunt(e, Balance.STOMP_TAUNT)
+		_start_stomp_roots(_ground_under(self), reach)
+		_gain_sap(stomp_sap(foes.size()))
+		_ring_effect(reach, SAP_COLOR)
+		_ring_effect(reach * 0.5, Color(0.62, 1.0, 0.38)))
+
+func _start_stomp_roots(at: Vector3, radius: float) -> void:
+	var base_ticks := maxi(int(round(Balance.STOMP_ROOTS_TIME / Balance.STOMP_ROOTS_TICK)), 1)
+	var every := Balance.STOMP_ROOTS_TICK / haste_mult()
+	_stomp_roots.append({"at": at, "radius": radius, "coef": Balance.STOMP_ROOTS_DAMAGE / base_ticks,
+		"ticks": maxi(int(round(Balance.STOMP_ROOTS_TIME / every)), 1), "next": Time.get_ticks_msec() / 1000.0 + every, "every": every})
+
+func _tick_stomp_roots(now: float) -> void:
+	for i in range(_stomp_roots.size() - 1, -1, -1):
+		var z: Dictionary = _stomp_roots[i]
+		if int(z["ticks"]) <= 0 or is_dead():
+			_stomp_roots.remove_at(i)
+			continue
+		if now < float(z["next"]):
+			continue
+		z["ticks"] = int(z["ticks"]) - 1
+		z["next"] = float(z["next"]) + float(z["every"])
+		var foes := _enemies_near(z["at"], float(z["radius"]))
+		var coef := float(z["coef"]) * Balance.aoe_share(foes.size())
+		for e in foes:
+			var info = _combat().ability_hit_info(self, e, coef, STOMP_ROOTS_ID, true, "nature", PackedStringArray(STOMP_ROOTS_TAGS))
+			info.is_dot = true
+			_combat().deal(info)
+
+## Giant's Hands: a shield of part of my health; hits on it give Sap, and when it goes it bursts.
+func _giants_hands() -> void:
+	var amount := hands_amount(max_health, awakened(), absorb_mult())   # (Rime Ward: bigger shields)
+	var fx := StatusContainer.make_buff(GIANTS_HANDS_FX, Abilities.ability_name(GIANTS_HANDS_ID), GIANTS_HANDS_FX, 0.0,
+		Balance.GIANTS_HANDS_TIME, 1, SAP_COLOR)
+	fx.stat_modifiers = {}
+	fx.tags = PackedStringArray(["Nature", "Defensive"])
+	fx.description = "The giant's hands around you absorb damage. Each hit they take gives Sap; when they go, they burst open."
+	status.apply(fx, self)
+	status.set_remaining(GIANTS_HANDS_FX, Balance.GIANTS_HANDS_TIME)
+	status.set_absorb(GIANTS_HANDS_FX, amount)
+	_hands_on = true
+	var feet := _ground_under(self)
+	_creature("hands", feet, feet - global_transform.basis.z)
+	_combat().float_text(self, "%s (%d)" % [Abilities.ability_name(GIANTS_HANDS_ID), amount], SAP_COLOR, false)
+
+func _hands_burst() -> void:
+	if is_dead():
+		return
+	var res := Abilities.get_resource(GIANTS_HANDS_ID)
+	var reach := float(res.radius)
+	var foes := _enemies_within(reach)
+	var share := Balance.aoe_share(foes.size())
+	for e in foes:
+		deal_damage(e, float(res.damage) * share, GIANTS_HANDS_ID)
+	_ring_effect(reach, SAP_COLOR)
+
+## Something hit me (_on_hit_taken): a hit Giant's Hands soaked gives Sap.
+func _colossus_hit_taken(info: RefCounted) -> void:
+	if _hands_on and int(info.absorbed) > 0 and not bool(info.is_dot):
+		_gain_sap(1)
+
+## Heartsap: all my Sap at once as a heal.
+func _heartsap() -> void:
+	var n := sap()
+	status.remove(SAP_FX)
+	heal(float(max_health) * heartsap_pct(n, _talent("nature_thick_sap")) / 100.0, HEARTSAP_ID)   # + Thick Sap
+	if _capstone("nature_thick_sap"):
+		_gain_sap(Balance.THICK_SAP_KEEP)   # Thick Sap's capstone: some stays
+	var feet := _ground_under(self)
+	_creature("chest", feet + global_transform.basis.z * 1.4, feet)
+	_ring_effect(1.2, SAP_COLOR)
+
+## Awaken: the whole giant rises behind me for a while.
+func _awaken() -> void:
+	var fx := StatusContainer.make_buff(AWAKEN_FX, Abilities.ability_name(AWAKEN_ID), AWAKEN_FX, 0.0, Balance.AWAKEN_TIME, 1, SAP_COLOR)
+	fx.stat_modifiers = {}
+	fx.tags = PackedStringArray(["Nature", "Defensive"])
+	fx.damage_mod_pct = -Balance.AWAKEN_DR_PCT
+	fx.modifies_incoming = true
+	fx.mod_affects_dots = true
+	fx.description = "The whole giant stands behind you: you take %s%% less damage and your limbs strike harder." % Stats.num(Balance.AWAKEN_DR_PCT)
+	status.apply(fx, self)
+	status.set_remaining(AWAKEN_FX, Balance.AWAKEN_TIME)
+	if is_inside_tree():
+		var behind := _ground_under(self) + global_transform.basis.z * 1.6
+		var ahead := _ground_under(self) - global_transform.basis.z * 2.0
+		NATURE_CREATURE.spawn(get_tree().current_scene, "giant", behind, ahead, false, self)
+		_net_fx("creature", behind, null, {"k": "giant", "to": ahead})
+	_ring_effect(2.0, SAP_COLOR)
+
+# --- Nature archer: Venomstring --------------------------------------------------------------
+# Three poison arrows (Adder, Asp, Krait), each a poison of my own on the enemy
+# (my tick list here, like Choking Vipers: own only, hasted, crits). While all
+# three are on enemies somewhere I have Venom Flow and every tick gives Venom
+# (a bar of my own, not a resource of the action bar: hud.gd shows it above the
+# action bar while the three arrows are on it). Two different poisons on one
+# enemy make all of mine on it stronger; all three (Steeped) more. Venom pays for
+# Venom Burst (the target explodes with what its poisons have left), Spitting
+# Volley (Adder Venom all around the target) and Bloat Arrow (copies its poisons
+# to the enemies near it). A poisoned enemy that dies passes my poisons on to
+# the nearest enemy. Fang Arrow is the filler (my poisons on it last longer),
+# Coil Back the escape (a thorn trap), Venom Surge the big cooldown.
+# The arrows look like any arrow with a woven snake coiled around the shaft
+# (arrow.gd); nothing of it sits on the enemies. Numbers: balance.gd (VENOM_*,
+# POISON_*, ADDER_*, ...); the talent: Lingering Venom.
+
+const FANG_ARROW_ID := "fangarrow"
+const ADDER_ARROW_ID := "adderarrow"
+const ASP_ARROW_ID := "asparrow"
+const KRAIT_ARROW_ID := "kraitarrow"
+const VENOM_BURST_ID := "venomburst"
+const SPITTING_VOLLEY_ID := "spittingvolley"
+const BLOAT_ARROW_ID := "bloatarrow"
+const COIL_BACK_ID := "coilback"
+const VENOM_SURGE_ID := "venomsurge"
+## The instants of the kit (_use_drafted -> _venom_use). Adder Arrow is a bow cast.
+const VENOM_INSTANTS := [FANG_ARROW_ID, ASP_ARROW_ID, KRAIT_ARROW_ID, VENOM_BURST_ID, SPITTING_VOLLEY_ID,
+	BLOAT_ARROW_ID, COIL_BACK_ID, VENOM_SURGE_ID]
+## The arrows that carry a poison: they put it on, they don't hit (deal_damage -> _poison_landed).
+const POISON_ARROWS := [ADDER_ARROW_ID, ASP_ARROW_ID, KRAIT_ARROW_ID]
+## Each poison: the arrow it comes from (its meter line) and its colour.
+const POISON_OF := {ADDER_ARROW_ID: "adder", ASP_ARROW_ID: "asp", KRAIT_ARROW_ID: "krait"}
+const POISON_COLORS := {"adder": Color(0.4, 0.95, 0.3), "asp": Color(1.0, 0.85, 0.25), "krait": Color(0.92, 0.95, 1.0)}
+const VENOM_BURST_SPLASH_ID := "venomburst_splash"   # its own meter line (Details.HIT_NAMES)
+const POISON_TAGS := ["Ability", "Nature", "DoT"]
+const VENOM_FLOW_FX := "venom_flow"
+const VENOM_SURGE_FX := "venom_surge"
+const ASP_VENOM_FX := preload("res://data/effects/asp_venom.tres")
+const COILED_FX := preload("res://data/effects/coiled.tres")
+
+var _venom := 0.0
+var _poisons := []      # [{"target", "pos", "kind", "coef", "until", "next"}]: my poisons on enemies
+var _bloats := []       # [{"target", "pos", "at"}]: Bloat Arrows about to burst
+var _coil_traps := []   # [{"pos", "until"}]
+var _venom_flow_fx: Resource = null
+
+# Rules as static functions (tests/test_nature.gd).
+
+## The poison `kind`'s whole damage (coefficient) over POISON_TIME.
+static func poison_total(kind: String) -> float:
+	match kind:
+		"adder":
+			return Balance.ADDER_DAMAGE
+		"asp":
+			return Balance.ASP_DAMAGE
+		"krait":
+			return Balance.KRAIT_DAMAGE
+	return 0.0
+
+## How much more my poisons on an enemy deal, with `kinds` different ones of mine on it.
+static func poison_mult(kinds: int) -> float:
+	if kinds >= 3:
+		return 1.0 + Balance.STEEPED_PCT / 100.0
+	if kinds == 2:
+		return 1.0 + Balance.TWO_POISONS_PCT / 100.0
+	return 1.0
+
+## Venom Flow: all three kinds among `kinds` (or Venom Surge).
+static func venom_flowing(kinds: Array, surge: bool) -> bool:
+	return surge or (kinds.has("adder") and kinds.has("asp") and kinds.has("krait"))
+
+## Venom Burst's damage from `left` (the damage the poisons on the target have left)
+## with `kinds` different poisons (`more_pct`: Lingering Venom).
+static func burst_damage(left: float, kinds: int, more_pct: float) -> float:
+	return maxf(left, 0.0) * (1.0 + Balance.BURST_PER_POISON / 100.0 * float(maxi(kinds, 0))) * (1.0 + more_pct / 100.0)
+
+## Seconds between two ticks of a poison (`krait`: my Krait Venom is on that enemy and this isn't it).
+static func poison_every(haste: float, krait: bool) -> float:
+	return Balance.POISON_TICK / maxf(haste, 0.01) / ((1.0 + Balance.KRAIT_HASTE / 100.0) if krait else 1.0)
+
+## Index of the nearest of `spots` within `reach` of `from` (-1 = none).
+static func nearest_within(from: Vector3, spots: Array, reach: float) -> int:
+	var best := -1
+	var best_d := INF
+	for i in spots.size():
+		var s: Vector3 = spots[i]
+		var d := Vector2(s.x - from.x, s.z - from.z).length()
+		if d <= reach and d < best_d:
+			best_d = d
+			best = i
+	return best
+
+func venom() -> float:
+	return _venom
+
+func venom_flow() -> bool:
+	return venom_flowing(_kinds_anywhere(), _surging())
+
+func _surging() -> bool:
+	return status != null and status.has(VENOM_SURGE_FX)
+
+func _gain_venom(n: float) -> void:
+	_venom = clampf(_venom + n, 0.0, Balance.VENOM_MAX)
+
+## The kinds of my poisons on `e` (each once).
+func poisons_on(e: Node) -> Array:
+	var out := []
+	for p in _poisons:
+		if is_same(p["target"], e) and not out.has(p["kind"]):
+			out.append(p["kind"])
+	return out
+
+func _kinds_anywhere() -> Array:
+	var out := []
+	for p in _poisons:
+		if is_instance_valid(p["target"]) and not out.has(p["kind"]):
+			out.append(p["kind"])
+	return out
+
+## My poison `kind` lands on `e`, `strength` times as strong (Spitting Volley's split,
+## Venom Surge). A new one replaces mine of that kind there.
+func _apply_poison(e: Node, kind: String, strength: float = 1.0, until: float = -1.0) -> void:
+	if e == null or not is_instance_valid(e) or not e.is_alive():
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	if _surging():
+		strength *= Balance.SURGE_MULT
+	var base_ticks := maxf(Balance.POISON_TIME / Balance.POISON_TICK, 1.0)
+	for i in range(_poisons.size() - 1, -1, -1):
+		if is_same(_poisons[i]["target"], e) and _poisons[i]["kind"] == kind:
+			_poisons.remove_at(i)
+	var p := {"target": e, "pos": (e as Node3D).global_position, "kind": kind,
+		"coef": poison_total(kind) / base_ticks * strength, "until": until if until > now else now + Balance.POISON_TIME, "next": 0.0}
+	p["next"] = now + _poison_every_for(p)
+	_poisons.append(p)
+	if kind == "asp":
+		_combat().apply_effect(self, e, ASP_VENOM_FX, ASP_ARROW_ID, PackedStringArray(POISON_TAGS))
+	_ring_effect(0.5, POISON_COLORS[kind], (e as Node3D).global_position)
+
+func _poison_every_for(p: Dictionary) -> float:
+	var krait: bool = p["kind"] != "krait" and poisons_on(p["target"]).has("krait")
+	return poison_every(haste_mult(), krait)
+
+## A poison arrow reached `enemy` (from deal_damage: it carries a poison, not a hit).
+func _poison_landed(enemy: Node, id: String, strength: float) -> void:
+	_apply_poison(enemy, str(POISON_OF[id]), strength if strength > 0.0 else 1.0)
+
+## Fang Arrow landed: my poisons on the target last longer.
+func _fang_landed(enemy: Node) -> void:
+	for p in _poisons:
+		if is_same(p["target"], enemy):
+			p["until"] = float(p["until"]) + Balance.FANG_EXTEND
+
+## Every frame: poison ticks, spreading, Venom Flow, Bloat Arrows, Coil Back's traps.
+func _tick_venom(delta: float) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if not _poisons.is_empty():
+		_tick_poisons(now)
+	if not _bloats.is_empty():
+		_tick_bloats(now)
+	if not _coil_traps.is_empty():
+		_tick_coil_traps(now)
+	if _venom > 0.0 and not is_in_combat():
+		_venom = maxf(_venom - Balance.VENOM_DRAIN * delta, 0.0)
+	_sync_venom_flow()
+
+func _tick_poisons(now: float) -> void:
+	var flowing := venom_flow()
+	for i in range(_poisons.size() - 1, -1, -1):
+		if i >= _poisons.size():
+			continue
+		var p: Dictionary = _poisons[i]
+		var e: Variant = p["target"]
+		if float(p["until"]) <= now:
+			_poisons.remove_at(i)
+			continue
+		if e == null or not is_instance_valid(e) or not e.is_alive():
+			_poisons.remove_at(i)
+			_spread_poison(p, now)
+			continue
+		p["pos"] = (e as Node3D).global_position
+		if now < float(p["next"]):
+			continue
+		p["next"] = now + _poison_every_for(p)
+		var coef := float(p["coef"]) * poison_mult(poisons_on(e).size())
+		var id: String = POISON_OF.find_key(p["kind"])
+		var info = _combat().ability_hit_info(self, e, coef, id, true, "nature", PackedStringArray(POISON_TAGS))
+		info.is_dot = true
+		_combat().deal(info)
+		if flowing:
+			_gain_venom(Balance.VENOM_PER_TICK)
+		_ring_effect(0.35, POISON_COLORS[p["kind"]], p["pos"])   # a drip
+
+## A poisoned enemy died: the poison `p` jumps to the nearest enemy near it, with its time left.
+func _spread_poison(p: Dictionary, now: float) -> void:
+	var foes := _enemies_near(p["pos"], Balance.POISON_SPREAD)
+	var spots: Array = foes.map(func(f): return (f as Node3D).global_position)
+	var i := nearest_within(p["pos"], spots, Balance.POISON_SPREAD)
+	if i < 0 or float(p["until"]) <= now:
+		return
+	_copy_poison(p, foes[i])
+
+## The Venom Flow buff on me while it flows.
+func _sync_venom_flow() -> void:
+	if status == null:
+		return
+	var on := not _poisons.is_empty() and venom_flow()
+	if on == status.has(VENOM_FLOW_FX):
+		return
+	if not on:
+		status.remove(VENOM_FLOW_FX)
+		return
+	if _venom_flow_fx == null:
+		_venom_flow_fx = StatusContainer.make_buff(VENOM_FLOW_FX, "Venom Flow", VENOM_FLOW_FX, 0.0, 3600.0, 1, POISON_COLORS["adder"])
+		_venom_flow_fx.stat_modifiers = {}
+		_venom_flow_fx.show_time = false
+		_venom_flow_fx.tags = PackedStringArray(["Nature"])
+		_venom_flow_fx.description = "All three of your poisons are on enemies: their ticks fill your Venom."
+	status.apply(_venom_flow_fx, self)
+
+## Venom an ability costs right now.
+func venom_cost(id: String) -> float:
+	match id:
+		VENOM_BURST_ID:
+			return Balance.VENOM_BURST_COST
+		SPITTING_VOLLEY_ID:
+			return 0.0 if _surging() else Balance.VOLLEY_VENOM_COST
+		BLOAT_ARROW_ID:
+			return Balance.BLOAT_COST
+	return 0.0
+
+## Why a Venomstring ability can't be used right now ("" = it can).
+func _venom_precheck(id: String) -> String:
+	if _venom < venom_cost(id):
+		return "Not enough Venom"
+	if (id == VENOM_BURST_ID or id == BLOAT_ARROW_ID) and (not _has_valid_target() or poisons_on(target).is_empty()):
+		return "Your target has none of your poisons"
+	return ""
+
+## One of the kit's instants (put on cooldown by _use_drafted; Venom is paid here).
+func _venom_use(id: String, res: Resource, w: Dictionary) -> void:
+	_venom -= venom_cost(id)
+	match id:
+		FANG_ARROW_ID:
+			if _has_valid_target():
+				ARROW.spawn(get_tree().current_scene, _muzzle(), target, self, _weapon_hit(w, res), id)
+				_fang_ready()
+		ASP_ARROW_ID, KRAIT_ARROW_ID:
+			if _has_valid_target():
+				ARROW.spawn(get_tree().current_scene, _muzzle(), target, self, 1.0, id)
+		VENOM_BURST_ID:
+			_venom_burst(target)
+		SPITTING_VOLLEY_ID:
+			_spitting_volley(target)
+		BLOAT_ARROW_ID:
+			ARROW.spawn(get_tree().current_scene, _muzzle(), target, null, 0.0, BLOAT_ARROW_ID)   # (only a picture: the burst does the work)
+			_bloats.append({"target": target, "pos": target.global_position, "at": Time.get_ticks_msec() / 1000.0 + Balance.BLOAT_DELAY})
+			_ring_effect(1.0, POISON_COLORS["adder"], target.global_position)
+		COIL_BACK_ID:
+			_coil_back()
+		ADDER_ARROW_ID:
+			status.remove(FANG_READY_FX)   # (only reached with Fang Arrow's buff: an instant Adder Arrow)
+			_loose_adder_arrow()
+		VENOM_SURGE_ID:
+			var fx := StatusContainer.make_buff(VENOM_SURGE_FX, Abilities.ability_name(id), VENOM_SURGE_FX, 0.0, Balance.SURGE_TIME, 1, POISON_COLORS["adder"])
+			fx.stat_modifiers = {}
+			fx.tags = PackedStringArray(["Nature"])
+			fx.description = "Your poisons go on at double strength, Venom Flow stays on, and Spitting Volley costs no Venom."
+			status.apply(fx, self)
+			_ring_effect(1.6, POISON_COLORS["adder"])
+
+# Adder Arrow: a bow cast like Refracting Shot (Fang Arrow makes the next one instant).
+
+const FANG_READY_FX := "fang_ready"
+
+func _fang_ready() -> void:
+	var fx := StatusContainer.make_buff(FANG_READY_FX, "Fang", FANG_READY_FX, 0.0, Balance.POISON_TIME, 1, POISON_COLORS["adder"])
+	fx.stat_modifiers = {}
+	fx.tags = PackedStringArray(["Nature"])
+	fx.description = "Your next Adder Arrow is instant."
+	status.apply(fx, self)
+
+func _start_adder_arrow() -> void:
+	var id := ADDER_ARROW_ID
+	if casting:
+		return
+	var w := _weapon()
+	if w.get("weapon", "") != "ranged":
+		_error("Requires a bow")
+		return
+	if not _has_valid_target():
+		_error("No target")
+		return
+	if not _in_weapon_range(target, float(w["attack_range"])):
+		_error("Target out of range")
+		return
+	var sight_err := _target_error(target)
+	if sight_err != "":
+		_error(sight_err)
+		return
+	if status != null and status.has(FANG_READY_FX):
+		_use_drafted(id)   # Fang Arrow: this one is instant
+		return
+	_begin_spell(id, Abilities.ability_name(id), float(Abilities.get_resource(id).cast_time))
+
+## Adder Arrow's arrow leaves the bow.
+func _loose_adder_arrow() -> void:
+	if _weapon().get("weapon", "") != "ranged" or not _has_valid_target():
+		return
+	var dir := target.global_position - global_position
+	rotation.y = atan2(-dir.x, -dir.z)
+	ARROW.spawn(get_tree().current_scene, _muzzle(), target, self, 1.0, ADDER_ARROW_ID)
+
+## Venom Burst: `foe` explodes with what my poisons on it have left.
+func _venom_burst(foe: Node3D) -> void:
+	if foe == null or not is_instance_valid(foe):
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	var kinds := poisons_on(foe)
+	var steeped := kinds.size() >= 3
+	var left := 0.0
+	var keep := _capstone("nature_lingering_venom")
+	for i in range(_poisons.size() - 1, -1, -1):
+		var p: Dictionary = _poisons[i]
+		if not is_same(p["target"], foe):
+			continue
+		var every := _poison_every_for(p)
+		left += float(p["coef"]) * poison_mult(kinds.size()) * maxf(float(p["until"]) - now, 0.0) / every
+		if keep and randf() * 100.0 < Balance.LINGERING_VENOM_KEEP:
+			continue   # Lingering Venom's capstone: this one stays
+		_poisons.remove_at(i)
+	var total := burst_damage(left, kinds.size(), _talent("nature_lingering_venom"))   # + Lingering Venom
+	deal_damage(foe, total, VENOM_BURST_ID)
+	var near := _enemies_near(foe.global_position, Balance.BURST_RADIUS, foe)
+	var share := Balance.aoe_share(near.size())
+	for e in near:
+		deal_damage(e, total * Balance.BURST_SPLASH_PCT / 100.0 * share, VENOM_BURST_SPLASH_ID, true, "nature", PackedStringArray(POISON_TAGS))
+	if steeped:
+		_gain_venom(Balance.BURST_STEEPED_REFUND)
+	_ring_effect(Balance.BURST_RADIUS, POISON_COLORS["adder"], foe.global_position)
+	_ring_effect(Balance.BURST_RADIUS * 0.5, Color(0.75, 1.0, 0.5), foe.global_position)
+	_ring_effect(1.2, Color(1, 1, 1), foe.global_position)
+
+## Spitting Volley: arrows rain around `foe`, Adder Venom on every enemy there (split past the AoE cap).
+func _spitting_volley(foe: Node3D) -> void:
+	if foe == null or not is_instance_valid(foe):
+		return
+	var foes := _enemies_near(foe.global_position, Balance.SPIT_RADIUS)
+	var share := Balance.aoe_share(foes.size())
+	for e in foes:
+		ARROW.spawn(get_tree().current_scene, _muzzle(), e, self, share, ADDER_ARROW_ID)
+	_ring_effect(Balance.SPIT_RADIUS, POISON_COLORS["adder"], foe.global_position)
+
+func _tick_bloats(now: float) -> void:
+	for i in range(_bloats.size() - 1, -1, -1):
+		var b: Dictionary = _bloats[i]
+		var e: Variant = b["target"]
+		if e != null and is_instance_valid(e):
+			b["pos"] = (e as Node3D).global_position
+		if now < float(b["at"]):
+			continue
+		_bloats.remove_at(i)
+		_bloat_burst(e, b["pos"], now)
+
+## A Bloat Arrow's target bursts: my poisons on it are copied to the enemies around it.
+func _bloat_burst(e: Variant, at: Vector3, now: float) -> void:
+	var mine := []
+	for p in _poisons:
+		if is_same(p["target"], e):
+			mine.append(p)
+	for f in _enemies_near(at, Balance.BLOAT_RADIUS):
+		if is_same(f, e):
+			continue
+		for p in mine:
+			_copy_poison(p, f)
+	_ring_effect(Balance.BLOAT_RADIUS, POISON_COLORS["adder"], at)
+	_ring_effect(Balance.BLOAT_RADIUS * 0.4, POISON_COLORS["asp"], at)
+
+## My poison `p` (its strength and time left) also on `to`, unless it has a longer one of mine of that kind.
+func _copy_poison(p: Dictionary, to: Node) -> void:
+	for q in _poisons:
+		if is_same(q["target"], to) and q["kind"] == p["kind"] and float(q["until"]) >= float(p["until"]):
+			return
+	for j in range(_poisons.size() - 1, -1, -1):
+		if is_same(_poisons[j]["target"], to) and _poisons[j]["kind"] == p["kind"]:
+			_poisons.remove_at(j)
+	var c := p.duplicate()
+	c["target"] = to
+	c["pos"] = (to as Node3D).global_position
+	_poisons.append(c)
+	if c["kind"] == "asp":
+		_combat().apply_effect(self, to, ASP_VENOM_FX, ASP_ARROW_ID, PackedStringArray(POISON_TAGS))
+	_ring_effect(0.6, POISON_COLORS[c["kind"]], c["pos"])
+
+## Coil Back: I leap back and leave a thorn trap where I stood.
+func _coil_back() -> void:
+	var from := global_position
+	var back := -_flat_forward()
+	global_position += back * _dash_distance(Balance.COIL_BACK_DISTANCE, back)
+	_coil_traps.append({"pos": from, "until": Time.get_ticks_msec() / 1000.0 + Balance.COIL_TRAP_TIME})
+	_creature("roots", Vector3(from.x, Combat.feet_y(self), from.z), from)
+	_ring_effect(Balance.COIL_TRAP_RADIUS, POISON_COLORS["asp"], from)
+
+func _tick_coil_traps(now: float) -> void:
+	for i in range(_coil_traps.size() - 1, -1, -1):
+		var t: Dictionary = _coil_traps[i]
+		if float(t["until"]) <= now:
+			_coil_traps.remove_at(i)
+			continue
+		var near := _enemies_near(t["pos"], Balance.COIL_TRAP_RADIUS)
+		if near.is_empty():
+			continue
+		_coil_traps.remove_at(i)
+		var e: Node3D = near[0]
+		_creature("viper", Vector3(e.global_position.x, Combat.feet_y(e), e.global_position.z), e.global_position)
+		_combat().apply_effect(self, e, COILED_FX, COIL_BACK_ID, PackedStringArray(POISON_TAGS))
+		_apply_poison(e, "asp")

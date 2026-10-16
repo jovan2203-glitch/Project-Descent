@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"chokingvipers"
+display_name = "Choking Vipers"
+description = "Vipers rise from your Mulch and choke every enemy within {radius} m of where you place its circle for {hit} Nature damage over {b:VIPERS_TIME} sec, plus {ds:VIPERS_PER_PATCH} for each patch inside it, and hold them in place for {b:VIPERS_HOLD} sec. Uses up those patches. With mouseover casting, it goes around the enemy under your mouse. With your {mulch_now} patches: {vipers_now}. With {b:MULCH_MAX}: {vipers_full}."
+tags = PackedStringArray("Nature", "Spell", "DoT", "AoE")
+cast_type = 0
+cast_time = 0.0
+requires_target = true
+weapon_requirement = 0
+resource_type = 1
+damage = 0.0
+damage_type = &"nature"

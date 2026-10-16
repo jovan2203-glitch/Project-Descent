@@ -62,7 +62,7 @@ func test_radiance_counts_holy_heals() -> void:
 	var p := _p()
 	for id in ["psalm", "outpour", "gleam", "brightlance", "absolve", "benediction", "prism_shatter", "light_mote"]:
 		assert_true(p.is_holy_heal(id), "%s is a Holy heal" % id)
-	for id in ["regrowth", "secondwind", "patchup", "lifesteal"]:
+	for id in ["secondwind", "patchup", "lifesteal"]:
 		assert_false(p.is_holy_heal(id), "%s is not" % id)
 
 func test_hooks_are_in_place() -> void:

@@ -154,7 +154,7 @@ func test_talent_rows_unlock_across_all_trees() -> void:
 	var pd := _pd()
 	pd.level = 10
 	pd.invest_talent(_t("fire", 0))
-	pd.invest_talent(_t("nature", 0))
+	pd.invest_talent(_t("frost", 0))   # (Nature's row 1 is two linked talents: they need their ability learned)
 	assert_ne(pd.can_invest(_t("shadow", 1)), "", "2 points in row 1 is not enough")
 	pd.invest_talent(_t("martial", 0))
 	assert_eq(pd.can_invest(_t("shadow", 1)), "", "3 points spread over trees open row 2 everywhere")

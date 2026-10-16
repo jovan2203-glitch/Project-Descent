@@ -187,10 +187,36 @@ const PATHS := {
 	"bottomless": "res://data/abilities/bottomless.tres",
 	"froststrike": "res://data/abilities/froststrike.tres",
 	"frostarrow": "res://data/abilities/frostarrow.tres",
-	"wrath": "res://data/abilities/wrath.tres",
-	"insectswarm": "res://data/abilities/insectswarm.tres",
-	"entanglingroots": "res://data/abilities/entanglingroots.tres",
-	"regrowth": "res://data/abilities/regrowth.tres",
+	"thornshot": "res://data/abilities/thornshot.tres",
+	"briartiger": "res://data/abilities/briartiger.tres",
+	"mossback": "res://data/abilities/mossback.tres",
+	"thornwing": "res://data/abilities/thornwing.tres",
+	"chokingvipers": "res://data/abilities/chokingvipers.tres",
+	"greenwoodstag": "res://data/abilities/greenwoodstag.tres",
+	# Nature healer: the Shepherd
+	"dewfall": "res://data/abilities/dewfall.tres",
+	"fawn": "res://data/abilities/fawn.tres",
+	"rootguard": "res://data/abilities/rootguard.tres",
+	"owl": "res://data/abilities/owl.tres",
+	"heartwoodelk": "res://data/abilities/heartwoodelk.tres",
+	"wildherd": "res://data/abilities/wildherd.tres",
+	# Nature tank: the Colossus
+	"vinefist": "res://data/abilities/vinefist.tres",
+	"grasp": "res://data/abilities/grasp.tres",
+	"stomp": "res://data/abilities/stomp.tres",
+	"giantshands": "res://data/abilities/giantshands.tres",
+	"heartsap": "res://data/abilities/heartsap.tres",
+	"awaken": "res://data/abilities/awaken.tres",
+	# Nature archer: Venomstring
+	"fangarrow": "res://data/abilities/fangarrow.tres",
+	"adderarrow": "res://data/abilities/adderarrow.tres",
+	"asparrow": "res://data/abilities/asparrow.tres",
+	"kraitarrow": "res://data/abilities/kraitarrow.tres",
+	"venomburst": "res://data/abilities/venomburst.tres",
+	"spittingvolley": "res://data/abilities/spittingvolley.tres",
+	"bloatarrow": "res://data/abilities/bloatarrow.tres",
+	"coilback": "res://data/abilities/coilback.tres",
+	"venomsurge": "res://data/abilities/venomsurge.tres",
 	"sinisterstrike": "res://data/abilities/sinisterstrike.tres",
 	"rupture": "res://data/abilities/rupture.tres",
 	"fanofknives": "res://data/abilities/fanofknives.tres",
@@ -310,7 +336,10 @@ const DRAFT_POOL := ["frostnova", "icebarrier", "blink", "whirlwind",
 	"censerswing", "hallowedarc", "beckon", "pourout", "absolve", "aureole", "gatherthelight", "raisethecenser", "unfallen",
 	"setprism", "moveprism", "mendingray", "brightlance", "gleam", "prismward", "piercinglight", "realign", "shatterprism", "shatterall", "infuse", "kaleidoscope",
 	"prismarrow", "glimmershot", "refractingshot", "sunlitarrow", "prismbreaker", "stepoflight", "spectrumvolley",
-	"wrath", "insectswarm", "entanglingroots", "regrowth",
+	"thornshot", "briartiger", "mossback", "thornwing", "chokingvipers", "greenwoodstag",
+	"dewfall", "fawn", "rootguard", "owl", "heartwoodelk", "wildherd",
+	"vinefist", "grasp", "stomp", "giantshands", "heartsap", "awaken",
+	"fangarrow", "adderarrow", "asparrow", "kraitarrow", "venomburst", "spittingvolley", "bloatarrow", "coilback", "venomsurge",
 	"sinisterstrike", "rupture", "fanofknives", "eviscerate",
 	"stormshield", "thunderaegis",
 	"returnstroke", "shockring", "crossguard", "drawthestorm", "reelin", "recharge",
@@ -341,7 +370,10 @@ const ALL := ["frostbolt", "blizzard", "frostnova", "icebarrier",
 	"shadowarrow",
 	"puppetstring", "patchup", "hoist", "tug", "catscradle", "wrench", "pulltaut", "cuppedhands", "stringup", "restring",
 	"knot", "tangle", "yank", "doublethread", "behinditsback", "slack", "stillstanding", "cutthestrings", "notfinished",
-	"wrath", "insectswarm", "entanglingroots", "regrowth",
+	"thornshot", "briartiger", "mossback", "thornwing", "chokingvipers", "greenwoodstag",
+	"dewfall", "fawn", "rootguard", "owl", "heartwoodelk", "wildherd",
+	"vinefist", "grasp", "stomp", "giantshands", "heartsap", "awaken",
+	"fangarrow", "adderarrow", "asparrow", "kraitarrow", "venomburst", "spittingvolley", "bloatarrow", "coilback", "venomsurge",
 	"psalm", "outpour", "lift", "refrain", "canticle", "exultation", "antiphon", "shelter", "steadyvoice", "highnote",
 	"singmercy", "singchorus", "singvigil", "reprise", "swell", "rest", "lastverse",
 	"censerswing", "hallowedarc", "beckon", "pourout", "absolve", "aureole", "gatherthelight", "raisethecenser", "unfallen",
@@ -395,7 +427,11 @@ const CATEGORY_OF := {
 	"slam": "martial", "execute": "martial", "whirlwind": "martial", "battleshout": "martial",
 	"secondwind": "martial",
 	"steadyshot": "martial", "multishot": "martial", "poisonarrow": "martial",
-	"wrath": "nature", "insectswarm": "nature", "entanglingroots": "nature", "regrowth": "nature",
+	"thornshot": "nature", "briartiger": "nature", "mossback": "nature", "thornwing": "nature", "chokingvipers": "nature", "greenwoodstag": "nature",
+	"dewfall": "nature", "fawn": "nature", "rootguard": "nature", "owl": "nature", "heartwoodelk": "nature", "wildherd": "nature",
+	"vinefist": "nature", "grasp": "nature", "stomp": "nature", "giantshands": "nature", "heartsap": "nature", "awaken": "nature",
+	"fangarrow": "nature", "adderarrow": "nature", "asparrow": "nature", "kraitarrow": "nature", "venomburst": "nature",
+	"spittingvolley": "nature", "bloatarrow": "nature", "coilback": "nature", "venomsurge": "nature",
 	"sinisterstrike": "martial", "rupture": "martial", "fanofknives": "martial", "eviscerate": "martial",
 	"stormshield": "lightning", "thunderaegis": "lightning",
 	"returnstroke": "lightning", "shockring": "lightning", "crossguard": "lightning", "drawthestorm": "lightning",
@@ -429,7 +465,6 @@ const ICON_FORM := {
 	"arcanemissiles": "missiles", "arcanestrike": "blade", "arcaneshot": "arrow", "arcaneexplosion": "nova",
 	"corruption": "swirl", "shadowstrike": "blade", "shadowarrow": "arrow",
 	"froststrike": "blade", "frostarrow": "arrow",
-	"wrath": "orb", "insectswarm": "missiles", "entanglingroots": "swirl", "regrowth": "cross",
 	"sinisterstrike": "blade", "rupture": "blade", "fanofknives": "nova", "eviscerate": "blade",
 	"lightningbolt": "zap", "stoneguard": "shield_nova", "taunt": "nova",
 	"rimeshell": "shield", "shatteringwave": "nova", "flashfreeze": "missiles",
@@ -497,8 +532,10 @@ const SPECS := {
 		["Nightstring", ["shadowarrow"]],
 	],
 	"nature": [
-		["Thornweaver", ["wrath", "insectswarm", "entanglingroots"]],
-		["Sapwarden", ["regrowth"]],
+		["Thornweaver", ["thornshot", "briartiger", "mossback", "thornwing", "chokingvipers", "greenwoodstag"]],
+		["Shepherd", ["dewfall", "fawn", "rootguard", "owl", "heartwoodelk", "wildherd"]],
+		["Colossus", ["vinefist", "grasp", "stomp", "giantshands", "heartsap", "awaken"]],
+		["Venomstring", ["fangarrow", "adderarrow", "asparrow", "kraitarrow", "venomburst", "spittingvolley", "bloatarrow", "coilback", "venomsurge"]],
 	],
 	"holy": [
 		["Choir of One", ["singmercy", "singchorus", "singvigil", "psalm", "outpour", "lift", "refrain", "canticle",
@@ -606,6 +643,12 @@ static func live_haste() -> float:
 
 ## Cost shown in tooltips: mana is on the health scale (cost points x 10% of base
 ## mana, with your talent discounts when you're in game); energy / rage are points.
+## How many patches of mulch I have (Nature caster; 0 out of game).
+static func mulch_count() -> int:
+	var tree := Engine.get_main_loop() as SceneTree
+	var p: Node = tree.get_first_node_in_group("player") if tree else null
+	return (p.mulch() as Array).size() if p and p.has_method("mulch") else 0
+
 static func cost_amount(r: Resource) -> int:
 	var tree := Engine.get_main_loop() as SceneTree
 	var p: Node = tree.get_first_node_in_group("player") if tree else null
@@ -812,7 +855,7 @@ static func radius_bonus(id: String) -> float:
 		return 0.0
 	return talent(str(RADIUS_TALENTS[id][0])) * float(RADIUS_TALENTS[id][1])
 ## Abilities whose shield Rime Ward makes bigger ({heal} / {ward}).
-const SHIELD_ABILITIES := ["rimeshell", "rimeslash", "snowward", "intervalward"]
+const SHIELD_ABILITIES := ["rimeshell", "rimeslash", "snowward", "intervalward", "rootguard", "giantshands"]
 
 ## A talent's number at the rank the player has (0 without it, or outside the game).
 static func talent(key: String, field: String = "values") -> float:
@@ -1140,6 +1183,16 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		"pour_full": fmt_amount(Balance.POUR_OUT_PER_STACK * Balance.INCENSE_MAX * per * (1.0 + talent("holy_deep_pour") / 100.0)),   # Deep Pour
 		"pour_motes": TextFill.num(Balance.DEEP_POUR_MOTE_PCT if talent_capstone("holy_deep_pour") else Balance.MOTE_SPEND_PCT),
 		"absolve_full": fmt_amount(Balance.ABSOLVE_PER_STACK * Balance.ABSOLVE_MAX * Balance.REFERENCE_HEAL * per * (1.0 + talent("holy_absolution") / 100.0)),   # Absolution
+		# Nature caster: the finishers with the mulch I have now, and with a full set.
+		"mulch_now": str(mulch_count()),
+		"mossback_now": fmt_amount((Balance.ABILITIES["mossback"]["damage"] + Balance.MOSSBACK_PER_PATCH * mulch_count()) * per),
+		"mossback_full": fmt_amount((Balance.ABILITIES["mossback"]["damage"] + Balance.MOSSBACK_PER_PATCH * Balance.MULCH_MAX) * per),
+		"vipers_now": fmt_amount((Balance.ABILITIES["chokingvipers"]["damage"] + Balance.VIPERS_PER_PATCH * mulch_count()) * per),
+		"vipers_full": fmt_amount((Balance.ABILITIES["chokingvipers"]["damage"] + Balance.VIPERS_PER_PATCH * Balance.MULCH_MAX) * per),
+		# Nature healer: the Shepherd.
+		"fawn_less": TextFill.num((1.0 - Balance.FAWN_FALLOFF) * 100.0),
+		"rootguard_per": fmt_amount(Balance.ROOTGUARD_PER_BLOSSOM * per * absorb),
+		"elk_per": fmt_amount(Balance.ELK_PER_BLOSSOM * per),
 		"swing_incense": str(Balance.CENSER_SWING_INCENSE + int(round(talent("holy_heavy_chain")))),   # Heavy Chain
 		"unfallen_time": TextFill.num(Balance.UNFALLEN_TIME + talent("holy_unbroken")),   # Unbroken
 		"chorus_pct": TextFill.num(Balance.CHORUS_SPLASH_PCT * (1.0 + talent("holy_swelling_chorus") / 100.0)),   # Swelling Chorus
@@ -3023,29 +3076,230 @@ static func _draw_unique(c: Control, id: String, col: Color, mid: Vector2, k: fl
 				var over := Vector2(cos(a), sin(a))
 				_claw(c, mid + over * 9.0 * k, over, 10.0 * k, col.lightened(0.15), white, 1.3 * k)
 		# --- Nature ---
-		"wrath":
-			c.draw_colored_polygon(_pts(mid, k, [Vector2(-12, 12), Vector2(-6, -2), Vector2(4, -10), Vector2(14, -14),
-				Vector2(10, -4), Vector2(2, 6)]), col)
-			c.draw_line(mid + Vector2(-12, 12) * k, mid + Vector2(12, -12) * k, light, 1.8 * k, true)
-		"insectswarm":
-			for p in [Vector2(-8, -6), Vector2(4, -10), Vector2(10, 2), Vector2(-2, 6), Vector2(-10, 9), Vector2(6, 11), Vector2(-4, -12)]:
-				var at := mid + (p as Vector2) * k
-				c.draw_circle(at, 2.2 * k, light)
-				c.draw_line(at + Vector2(-3, -2) * k, at + Vector2(3, -2) * k, Color(light, 0.5), 1.2 * k)
-		"entanglingroots":
-			for off in [-8.0, 0.0, 8.0]:
-				var prev := mid + Vector2(off, 16) * k
+		"thornshot":
+			# Three thorns flying up and to the right.
+			for o in [Vector2(-8, 6), Vector2(0, 0), Vector2(-2, 12)]:
+				var b := mid + (o as Vector2) * k
+				c.draw_colored_polygon(PackedVector2Array([b + Vector2(-6, 6) * k, b + Vector2(10, -10) * k, b + Vector2(-3, 8) * k]), light)
+				c.draw_line(b + Vector2(-12, 12) * k, b + Vector2(-5, 5) * k, Color(col, 0.6), 1.4 * k, true)
+		"briartiger":
+			# A tiger's head woven of vines: ears, eyes and vine stripes.
+			c.draw_circle(mid + Vector2(0, 2) * k, 12.0 * k, col)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-12, -6), Vector2(-9, -15), Vector2(-3, -9)]), col)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(12, -6), Vector2(9, -15), Vector2(3, -9)]), col)
+			for s in [-1.0, 1.0]:
+				c.draw_polyline(_pts(mid, k, [Vector2(s * 11, -2), Vector2(s * 6, 0), Vector2(s * 10, 3)]), light, 1.6 * k, true)
+				c.draw_circle(mid + Vector2(s * 4.5, -2) * k, 1.8 * k, white)
+			c.draw_line(mid + Vector2(0, -10) * k, mid + Vector2(0, -4) * k, light, 1.6 * k, true)
+			c.draw_circle(mid + Vector2(0, 6) * k, 2.0 * k, Color(0.15, 0.1, 0.05))
+		"mossback":
+			# A big bear's head with round ears and moss on its brow.
+			c.draw_circle(mid + Vector2(-10, -10) * k, 5.0 * k, col)
+			c.draw_circle(mid + Vector2(10, -10) * k, 5.0 * k, col)
+			c.draw_circle(mid + Vector2(0, 2) * k, 13.0 * k, col)
+			c.draw_circle(mid + Vector2(0, 7) * k, 5.5 * k, col.lightened(0.25))
+			c.draw_circle(mid + Vector2(0, 5) * k, 2.0 * k, Color(0.15, 0.1, 0.05))
+			c.draw_circle(mid + Vector2(-5, -1) * k, 1.6 * k, white)
+			c.draw_circle(mid + Vector2(5, -1) * k, 1.6 * k, white)
+			for p in [Vector2(-7, -8), Vector2(-2, -10), Vector2(3, -9), Vector2(8, -7)]:
+				c.draw_circle(mid + (p as Vector2) * k, 2.2 * k, light)
+		"thornwing":
+			# A diving hawk, wings swept back, thorny edges.
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(0, 14), Vector2(-4, 2), Vector2(-16, -10), Vector2(-6, -6),
+				Vector2(0, -12), Vector2(6, -6), Vector2(16, -10), Vector2(4, 2)]), col)
+			for s in [-1.0, 1.0]:
+				for i in 3:
+					var at := mid + Vector2(s * (7 + i * 3), -7 - i * 1.0) * k
+					c.draw_line(at, at + Vector2(s * 2, -4) * k, light, 1.4 * k, true)
+			c.draw_circle(mid + Vector2(0, 9) * k, 1.6 * k, white)
+		"chokingvipers":
+			# Two vipers coiled around a point, heads raised.
+			for s in [-1.0, 1.0]:
+				var prev := mid + Vector2(s * 12, 14) * k
+				for i in 14:
+					var t := (i + 1) / 14.0
+					var p := mid + Vector2(s * (12 - t * 12) * cos(t * 6.0), 14 - t * 26) * k
+					c.draw_line(prev, p, light if s > 0 else col, (3.6 - t * 1.6) * k, true)
+					prev = p
+				c.draw_circle(prev, 3.0 * k, light if s > 0 else col)
+				c.draw_circle(prev + Vector2(s * 1.2, -0.5) * k, 0.9 * k, white)
+		"greenwoodstag":
+			# A stag's head with wide branching antlers.
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-5, -2), Vector2(5, -2), Vector2(3, 12), Vector2(-3, 12)]), col)
+			for s in [-1.0, 1.0]:
+				var base := mid + Vector2(s * 4, -3) * k
+				var tip := mid + Vector2(s * 14, -15) * k
+				c.draw_line(base, tip, light, 2.2 * k, true)
+				c.draw_line(base.lerp(tip, 0.4), base.lerp(tip, 0.4) + Vector2(s * -2, -8) * k, light, 1.8 * k, true)
+				c.draw_line(base.lerp(tip, 0.75), base.lerp(tip, 0.75) + Vector2(s * 6, -1) * k, light, 1.6 * k, true)
+				c.draw_circle(mid + Vector2(s * 2.5, 2) * k, 1.4 * k, white)
+		"dewfall":
+			# Three dewdrops falling onto a leaf.
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-14, 12), Vector2(-2, 4), Vector2(14, 8), Vector2(0, 15)]), col)
+			c.draw_line(mid + Vector2(-12, 12) * k, mid + Vector2(12, 8) * k, light, 1.2 * k, true)
+			for p in [Vector2(-7, -10), Vector2(2, -3), Vector2(9, -12)]:
+				var d := mid + (p as Vector2) * k
+				c.draw_circle(d, 3.2 * k, light)
+				c.draw_colored_polygon(PackedVector2Array([d + Vector2(-3, -0.5) * k, d + Vector2(0, -7) * k, d + Vector2(3, -0.5) * k]), light)
+				c.draw_circle(d + Vector2(-1, -1) * k, 0.9 * k, white)
+		"fawn":
+			# A leaping fawn's head, big ears, spots, and a bouncing arc.
+			c.draw_arc(mid + Vector2(0, 10) * k, 13.0 * k, PI * 1.1, PI * 1.9, 12, Color(light, 0.7), 1.6 * k, true)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-6, -4), Vector2(6, -4), Vector2(3, 10), Vector2(-3, 10)]), col)
+			for s in [-1.0, 1.0]:
+				c.draw_colored_polygon(_pts(mid, k, [Vector2(s * 5, -4), Vector2(s * 14, -10), Vector2(s * 7, -1)]), col)
+				c.draw_circle(mid + Vector2(s * 3, 0) * k, 1.4 * k, white)
+			for p in [Vector2(-2, -7), Vector2(2, -9), Vector2(0, -5)]:
+				c.draw_circle(mid + (p as Vector2) * k, 1.1 * k, light)
+		"rootguard":
+			# Roots curling up around a figure like a cage.
+			c.draw_circle(mid + Vector2(0, -6) * k, 3.5 * k, white)
+			c.draw_line(mid + Vector2(0, -2) * k, mid + Vector2(0, 8) * k, white, 3.0 * k, true)
+			for s in [-1.0, 1.0]:
+				for i in 2:
+					var r := 9.0 + i * 5.0
+					c.draw_arc(mid + Vector2(0, 14) * k, r * k, PI * 1.5 + s * 0.15, PI * 1.5 + s * (0.9 + i * 0.25), 10, col if i == 0 else light, 2.4 * k, true)
+			c.draw_line(mid + Vector2(-14, 15) * k, mid + Vector2(14, 15) * k, col, 2.0 * k, true)
+		"owl":
+			# An owl's face: two big round eyes, ear tufts and a beak.
+			c.draw_circle(mid + Vector2(0, 2) * k, 13.0 * k, col)
+			for s in [-1.0, 1.0]:
+				c.draw_colored_polygon(_pts(mid, k, [Vector2(s * 6, -9), Vector2(s * 12, -16), Vector2(s * 11, -6)]), col)
+				c.draw_circle(mid + Vector2(s * 5.5, 0) * k, 4.8 * k, light)
+				c.draw_circle(mid + Vector2(s * 5.5, 0) * k, 2.0 * k, Color(0.12, 0.08, 0.04))
+				c.draw_circle(mid + Vector2(s * 5.0, -0.8) * k, 0.8 * k, white)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-2, 4), Vector2(2, 4), Vector2(0, 9)]), white)
+		"heartwoodelk":
+			# A broad elk head with palm-shaped antlers and a glowing heart of wood.
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-6, -3), Vector2(6, -3), Vector2(4, 13), Vector2(-4, 13)]), col)
+			for s in [-1.0, 1.0]:
+				c.draw_colored_polygon(_pts(mid, k, [Vector2(s * 5, -4), Vector2(s * 15, -8), Vector2(s * 16, -15), Vector2(s * 11, -12),
+					Vector2(s * 10, -16), Vector2(s * 7, -11), Vector2(s * 4, -14)]), light)
+				c.draw_circle(mid + Vector2(s * 2.5, 2) * k, 1.3 * k, white)
+			c.draw_circle(mid + Vector2(0, 7) * k, 2.4 * k, light)
+		"wildherd":
+			# Three fawns running in a row, one behind the other.
+			for i in 3:
+				var o := mid + Vector2(-9 + i * 9, 6 - i * 6) * k
+				c.draw_colored_polygon(PackedVector2Array([o + Vector2(-6, 2) * k, o + Vector2(4, -2) * k, o + Vector2(7, -6) * k,
+					o + Vector2(8, -2) * k, o + Vector2(4, 3) * k, o + Vector2(-5, 5) * k]), col if i != 1 else light)
+				c.draw_line(o + Vector2(-4, 4) * k, o + Vector2(-7, 9) * k, col, 1.4 * k, true)
+				c.draw_line(o + Vector2(3, 3) * k, o + Vector2(6, 8) * k, col, 1.4 * k, true)
+		"vinefist":
+			# A big fist of braided vines punching forward, glowing veins on the knuckles.
+			c.draw_rect(Rect2(mid + Vector2(-10, -8) * k, Vector2(18, 16) * k), col)
+			c.draw_rect(Rect2(mid + Vector2(-16, -3) * k, Vector2(7, 9) * k), col.darkened(0.15))
+			for i in 4:
+				c.draw_line(mid + Vector2(-9 + i * 5, -8) * k, mid + Vector2(-9 + i * 5, -3) * k, light, 1.4 * k, true)
+			for i in 3:
+				c.draw_line(mid + Vector2(10, -6 + i * 6) * k, mid + Vector2(16, -6 + i * 6) * k, Color(light, 0.6), 1.6 * k, true)
+			c.draw_polyline(_pts(mid, k, [Vector2(-10, 2), Vector2(-3, 4), Vector2(4, 1), Vector2(8, 5)]), light, 1.2 * k, true)
+		"grasp":
+			# A giant hand reaching up out of the ground, fingers curled.
+			c.draw_line(mid + Vector2(-15, 14) * k, mid + Vector2(15, 14) * k, col.darkened(0.2), 2.4 * k, true)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-7, 14), Vector2(7, 14), Vector2(8, 0), Vector2(-8, 0)]), col)
+			for i in 4:
+				var x := -7.0 + i * 4.7
+				c.draw_polyline(_pts(mid, k, [Vector2(x, 0), Vector2(x - 1, -9), Vector2(x + 2, -13)]), col, 3.0 * k, true)
+			c.draw_polyline(_pts(mid, k, [Vector2(-8, 4), Vector2(-14, -2), Vector2(-12, -7)]), col, 3.0 * k, true)
+			c.draw_line(mid + Vector2(-4, 10) * k, mid + Vector2(4, 3) * k, light, 1.3 * k, true)
+		"stomp":
+			# A huge foot coming down, cracks spreading in the ground under it.
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-10, -16), Vector2(4, -16), Vector2(5, 0), Vector2(13, 4), Vector2(13, 8), Vector2(-11, 8)]), col)
+			c.draw_line(mid + Vector2(-8, -10) * k, mid + Vector2(2, -4) * k, light, 1.3 * k, true)
+			for v in [Vector2(-15, 15), Vector2(-4, 16), Vector2(8, 16), Vector2(16, 13)]:
+				c.draw_line(mid + Vector2(0, 11) * k, mid + (v as Vector2) * k, light, 1.5 * k, true)
+		"giantshands":
+			# Two giant hands closing around a small figure.
+			c.draw_circle(mid + Vector2(0, -2) * k, 3.0 * k, white)
+			c.draw_line(mid + Vector2(0, 1) * k, mid + Vector2(0, 9) * k, white, 2.6 * k, true)
+			for s in [-1.0, 1.0]:
+				c.draw_arc(mid + Vector2(0, 2) * k, 13.0 * k, PI * 0.5 + s * 0.3, PI * 0.5 + s * 2.6, 14, col, 4.0 * k, true)
+				for i in 3:
+					var a: float = PI * 0.5 + s * (2.2 + i * 0.25)
+					c.draw_line(mid + Vector2(0, 2) * k + Vector2(cos(a), sin(a)) * 13.0 * k,
+						mid + Vector2(0, 2) * k + Vector2(cos(a), sin(a)) * 8.0 * k, light, 1.6 * k, true)
+		"heartsap":
+			# A tree trunk opened at the chest, golden sap pouring out.
+			c.draw_rect(Rect2(mid + Vector2(-11, -15) * k, Vector2(22, 30) * k), col)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(0, -9), Vector2(-6, -1), Vector2(0, 7), Vector2(6, -1)]), Color(1.0, 0.72, 0.25))
+			c.draw_circle(mid + Vector2(0, -1) * k, 2.4 * k, Color(1.0, 0.92, 0.6))
+			for x in [-3.0, 0.0, 3.0]:
+				c.draw_line(mid + Vector2(x, 6) * k, mid + Vector2(x * 1.4, 15) * k, Color(1.0, 0.72, 0.25), 1.6 * k, true)
+		"awaken":
+			# The whole vine giant's head and shoulders rising, glowing eyes.
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-16, 16), Vector2(-14, 2), Vector2(-6, -2), Vector2(6, -2), Vector2(14, 2), Vector2(16, 16)]), col)
+			c.draw_rect(Rect2(mid + Vector2(-7, -16) * k, Vector2(14, 15) * k), col.lightened(0.1))
+			for s in [-1.0, 1.0]:
+				c.draw_circle(mid + Vector2(s * 3, -10) * k, 1.8 * k, Color(0.75, 1.0, 0.4))
+				c.draw_line(mid + Vector2(s * 6, -16) * k, mid + Vector2(s * 10, -20) * k, light, 1.6 * k, true)
+			c.draw_polyline(_pts(mid, k, [Vector2(-12, 6), Vector2(-4, 10), Vector2(4, 6), Vector2(12, 10)]), light, 1.3 * k, true)
+		"fangarrow", "adderarrow", "asparrow", "kraitarrow":
+			# An arrow flying up-right with a woven snake coiled around its shaft, in its venom's colour.
+			var venom: Color = {"fangarrow": light, "adderarrow": Color(0.4, 0.95, 0.3),
+				"asparrow": Color(1.0, 0.85, 0.25), "kraitarrow": Color(0.92, 0.95, 1.0)}[id]
+			c.draw_line(mid + Vector2(-14, 14) * k, mid + Vector2(10, -10) * k, Color(0.6, 0.45, 0.28), 2.0 * k, true)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(14, -14), Vector2(6, -11), Vector2(11, -6)]), white)
+			var prev := mid + Vector2(-12, 12) * k
+			for i in 12:
+				var t := (i + 1) / 12.0
+				var along := Vector2(-12, 12).lerp(Vector2(8, -8), t)
+				var p := mid + (along + Vector2(1, 1).normalized() * sin(t * TAU * 2.0) * 4.0) * k
+				c.draw_line(prev, p, venom, 2.2 * k, true)
+				prev = p
+			c.draw_circle(prev, 2.4 * k, venom)
+			match id:
+				"fangarrow":   # a fang
+					c.draw_colored_polygon(_pts(mid, k, [Vector2(-2, -4), Vector2(2, -4), Vector2(0, 4)]), white)
+				"adderarrow":   # drops falling from the head
+					for p in [Vector2(-6, 2), Vector2(-9, 8)]:
+						c.draw_circle(mid + (p as Vector2) * k, 1.8 * k, venom)
+				"asparrow":   # slow lines behind
+					for y in [4.0, 9.0]:
+						c.draw_line(mid + Vector2(-16, y) * k, mid + Vector2(-9, y) * k, Color(venom, 0.8), 1.6 * k, true)
+				"kraitarrow":   # dark bands on the snake
+					for t in [0.3, 0.55, 0.8]:
+						c.draw_circle(mid + Vector2(-12, 12).lerp(Vector2(8, -8), t) * k, 1.3 * k, Color(0.1, 0.1, 0.12))
+		"venomburst":
+			# A green explosion: a bright core and drops flying out.
+			c.draw_circle(mid, 9.0 * k, Color(0.4, 0.95, 0.3, 0.55))
+			c.draw_circle(mid, 5.0 * k, Color(0.75, 1.0, 0.5))
+			for i in 8:
+				var a := TAU * i / 8.0
+				var d := Vector2(cos(a), sin(a))
+				c.draw_line(mid + d * 9.0 * k, mid + d * 15.0 * k, light, 2.0 * k, true)
+				c.draw_circle(mid + d * 16.0 * k, 1.8 * k, Color(0.4, 0.95, 0.3))
+		"spittingvolley":
+			# Arrows raining down onto a puddle of venom.
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-15, 12), Vector2(0, 8), Vector2(15, 12), Vector2(0, 16)]), Color(0.4, 0.95, 0.3, 0.7))
+			for x in [-9.0, 0.0, 9.0]:
+				c.draw_line(mid + Vector2(x - 3, -15) * k, mid + Vector2(x, 6) * k, Color(0.6, 0.45, 0.28), 1.8 * k, true)
+				c.draw_colored_polygon(_pts(mid, k, [Vector2(x - 2, 4), Vector2(x + 2, 4), Vector2(x + 0.5, 9)]), light)
+		"bloatarrow":
+			# A swollen round body pierced by an arrow, cracks of light.
+			c.draw_circle(mid + Vector2(0, 2) * k, 12.0 * k, col)
+			c.draw_line(mid + Vector2(-16, -10) * k, mid + Vector2(4, 0) * k, Color(0.6, 0.45, 0.28), 2.0 * k, true)
+			for v in [Vector2(6, -8), Vector2(9, 6), Vector2(-4, 11), Vector2(-9, 2)]:
+				c.draw_line(mid + Vector2(0, 2) * k, mid + (v as Vector2) * k, Color(0.75, 1.0, 0.5), 1.4 * k, true)
+		"coilback":
+			# A figure leaping back from a coiled thorn trap.
+			c.draw_circle(mid + Vector2(8, -10) * k, 3.0 * k, white)
+			c.draw_line(mid + Vector2(8, -7) * k, mid + Vector2(12, 2) * k, white, 2.4 * k, true)
+			c.draw_arc(mid + Vector2(2, -2) * k, 9.0 * k, PI * 1.1, PI * 1.6, 8, Color(white, 0.6), 1.4 * k, true)
+			for i in 3:
+				c.draw_arc(mid + Vector2(-7, 10) * k, (3.0 + i * 2.5) * k, 0, PI * 1.6, 10, light if i == 1 else col, 1.8 * k, true)
+		"venomsurge":
+			# Two snakes rising together around a glowing drop.
+			for s in [-1.0, 1.0]:
+				var prev := mid + Vector2(s * 4, 15) * k
 				for i in 12:
 					var t := (i + 1) / 12.0
-					var p := mid + Vector2(off + sin(t * 9.0 + off) * 4.0, 16 - t * 30.0) * k
-					c.draw_line(prev, p, col, (3.0 - t * 1.8) * k, true)
+					var p := mid + Vector2(s * sin(t * TAU * 1.2) * 9.0, 15 - t * 28) * k
+					c.draw_line(prev, p, light if s > 0 else col, 2.4 * k, true)
 					prev = p
-		"regrowth":
-			c.draw_colored_polygon(_pts(mid, k, [Vector2(0, -15), Vector2(9, -6), Vector2(8, 5), Vector2(0, 12),
-				Vector2(-8, 5), Vector2(-9, -6)]), col)
-			c.draw_line(mid + Vector2(0, -12) * k, mid + Vector2(0, 16) * k, light, 1.8 * k, true)
-			c.draw_rect(Rect2(mid + Vector2(8, 6) * k, Vector2(8, 3) * k), white, true)
-			c.draw_rect(Rect2(mid + Vector2(10.5, 3.5) * k, Vector2(3, 8) * k), white, true)
+				c.draw_circle(prev, 2.6 * k, light if s > 0 else col)
+			c.draw_circle(mid, 4.0 * k, Color(0.4, 0.95, 0.3))
+			c.draw_circle(mid + Vector2(-1, -1) * k, 1.2 * k, white)
 		# --- Frost ---
 		"froststrike":
 			_sword(c, mid, k, col)

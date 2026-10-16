@@ -822,7 +822,7 @@ const EVERLASTING_RIME_MULT := 2.0       # Everlasting Rime: Rime Shell absorbs 
 const REFERENCE_HEAL := 2.2
 
 ## Heal / absorb coefficients (1.0 = a standard hit's worth of health).
-const HEALS := {"secondwind": 3.0, "regrowth": 1.8,
+const HEALS := {"secondwind": 3.0,
 	"rimeshell": 1.1, "rimeslash": 1.1,
 	"cinderwing": 1.1,   # each of the phoenix's heals (half a Heal spell)
 	"intervalward": 1.5, # Interval Ward's shield
@@ -835,7 +835,10 @@ const HEALS := {"secondwind": 3.0, "regrowth": 1.8,
 	# Shadow healer (the Strings): its direct heals. (A String's own heal: STRING_HEAL.)
 	"hoist": 2.8, "patchup": 1.8, "tug": 0.6, "catscradle": 1.0,
 	# Holy healer #2 (the Prisms), in old Heals: Mending Ray 1.5 (all ticks), Bright Lance 1.8, Gleam 0.5, Prism Ward 1.2 (shield).
-	"mendingray": 3.3, "brightlance": 3.96, "gleam": 1.1, "prismward": 2.64}
+	"mendingray": 3.3, "brightlance": 3.96, "gleam": 1.1, "prismward": 2.64,
+	# Nature healer (the Shepherd), in old Heals: Dewfall 1, Fawn 1 (the first ally; each bounce less),
+	# Owl 1, Rootguard 0.8 (shield, + ROOTGUARD_PER_BLOSSOM), Heartwood Elk 0.5 each (+ ELK_PER_BLOSSOM).
+	"dewfall": 2.2, "fawn": 2.2, "owl": 2.2, "rootguard": 1.76, "heartwoodelk": 1.1}
 ## Pacts (scripts/pacts.gd; every character can hold one for a dungeon). Each has
 ## a bonus, a drawback and a vow. Break the vow and the bonus turns into the same
 ## amount as a penalty until the dungeon ends; the drawback stays.
@@ -916,6 +919,106 @@ const ELITE_VOLATILE_COEF := 1.5        # x its contact damage
 const ELITE_BERSERK_AT := 35.0          # Berserker: below this % health...
 const ELITE_BERSERK_DAMAGE := 50.0      # ...% more damage
 const ELITE_BERSERK_ATTACK := 40.0      # ...% faster attacks
+
+## Nature caster: the Weaver (player.gd, "Nature caster: the Weaver"). Woven
+## creatures (Briar Tiger, Thornwing) leave a patch of mulch where they strike;
+## rooted finishers (Mossback, Choking Vipers) use up every patch near their
+## target and grow with each; Greenwood Stag carries the patches to the target.
+const MULCH_MAX := 5                      # patches you can have (a new one replaces the oldest)
+const MULCH_TIME := 20.0                  # seconds a patch lasts
+const MULCH_REACH := 8.0                  # finishers, the stag and Thornburst use patches within this many metres of the target
+const MULCH_RING := 0.9                   # metres between patches the stag sets down around the target
+const THORNSHOT_PATCH_EVERY := 3          # every this-many-th Thornshot that lands leaves a patch
+const THORNBURST_DAMAGE := 0.4            # Thornburst: damage (coefficient) to each enemy near a patch of yours ...
+const THORNBURST_RADIUS := 4.0            # ... within this many metres of one (each enemy once per Thornshot)
+const MOSSBACK_PER_PATCH := 0.6           # Mossback: damage (coefficient) added for each patch it uses (its own damage is the base)
+const VIPERS_PER_PATCH := 0.4             # Choking Vipers: damage over time added for each patch it uses (its own damage is the base)
+const VIPERS_TIME := 3.0                  # ... over this many seconds
+const VIPERS_TICK := 1.0                  # ... a tick this often (faster with Haste)
+const VIPERS_HOLD := 0.5                  # ... and each enemy is held in place this long (never an interrupt)
+const WOVEN_STRIKE_DELAY := 0.45          # seconds from the cast to a woven creature's strike (vines, braid, lunge)
+const ROOTED_STRIKE_DELAY := 0.35         # seconds from the press to a rooted creature's strike
+const HUNTING_PARTY_EXTRA := 2            # Hunting Party (talent) capstone: every second Briar Tiger strikes this many more enemies ...
+const HUNTING_PARTY_RADIUS := 8.0         # ... within this many metres of the target
+# Nature healer: the Shepherd (player.gd, "Nature healer: the Shepherd"). Heals: HEALS.
+const BLOSSOM_MAX := 3                    # Blossoms one ally can hold
+const BLOSSOM_TIME := 20.0                # seconds they last (a new one starts the time of all of them over)
+const DEWFALL_PER_BLOSSOM := 10.0         # Dewfall heals this % more for each Blossom on its target
+const FAWN_BOUNCES := 3                   # Fawn: allies it bounces on to after the first
+const FAWN_REACH := 12.0                  # ... each within this many metres of the last
+const FAWN_FALLOFF := 0.8                 # ... each bounce heals this times the one before
+const ROOTGUARD_PER_BLOSSOM := 0.88       # Rootguard: shield (old Heal x REFERENCE_HEAL) added per Blossom used
+const ROOTGUARD_TIME := 8.0               # seconds its shield lasts
+const ROOTGUARD_SPREAD := 8.0             # used up: a Blossom on every ally within this many metres
+const OWL_TIME := 15.0                    # Owl: seconds it watches an ally
+const OWL_REACH := 10.0                   # its strike: the nearest enemy within this many metres of the ally
+const ELK_PER_BLOSSOM := 0.66             # Heartwood Elk: heal added per Blossom used (each ally)
+const FULL_BLOOM_PCT := 10.0              # Full Bloom: % less damage taken
+const FULL_BLOOM_TIME := 6.0              # ... for this many seconds
+const WILD_HERD_FAWNS := 5                # Wild Herd: Fawns sent (one each at the lowest-health allies)
+const RUNNING_HERD_EXTRA := 2             # Running Herd capstone: every second Fawn bounces this many more times
+# Nature tank: the Colossus (player.gd, "Nature tank: the Colossus")
+const SAP_MAX := 5                        # Sap stacks you can hold
+const SAP_TIME := 20.0                    # seconds they last (a gain starts the time over)
+const SAP_HEAL_PCT := 0.4                 # each Sap heals you this % of your maximum health every second
+const VINE_FIST_EXTRA := 2                # Vine Fist: also hits this many more enemies ...
+const VINE_FIST_REACH := 4.0              # ... within this many metres of the target ...
+const VINE_FIST_SPLASH := 0.3             # ... for this damage (coefficient) each
+const GRASP_HOLD := 1.0                   # Grasp: seconds the enemy is held in place at your feet
+const GRASP_GAP := 0.6                    # ... metres between you and where it is dropped
+const GRASP_TAUNT := 3.0                  # ... seconds it must attack you
+const STOMP_TAUNT := 3.0                  # Stomp: seconds every enemy hit must attack you
+const STOMP_HELD_MULT := 2.0              # ... damage times this to an enemy held by Grasp
+const STOMP_SAP_HITS := 3                 # ... hitting this many enemies or more gives 2 Sap instead of 1
+const STOMP_ROOTS_DAMAGE := 0.6           # Stomp Roots: damage over time (coefficient) to each enemy inside ...
+const STOMP_ROOTS_TIME := 6.0             # ... over this many seconds ...
+const STOMP_ROOTS_TICK := 1.0             # ... a tick this often (faster with Haste)
+const GIANTS_HANDS_PCT := 30.0            # Giant's Hands: shield of this % of your maximum health ...
+const GIANTS_HANDS_TIME := 8.0            # ... for this many seconds
+const GIANTS_HANDS_BURST := 0.8           # ... when it breaks or runs out: damage (coefficient) to enemies within ...
+const GIANTS_HANDS_RADIUS := 6.0          # ... this many metres
+const HEARTSAP_BASE_PCT := 5.0            # Heartsap: heals this % of your maximum health ...
+const HEARTSAP_PER_SAP := 3.0             # ... plus this % for each Sap it uses
+const AWAKEN_TIME := 12.0                 # Awaken: seconds the full giant stands
+const AWAKEN_DR_PCT := 15.0               # ... % less damage taken
+const AWAKEN_SLAM := 0.4                  # ... each Vine Fist also slams the ground: damage (coefficient) to enemies within ...
+const AWAKEN_SLAM_RADIUS := 6.0           # ... this many metres
+const AWAKEN_STOMP_RADIUS := 12.0         # ... Stomp reaches this far
+const AWAKEN_HANDS_PCT := 50.0            # ... Giant's Hands absorbs this % more
+const AWAKEN_SAP_MULT := 2                # ... Sap gains times this
+const THICK_SAP_KEEP := 2                 # Thick Sap (talent) capstone: Sap Heartsap leaves you
+# Nature archer: Venomstring (player.gd, "Nature archer: Venomstring")
+const VENOM_MAX := 100.0                  # the Venom bar
+const VENOM_PER_TICK := 3.0               # Venom each tick of my poisons gives during Venom Flow (all three up somewhere)
+const VENOM_DRAIN := 5.0                  # Venom lost per second out of combat
+const POISON_TIME := 12.0                 # seconds each poison lasts
+const POISON_TICK := 1.0                  # ... a tick this often (faster with Haste)
+const ADDER_DAMAGE := 2.4                 # Adder Venom: damage (coefficient) over its time
+const ASP_DAMAGE := 1.2                   # Asp Venom: damage over its time ...
+const ASP_SLOW := 20.0                    # ... and the enemy moves this % slower
+const KRAIT_DAMAGE := 0.8                 # Krait Venom: damage over its time ...
+const KRAIT_HASTE := 25.0                 # ... and my other poisons on that enemy tick this % faster
+const TWO_POISONS_PCT := 15.0             # two different poisons of mine on an enemy: all of them deal this % more
+const STEEPED_PCT := 30.0                 # all three (Steeped): this % more instead
+const FANG_EXTEND := 2.0                  # Fang Arrow: seconds added to every poison of mine on the target
+const VENOM_BURST_COST := 50.0            # Venom Burst: Venom it costs
+const BURST_PER_POISON := 20.0            # ... % more for each different poison on the target
+const BURST_RADIUS := 6.0                 # ... enemies within this many metres ...
+const BURST_SPLASH_PCT := 50.0            # ... take this % of it (split past the AoE cap)
+const BURST_STEEPED_REFUND := 20.0        # ... Venom back on a Steeped target
+const VOLLEY_VENOM_COST := 30.0           # Spitting Volley: Venom it costs ...
+const SPIT_RADIUS := 8.0                  # ... Adder Venom on every enemy within this many metres of the target
+const BLOAT_COST := 40.0                  # Bloat Arrow: Venom it costs ...
+const BLOAT_DELAY := 3.0                  # ... seconds until the target bursts ...
+const BLOAT_RADIUS := 8.0                 # ... copying my poisons to every enemy within this many metres
+const POISON_SPREAD := 10.0               # a poisoned enemy dies: each poison jumps to the nearest enemy within this many metres
+const COIL_BACK_DISTANCE := 10.0          # Coil Back: metres it carries you backward ...
+const COIL_TRAP_TIME := 8.0               # ... seconds the thorn trap waits ...
+const COIL_TRAP_RADIUS := 2.0             # ... how close an enemy must come ...
+const COIL_HOLD := 1.0                    # ... and how long it is held in place
+const SURGE_TIME := 15.0                  # Venom Surge: seconds it lasts ...
+const SURGE_MULT := 2.0                   # ... poisons go on this many times as strong
+const LINGERING_VENOM_KEEP := 40.0        # Lingering Venom (talent) capstone: % chance each poison stays through Venom Burst
 
 # --- Abilities -----------------------------------------------------------------
 
@@ -1136,11 +1239,37 @@ const ABILITIES := {
 	"cutthestrings": {"cooldown": 120.0},
 	"restring": {"cooldown": 20.0, "range": 40.0},
 	"yank": {"cooldown": 45.0, "range": 40.0},
-	# Nature
-	"wrath": {"damage": 1.8, "cooldown": 4.0, "cost": 2, "range": 30.0},
-	"insectswarm": {"damage": 0.4, "cooldown": 8.0, "cost": 2, "range": 30.0},
-	"entanglingroots": {"damage": 0.8, "cooldown": 10.0, "cost": 3, "range": 30.0},
-	"regrowth": {"cooldown": 10.0, "cost": 3},
+	# Nature caster: the Weaver (MULCH_* and the rest above)
+	"thornshot": {"damage": 1.0, "cost": 1, "cast_time": 1.5, "range": 30.0},
+	"briartiger": {"damage": 1.5, "cooldown": 6.0, "cost": 2, "cast_time": 1.5, "range": 30.0},
+	"thornwing": {"damage": 1.0, "cooldown": 10.0, "cost": 2, "range": 30.0},
+	"mossback": {"damage": 0.6, "cost": 2, "radius": 8.0, "range": 30.0},               # + MOSSBACK_PER_PATCH per patch
+	"chokingvipers": {"damage": 0.4, "cost": 3, "radius": 8.0, "range": 30.0},   # its damage over time; + VIPERS_PER_PATCH per patch
+	"greenwoodstag": {"damage": 0.5, "cooldown": 15.0, "cost": 1, "range": 30.0},
+	# Nature healer: the Shepherd (BLOSSOM_* and the rest above; heals in HEALS)
+	"dewfall": {"cost": 2, "cast_time": 1.5, "range": 40.0},
+	"fawn": {"cooldown": 8.0, "cost": 3, "cast_time": 1.5, "range": 40.0},
+	"rootguard": {"cooldown": 15.0, "cost": 2, "range": 40.0},
+	"owl": {"damage": 0.5, "cooldown": 12.0, "cost": 2, "range": 40.0},
+	"heartwoodelk": {"cooldown": 15.0, "cost": 3, "radius": 10.0},
+	"wildherd": {"cooldown": 120.0, "cost": 3, "radius": 40.0},
+	# Nature tank: the Colossus (Rage; SAP_* and the rest above)
+	"vinefist": {"damage": 1.0, "cooldown": 3.0, "generates": 20, "threat": 4.0},
+	"grasp": {"cooldown": 10.0, "cost": 15, "range": 25.0, "threat": 6.0},
+	"stomp": {"damage": 0.8, "cooldown": 8.0, "cost": 25, "radius": 8.0, "threat": 4.0},
+	"giantshands": {"damage": 0.8, "cooldown": 20.0, "cost": 30, "radius": 6.0, "threat": 6.0},   # damage = the burst when the shield goes
+	"heartsap": {"cooldown": 12.0, "cost": 20},
+	"awaken": {"cooldown": 120.0},
+	# Nature archer: Venomstring (no resource: Venom, VENOM_* and the rest above)
+	"fangarrow": {"weapon_mult": 1.0},
+	"adderarrow": {"cast_time": 1.5},
+	"asparrow": {},
+	"kraitarrow": {},
+	"venomburst": {},
+	"spittingvolley": {},
+	"bloatarrow": {"cooldown": 15.0},
+	"coilback": {"cooldown": 20.0},
+	"venomsurge": {"cooldown": 120.0},
 	# Warrior
 	"slam": {"weapon_mult": 1.0, "cooldown": 2.0, "generates": 50},
 	"execute": {"weapon_mult": 3.0, "cost": 50},
@@ -1165,6 +1294,9 @@ const ABILITIES := {
 # --- Status effects ----------------------------------------------------------------
 
 const EFFECTS := {
+	"res://data/effects/grasped.tres": {"duration": GRASP_HOLD},   # Grasp (Nature tank)
+	"res://data/effects/asp_venom.tres": {"duration": POISON_TIME, "slow": -ASP_SLOW},   # Asp Arrow (Nature archer)
+	"res://data/effects/coiled.tres": {"duration": COIL_HOLD},   # Coil Back
 	"res://data/effects/burning.tres": {"duration": 4.0, "tick_damage": 0.1, "tick_every": 1.0},
 	"res://data/effects/immolate.tres": {"duration": 12.0, "tick_damage": 0.2, "tick_every": 1.0},
 	"res://data/effects/live_wire.tres": {"duration": 10.0, "tick_damage": 0.2, "tick_every": 1.0},

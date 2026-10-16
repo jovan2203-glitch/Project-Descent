@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"fangarrow"
+display_name = "Fang Arrow"
+description = "Shoots the target for {hit} Nature damage. Every poison of yours on it lasts {b:FANG_EXTEND} sec longer, and your next {n:adderarrow} is instant."
+tags = PackedStringArray("Ability", "Nature", "Ranged", "Projectile")
+cast_type = 0
+cast_time = 0.0
+requires_target = true
+weapon_requirement = 2
+resource_type = 0
+resource_cost = 0
+damage = 0.0
+damage_type = &"nature"

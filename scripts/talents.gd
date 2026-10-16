@@ -699,6 +699,25 @@ const TALENTS := {
 		"r9c4": ["Wide Pack", 2, "During {n:runthemdown}, each bite of your Hounds hits {v} more enemies.",
 			{"key": "shadow_wide_pack", "values": [1.0, 2.0], "requires": "runthemdown"}],
 	},
+	"nature": {
+		# Row 1: the two specs' linked talents. The caster (the Weaver: player.gd, "Nature
+		# caster: the Weaver"): Hunting Party on Briar Tiger. The healer (the Shepherd: player.gd,
+		# "Nature healer: the Shepherd"): Running Herd on Fawn.
+		"r1c3": ["Running Herd", 4, "{n:fawn} heals {v}% more.",
+			{"key": "nature_running_herd", "values": [5.0, 10.0, 15.0, 15.0], "requires": "fawn",
+			"capstone": "Every second {n:fawn} bounces {b:RUNNING_HERD_EXTRA} more times."}],
+		"r1c5": ["Hunting Party", 4, "{n:briartiger} deals {v}% more damage.",
+			{"key": "nature_hunting_party", "values": [5.0, 10.0, 15.0, 15.0], "requires": "briartiger",
+			"capstone": "Every second {n:briartiger} also strikes {b:HUNTING_PARTY_EXTRA} more enemies within {b:HUNTING_PARTY_RADIUS} m of the target and leaves Mulch under each."}],
+		# Row 2: the tank's (the Colossus: player.gd, "Nature tank: the Colossus"): Thick Sap on Heartsap.
+		"r2c4": ["Thick Sap", 4, "{n:heartsap} heals {v}% more.",
+			{"key": "nature_thick_sap", "values": [5.0, 10.0, 15.0, 15.0], "requires": "heartsap",
+			"capstone": "{n:heartsap} leaves you {b:THICK_SAP_KEEP} Sap."}],
+		# The archer's (Venomstring: player.gd, "Nature archer: Venomstring"): Lingering Venom on Venom Burst.
+		"r2c7": ["Lingering Venom", 4, "{n:venomburst} deals {v}% more damage.",
+			{"key": "nature_lingering_venom", "values": [5.0, 10.0, 15.0, 15.0], "requires": "venomburst",
+			"capstone": "Each poison {n:venomburst} would remove has a {b:LINGERING_VENOM_KEEP}% chance to stay on the target."}],
+	},
 	"holy": {
 		# The healer (the Hymns: player.gd, "Holy healer: the Hymns"). Row 1: a way for
 		# each Hymn to give Verses (their value: the seconds between two of them).

@@ -58,6 +58,7 @@ var _glow: OmniLight3D
 func _tint(id: String) -> void:
 	if _tip_mat == null:
 		return
+	_snake_tint(id)
 	var cat: String = preload("res://scripts/abilities.gd").category_of(id)
 	var magic := cat != "" and cat != "martial"
 	if magic:
@@ -141,6 +142,7 @@ func _ready() -> void:
 	_streak.material_override = _streak_mat
 	_streak.position.z = 0.25
 	add_child(_streak)
+	_build_snake()
 	_tint(ability_id)
 
 var _streak: CPUParticles3D
@@ -178,8 +180,52 @@ func _physics_process(delta: float) -> void:
 		return
 	look_at(aim, Vector3.UP)
 	global_position = next
+	if _snake and _snake.visible:
+		_snake.rotation.z += delta * 14.0   # the snake winds around the shaft
 
 var _last_aim := Vector3.ZERO
 
 func _impact_color() -> Color:
 	return _glow.light_color if _glow and _glow.visible else Color(1.0, 0.9, 0.75)
+
+# Nature archer (Venomstring): a woven snake coiled around the shaft, in its
+# venom's colour. Only a look: nothing of it reaches the enemy.
+const SNAKE_COLORS := {"fangarrow": Color(0.62, 1.0, 0.38), "adderarrow": Color(0.4, 0.95, 0.3),
+	"asparrow": Color(1.0, 0.85, 0.25), "kraitarrow": Color(0.92, 0.95, 1.0), "bloatarrow": Color(0.4, 0.95, 0.3)}
+const SNAKE_BEADS := 12
+var _snake: Node3D
+var _snake_mat: StandardMaterial3D
+
+func _build_snake() -> void:
+	_snake = Node3D.new()
+	add_child(_snake)
+	_snake_mat = StandardMaterial3D.new()
+	_snake_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_snake_mat.emission_enabled = true
+	_snake_mat.emission_energy_multiplier = 2.0
+	var bead := SphereMesh.new()
+	bead.radius = 0.022
+	bead.height = 0.044
+	bead.radial_segments = 6
+	bead.rings = 3
+	bead.material = _snake_mat
+	for i in SNAKE_BEADS:
+		var t := float(i) / float(SNAKE_BEADS - 1)
+		var a := t * TAU * 2.0
+		var m := MeshInstance3D.new()
+		m.mesh = bead
+		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		m.position = Vector3(cos(a) * 0.055, sin(a) * 0.055, lerpf(0.3, -0.32, t))
+		if i == SNAKE_BEADS - 1:
+			m.scale = Vector3.ONE * 1.6   # its head, by the tip
+		_snake.add_child(m)
+	_snake_tint(ability_id)
+
+func _snake_tint(id: String) -> void:
+	if _snake == null:
+		return
+	_snake.visible = SNAKE_COLORS.has(id)
+	if _snake.visible:
+		var c: Color = SNAKE_COLORS[id]
+		_snake_mat.albedo_color = c
+		_snake_mat.emission = c

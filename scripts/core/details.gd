@@ -506,6 +506,12 @@ const HIT_NAMES := {
 	"bright_burst": "Bright Burst",
 	"prism_shatter": "Prism Shatter",
 	"refraction": "Refraction",
+	"thornburst": "Thornburst",
+	"owlstrike": "Owl's Strike",
+	"stomproots": "Stomp Roots",
+	"giantsslam": "Giant's Slam",
+	"sap": "Sap",
+	"venomburst_splash": "Venom Burst",
 	"volley_arrow": "Spectrum Volley",
 	"auto_melee": "Auto Attack",
 	"auto_ranged": "Auto Shot",
@@ -570,6 +576,14 @@ static func spell_color(id: String) -> Color:
 			return Abilities.color_of("lightningbolt")
 		"afterimage", "chain_reaction", "reflection_shatter", "head_count", "silvered", "echo", "mirror_finish", "full_house":
 			return Abilities.color_of("blink")
+		"thornburst":
+			return Abilities.color_of("thornshot")   # (Nature caster)
+		"owlstrike":
+			return Abilities.color_of("owl")   # (Nature healer)
+		"venomburst_splash":
+			return Abilities.color_of("venomburst")   # (Nature archer)
+		"stomproots", "giantsslam", "sap":
+			return Abilities.color_of("stomp")   # (Nature tank)
 		"poisoned":
 			return Color(0.45, 0.85, 0.3)
 		"bleeding":

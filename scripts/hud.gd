@@ -674,6 +674,7 @@ func _layout_side_bars() -> void:
 ## Show / hide the extra bars and set their opacity; make room above the main
 ## bar for the top one.
 func _apply_bar_settings() -> void:
+	_refresh_venom_bar.call_deferred()   # (it sits above the top bar when that is on)
 	var settings := get_node("/root/Settings")
 	for b in _bar_roots:
 		_bar_roots[b].visible = settings.is_bar_on(b)
@@ -977,6 +978,7 @@ func _update_verse_row() -> void:
 
 func _update_resource_bars() -> void:
 	_update_verse_row()
+	_update_venom_bar()
 	for res in _res_rows:
 		var pts: int = player.resource_points(res)
 		var mx: int = int(player.resource_max(res))
@@ -994,6 +996,7 @@ func _update_resource_bars() -> void:
 
 func _refresh_action_bar() -> void:
 	_refresh_resource_bars()
+	_refresh_venom_bar()
 	var settings := get_node_or_null("/root/Settings")
 	for i in _slot_buttons:
 		var id := _slot_id(i)
@@ -1131,3 +1134,76 @@ func _box(c: Color, radius: int) -> StyleBoxFlat:
 	sb.content_margin_top = 6
 	sb.content_margin_bottom = 6
 	return sb
+
+# --- Venom (Nature archer: Venomstring) --------------------------------------------
+# A thin bar just above the main action bar, shown only while Adder, Asp and
+# Krait Arrow are all on the bars (macros count). It fills from the player's
+# Venom (player.gd, "Nature archer: Venomstring") and glows while Venom Flows.
+const VENOM_ARROWS := ["adderarrow", "asparrow", "kraitarrow"]
+const VENOM_COLOR := Color(0.4, 0.95, 0.3)
+const VENOM_BAR_H := 12.0
+var _venom_root: Control
+var _venom_fill: ColorRect
+var _venom_label: Label
+var _venom_last := -1.0
+
+func _refresh_venom_bar() -> void:
+	var pd := get_node_or_null("/root/PlayerData")
+	var found := []
+	if pd:
+		for slot_id in pd.action_bar:
+			var ids: Array[String] = [slot_id]
+			if Macros.is_macro(slot_id):
+				ids = Macros.abilities_of(slot_id)
+			for id in ids:
+				if VENOM_ARROWS.has(id) and not found.has(id):
+					found.append(id)
+	var wanted := found.size() == VENOM_ARROWS.size()
+	if not wanted:
+		if _venom_root:
+			_venom_root.visible = false
+		return
+	if _venom_root == null:
+		var width := ACTION_SLOTS * SLOT_SIZE + (ACTION_SLOTS - 1) * 6 + 16
+		_venom_root = Panel.new()
+		_venom_root.anchor_left = 0.5
+		_venom_root.anchor_right = 0.5
+		_venom_root.anchor_top = 1.0
+		_venom_root.anchor_bottom = 1.0
+		_venom_root.offset_left = -width / 2.0
+		_venom_root.offset_right = width / 2.0
+		_venom_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_venom_root.add_theme_stylebox_override("panel", _box(Color(0, 0, 0, 0.6), 4))
+		add_child(_venom_root)
+		_venom_fill = ColorRect.new()
+		_venom_fill.color = VENOM_COLOR
+		_venom_fill.position = Vector2(2, 2)
+		_venom_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_venom_root.add_child(_venom_fill)
+		_venom_label = Label.new()
+		_venom_label.add_theme_font_size_override("font_size", 11)
+		_venom_label.anchor_right = 1.0
+		_venom_label.anchor_bottom = 1.0
+		_venom_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_venom_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_venom_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_venom_root.add_child(_venom_label)
+	var top := -SLOT_SIZE - 26 - 4 - VENOM_BAR_H - _top_bar_lift()
+	_venom_root.offset_top = top
+	_venom_root.offset_bottom = top + VENOM_BAR_H
+	_venom_root.visible = true
+	_venom_last = -1.0
+
+func _update_venom_bar() -> void:
+	if _venom_root == null or not _venom_root.visible or player == null or not player.has_method("venom"):
+		return
+	var v: float = player.venom()
+	var flowing: bool = player.venom_flow()
+	var key := v + (1000.0 if flowing else 0.0)
+	if is_equal_approx(key, _venom_last):
+		return
+	_venom_last = key
+	var inner := _venom_root.size.x - 4.0
+	_venom_fill.size = Vector2(maxf(inner * clampf(v / Balance.VENOM_MAX, 0.0, 1.0), 0.0), VENOM_BAR_H - 4.0)
+	_venom_fill.color = VENOM_COLOR.lightened(0.25) if flowing else VENOM_COLOR.darkened(0.25)
+	_venom_label.text = "Venom %d" % int(v)

@@ -4,16 +4,14 @@
 
 [resource]
 script = ExtResource("1_s")
-id = &"wrath"
-display_name = "Thornbolt"
-description = "Hurls a bolt of thorns at the target, dealing {hit} Nature damage."
-tags = PackedStringArray("Nature", "Spell", "Projectile")
+id = &"greenwoodstag"
+display_name = "Greenwood Stag"
+description = "A stag grows out of your Mulch and bounds to the target, dealing {hit} Nature damage and carrying every patch of your Mulch there."
+tags = PackedStringArray("Nature", "Spell")
 cast_type = 0
 cast_time = 0.0
-cooldown = 4.0
 requires_target = true
+weapon_requirement = 0
 resource_type = 1
-resource_cost = 2
-damage = 1.8
-cast_range = 30.0
+damage = 0.0
 damage_type = &"nature"

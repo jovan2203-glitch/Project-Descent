@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"owl"
+display_name = "Owl"
+description = "Weaves an owl that watches over an ally for {b:OWL_TIME} sec. The first time they are hit, it dives: it heals them for {heal}, leaves a Blossom on them (two if the heal is more than they were missing) and strikes the nearest enemy within {b:OWL_REACH} m of them for {hit}. If nothing hits them, it lands and leaves a Blossom."
+tags = PackedStringArray("Nature", "Spell", "Heal")
+cast_type = 0
+cast_time = 0.0
+requires_target = false
+weapon_requirement = 0
+resource_type = 1
+damage = 0.0
+damage_type = &"nature"

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"awaken"
+display_name = "Awaken"
+description = "The whole giant rises behind you for {b:AWAKEN_TIME} sec. You take {b:AWAKEN_DR_PCT}% less damage and gain {b:AWAKEN_SAP_MULT} times as much Sap. {n:vinefist} hits twice and slams the ground for {d:AWAKEN_SLAM} Nature damage to every enemy within {b:AWAKEN_SLAM_RADIUS} m, {n:stomp} reaches {b:AWAKEN_STOMP_RADIUS} m and {n:giantshands} absorbs {b:AWAKEN_HANDS_PCT}% more."
+tags = PackedStringArray("Ability", "Nature", "Defensive")
+cast_type = 0
+cast_time = 0.0
+requires_target = false
+weapon_requirement = 1
+resource_type = 3
+damage = 0.0
+damage_type = &"nature"

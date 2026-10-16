@@ -54,6 +54,8 @@ const CENSER = preload("res://scripts/censer.gd")
 const LIGHT_MOTE = preload("res://scripts/light_mote.gd")
 const PRISM = preload("res://scripts/prism.gd")
 const LIGHT_BEAM = preload("res://scripts/light_beam.gd")
+const MULCH = preload("res://scripts/mulch_patch.gd")
+const NATURE_CREATURE = preload("res://scripts/nature_creature.gd")
 const HOUND = preload("res://scripts/hound.gd")
 const Balance = preload("res://scripts/balance.gd")
 
@@ -1317,6 +1319,21 @@ func _fx(t: int, member: int, kind: String, at: Vector3, target_id: String, id: 
 			PRISM.keep_only(w.get_tree(), "%d:" % member, pkeys)
 		"prism_burst":
 			PRISM.shatter(w.get_tree(), "%d:%s" % [member, str(extra.get("k", ""))])
+		"mulch":
+			# A party member's mulch (Nature caster): where each patch lies, shown faint.
+			# A picture; only their creatures use it.
+			var mkeys := []
+			for row in extra.get("p", []):
+				if row is Array and row.size() >= 4:
+					var mkey := "%d:%s" % [member, str(row[0])]
+					mkeys.append(mkey)
+					MULCH.place(w, mkey, Vector3(float(row[1]), float(row[2]), float(row[3])), false)
+			MULCH.keep_only(w.get_tree(), "%d:" % member, mkeys)
+		"creature":
+			# ... and their creatures (one strike each): faint, the hit comes from their machine.
+			var cto: Variant = extra.get("to")
+			if cto is Vector3:
+				NATURE_CREATURE.spawn(w, str(extra.get("k", "tiger")), at, cto, true)
 		"beam":
 			var to: Variant = extra.get("to")
 			if to is Vector3:

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"grasp"
+display_name = "Grasp"
+description = "A giant hand rises under the target, grabs it and drops it at your feet. It must attack you for {b:GRASP_TAUNT} sec and is held in place for {b:GRASP_HOLD} sec (it can still attack)."
+tags = PackedStringArray("Ability", "Nature")
+cast_type = 0
+cast_time = 0.0
+requires_target = true
+weapon_requirement = 1
+resource_type = 3
+damage = 0.0
+damage_type = &"nature"
