@@ -40,21 +40,21 @@ func test_numbers() -> void:
 	var rune := Runes.get_resource("overload")
 	assert_true(is_equal_approx(float(rune.effect_amount), 0.1), "0.1 Frost Bolts per stack")
 	assert_eq(str(rune.damage_type), "lightning")
-	assert_true(is_equal_approx(_player().overload_coef(15, float(rune.effect_amount)), 1.5), "a full Overload = 1.5 Frost Bolts")
-	assert_eq(_player().overload_coef(0, 0.1), 0.0)
+	assert_true(is_equal_approx(OverloadKit.overload_coef(15, float(rune.effect_amount)), 1.5), "a full Overload = 1.5 Frost Bolts")
+	assert_eq(OverloadKit.overload_coef(0, 0.1), 0.0)
 	assert_eq(Details.HIT_NAMES.get("overload", ""), "Overload", "its own line on the meter")
 
 func test_what_builds_static() -> void:
 	var p := _player()
 	var spell := PackedStringArray(["Lightning", "Spell"])
 	var strike := PackedStringArray(["Lightning", "Ability", "Melee"])
-	assert_true(p.builds_static("lightning", spell, false, false, 10), "Lightning spells")
-	assert_true(p.builds_static("lightning", strike, false, false, 10), "Lightning abilities")
-	assert_false(p.builds_static("lightning", spell, true, false, 10), "procs (chain jumps, runes) don't")
-	assert_false(p.builds_static("lightning", spell, false, true, 10), "damage-over-time ticks don't")
-	assert_false(p.builds_static("lightning", spell, false, false, 0), "a hit that did nothing doesn't")
-	assert_false(p.builds_static("fire", PackedStringArray(["Fire", "Spell"]), false, false, 10), "other schools don't")
-	assert_false(p.builds_static("lightning", PackedStringArray(["AutoAttack"]), false, false, 10), "auto-attacks don't")
+	assert_true(OverloadKit.builds_static("lightning", spell, false, false, 10), "Lightning spells")
+	assert_true(OverloadKit.builds_static("lightning", strike, false, false, 10), "Lightning abilities")
+	assert_false(OverloadKit.builds_static("lightning", spell, true, false, 10), "procs (chain jumps, runes) don't")
+	assert_false(OverloadKit.builds_static("lightning", spell, false, true, 10), "damage-over-time ticks don't")
+	assert_false(OverloadKit.builds_static("lightning", spell, false, false, 0), "a hit that did nothing doesn't")
+	assert_false(OverloadKit.builds_static("fire", PackedStringArray(["Fire", "Spell"]), false, false, 10), "other schools don't")
+	assert_false(OverloadKit.builds_static("lightning", PackedStringArray(["AutoAttack"]), false, false, 10), "auto-attacks don't")
 
 func _hit(type: String, tags: Array, dot: bool = false) -> RefCounted:
 	var info := DamageInfo.make(null, null, 3, "test")
@@ -68,7 +68,7 @@ func test_static_boosts_lightning_damage() -> void:
 	var st: Node = StatusContainer.new()
 	st.name = "Status"
 	owner_node.add_child(st)
-	var fx: Resource = _player().make_static_fx()
+	var fx: Resource = OverloadKit.make_static_fx()
 	assert_eq(int(fx.max_stacks), Balance.STATIC_MAX_STACKS)
 	assert_eq(float(fx.duration), Balance.STATIC_TIME)
 	assert_false(bool(fx.consume_on_use), "hits don't use it up")
@@ -96,20 +96,20 @@ func test_static_boosts_lightning_damage() -> void:
 ## A break from Lightning makes you Grounded, and Grounded stops the Overload.
 func test_grounded() -> void:
 	var p := _player()
-	assert_false(p.grounds(2.9), "not yet")
-	assert_true(p.grounds(3.0), "3 s without Lightning")
-	assert_true(p.grounds(60.0), "and for as long as you stay off it")
+	assert_false(OverloadKit.grounds(2.9), "not yet")
+	assert_true(OverloadKit.grounds(3.0), "3 s without Lightning")
+	assert_true(OverloadKit.grounds(60.0), "and for as long as you stay off it")
 	var cap: int = Balance.STATIC_MAX_STACKS
-	assert_false(p.overloads(cap - 1, false), "below the cap: nothing happens")
-	assert_true(p.overloads(cap, false), "at the cap: Overload")
-	assert_false(p.overloads(cap, true), "Grounded: the stacks stay")
-	var fx: Resource = p.make_grounded_fx()
+	assert_false(OverloadKit.overloads(cap - 1, false), "below the cap: nothing happens")
+	assert_true(OverloadKit.overloads(cap, false), "at the cap: Overload")
+	assert_false(OverloadKit.overloads(cap, true), "Grounded: the stacks stay")
+	var fx: Resource = OverloadKit.make_grounded_fx()
 	assert_eq(float(fx.duration), Balance.OVERLOAD_GROUND_TIME)
 	assert_false(bool(fx.is_debuff))
 	assert_eq(int(fx.max_stacks), 1)
 
 func test_overloaded_lockout() -> void:
-	var fx: Resource = _player().make_overloaded_fx()
+	var fx: Resource = OverloadKit.make_overloaded_fx()
 	assert_eq(float(fx.duration), Balance.OVERLOAD_LOCKOUT)
 	assert_true(bool(fx.is_debuff))
 	assert_eq(float(fx.damage_mod_pct), 0.0, "it only blocks Static")

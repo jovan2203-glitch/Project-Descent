@@ -23,6 +23,13 @@ const BLIZZARD_RADIUS = 2.5
 # --- Components ----------------------------------------------------------------------------
 # Each spec's own code lives in a component (scripts/player/*.gd, see player_kit.gd),
 # made here as a child node; tools/split_section.pl adds the line for each one.
+var lightning_caster: LightningCasterKit = _kit(LightningCasterKit) as LightningCasterKit
+var storm_arrow_kit: StormArrowKit = _kit(StormArrowKit) as StormArrowKit
+var bottled_kit: BottledLightningKit = _kit(BottledLightningKit) as BottledLightningKit
+var fire_lightning_talents: FireLightningTalentsKit = _kit(FireLightningTalentsKit) as FireLightningTalentsKit
+var lightning_melee: LightningMeleeKit = _kit(LightningMeleeKit) as LightningMeleeKit
+var lightning_tank: LightningTankKit = _kit(LightningTankKit) as LightningTankKit
+var overload_kit: OverloadKit = _kit(OverloadKit) as OverloadKit
 var arcane_caster: ArcaneCasterKit = _kit(ArcaneCasterKit) as ArcaneCasterKit
 var arcane_tank: ArcaneTankKit = _kit(ArcaneTankKit) as ArcaneTankKit
 var arcane_open: ArcaneOpenTalentsKit = _kit(ArcaneOpenTalentsKit) as ArcaneOpenTalentsKit
@@ -232,6 +239,59 @@ func bolt_tag(t: String) -> void:
 
 func glint_ready(id: String) -> bool:
 	return arcane_caster.glint_ready(id)
+
+
+# Forwards to OverloadKit (called from other scripts).
+func static_stacks() -> int:
+	return overload_kit.static_stacks()
+
+
+# Forwards to LightningTankKit (called from other scripts).
+func has_two_hander() -> bool:
+	return lightning_tank.has_two_hander()
+
+func parry_cap() -> float:
+	return lightning_tank.parry_cap()
+
+func attack_speed_bonus() -> float:
+	return lightning_tank.attack_speed_bonus()
+
+
+# Forwards to LightningMeleeKit (called from other scripts).
+func overdrive_active() -> bool:
+	return lightning_melee.overdrive_active()
+
+
+# Forwards to FireLightningTalentsKit (called from other scripts).
+func dot_last_tick_pct(_res: Resource = null) -> float:
+	return fire_lightning_talents.dot_last_tick_pct(_res)
+
+
+# Forwards to BottledLightningKit (called from other scripts).
+func bottled_ready(spell: String) -> bool:
+	return bottled_kit.bottled_ready(spell)
+
+func standing_charge_bonus() -> float:
+	return bottled_kit.standing_charge_bonus()
+
+func storm_cycle_ready() -> bool:
+	return bottled_kit.storm_cycle_ready()
+
+func flicker_ready(spell: String) -> bool:
+	return bottled_kit.flicker_ready(spell)
+
+
+# Forwards to StormArrowKit (called from other scripts).
+func quiver_loaded() -> bool:
+	return storm_arrow_kit.quiver_loaded()
+
+
+# Forwards to LightningCasterKit (called from other scripts).
+func surge_active() -> bool:
+	return lightning_caster.surge_active()
+
+func ball_lightning_zapped(zaps: int) -> void:
+	lightning_caster.ball_lightning_zapped(zaps)
 
 # --- End of components ---
 
@@ -541,7 +601,7 @@ func _ready() -> void:
 	_bus().ability_used.connect(_cold_precision_on_use)
 	_bus().damage_dealt.connect(_on_damage_dealt_frost)
 	_bus().damage_dealt.connect(_on_damage_dealt_fire)
-	_bus().damage_dealt.connect(_on_damage_dealt_lightning)
+	_bus().damage_dealt.connect(bottled_kit._on_damage_dealt_lightning)
 	_bus().damage_dealt.connect(arcane_caster._on_damage_dealt_arcane)
 	_bus().damage_dealt.connect(decay._on_damage_dealt_shadow)
 	_bus().enemy_died.connect(shadow_talents._on_enemy_died_shadow)   # Carrion
@@ -551,9 +611,9 @@ func _ready() -> void:
 	_bus().cast_finished.connect(_pact_on_ability)     # Pact of the Purist: an ability of mine went off
 	_bus().dungeon_cleared.connect(func(_summary): _pact_cleared = true)   # Pact of the Restless: nothing left to fight
 	_bus().cast_finished.connect(arcane_caster._on_cast_for_arcane)
-	_bus().cast_finished.connect(_change_of_pace)
-	_bus().cast_started.connect(_on_cast_for_static)
-	_bus().cast_finished.connect(_on_cast_for_static)
+	_bus().cast_finished.connect(fire_lightning_talents._change_of_pace)
+	_bus().cast_started.connect(overload_kit._on_cast_for_static)
+	_bus().cast_finished.connect(overload_kit._on_cast_for_static)
 	_bus().damage_dealt.connect(_slag_skin_retaliate)
 	_bus().damage_dealt.connect(_on_hit_taken)
 	_bus().damage_modify.connect(_on_damage_modify)
@@ -714,8 +774,8 @@ func _unhandled_input(event: InputEvent) -> void:
 					prism_kit._start_prism_place(placing_id, cast_point)
 				elif placing_id == CINDER_RAIN_ID:
 					_start_cinder_rain(cast_point)
-				elif placing_id == THUNDERHEAD_ID:
-					_start_thunderhead(cast_point)
+				elif placing_id == LightningCasterKit.THUNDERHEAD_ID:
+					bottled_kit._start_thunderhead(cast_point)
 				elif placing_id == ArcaneCasterKit.COLLAPSE_ID:
 					arcane_caster._start_collapse(cast_point)
 				elif placing_id == DecayKit.PALL_ID:
@@ -903,11 +963,11 @@ func _use_ability_now(id: String) -> void:
 			_start_fire_wall()
 		"balllightning":
 			cancel_placement()
-			_start_ball_lightning()
+			lightning_caster._start_ball_lightning()
 		"groundingsurge":
-			_grounding_surge()   # (instant and off the global cooldown: it interrupts nothing)
+			lightning_caster._grounding_surge()   # (instant and off the global cooldown: it interrupts nothing)
 		"capacitor":
-			_capacitor()         # (the same)
+			bottled_kit._capacitor()         # (the same)
 		"arcanemissiles":
 			cancel_placement()
 			arcane_caster._start_sigil_darts()
@@ -964,7 +1024,7 @@ func _use_ability_now(id: String) -> void:
 		"trinket_1", "trinket_2":
 			_use_trinket(id)
 		_:
-			if Abilities.DRAFT_POOL.has(id) or BASE_INSTANTS.has(id) or RUNE_INSTANTS.has(id):
+			if Abilities.DRAFT_POOL.has(id) or BASE_INSTANTS.has(id) or LightningMeleeKit.RUNE_INSTANTS.has(id):
 				cancel_placement()
 				_use_drafted(id)
 
@@ -1180,8 +1240,8 @@ func _on_hit_extra(enemy: Node, at: Vector3, id: String) -> void:
 			var jump := float(Abilities.EXTRA_HITS[id])
 			for i in leaps:
 				FROST_BOLT.spawn(get_tree().current_scene, at + Vector3(0, 0.3, 0), others[i], self, true, id, jump)
-			for i in arc_returns(others.size()):
-				deal_damage(enemy, arc_return_coef(jump), id, true)
+			for i in LightningCasterKit.arc_returns(others.size()):
+				deal_damage(enemy, LightningCasterKit.arc_return_coef(jump), id, true)
 		"stormshield":
 			var jumps := 0
 			for e in _enemies_near(at, float(Abilities.get_resource(id).radius), enemy):
@@ -1204,7 +1264,7 @@ func _on_hit_extra(enemy: Node, at: Vector3, id: String) -> void:
 			# Lightning Rod: the arrow stays stuck in the target (the effect goes
 			# through the combat pipeline, so in a party it reaches the host).
 			if _talent("lightning_rod") > 0.0:
-				_apply_effect_hit(enemy, preload("res://scripts/core/effects.gd").get_effect(ROD_FX), ROD_FX,
+				_apply_effect_hit(enemy, preload("res://scripts/core/effects.gd").get_effect(LightningCasterKit.ROD_FX), LightningCasterKit.ROD_FX,
 					PackedStringArray(["Lightning"]), "lightning")
 			var r := float(Abilities.get_resource(id).radius)
 			for e in _enemies_near(at, r, enemy):
@@ -1299,7 +1359,7 @@ func can_afford(id: String, report: bool = false) -> bool:
 			_error("Not enough energy")
 		return false
 	# Overdrive only starts with little Energy (it would end at once with more).
-	if id == OVERDRIVE_ID and not overdrive_holds(float(resources["energy"]), resource_max("energy")):
+	if id == LightningMeleeKit.OVERDRIVE_ID and not LightningMeleeKit.overdrive_holds(float(resources["energy"]), resource_max("energy")):
 		if report:
 			_error("Too much Energy")
 		return false
@@ -1324,16 +1384,16 @@ func resource_cost(id: String, with_storm_cycle: bool = true) -> float:
 	var cost := float(Abilities.cost_of(id))
 	if id == "cinderguard":
 		cost = furnace_heart_cost(cost, _talent("fire_furnace_heart"))   # Furnace Heart
-	if id == RETURN_STROKE_ID:   # Rune of Resonance: dearer without a parry behind it
-		cost = return_stroke_cost(cost, status != null and status.has(RETURN_STROKE_FX), _has_rune(RESONANCE_RUNE))
-	if id == STATIC_STEP_ID and status != null and status.has(WHIP_CRACK_FX):
-		cost = whip_crack_cost(cost, _talent("lightning_whip_crack"))    # Whip Crack
-	if id == STORM_ARROW_ID and status != null:                         # Loaded Quiver, Snap Shot
-		cost = storm_arrow_cost(cost, status.has(LOADED_QUIVER_FX),
-			_talent("lightning_snap_shot") if status.has(SNAP_SHOT_FX) else 0.0)
+	if id == LightningTankKit.RETURN_STROKE_ID:   # Rune of Resonance: dearer without a parry behind it
+		cost = LightningTankKit.return_stroke_cost(cost, status != null and status.has(LightningTankKit.RETURN_STROKE_FX), _has_rune(LightningTankKit.RESONANCE_RUNE))
+	if id == LightningMeleeKit.STATIC_STEP_ID and status != null and status.has(BottledLightningKit.WHIP_CRACK_FX):
+		cost = BottledLightningKit.whip_crack_cost(cost, _talent("lightning_whip_crack"))    # Whip Crack
+	if id == LightningCasterKit.STORM_ARROW_ID and status != null:                         # Loaded Quiver, Snap Shot
+		cost = StormArrowKit.storm_arrow_cost(cost, status.has(LightningCasterKit.LOADED_QUIVER_FX),
+			_talent("lightning_snap_shot") if status.has(LightningCasterKit.SNAP_SHOT_FX) else 0.0)
 	if cost > 0.0 and Abilities.resource_of(id) == "energy":
-		cost = surge_energy_cost(cost, surge_active())                   # Grounding Surge
-		if with_storm_cycle and storm_cycle_ready():
+		cost = LightningCasterKit.surge_energy_cost(cost, lightning_caster.surge_active())                   # Grounding Surge
+		if with_storm_cycle and bottled_kit.storm_cycle_ready():
 			cost = 0.0                                                   # Storm Cycle: this one is free
 	if cost <= 0.0 or Abilities.resource_of(id) != "mana":
 		return cost * _pact_cost_mult(Abilities.resource_of(id))   # (my Pact: Sidestep)
@@ -1359,14 +1419,14 @@ func _pay(id: String) -> bool:
 	if res != "":
 		# Storm Cycle: an Energy cost that would have been more than nothing is free
 		# once (not one Whip Crack, Loaded Quiver or Snap Shot already made free).
-		var free_cycle: bool = res == "energy" and storm_cycle_ready() and resource_cost(id, false) > 0.0
+		var free_cycle: bool = res == "energy" and bottled_kit.storm_cycle_ready() and resource_cost(id, false) > 0.0
 		var cost := resource_cost(id)
 		resources[res] = float(resources[res]) - cost
 		if free_cycle:
-			status.remove(STORM_CYCLE_FX)
+			status.remove(BottledLightningKit.STORM_CYCLE_FX)
 		if res == "energy" and cost > 0.0:
-			_redline()   # Redline: Energy spent during Overdrive makes it last longer
-			_storm_cycle_spent(cost)   # Storm Cycle counts what I spend
+			lightning_melee._redline()   # Redline: Energy spent during Overdrive makes it last longer
+			bottled_kit._storm_cycle_spent(cost)   # Storm Cycle counts what I spend
 		if HoundsKit.rouses(res, cost):
 			hounds._rouse_hounds()   # Shadow melee: spending Rage Rouses my Hounds
 	return true
@@ -1388,7 +1448,7 @@ func _tick_resources(delta: float) -> void:
 	if is_dead():
 		return
 	_gain("mana", MANA_REGEN * mana_unit() * delta)
-	_gain("energy", energy_regen(ENERGY_REGEN, _talent("lightning_quick_charge")) * delta)   # Quick Charge
+	_gain("energy", LightningMeleeKit.energy_regen(ENERGY_REGEN, _talent("lightning_quick_charge")) * delta)   # Quick Charge
 	_gain("rage", -HoundsKit.rage_decay(RAGE_DECAY, _talent("shadow_thick_blood")) * delta)   # Thick Blood
 
 # --- Natural health regeneration (WoW-style) ------------------------------------------
@@ -1448,8 +1508,8 @@ func _start_gcd() -> void:
 	if _cold_snap > 0.0:   # Cold Snap: a freeze shortened this GCD
 		gcd_total = maxf(gcd_total - _cold_snap, Balance.COLD_SNAP_MIN_GCD)
 		_cold_snap = 0.0
-	if status != null and status.has(SPLIT_SECOND_FX):   # Split Second: every GCD is shorter
-		gcd_total = split_second_gcd(gcd_total)
+	if status != null and status.has(LightningMeleeKit.SPLIT_SECOND_FX):   # Split Second: every GCD is shorter
+		gcd_total = LightningMeleeKit.split_second_gcd(gcd_total)
 	gcd_left = gcd_total
 
 # --- Spell queue (WoW-style) ------------------------------------------------------------
@@ -1496,7 +1556,7 @@ func cooldown_left(id: String) -> float:
 	# The GCD shows on every GCD button. Interrupts and Grounding Surge are off
 	# it, so it never holds them up.
 	var left := float(cooldowns.get(id, 0.0))
-	if id == STORM_ARROW_ID and quiver_loaded():
+	if id == LightningCasterKit.STORM_ARROW_ID and storm_arrow_kit.quiver_loaded():
 		left = 0.0   # Loaded Quiver: its arrows ignore the cooldown
 	if id == DecayKit.BLIGHT_ID and decay.interest_ready():
 		left = 0.0   # Interest: the instant Blight ignores the rune's cooldown
@@ -1507,7 +1567,7 @@ func cooldown_total(id: String) -> float:
 	if Abilities.is_trinket_slot(id):
 		var use := Items.use_effect_of(_trinket_item(id))
 		return float(use.internal_cooldown) if use else 1.0
-	var own := 0.0 if (id == STORM_ARROW_ID and quiver_loaded()) else float(cooldowns.get(id, 0.0))   # (Loaded Quiver)
+	var own := 0.0 if (id == LightningCasterKit.STORM_ARROW_ID and storm_arrow_kit.quiver_loaded()) else float(cooldowns.get(id, 0.0))   # (Loaded Quiver)
 	if on_gcd(id) and gcd_left > own:
 		return gcd_total   # the sweep is the global cooldown right now
 	if id == DecayKit.BLIGHT_ID and own > 0.0 and not decay.interest_ready():
@@ -1671,7 +1731,7 @@ func _on_damage_modify(info: RefCounted) -> void:
 			if brand_st and brand_st.has_from(BRAND_FX_ID, self):
 				info.add_bonus(-(Balance.BRAND_PCT + _talent("fire_deep_brand")), "Brand")   # + Deep Brand
 		arcane_tank._reflection_talents_incoming(info)   # Empty Room, Bent Light
-		_guard_incoming(info)   # Reflex Arc, Faraday Guard
+		lightning_melee._guard_incoming(info)   # Reflex Arc, Faraday Guard
 		strings._crossed_incoming(info) # Crossed Strings: part of it goes to an enemy
 		_pact_incoming(info)    # my Pact: more or less damage taken
 		return
@@ -1709,27 +1769,27 @@ func _on_damage_modify(info: RefCounted) -> void:
 			info.threat_multiplier *= 1.0 - light_touch / 100.0
 	var id := str(info.ability_id)
 	arcane_open._borrowed_time_hit(info, id)   # Borrowed Time: the next spell or ability after a long cooldown comes back
-	_open_talents_modify(info)   # Feed the Flames, Change of Pace, Dig In
+	fire_lightning_talents._open_talents_modify(info)   # Feed the Flames, Change of Pace, Dig In
 	shadow_talents._shadow_talents_modify(info, id)   # Slow Death, Finish It, Inevitable, Spite
-	_empower_weapon_ability(info, id)   # Static Step, Polar Strike's charge
+	lightning_melee._empower_weapon_ability(info, id)   # Static Step, Polar Strike's charge
 	# Running on Empty: with little Energy left, my Lightning spells and abilities hit harder.
 	var empty := _talent("lightning_running_on_empty")
-	if empty > 0.0 and running_on_empty(str(info.damage_type), info.tags, float(resources["energy"])):
+	if empty > 0.0 and LightningMeleeKit.running_on_empty(str(info.damage_type), info.tags, float(resources["energy"])):
 		info.add_bonus(empty, "Running on Empty")
 	# Standing Charge: planted in Grounding Surge, my Lightning damage keeps growing.
 	if str(info.damage_type) == "lightning":
-		var standing := standing_charge_bonus()
+		var standing := bottled_kit.standing_charge_bonus()
 		if standing > 0.0:
 			info.add_bonus(standing, "Standing Charge")
 	# High Voltage: with a nearly full bar, all my Lightning damage is higher.
 	var high := _talent("lightning_high_voltage")
-	if high > 0.0 and high_voltage(str(info.damage_type), float(resources["energy"])):
+	if high > 0.0 and LightningCasterKit.high_voltage(str(info.damage_type), float(resources["energy"])):
 		info.add_bonus(high, "High Voltage")
 	# Counter-Charge: Return Stroke's own hit (not the arcs of its capstone) hits harder.
-	if id == RETURN_STROKE_ID and not info.is_proc:
+	if id == LightningTankKit.RETURN_STROKE_ID and not info.is_proc:
 		var counter := _talent("lightning_counter_charge")
 		if counter > 0.0:
-			info.add_bonus(counter, COUNTER_CHARGE_LABEL)
+			info.add_bonus(counter, LightningTankKit.COUNTER_CHARGE_LABEL)
 	# Practiced Hand: Swift Cut hits harder for each Trace I hold.
 	if id == ArcaneMeleeKit.SWIFT_CUT_ID and not info.is_proc:
 		var practiced := ArcaneMeleeKit.practiced_hand_pct(_talent("arcane_practiced_hand"), arcane_melee.traces())
@@ -1751,7 +1811,7 @@ func _on_damage_modify(info: RefCounted) -> void:
 		if on_beat > 0.0:
 			info.add_bonus(on_beat, ArcaneTankKit.ON_THE_BEAT_LABEL)
 	# Third Beat: Cadence's third strike hits harder.
-	if id == CADENCE_ID and _cadence_third:
+	if id == LightningMeleeKit.CADENCE_ID and lightning_melee._cadence_third:
 		var beat := _talent("lightning_third_beat")
 		if beat > 0.0:
 			info.add_bonus(beat, "Third Beat")
@@ -2014,7 +2074,7 @@ func _try_auto_attack(moving: bool) -> void:
 		auto_windup = 0.0
 		return
 	auto_windup += delta
-	if auto_windup < auto_interval(float(w["attack_interval"]), haste_mult(), overdrive_active(), attack_speed_bonus()):   # (Overdrive, Tempo: faster swings)
+	if auto_windup < LightningMeleeKit.auto_interval(float(w["attack_interval"]), haste_mult(), lightning_melee.overdrive_active(), lightning_tank.attack_speed_bonus()):   # (Overdrive, Tempo: faster swings)
 		return
 	auto_windup = 0.0
 	# Snap to face the enemy we're hitting.
@@ -2336,20 +2396,20 @@ func _begin_spell(spell: String, display_name: String, duration: float, channel:
 	_conc_cast = not _instinct_cast and concentrated_fire_ready(spell)
 	if _conc_cast:
 		duration = 0.05   # Concentrated Fire: instant (released next frame)
-	_flicker_cast = not _instinct_cast and not _conc_cast and flicker_ready(spell)
-	if _flicker_cast:
+	storm_arrow_kit._flicker_cast = not _instinct_cast and not _conc_cast and bottled_kit.flicker_ready(spell)
+	if storm_arrow_kit._flicker_cast:
 		duration = 0.05   # Flicker: this Lightning Bolt is instant (released next frame)
-	_bottled_cast = not _instinct_cast and not _conc_cast and not _flicker_cast and bottled_ready(spell)
-	if _bottled_cast:
+	bottled_kit._bottled_cast = not _instinct_cast and not _conc_cast and not storm_arrow_kit._flicker_cast and bottled_kit.bottled_ready(spell)
+	if bottled_kit._bottled_cast:
 		duration = 0.05   # Rune of Bottled Lightning: this Discharge is instant (released next frame)
-	_overture_cast = not channel and not _instinct_cast and not _conc_cast and not _flicker_cast and not _bottled_cast and hymns.overture_ready(spell)
-	if _overture_cast:
+	storm_arrow_kit._overture_cast = not channel and not _instinct_cast and not _conc_cast and not storm_arrow_kit._flicker_cast and not bottled_kit._bottled_cast and hymns.overture_ready(spell)
+	if storm_arrow_kit._overture_cast:
 		duration = 0.05   # Rune of the Overture: the first cast after a boom is instant (used up when it lands)
 	# Cinder Step: this cast can be finished on the move (instant ones don't need it).
 	_cinder_cast = not channel and not _conc_cast and not _instinct_cast and cinder_step_ready(spell)
 	# Glint: this cast or channel can go on while I move (instant ones don't need it).
-	arcane_caster._glint_cast = not _conc_cast and not _instinct_cast and not _flicker_cast and not _bottled_cast \
-		and not _cinder_cast and not _overture_cast and arcane_caster.glint_ready(spell)
+	arcane_caster._glint_cast = not _conc_cast and not _instinct_cast and not storm_arrow_kit._flicker_cast and not bottled_kit._bottled_cast \
+		and not _cinder_cast and not storm_arrow_kit._overture_cast and arcane_caster.glint_ready(spell)
 	if arcane_caster._glint_cast and channel and status:
 		status.spend_stacks(ArcaneCasterKit.GLINT_FX, 1)   # a channel is paid for when it starts, and uses Glint up then too (Keep Moving: one of its casts)
 	if on_gcd(spell):
@@ -2371,9 +2431,9 @@ func _cancel_cast() -> void:
 	_instinct_cast = false   # Frozen Instinct stays for the next Frost Bolt
 	_conc_cast = false       # so does the Concentrated Fire stack
 	_cinder_cast = false     # and Cinder Step's cast on the move
-	_flicker_cast = false    # and Flicker's instant Lightning Bolt
-	_overture_cast = false   # and the Overture's instant cast
-	_bottled_cast = false    # and Bottled Lightning's instant Discharge
+	storm_arrow_kit._flicker_cast = false    # and Flicker's instant Lightning Bolt
+	storm_arrow_kit._overture_cast = false   # and the Overture's instant cast
+	bottled_kit._bottled_cast = false    # and Bottled Lightning's instant Discharge
 	arcane_caster._glint_cast = false      # and Glint's cast on the move
 	_volley_left = 0         # a broken Ember Volley launches no more embers
 	arcane_caster._darts_left = 0          # nor does a broken Sigil Darts launch more darts
@@ -2412,21 +2472,21 @@ func _release_cast() -> void:
 	# Casts pay their cost when they complete (a cancelled cast costs nothing).
 	var conc := _conc_cast
 	_conc_cast = false
-	var flick := _flicker_cast
-	_flicker_cast = false
-	var overture := _overture_cast
-	_overture_cast = false
-	var bottled := _bottled_cast
-	_bottled_cast = false
+	var flick := storm_arrow_kit._flicker_cast
+	storm_arrow_kit._flicker_cast = false
+	var overture := storm_arrow_kit._overture_cast
+	storm_arrow_kit._overture_cast = false
+	var bottled := bottled_kit._bottled_cast
+	bottled_kit._bottled_cast = false
 	if not _pay(spell):
 		_instinct_cast = false
 		return
 	if flick and status:
-		status.remove(FLICKER_FX)      # Flicker: that was its instant Lightning Bolt
+		status.remove(LightningCasterKit.FLICKER_FX)      # Flicker: that was its instant Lightning Bolt
 	if overture and status:
 		status.remove(HymnsKit.OVERTURE_FX)     # Rune of the Overture: that was its instant cast
 	if bottled and status:
-		status.remove(BOTTLED_FX)      # Rune of Bottled Lightning: that was its instant Discharge
+		status.remove(BottledLightningKit.BOTTLED_FX)      # Rune of Bottled Lightning: that was its instant Discharge
 	if conc and status:
 		status.spend_stacks(CONC_ID)   # Concentrated Fire: one stack per instant cast
 	if cinder and status:
@@ -2451,11 +2511,11 @@ func _release_cast() -> void:
 	if spell == "walloffire":
 		_raise_fire_wall()
 		return
-	if spell == BALL_LIGHTNING_ID:
-		_launch_ball_lightning()
+	if spell == LightningCasterKit.BALL_LIGHTNING_ID:
+		lightning_caster._launch_ball_lightning()
 		return
-	if spell == THUNDERHEAD_ID:
-		_raise_thunderhead()
+	if spell == LightningCasterKit.THUNDERHEAD_ID:
+		bottled_kit._raise_thunderhead()
 		return
 	if spell == ArcaneCasterKit.MIRROR_ID:
 		arcane_caster._place_mirror_sigil()
@@ -2494,11 +2554,11 @@ func _release_cast() -> void:
 		cooldowns[spell] = bolt_cd   # (Kiln Blast, Leaping Arc)
 	if int(bolt_res.resource_generated) > 0:
 		_gain(Abilities.resource_of(spell), float(bolt_res.resource_generated))   # (Leaping Arc's Energy)
-	if spell == DISCHARGE_ID:
-		_discharge(target)
+	if spell == LightningCasterKit.DISCHARGE_ID:
+		lightning_caster._discharge(target)
 		return
-	if spell == FORKED_BOLT_ID:
-		_forked_bolt(target)
+	if spell == LightningCasterKit.FORKED_BOLT_ID:
+		bottled_kit._forked_bolt(target)
 		return
 	if spell == "slowfuse":
 		_plant_fuse(target)
@@ -2591,15 +2651,15 @@ func _process(_delta: float) -> void:
 	_tick_fuses()
 	arcane_caster._tick_countdowns()
 	decay._tick_decay()
-	_tick_grounded()
+	overload_kit._tick_grounded()
 	_tick_dusk()
 	hounds._tick_hounds()
 	strings._tick_strings()
 	hymns._tick_hymns()
 	_tick_pact(_delta)
-	_tick_live_wire()
-	_tick_overdrive()
-	_tick_standing_charge(_delta)
+	bottled_kit._tick_live_wire()
+	lightning_melee._tick_overdrive()
+	bottled_kit._tick_standing_charge(_delta)
 	arcane_tank._tick_reflections()
 	censer._tick_censer()
 	prism_kit._tick_prisms()
@@ -2610,7 +2670,7 @@ func _process(_delta: float) -> void:
 	lightstring._tick_lightstring(_delta)
 	_mouseover_tick()
 	arcane_melee._tick_traces()
-	_tick_dig_in(_delta)
+	fire_lightning_talents._tick_dig_in(_delta)
 	_update_target_ring()
 	_update_friendly_ring()
 	_update_combat_state()
@@ -2664,8 +2724,8 @@ func _physics_process(delta: float) -> void:
 	# (So can the instant casts from Concentrated Fire.)
 	# (And the one cast Cinder Step lets you finish while moving.)
 	# (And whatever Glint lets you cast or channel on the move.)
-	var steady := casting and (current_spell == "steadyshot" or _conc_cast or _cinder_cast or _flicker_cast or _bottled_cast
-		or arcane_caster._glint_cast or _overture_cast)
+	var steady := casting and (current_spell == "steadyshot" or _conc_cast or _cinder_cast or storm_arrow_kit._flicker_cast or bottled_kit._bottled_cast
+		or arcane_caster._glint_cast or storm_arrow_kit._overture_cast)
 	if steady:
 		var aimed: bool = current_spell == "steadyshot" or current_spell in ENEMY_BOLTS or current_spell == "embervolley" \
 			or current_spell == GLACIAL_DRAW_ID or current_spell == ArcaneCasterKit.SIGIL_DARTS_ID or current_spell == LightstringKit.REFRACTING_SHOT_ID \
@@ -2804,7 +2864,7 @@ func _use_drafted(id: String) -> void:
 	if bool(res.get("requires_off_hand")) and not has_off_hand_item():
 		_error("Requires an off hand")
 		return
-	if bool(res.get("requires_two_hand")) and not has_two_hander():
+	if bool(res.get("requires_two_hand")) and not lightning_tank.has_two_hander():
 		_error("Requires a two-handed weapon")
 		return
 	if bool(res.get("requires_dual_wield")) and not arcane_tank.has_dual_wield():
@@ -2836,8 +2896,8 @@ func _use_drafted(id: String) -> void:
 	hounds._hounds_on_ability(id)   # Shadow melee: with no Hounds out, its abilities call them
 	var cd_before := float(cooldowns.get(id, 0.0))
 	cooldowns[id] = Abilities.cooldown_of(res)   # (with talents: Thick Hide)
-	if id == STORM_ARROW_ID:
-		_storm_arrow_fired(cd_before)   # Loaded Quiver, Snap Shot
+	if id == LightningCasterKit.STORM_ARROW_ID:
+		storm_arrow_kit._storm_arrow_fired(cd_before)   # Loaded Quiver, Snap Shot
 	if INTERRUPT_LOCKOUT.has(id):
 		# Interrupts share a cooldown: this one never has less than the shared
 		# one, and every other interrupt now waits at least that long too.
@@ -2911,7 +2971,7 @@ func _use_drafted(id: String) -> void:
 			heal(float(Abilities.HEALS[id]), id)
 		# Spell projectiles (tinted by book: Fire, Lightning, Shadow, Holy)
 		"groundout":
-			_ground_out()
+			lightning_caster._ground_out()
 		"corruption":
 			FROST_BOLT.spawn(get_tree().current_scene, muzzle, target, self, false, id, float(res.damage))
 		"intervalward":
@@ -3039,30 +3099,30 @@ func _use_drafted(id: String) -> void:
 			_ring_effect(0.9, Abilities.color_of(id), target.global_position)
 			_ring_effect(0.5, Color(1.0, 0.9, 0.4), target.global_position)
 		"flicker":
-			_flicker()
+			bottled_kit._flicker()
 		# --- Lightning melee ---
 		"arccleave":
-			_arc_cleave(w, res)
+			lightning_melee._arc_cleave(w, res)
 		"overdrive":
-			_start_overdrive()
+			lightning_melee._start_overdrive()
 		"twincurrent":
-			_start_twin_current()
+			lightning_melee._start_twin_current()
 		"staticstep":
-			_static_step(w)
+			lightning_melee._static_step(w)
 		"backcurrent":
-			_start_back_current()
+			lightning_melee._start_back_current()
 		"cadence":
-			_cadence(w, res)
+			lightning_melee._cadence(w, res)
 		"splitsecond":
-			_start_split_second()
+			lightning_melee._start_split_second()
 		"whiplash":
-			_whiplash(w, res)
+			lightning_melee._whiplash(w, res)
 		"faradayguard":
-			_start_faraday_guard()
+			lightning_melee._start_faraday_guard()
 		"reflexarc":
-			_start_reflex_arc()
+			lightning_melee._start_reflex_arc()
 		"polarstrike":
-			_polar_strike(w, res)
+			lightning_melee._polar_strike(w, res)
 		"arcaneexplosion", "arcflash":
 			# Every enemy in range is hit. Up to AOE_TARGET_CAP take full damage;
 			# with more, what that many would take is split evenly between all.
@@ -3086,29 +3146,29 @@ func _use_drafted(id: String) -> void:
 				_slash_effect(Abilities.color_of(id))
 			_ring_effect(0.7, Color(0.95, 0.95, 1.0), target.global_position)
 		"thunderaegis":
-			_start_humming_blade()
+			lightning_tank._start_humming_blade()
 		"returnstroke":
 			# One answer per parry. Without a parry behind it (Rune of Resonance) it
 			# cost more (resource_cost) and goes on a short cooldown.
-			if status.has(RETURN_STROKE_FX):
+			if status.has(LightningTankKit.RETURN_STROKE_FX):
 				# Second Stroke: a chance the window stays open for one more answer.
 				if randf() * 100.0 >= _talent("lightning_second_stroke"):
-					status.remove(RETURN_STROKE_FX)
+					status.remove(LightningTankKit.RETURN_STROKE_FX)
 			else:
 				cooldowns[id] = Balance.RESONANCE_COOLDOWN
 			deal_damage(target, _weapon_hit(w, res), id)   # (Counter-Charge: _on_damage_modify, _on_hit_extra)
 			for i in 2:
 				_slash_effect(Abilities.color_of(id))
 		"reelin":
-			_reel_in()
+			lightning_tank._reel_in()
 		"recharge":
-			_recharge()
+			lightning_tank._recharge()
 		"shockring":
-			_shock_ring(res)
+			lightning_tank._shock_ring(res)
 		"crossguard":
-			_start_crossguard()
+			lightning_tank._start_crossguard()
 		"drawthestorm":
-			_draw_the_storm(res)
+			lightning_tank._draw_the_storm(res)
 		# --- Arcane tank (a melee weapon in each hand; see "Arcane tank" below) ---
 		"doubleup":
 			deal_damage(target, arcane_tank._dual_weapon_hit(w, res), id)   # both weapons
@@ -3163,14 +3223,14 @@ func _use_drafted(id: String) -> void:
 			# (Hush: was there a cast to stop? Asked before anything lands.)
 			var hush_foe: Node3D = target
 			var hush_stops: bool = id == DecayKit.HUSH_ID and target.has_method("cast_progress") and float(target.cast_progress()) >= 0.0
-			if id == "counterspell" or id == "rimelock" or id == JOLT_ID or id == DecayKit.HUSH_ID:
+			if id == "counterspell" or id == "rimelock" or id == LightningCasterKit.JOLT_ID or id == DecayKit.HUSH_ID:
 				_ring_effect(0.9, Abilities.color_of(id), target.global_position)
 			else:
 				deal_damage(target, _weapon_hit(w, res), id)
 				_slash_effect(Abilities.color_of(id))
 			# Jolt gives Energy when there was a cast to stop (the cast bar is shown
 			# on every machine, so this works for party members too).
-			if id == JOLT_ID and target.has_method("cast_progress") and float(target.cast_progress()) >= 0.0:
+			if id == LightningCasterKit.JOLT_ID and target.has_method("cast_progress") and float(target.cast_progress()) >= 0.0:
 				_gain("energy", Balance.JOLT_ENERGY)
 			var lockout := float(INTERRUPT_LOCKOUT[id])
 			var net := _net()
@@ -3265,10 +3325,10 @@ func _drafted_precheck(id: String, _res: Resource, w: Dictionary) -> String:
 		return venomstring._venom_precheck(id)   # Nature archer
 	match id:
 		"blink", "cinderstep", "flicker", "staticstep", "icyretreat":
-			if surge_active():
-				return "You can't move during %s" % Abilities.ability_name(SURGE_ID)
+			if lightning_caster.surge_active():
+				return "You can't move during %s" % Abilities.ability_name(LightningCasterKit.SURGE_ID)
 		"returnstroke":
-			if not return_stroke_usable(status.has(RETURN_STROKE_FX), _has_rune(RESONANCE_RUNE)):
+			if not LightningTankKit.return_stroke_usable(status.has(LightningTankKit.RETURN_STROKE_FX), _has_rune(LightningTankKit.RESONANCE_RUNE)):
 				return "You have not parried an attack"
 		"recharge":
 			if health >= max_health:
@@ -4013,1532 +4073,6 @@ func _has_rune(id: String) -> bool:
 	var rl := get_node_or_null("RuneListener")
 	return rl != null and rl.has_rune(id)
 
-# --- Lightning caster: the Energy kit ------------------------------------------------------
-# Leaping Arc gives Energy and Ball Lightning's zaps give some back; Lightning
-# Bolt spends a little; Discharge and Ground Out spend ALL of it and are worth
-# more the more they spend. Grounding Surge roots me and makes Energy go twice
-# as far. The numbers are in balance.gd.
-
-const DISCHARGE_ID := "discharge"
-const BALL_LIGHTNING_ID := "balllightning"
-const GROUND_OUT_ID := "groundout"
-const GROUND_OUT_FX := "ground_out"
-const SURGE_ID := "groundingsurge"
-const SURGE_FX := "grounding_surge"
-const BALL_LIGHTNING = preload("res://scripts/ball_lightning.gd")
-var _ball_dir := Vector3.FORWARD   # where the Ball Lightning being cast will drift
-
-## Leaps of a Leaping Arc that find no new enemy (they return to its target),
-## with `others` other enemies in reach.
-static func arc_returns(others: int) -> int:
-	return maxi(Balance.LEAPING_ARC_JUMPS - maxi(others, 0), 0)
-
-## Damage coefficient of a returning leap: a share of a normal leap's (`jump`).
-static func arc_return_coef(jump: float) -> float:
-	return jump * Balance.LEAPING_ARC_RETURN_PCT / 100.0
-
-func surge_active() -> bool:
-	return status != null and status.has(SURGE_FX)
-
-## An Energy cost with Grounding Surge up (`surging`) or not.
-static func surge_energy_cost(cost: float, surging: bool) -> float:
-	return cost * (1.0 - Balance.GROUNDING_SURGE_COST_PCT / 100.0) if surging else cost
-
-## Energy left in the bar after an ability spent "all" of `energy`.
-static func energy_left_after_all(energy: float, surging: bool) -> float:
-	return energy * Balance.GROUNDING_SURGE_KEEP_PCT / 100.0 if surging else 0.0
-
-## Spend all my Energy. Returns what the ability counts as spent: all of it,
-## even when Grounding Surge leaves part of it in the bar.
-func _spend_all_energy() -> float:
-	var have := float(resources["energy"])
-	resources["energy"] = energy_left_after_all(have, surge_active())
-	_redline()   # (spending all of it is spending Energy too)
-	_storm_cycle_spent(have - float(resources["energy"]))   # Storm Cycle counts what really left the bar
-	return have
-
-## Damage coefficient of a Discharge that spent `energy`.
-static func discharge_coef(energy: float) -> float:
-	return Balance.DISCHARGE_PER_STEP * maxf(energy, 0.0) / Balance.ENERGY_STEP
-
-## Shield coefficient of a Ground Out that spent `energy` (1.0 = a standard hit's worth of health).
-static func ground_out_coef(energy: float) -> float:
-	return Balance.GROUND_OUT_PER_STEP * maxf(energy, 0.0) / Balance.ENERGY_STEP
-
-## Discharge's cast finished: all my Energy goes into one bolt.
-func _discharge(tgt: Node3D) -> void:
-	var spent := _spend_all_energy()
-	FROST_BOLT.spawn(get_tree().current_scene, _muzzle(), tgt, self, false, DISCHARGE_ID, discharge_coef(spent))
-
-## Ground Out: all my Energy becomes a shield on me. It never stacks, and never
-## shrinks a bigger one that is still up.
-func _ground_out() -> void:
-	var spent := _spend_all_energy()
-	var amount := int(round(_combat().heal_amount(self, ground_out_coef(spent), GROUND_OUT_ID) * absorb_mult()))
-	if amount <= 0:
-		return
-	var col := Abilities.color_of(GROUND_OUT_ID)
-	var fx := StatusContainer.make_buff(GROUND_OUT_FX, Abilities.ability_name(GROUND_OUT_ID), GROUND_OUT_FX, 0.0,
-		Balance.GROUND_OUT_TIME, 1, col)
-	var armor := _talent("frost_shield_armor")   # Hardened Frost: my shields add armor
-	fx.stat_modifiers = {"armor%": armor} if armor > 0.0 else {}
-	fx.tags = PackedStringArray(["Lightning"])
-	fx.description = "A shield of grounded current absorbs damage."
-	var total := maxi(int(status.absorb_left(GROUND_OUT_FX)), amount)
-	if status.apply(fx, self):
-		status.set_absorb(GROUND_OUT_FX, total)
-	_ring_effect(1.3, col)
-
-## Ball Lightning: a cast, then the orb sets off toward my target (if I can see
-## it and it is in range) or straight ahead.
-func _start_ball_lightning() -> void:
-	var id := BALL_LIGHTNING_ID
-	if casting or not is_on_floor():
-		return
-	if cooldown_left(id) > 0.0:
-		_error("%s is not ready yet" % Abilities.ability_name(id))
-		return
-	if not can_afford(id, true):
-		return
-	var res := Abilities.get_resource(id)
-	var dir := _flat_forward()
-	if _has_valid_target() and can_see(target) \
-			and global_position.distance_to(target.global_position) <= float(res.cast_range):
-		var to := target.global_position - global_position
-		to.y = 0.0
-		if to.length() > 0.5:
-			dir = to.normalized()
-	_ball_dir = dir
-	cast_point = global_position + dir * 5.0   # (what I face while casting)
-	_begin_spell(id, str(res.display_name), float(res.cast_time))
-
-func _launch_ball_lightning() -> void:
-	var res := Abilities.get_resource(BALL_LIGHTNING_ID)
-	cooldowns[BALL_LIGHTNING_ID] = Abilities.cooldown_of(res)
-	var at := Vector3(global_position.x, Combat.feet_y(self) + BALL_LIGHTNING.FLOAT_HEIGHT, global_position.z) + _ball_dir
-	var tick := maxf(Balance.BALL_LIGHTNING_TICK / haste_mult(), 0.1)   # zaps come faster with Haste
-	BALL_LIGHTNING.spawn(get_tree().current_scene, at, _ball_dir, self, float(res.damage), float(res.radius),
-		Balance.BALL_LIGHTNING_TIME, tick, Balance.BALL_LIGHTNING_SPEED)
-	# The party sees the orb; its damage and my Energy come from here.
-	_net_fx(BALL_LIGHTNING_ID, at, null, {"dir": _ball_dir, "r": float(res.radius),
-		"time": Balance.BALL_LIGHTNING_TIME, "tick": tick, "speed": Balance.BALL_LIGHTNING_SPEED})
-
-## My Ball Lightning zapped `zaps` enemies: each zap gives Energy back.
-func ball_lightning_zapped(zaps: int) -> void:
-	if not is_dead():
-		_gain("energy", ball_zap_energy(_talent("lightning_tight_coil")) * maxi(zaps, 0))   # + Tight Coil
-
-## Energy one zap of Ball Lightning gives, with Tight Coil adding `more`.
-static func ball_zap_energy(more: float) -> float:
-	return Balance.BALL_LIGHTNING_ENERGY + maxf(more, 0.0)
-
-## Conductor: does this hit of mine give Energy back? A critical strike of
-## Lightning damage by a spell or ability itself: not its arcs, zaps or other
-## procs, and not periodic damage.
-static func conductor_applies(damage_type: String, crit: bool, is_proc: bool, is_dot: bool, amount: int) -> bool:
-	return crit and amount > 0 and damage_type == "lightning" and not is_proc and not is_dot
-
-var _conductor_last := ""   # "<ability>@<frame>" of the last use Conductor paid for
-
-## Conductor: a Lightning critical strike of mine gives Energy back. An ability
-## that hits several enemies at once counts once.
-func _conductor(info: RefCounted, id: String) -> void:
-	var back := _talent("lightning_conductor")
-	if back <= 0.0 or not conductor_applies(str(info.damage_type), bool(info.crit), bool(info.is_proc), bool(info.is_dot), int(info.amount)):
-		return
-	var key := "%s@%d" % [id, Engine.get_process_frames()]
-	if key == _conductor_last:
-		return
-	_conductor_last = key
-	_gain("energy", back)
-
-## High Voltage: does this hit of mine get it? Lightning damage while I hold
-## more than HIGH_VOLTAGE_ENERGY Energy.
-static func high_voltage(damage_type: String, energy: float) -> bool:
-	return damage_type == "lightning" and energy > Balance.HIGH_VOLTAGE_ENERGY
-
-## Health Earth Return restores for one parry: `pct` % of `max_hp`.
-static func earth_return_heal(max_hp: int, pct: float) -> int:
-	return int(round(float(max_hp) * maxf(pct, 0.0) / 100.0))
-
-## Grounding Surge: instant and off the global cooldown. I can't move while it
-## lasts; using it again ends it early (its cooldown keeps running).
-func _grounding_surge() -> void:
-	var col := Abilities.color_of(SURGE_ID)
-	if surge_active():
-		status.remove(SURGE_FX)
-		_ring_effect(0.8, col)
-		return
-	if float(cooldowns.get(SURGE_ID, 0.0)) > 0.0:
-		_error("%s is not ready yet" % Abilities.ability_name(SURGE_ID))
-		return
-	var res := Abilities.get_resource(SURGE_ID)
-	cooldowns[SURGE_ID] = Abilities.cooldown_of(res)
-	var fx := StatusContainer.make_buff(SURGE_FX, str(res.display_name), SURGE_FX, 0.0,
-		Balance.GROUNDING_SURGE_TIME, 1, col)
-	fx.stat_modifiers = {}
-	fx.root = true
-	fx.tags = PackedStringArray(["Lightning"])
-	fx.description = "You cannot move. Your abilities cost %s%% less Energy, and an ability that spends all your Energy leaves you %s%% of it. Use %s again to end it." % [
-		Stats.num(Balance.GROUNDING_SURGE_COST_PCT), Stats.num(Balance.GROUNDING_SURGE_KEEP_PCT), str(res.display_name)]
-	status.apply(fx, self)
-	_ring_effect(1.4, col)
-	_bus().cast_finished.emit(SURGE_ID)
-
-# --- Lightning caster, second batch -------------------------------------------------------
-# Arc Flash (AoE spender), Live Wire (a tether that feeds Energy), Thunderhead (a
-# storm cloud), Forked Bolt, Jolt (the interrupt), Flicker (a blink with an
-# instant Lightning Bolt) and Capacitor (Energy put aside). Numbers are in balance.gd.
-
-const LIVE_WIRE_ID := "livewire"
-const LIVE_WIRE_FX := "live_wire"
-const THUNDERHEAD_ID := "thunderhead"
-const FORKED_BOLT_ID := "forkedbolt"
-const JOLT_ID := "jolt"
-const FLICKER_ID := "flicker"
-const FLICKER_FX := "flicker"
-const CAPACITOR_ID := "capacitor"
-const CAPACITOR_FX := "capacitor"
-const OVERFLOW_FX := "overflow"
-const PARTING_SPARK_ID := "parting_spark"
-const STORM_ARROW_ID := "stormarrow"
-const LOADED_QUIVER_FX := "loaded_quiver"
-const SNAP_SHOT_FX := "snap_shot"
-## Lightning Rod: the effect a Storm Arrow leaves on its target (data/effects),
-## and the name its arcs carry on the damage meter.
-const ROD_FX := "lightning_rod"
-
-# --- Storm Arrow talents (the Lightning bow) -----------------------------------------------
-
-## Energy a Storm Arrow costs: nothing out of a Loaded Quiver, `less` off after Snap Shot.
-static func storm_arrow_cost(cost: float, loaded: bool, less: float) -> float:
-	if loaded:
-		return 0.0
-	return maxf(cost - maxf(less, 0.0), 0.0)
-
-## Is my next Storm Arrow one of Loaded Quiver's (free, and it ignores the cooldown)?
-func quiver_loaded() -> bool:
-	return status != null and status.has(LOADED_QUIVER_FX)
-
-## Loaded Quiver: I took my Energy back out of the Capacitor. My next Storm
-## Arrows cost nothing and ignore the cooldown, one stack each.
-func _load_quiver() -> void:
-	var arrows := int(round(_talent("lightning_loaded_quiver")))
-	if arrows <= 0:
-		return
-	var arrow_name := Abilities.ability_name(STORM_ARROW_ID)
-	var fx := StatusContainer.make_buff(LOADED_QUIVER_FX, "Loaded Quiver", LOADED_QUIVER_FX, 0.0,
-		Balance.LOADED_QUIVER_TIME, arrows, Abilities.color_of(STORM_ARROW_ID))
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Lightning"])
-	fx.description = "Your next %s costs no Energy and ignores its cooldown, one stack each." % arrow_name
-	status.remove(LOADED_QUIVER_FX)
-	if status.apply(fx, self):
-		status.set_stacks(LOADED_QUIVER_FX, arrows)
-
-## Snap Shot: I Flickered. Storm Arrow is ready again, and the next one costs less.
-func _snap_shot() -> void:
-	var less := _talent("lightning_snap_shot")
-	if less <= 0.0:
-		return
-	cooldowns.erase(STORM_ARROW_ID)
-	var fx := StatusContainer.make_buff(SNAP_SHOT_FX, "Snap Shot", SNAP_SHOT_FX, 0.0,
-		Balance.SNAP_SHOT_TIME, 1, Abilities.color_of(STORM_ARROW_ID))
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Lightning"])
-	fx.description = "Your next %s costs %s less Energy." % [Abilities.ability_name(STORM_ARROW_ID), Stats.num(less)]
-	status.apply(fx, self)
-
-## A Storm Arrow left the bow; it had `cd_before` seconds of cooldown left when
-## I let go (only a Loaded Quiver arrow can have any). A Loaded Quiver arrow
-## uses a stack and leaves the cooldown as it was; otherwise Snap Shot's
-## cheaper arrow is used up.
-func _storm_arrow_fired(cd_before: float) -> void:
-	if status.has(LOADED_QUIVER_FX):
-		status.spend_stacks(LOADED_QUIVER_FX, 1)
-		if cd_before > 0.0:
-			cooldowns[STORM_ARROW_ID] = cd_before
-		else:
-			cooldowns.erase(STORM_ARROW_ID)
-	elif status.has(SNAP_SHOT_FX):
-		status.remove(SNAP_SHOT_FX)
-
-## Lightning Rod: damage each arc deals when a Lightning Bolt hit for `amount`,
-## at `pct` % of it, with `count` enemies around (more than AOE_TARGET_CAP share
-## that many arcs).
-static func lightning_rod_damage(amount: int, pct: float, count: int = 1) -> float:
-	return maxf(float(amount) * maxf(pct, 0.0) / 100.0, 0.0) * Balance.aoe_share(count)
-
-## Lightning Rod: my Lightning Bolt hit a target with MY Storm Arrow stuck in it
-## (own only). An exact share of the hit arcs to the enemies around it: dealt as
-## procs, so the arcs feed nothing else and their crit is already in the hit.
-func _lightning_rod_arc(info: RefCounted) -> void:
-	var pct := _talent("lightning_rod")
-	if pct <= 0.0 or bool(info.is_proc) or bool(info.is_dot) or int(info.amount) <= 0:
-		return
-	var foe: Node = info.target
-	var st: Node = foe.get_node_or_null("Status")
-	if st == null or not st.has_from(ROD_FX, self):
-		return
-	var near := _enemies_near(foe.global_position, Balance.LIGHTNING_ROD_RADIUS, foe)
-	var each := lightning_rod_damage(int(info.amount), pct, near.size())
-	for e in near:
-		if not is_instance_valid(e) or not e.is_alive():
-			continue
-		var arc := DamageInfo.make(self, e, 1.0, ROD_FX)
-		arc.unit = each
-		arc.exact = true
-		arc.add_power = false
-		arc.can_crit = false
-		arc.can_block = false
-		arc.is_proc = true
-		arc.damage_type = "lightning"
-		arc.tags = PackedStringArray(["Lightning", "Spell"])
-		_combat().deal(arc)
-		_ring_effect(0.6, Abilities.color_of(STORM_ARROW_ID), e.global_position)
-const LIVE_WIRE = preload("res://scripts/live_wire.gd")
-const THUNDERHEAD = preload("res://scripts/thunderhead.gd")
-## Seconds after Live Wire lands before a missing effect counts as "it ran out"
-## (in a party the effect comes back from the host a moment later).
-const WIRE_GRACE := 1.0
-var _wire_target: Node3D        # the enemy my Live Wire is on
-var _wire_line: Node3D          # its picture
-var _wire_since := 0.0          # when it landed (seconds)
-var _flicker_cast := false      # the current Lightning Bolt cast is Flicker's instant one
-var _overture_cast := false     # the current cast is the Overture's instant one (Holy healer rune)
-var _capacitor_stored := 0.0    # Energy put aside in the Capacitor
-
-# --- Rune of Bottled Lightning, and the talents Standing Charge, Whip Crack and Storm Cycle ---
-const BOTTLED_RUNE := "bottled_lightning"
-const BOTTLED_FX := "bottled_lightning"
-const STANDING_FX := "standing_charge"
-const WHIP_CRACK_FX := "whip_crack"
-const STORM_CYCLE_FX := "storm_cycle"
-var _bottled_cast := false      # the current Discharge cast is the instant one (Rune of Bottled Lightning)
-var _standing_fx: Resource
-var _standing_t := 0.0          # seconds planted since the last Standing Charge stack
-var _cycle_spent := 0.0         # Energy spent toward the next Storm Cycle
-
-## Is `spell` the Discharge that the Rune of Bottled Lightning makes instant?
-func bottled_ready(spell: String) -> bool:
-	return spell == DISCHARGE_ID and status != null and status.has(BOTTLED_FX)
-
-## I took my Energy back out of the Capacitor: with the rune, my next Discharge is instant.
-func _bottle_lightning() -> void:
-	if not _has_rune(BOTTLED_RUNE):
-		return
-	var fx := StatusContainer.make_buff(BOTTLED_FX, "Bottled Lightning", BOTTLED_FX, 0.0,
-		Balance.BOTTLED_LIGHTNING_TIME, 1, Abilities.color_of(DISCHARGE_ID))
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Lightning"])
-	fx.description = "Your next %s is instant." % Abilities.ability_name(DISCHARGE_ID)
-	status.apply(fx, self)
-
-## Standing Charge's buff at `pct` % Lightning damage per stack (rebuilt when the rank changes).
-func _standing_buff(pct: float) -> Resource:
-	if _standing_fx == null or not is_equal_approx(float(_standing_fx.stat_modifiers.get(STANDING_FX, 0.0)), pct):
-		_standing_fx = StatusContainer.make_buff(STANDING_FX, "Standing Charge", STANDING_FX, pct,
-			Balance.GROUNDING_SURGE_TIME + 1.0, Balance.STANDING_CHARGE_MAX_STACKS, Abilities.color_of(SURGE_ID))
-		_standing_fx.tags = PackedStringArray(["Lightning"])
-		_standing_fx.description = "Your Lightning damage is increased by %s%% per stack. Lost when %s ends." % [
-			Stats.num(pct), Abilities.ability_name(SURGE_ID)]
-	return _standing_fx
-
-## Every frame: planted in Grounding Surge, Standing Charge adds a stack each
-## STANDING_CHARGE_EVERY seconds; the moment the Surge ends they are all gone.
-func _tick_standing_charge(delta: float) -> void:
-	if status == null:
-		return
-	if not surge_active():
-		_standing_t = 0.0
-		if status.has(STANDING_FX):
-			status.remove(STANDING_FX)
-		return
-	var pct := _talent("lightning_standing_charge")
-	if pct <= 0.0:
-		return
-	_standing_t += delta
-	if _standing_t >= Balance.STANDING_CHARGE_EVERY:
-		_standing_t -= Balance.STANDING_CHARGE_EVERY
-		status.apply(_standing_buff(pct), self)
-
-## % more Lightning damage Standing Charge gives me right now.
-func standing_charge_bonus() -> float:
-	return status.stat_mod(STANDING_FX) if status != null else 0.0
-
-## Whip Crack: did a Whiplash from `distance` metres away earn it?
-static func whip_crack_applies(distance: float) -> bool:
-	return distance > Balance.WHIP_CRACK_DISTANCE
-
-## Energy Static Step costs with Whip Crack taking `less` off it (never below 0).
-static func whip_crack_cost(cost: float, less: float) -> float:
-	return maxf(cost - maxf(less, 0.0), 0.0)
-
-## Whip Crack: my Whiplash landed from far away. Static Step is ready again,
-## and the next one costs less.
-func _whip_crack() -> void:
-	var less := _talent("lightning_whip_crack")
-	if less <= 0.0:
-		return
-	cooldowns.erase(STATIC_STEP_ID)
-	var fx := _melee_buff(WHIP_CRACK_FX, WHIPLASH_ID, Balance.WHIP_CRACK_TIME,
-		"Your next %s costs %s less Energy." % [Abilities.ability_name(STATIC_STEP_ID), Stats.num(less)])
-	fx.display_name = "Whip Crack"
-	status.apply(fx, self)
-
-## Storm Cycle: `spent` Energy counted so far plus `amount` more, against a cycle
-## of `need`: [Energy carried into the next cycle, did a cycle complete].
-static func storm_cycle_step(spent: float, amount: float, need: float) -> Array:
-	if need <= 0.0:
-		return [0.0, false]
-	var total := spent + maxf(amount, 0.0)
-	if total + 0.0001 >= need:
-		return [minf(total - need, need), true]
-	return [total, false]
-
-## Is my next Energy cost free (Storm Cycle)?
-func storm_cycle_ready() -> bool:
-	return status != null and status.has(STORM_CYCLE_FX)
-
-## I spent `amount` Energy: Storm Cycle counts it, and a full cycle makes my next Energy cost free.
-func _storm_cycle_spent(amount: float) -> void:
-	var need := _talent("lightning_storm_cycle")
-	if need <= 0.0 or amount <= 0.0 or status == null:
-		return
-	var step := storm_cycle_step(_cycle_spent, amount, need)
-	_cycle_spent = float(step[0])
-	if bool(step[1]):
-		var fx := StatusContainer.make_buff(STORM_CYCLE_FX, "Storm Cycle", STORM_CYCLE_FX, 0.0,
-			Balance.STORM_CYCLE_TIME, 1, Abilities.color_of(DISCHARGE_ID))
-		fx.stat_modifiers = {}
-		fx.tags = PackedStringArray(["Lightning"])
-		fx.description = "Your next Energy cost is free."
-		status.apply(fx, self)
-
-## My hits and ticks, for the Lightning kit (SignalBus.damage_dealt).
-func _on_damage_dealt_lightning(info: RefCounted) -> void:
-	if not is_same(info.source, self) or info.avoided() or not is_instance_valid(info.target):
-		return
-	var id := str(info.ability_id)
-	_conductor(info, id)   # Conductor: Lightning crits give Energy back
-	if id == "auto_melee" or id == "auto_ranged":
-		_on_auto_landed(info)   # Twin Current, Overdrive
-	elif id == "lightningbolt":
-		_lightning_rod_arc(info)   # Lightning Rod: it arcs off a target with my Storm Arrow in it
-	elif id == LIVE_WIRE_ID:
-		_wire_landed(info.target)
-	elif id == "dot_" + LIVE_WIRE_FX:
-		_gain("energy", Balance.LIVE_WIRE_ENERGY)   # every tick of the tether gives Energy back
-
-## My Live Wire landed on `foe`: the tether is on it now, and off anyone else.
-func _wire_landed(foe: Node) -> void:
-	if not (foe is Node3D):
-		return
-	if is_instance_valid(_wire_target) and _wire_target != foe:
-		_drop_wire_effect(_wire_target)   # only one tether at a time
-	_wire_target = foe
-	_wire_since = Time.get_ticks_msec() / 1000.0
-	var fx: Resource = Abilities.get_resource(LIVE_WIRE_ID).on_hit_effect
-	var time := float(fx.duration) if fx else 10.0
-	_wire_line = LIVE_WIRE.spawn(get_tree().current_scene, self, foe, time + WIRE_GRACE, "me")
-	_net_fx(LIVE_WIRE_ID, global_position, foe, {"time": time})   # the party sees the line
-
-## Take my Live Wire off `foe` (in a party the host owns enemy effects).
-func _drop_wire_effect(foe: Node) -> void:
-	var net := _net()
-	if net:
-		net.remove_effect(foe, self, LIVE_WIRE_FX)
-	else:
-		var st: Node = foe.get_node_or_null("Status")
-		if st:
-			st.remove_from(LIVE_WIRE_FX, self)
-
-## Is a tether to an enemy `distance` metres away broken?
-static func wire_breaks(distance: float) -> bool:
-	return distance > Balance.LIVE_WIRE_RANGE
-
-## Every frame: the tether ends when its target dies, when the effect has run its
-## time, or when I move too far away (that takes the effect off too).
-func _tick_live_wire() -> void:
-	if _wire_target == null:
-		return
-	var gone: bool = not is_instance_valid(_wire_target) or not _wire_target.is_alive() or is_dead()
-	if not gone:
-		var st: Node = _wire_target.get_node_or_null("Status")
-		var since := Time.get_ticks_msec() / 1000.0 - _wire_since
-		if since > WIRE_GRACE and (st == null or not st.has_from(LIVE_WIRE_FX, self)):
-			gone = true
-		elif wire_breaks(global_position.distance_to(_wire_target.global_position)):
-			_drop_wire_effect(_wire_target)
-			gone = true
-	if gone:
-		_wire_target = null
-		if is_instance_valid(_wire_line):
-			_wire_line.vanish()
-		_wire_line = null
-
-## Thunderhead: the circle was clicked, the cast starts.
-func _start_thunderhead(point: Vector3) -> void:
-	if casting or not is_on_floor():
-		return
-	if not can_afford(THUNDERHEAD_ID, true):
-		return
-	cast_point = point
-	var res := Abilities.get_resource(THUNDERHEAD_ID)
-	_begin_spell(THUNDERHEAD_ID, str(res.display_name), float(res.cast_time))
-
-func _raise_thunderhead() -> void:
-	var res := Abilities.get_resource(THUNDERHEAD_ID)
-	cooldowns[THUNDERHEAD_ID] = Abilities.cooldown_of(res)
-	var tick := maxf(Balance.THUNDERHEAD_TICK / haste_mult(), 0.1)   # strikes come faster with Haste
-	THUNDERHEAD.spawn(get_tree().current_scene, cast_point, float(res.radius), Balance.THUNDERHEAD_TIME, tick,
-		self, float(res.damage))
-	# The party sees the cloud; its damage comes from here.
-	_net_fx(THUNDERHEAD_ID, cast_point, null, {"r": float(res.radius), "time": Balance.THUNDERHEAD_TIME, "tick": tick})
-
-## Damage coefficients of a Forked Bolt's hits: two prongs of `damage` when there
-## is a second enemy to fork to, one bigger hit when there isn't.
-static func forked_bolt_hits(damage: float, has_other: bool) -> Array[float]:
-	var out: Array[float] = []
-	if has_other:
-		out.append(damage)
-		out.append(damage)
-	else:
-		out.append(Balance.FORKED_BOLT_SOLO)
-	return out
-
-## Forked Bolt's cast finished: the target, and the nearest other enemy in reach of it.
-func _forked_bolt(tgt: Node3D) -> void:
-	var res := Abilities.get_resource(FORKED_BOLT_ID)
-	var near := _enemies_near(tgt.global_position, float(res.radius), tgt)
-	var hits := forked_bolt_hits(float(res.damage), not near.is_empty())
-	var scene := get_tree().current_scene
-	FROST_BOLT.spawn(scene, _muzzle(), tgt, self, false, FORKED_BOLT_ID, hits[0])
-	if hits.size() > 1:
-		# (The second prong is dealt as a proc, so one cast counts once for
-		# anything that counts casts: Static, runes that count hits.)
-		FROST_BOLT.spawn(scene, _muzzle(), near[0], self, true, FORKED_BOLT_ID, hits[1])
-
-## Flicker: a blink (it stops short of walls) that makes my next Lightning Bolt instant.
-func _flicker() -> void:
-	var col := Abilities.color_of(FLICKER_ID)
-	var from := global_position
-	global_position += _flat_forward() * _dash_distance(Balance.FLICKER_DISTANCE + _talent("arcane_long_step"))   # Long Step
-	_ring_effect(0.8, col, from)
-	_ring_effect(0.8, col)
-	_parting_spark(from)   # Parting Spark: a zap around the spot I left
-	_snap_shot()           # Snap Shot: Storm Arrow is ready again, and cheaper
-	arcane_caster._leave_afterimage(from)   # Rune of the Afterimage
-	var fx := StatusContainer.make_buff(FLICKER_FX, Abilities.ability_name(FLICKER_ID), FLICKER_FX, 0.0,
-		Balance.FLICKER_TIME, 1, col)
-	fx.stat_modifiers = {}
-	fx.description = "Your next %s is instant." % Abilities.ability_name("lightningbolt")
-	status.apply(fx, self)
-
-## Parting Spark: Flicker zaps the enemies around the spot it left (a proc: it
-## feeds nothing else). More than AOE_TARGET_CAP enemies share that many hits.
-func _parting_spark(from: Vector3) -> void:
-	var coef := _talent("lightning_parting_spark")
-	if coef <= 0.0:
-		return
-	var hit := _enemies_near(from, Balance.PARTING_SPARK_RADIUS)
-	if hit.is_empty():
-		return
-	coef *= Balance.aoe_share(hit.size())
-	for e in hit:
-		if is_instance_valid(e) and e.is_alive():
-			deal_damage(e, coef, PARTING_SPARK_ID, true, "lightning", PackedStringArray(["Lightning", "Spell"]))
-	_ring_effect(Balance.PARTING_SPARK_RADIUS, Abilities.color_of(FLICKER_ID), from)
-
-## Energy that doesn't fit when the Capacitor gives `stored` back to a bar with
-## `room` left in it.
-static func capacitor_overflow(stored: float, room: float) -> float:
-	return maxf(stored - maxf(room, 0.0), 0.0)
-
-## Overflow: the shield (as a coefficient: 1.0 = a standard hit's worth of
-## health) that `energy` turns into at `per` per ENERGY_STEP Energy.
-static func overflow_coef(energy: float, per: float) -> float:
-	return maxf(per, 0.0) * maxf(energy, 0.0) / Balance.ENERGY_STEP
-
-## Overflow: Energy the Capacitor couldn't give back becomes a shield on me. It
-## never stacks, and never shrinks a bigger one that is still up.
-func _overflow(energy: float) -> void:
-	var coef := overflow_coef(energy, _talent("lightning_overflow"))
-	if coef <= 0.0:
-		return
-	var amount := int(round(_combat().heal_amount(self, coef, CAPACITOR_ID) * absorb_mult()))
-	if amount <= 0:
-		return
-	var fx := StatusContainer.make_buff(OVERFLOW_FX, "Overflow", CAPACITOR_FX, 0.0,
-		Balance.OVERFLOW_TIME, 1, Abilities.color_of(CAPACITOR_ID))
-	var armor := _talent("frost_shield_armor")   # Hardened Frost: my shields add armor
-	fx.stat_modifiers = {"armor%": armor} if armor > 0.0 else {}
-	fx.tags = PackedStringArray(["Lightning"])
-	fx.description = "A shield of Energy that didn't fit absorbs damage."
-	var total := maxi(int(status.absorb_left(OVERFLOW_FX)), amount)
-	if status.apply(fx, self):
-		status.set_absorb(OVERFLOW_FX, total)
-
-## Is `spell` the Lightning Bolt that Flicker makes instant?
-func flicker_ready(spell: String) -> bool:
-	return spell == "lightningbolt" and status != null and status.has(FLICKER_FX)
-
-## Energy the Capacitor takes out of a bar holding `energy`.
-static func capacitor_takes(energy: float) -> float:
-	return clampf(energy, 0.0, Balance.CAPACITOR_MAX)
-
-## Capacitor: instant and off the global cooldown. The first use puts my Energy
-## aside; using it again while it holds gives the Energy back (what doesn't fit
-## in the bar is lost). Left alone, what it holds is lost when it runs out.
-func _capacitor() -> void:
-	var col := Abilities.color_of(CAPACITOR_ID)
-	if status.has(CAPACITOR_FX):
-		var room := resource_max("energy") - float(resources["energy"])
-		_gain("energy", _capacitor_stored)
-		_overflow(capacitor_overflow(_capacitor_stored, room))   # Overflow: what didn't fit becomes a shield
-		_capacitor_stored = 0.0
-		status.remove(CAPACITOR_FX)
-		_bottle_lightning()   # Rune of Bottled Lightning: my next Discharge is instant
-		_load_quiver()        # Loaded Quiver: my next Storm Arrows are free
-		_ring_effect(0.8, col)
-		return
-	if float(cooldowns.get(CAPACITOR_ID, 0.0)) > 0.0:
-		_error("%s is not ready yet" % Abilities.ability_name(CAPACITOR_ID))
-		return
-	var take := capacitor_takes(float(resources["energy"]))
-	if take < 1.0:
-		_error("No Energy to store")
-		return
-	var res := Abilities.get_resource(CAPACITOR_ID)
-	cooldowns[CAPACITOR_ID] = Abilities.cooldown_of(res)
-	resources["energy"] = float(resources["energy"]) - take
-	_capacitor_stored = take
-	var fx := StatusContainer.make_buff(CAPACITOR_FX, str(res.display_name), CAPACITOR_FX, 0.0,
-		Balance.CAPACITOR_TIME, 1, col)
-	fx.stat_modifiers = {}
-	fx.description = "Holds %d Energy. Use %s again to take it back." % [int(round(take)), str(res.display_name)]
-	status.apply(fx, self)
-	_ring_effect(1.0, col)
-	_bus().cast_finished.emit(CAPACITOR_ID)
-
-# --- Fire and Lightning: the open talents ---------------------------------------------------
-# Talents of those two books that work with every book's spells and abilities.
-# Fire: Feed the Flames (direct hits hurt more what carries one of my damage
-# over time effects), Last Ember (such an effect that runs its full time ticks
-# once more: StatusContainer asks dot_last_tick_pct), Tempered (a block gives
-# Armor for a while). Lightning: Spillover (part of a critical strike jumps to
-# another enemy), Change of Pace (using a different spell or ability than the
-# last one builds damage), Dig In (standing still for a moment gives damage
-# until I move). Numbers: balance.gd and talents.gd.
-
-const SPILLOVER_ID := "spillover"
-const TEMPERED_FX := "tempered"
-const PACE_FX := "change_of_pace"
-const DIG_IN_FX := "dig_in"
-
-var _tempered_fx: Resource
-var _pace_fx: Resource
-var _pace_last := ""           # the spell / ability I used last (Change of Pace)
-var _dig_pos := Vector3.INF    # where I stopped (Dig In)
-var _dig_still := 0.0          # ... and for how long I have stood there
-var _dig_asked := false        # ... and whether the talent was looked up for this stop
-
-## Can part of this hit spill over to another enemy? A critical strike that is
-## a direct hit: never damage over time, a proc or a hit that did nothing.
-static func spills_over(crit: bool, is_proc: bool, is_dot: bool, amount: int) -> bool:
-	return crit and not is_proc and not is_dot and amount > 0
-
-## Damage of the share of a hit of `amount` that spills over (`pct` % of it).
-static func spillover_amount(amount: int, pct: float) -> int:
-	return int(round(maxf(float(amount), 0.0) * maxf(pct, 0.0) / 100.0))
-
-## % more damage Change of Pace gives: `per` % for each of its `stacks`.
-static func change_of_pace_pct(per: float, stacks: int) -> float:
-	return maxf(per, 0.0) * clampi(stacks, 0, Balance.CHANGE_OF_PACE_STACKS)
-
-## Change of Pace's stacks after using `used` when the last one used was `last`
-## and I had `stacks`: one more (up to the most) for a different one, none for
-## the same one again.
-static func change_of_pace_after(stacks: int, last: String, used: String) -> int:
-	if used == last:
-		return 0
-	return mini(maxi(stacks, 0) + 1, Balance.CHANGE_OF_PACE_STACKS)
-
-## Has standing still for `still` seconds dug me in?
-static func dug_in(still: float) -> bool:
-	return still >= Balance.DIG_IN_TIME
-
-## Have I moved from `anchor` (where I stopped) to `now`? A shift within
-## DIG_IN_SLACK does not count.
-static func dig_in_moved(anchor: Vector3, now: Vector3) -> bool:
-	return anchor == Vector3.INF or anchor.distance_to(now) > Balance.DIG_IN_SLACK
-
-## % of a tick a damage over time effect of mine deals once more when it runs
-## its full time (StatusContainer asks). Last Ember.
-func dot_last_tick_pct(_res: Resource = null) -> float:
-	return _talent("fire_last_ember")
-
-## A hit of mine, before its damage is worked out (_on_damage_modify): Feed the
-## Flames, Change of Pace, Dig In.
-func _open_talents_modify(info: RefCounted) -> void:
-	# Feed the Flames: my direct hits on something carrying one of my damage over time effects.
-	if not bool(info.is_dot) and info.target != null and is_instance_valid(info.target) and info.target is Node:
-		var feed := _talent("fire_feed_the_flames")
-		if feed > 0.0:
-			var st: Node = info.target.get_node_or_null("Status")
-			if st != null and st.has_method("has_dot_from") and st.has_dot_from(self):
-				info.add_bonus(feed, "Feed the Flames")
-	if status == null:
-		return
-	# Change of Pace: for each stack.
-	var pace_stacks: int = status.stacks_of(PACE_FX)
-	if pace_stacks > 0:
-		var pace := change_of_pace_pct(_talent("lightning_change_of_pace"), pace_stacks)
-		if pace > 0.0:
-			info.add_bonus(pace, "Change of Pace")
-	# Dig In: while I stand where I stopped.
-	if status.has(DIG_IN_FX):
-		var dig := _talent("lightning_dig_in")
-		if dig > 0.0:
-			info.add_bonus(dig, "Dig In")
-
-## Every hit I deal (_on_damage_dealt_arcane). Spillover: part of a critical
-## strike jumps to the nearest other enemy (exact: the crit and every modifier
-## are already in it; a proc with its own line on the meter, so it never spills on).
-func _spillover_talent(info: RefCounted, id: String, amount: int) -> void:
-	if not spills_over(bool(info.crit), bool(info.is_proc), bool(info.is_dot), amount) or not (info.target is Node3D):
-		return
-	var pct := _talent("lightning_spillover")
-	if pct <= 0.0:
-		return
-	var from: Vector3 = (info.target as Node3D).global_position
-	var near := _enemies_near(from, Balance.SPILLOVER_RADIUS, info.target)
-	if near.is_empty():
-		return
-	var foe: Node3D = near[0]
-	var spill := spillover_amount(amount, pct)
-	if spill <= 0:
-		return
-	# A spark flies from the one that was hit to the one it jumps to.
-	var look := id if Abilities.PATHS.has(id) else "lightningbolt"
-	FROST_BOLT.spawn(get_tree().current_scene, from + Vector3(0, 0.3, 0), foe, null, true, look, 0.0)
-	var net := _net()
-	if net:
-		net.send_fx("bolt", from + Vector3(0, 0.3, 0), foe, look)
-	var damage_type := str(info.damage_type)
-	var tags: PackedStringArray = info.tags
-	var wait := from.distance_to(foe.global_position) / maxf(Balance.BOLT_SPEED, 1.0)
-	get_tree().create_timer(maxf(wait, 0.02)).timeout.connect(func():
-		if is_alive():
-			arcane_caster._exact_hit(foe, spill, SPILLOVER_ID, damage_type, tags))
-
-## Something hit me (_on_hit_taken). Tempered: an attack I blocked gives me Armor for a while.
-func _tempered(info: RefCounted) -> void:
-	if not bool(info.blocked) or bool(info.is_dot) or status == null:
-		return
-	var pct := _talent("fire_tempered")
-	if pct <= 0.0:
-		return
-	if _tempered_fx == null or not is_equal_approx(float(_tempered_fx.stat_modifiers.get(Stats.ARMOR + Stats.PCT, 0.0)), pct):
-		_tempered_fx = StatusContainer.make_buff(TEMPERED_FX, "Tempered", Stats.ARMOR + Stats.PCT, pct,
-			Balance.TEMPERED_TIME, Balance.TEMPERED_STACKS, Color(1.0, 0.6, 0.3))
-		_tempered_fx.description = "More Armor from each attack you blocked."
-	status.apply(_tempered_fx, self)
-
-## I finished casting / using `id` (SignalBus.cast_finished). Change of Pace: a
-## different spell or ability than the last one adds a stack; the same one again
-## ends it.
-func _change_of_pace(id: String) -> void:
-	if not Abilities.PATHS.has(id):
-		return
-	var last := _pace_last
-	_pace_last = id
-	if status == null:
-		return
-	var per := _talent("lightning_change_of_pace")
-	if per <= 0.0:
-		return
-	if change_of_pace_after(status.stacks_of(PACE_FX), last, id) <= 0:
-		status.remove(PACE_FX)
-		return
-	if _pace_fx == null:
-		_pace_fx = StatusContainer.make_buff(PACE_FX, "Change of Pace", PACE_FX, 0.0, Balance.CHANGE_OF_PACE_TIME,
-			Balance.CHANGE_OF_PACE_STACKS, Color(0.6, 0.8, 1.0))
-		_pace_fx.stat_modifiers = {}
-		_pace_fx.description = "You deal more damage. Using the same spell or ability twice in a row ends it."
-	status.apply(_pace_fx, self)   # (one more stack; every stack lasts its full time again)
-
-## Dig In (_process): standing still for a moment digs me in until I move.
-func _tick_dig_in(delta: float) -> void:
-	if dig_in_moved(_dig_pos, global_position):
-		_dig_pos = global_position
-		_dig_still = 0.0
-		_dig_asked = false
-		if status != null and status.has(DIG_IN_FX):
-			status.remove(DIG_IN_FX)
-		return
-	_dig_still += delta
-	if _dig_asked or not dug_in(_dig_still) or status == null or not is_alive():
-		return
-	_dig_asked = true   # (the talent is looked up once for each time I stop)
-	if _talent("lightning_dig_in") <= 0.0:
-		return
-	var fx := StatusContainer.make_buff(DIG_IN_FX, "Dig In", DIG_IN_FX, 0.0, 3600.0, 1, Color(0.6, 0.8, 1.0))
-	fx.stat_modifiers = {}
-	fx.description = "You deal more damage until you move."
-	status.apply(fx, self)
-
-# --- Lightning melee ------------------------------------------------------------------------
-# The Energy bar with a weapon. Charged Edge and Whiplash give Energy; Arc
-# Cleave, Cadence, Twin Current, Static Step and Reflex Arc spend it; Overdrive
-# only lasts while the bar is kept low; Faraday Guard takes hits out of it.
-# Polar Strike is taught by the Rune of Polarity. Numbers are in balance.gd.
-
-const OVERDRIVE_ID := "overdrive"
-const OVERDRIVE_FX := "overdrive"
-const TWIN_CURRENT_ID := "twincurrent"
-const TWIN_CURRENT_FX := "twin_current"
-const STATIC_STEP_ID := "staticstep"
-const STATIC_STEP_FX := "static_step"
-const BACK_CURRENT_ID := "backcurrent"
-const BACK_CURRENT_FX := "back_current"
-const CADENCE_ID := "cadence"
-const CADENCE_FX := "cadence"
-const SPLIT_SECOND_ID := "splitsecond"
-const SPLIT_SECOND_FX := "split_second"
-const WHIPLASH_ID := "whiplash"
-const FARADAY_ID := "faradayguard"
-const FARADAY_FX := "faraday_guard"
-const REFLEX_ID := "reflexarc"
-const REFLEX_FX := "reflex_arc"
-const POLAR_ID := "polarstrike"
-const POLARITY_FX := "polarity"
-## Names of the modifiers these put on a hit (the damage meter's lines, and how
-## _on_hit_taken knows a hit on me was changed by them).
-const STATIC_STEP_LABEL := "Static Step"
-const POLARITY_LABEL := "Polarity"
-const FARADAY_LABEL := "Faraday Guard"
-const REFLEX_LABEL := "Reflex Arc"
-## A modifier this size takes a hit down to nothing.
-const AVOID_PCT := 1000.0
-## Instant abilities taught by runes (used like the drafted ones).
-const RUNE_INSTANTS := [POLAR_ID]
-const LASH = preload("res://scripts/lash.gd")
-var _polar_positive := false   # the charge my last Polar Strike left
-var _charges_used := {}        # "your next weapon ability" buffs used this frame (gone at its end)
-
-## A buff of this kit: no stats of its own, a marker with a text.
-func _melee_buff(fx_id: String, ability_id: String, time: float, text: String, stacks: int = 1) -> Resource:
-	var fx := StatusContainer.make_buff(fx_id, Abilities.ability_name(ability_id), fx_id, 0.0, time, stacks,
-		Abilities.color_of(ability_id))
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Lightning"])
-	fx.description = text
-	return fx
-
-## Is this a melee attack (what Reflex Arc avoids and Back-Current answers)?
-## Never damage over time.
-static func is_melee_attack(tags: PackedStringArray, is_dot: bool) -> bool:
-	return not is_dot and tags.has("Melee")
-
-## The percent a modifier named `label` put on a hit (0 if it carries none).
-static func bonus_named(parts: Array, label: String) -> float:
-	var total := 0.0
-	for p in parts:
-		if p is Array and p.size() >= 2 and str(p[0]) == label:
-			total += float(p[1])
-	return total
-
-## Arc Cleave: everything around me is hit; more than AOE_TARGET_CAP enemies
-## share that many hits' damage.
-func _arc_cleave(w: Dictionary, res: Resource) -> void:
-	var col := Abilities.color_of(str(res.id))
-	var hit := _enemies_within(float(res.radius))
-	var coef := _weapon_hit(w, res) * Balance.aoe_share(hit.size())
-	for e in hit:
-		if is_instance_valid(e) and e.is_alive():
-			deal_damage(e, coef, str(res.id))
-	for i in 2:
-		_slash_effect(col)
-	_ring_effect(float(res.radius), col)
-
-# Overdrive: faster auto-attacks that zap and give Energy, for as long as the
-# Energy is spent again. It cannot start above the limit and ends above it.
-
-## Energy above which Overdrive cannot be used and ends: a share of the bar
-## (`max_energy`: bigger with Deep Reserves).
-static func overdrive_limit(max_energy: float = Balance.RESOURCE_MAX) -> float:
-	return max_energy * Balance.OVERDRIVE_ENERGY_LIMIT_PCT / 100.0
-
-## Does Overdrive allow this much Energy? (Exactly the limit is fine.)
-static func overdrive_holds(energy: float, max_energy: float = Balance.RESOURCE_MAX) -> bool:
-	return energy <= overdrive_limit(max_energy) + 0.0001
-
-# Lightning talents (the numbers per rank are in talents.gd).
-
-## Energy per second at `base`, regenerating `pct`% faster (Quick Charge).
-static func energy_regen(base: float, pct: float) -> float:
-	return base * (1.0 + maxf(pct, 0.0) / 100.0)
-
-## Running on Empty: does this hit of mine get it? Lightning damage of a spell or
-## an ability, while I hold less than RUNNING_ON_EMPTY_ENERGY Energy.
-static func running_on_empty(damage_type: String, tags: PackedStringArray, energy: float) -> bool:
-	return damage_type == "lightning" and (tags.has("Spell") or tags.has("Ability")) \
-		and energy < Balance.RUNNING_ON_EMPTY_ENERGY
-
-## Running Start: did a Static Step of `metres` carry me far enough?
-static func running_start_applies(metres: float) -> bool:
-	return metres >= Balance.RUNNING_START_DISTANCE - 0.001
-
-## Seconds Redline adds to an Overdrive it already made `added` seconds longer,
-## at `per` seconds a spender: never past REDLINE_MAX in total.
-static func redline_add(per: float, added: float) -> float:
-	return clampf(per, 0.0, maxf(Balance.REDLINE_MAX - added, 0.0))
-
-var _overdrive_added := 0.0    # seconds Redline has added to the running Overdrive
-var _cadence_third := false    # the hits being dealt are Cadence's third strike (Third Beat)
-
-## Redline: an ability of mine just spent Energy. With Overdrive up it lasts longer.
-func _redline() -> void:
-	var per := _talent("lightning_redline")
-	if per <= 0.0 or status == null or not status.has(OVERDRIVE_FX):
-		return
-	var add := redline_add(per, _overdrive_added)
-	if add <= 0.0:
-		return
-	_overdrive_added += add
-	status.set_remaining(OVERDRIVE_FX, status.remaining_of(OVERDRIVE_FX) + add)
-
-## Seconds between the auto-attacks of a weapon with `interval`, at `haste`
-## (haste_mult), with Overdrive up or not.
-## `attack_speed_pct` = % faster from attack speed buffs (Tempo), on top of both.
-static func auto_interval(interval: float, haste: float, overdriven: bool, attack_speed_pct: float = 0.0) -> float:
-	var speed := maxf(haste, 0.01)
-	if overdriven:
-		speed *= 1.0 + Balance.OVERDRIVE_SPEED_PCT / 100.0
-	speed *= 1.0 + maxf(attack_speed_pct, 0.0) / 100.0
-	return interval / speed
-
-func overdrive_active() -> bool:
-	return status != null and status.has(OVERDRIVE_FX)
-
-func _start_overdrive() -> void:
-	var col := Abilities.color_of(OVERDRIVE_ID)
-	_overdrive_added = 0.0
-	status.apply(_melee_buff(OVERDRIVE_FX, OVERDRIVE_ID, Balance.OVERDRIVE_TIME,
-		"Your auto-attacks are %s%% faster; each one that lands zaps the target and gives you %s Energy. Ends the moment you have more than %s Energy." % [
-			Stats.num(Balance.OVERDRIVE_SPEED_PCT), Stats.num(Balance.OVERDRIVE_ENERGY), Stats.num(overdrive_limit(resource_max("energy")))]), self)
-	_slash_effect(col)
-	_ring_effect(1.2, col)
-
-## Every frame: Overdrive ends the moment I hold more Energy than it allows.
-func _tick_overdrive() -> void:
-	if status != null and status.has(OVERDRIVE_FX) \
-			and not overdrive_holds(float(resources["energy"]), resource_max("energy")):
-		status.remove(OVERDRIVE_FX)
-
-## Lightning damage Twin Current adds to an auto-attack that dealt `amount`.
-static func twin_current_damage(amount: int) -> float:
-	return maxf(float(amount) * Balance.TWIN_CURRENT_PCT / 100.0, 0.0)
-
-## Twin Current: a fresh set of charges (never more than TWIN_CURRENT_HITS).
-func _start_twin_current() -> void:
-	var col := Abilities.color_of(TWIN_CURRENT_ID)
-	status.remove(TWIN_CURRENT_FX)
-	status.apply(_melee_buff(TWIN_CURRENT_FX, TWIN_CURRENT_ID, Balance.TWIN_CURRENT_TIME,
-		"Your next auto-attacks hit a second time for %s%% of their damage as Lightning damage, one stack each." % Stats.num(Balance.TWIN_CURRENT_PCT),
-		Balance.TWIN_CURRENT_HITS), self)
-	status.set_stacks(TWIN_CURRENT_FX, Balance.TWIN_CURRENT_HITS)
-	for i in 2:
-		_slash_effect(col)
-
-## An auto-attack of mine landed (SignalBus.damage_dealt). Twin Current repeats
-## part of it: an exact share of the swing (its crit is already in it), dealt
-## as a proc so it feeds nothing else. Overdrive zaps the target and gives Energy.
-func _on_auto_landed(info: RefCounted) -> void:
-	if status == null or int(info.amount) <= 0:
-		return
-	var foe: Node = info.target
-	var charged := _talent("lightning_charged_strikes")   # Charged Strikes: every auto-attack gives Energy
-	if charged > 0.0:
-		_gain("energy", charged)
-	if status.has(TWIN_CURRENT_FX):
-		# Hot Wire: a chance the echo doesn't use up a charge.
-		if randf() * 100.0 >= _talent("lightning_hot_wire"):
-			status.spend_stacks(TWIN_CURRENT_FX, 1)
-		if foe.is_alive():
-			var extra := DamageInfo.make(self, foe, 1.0, TWIN_CURRENT_ID)
-			extra.unit = twin_current_damage(int(info.amount))
-			extra.exact = true
-			extra.add_power = false
-			extra.can_crit = false
-			extra.can_block = false
-			extra.is_proc = true
-			extra.damage_type = "lightning"
-			extra.tags = PackedStringArray(["Lightning", "Melee"])
-			_combat().deal(extra)
-	if status.has(OVERDRIVE_FX):
-		if is_instance_valid(foe) and foe.is_alive():
-			deal_damage(foe, float(Abilities.get_resource(OVERDRIVE_ID).damage), OVERDRIVE_ID, true)
-		_gain("energy", Balance.OVERDRIVE_ENERGY)
-
-## Metres Static Step travels toward a target `gap` metres away (edge to edge):
-## it stops well inside the weapon's `reach`, and never goes backwards.
-static func static_step_travel(gap: float, reach: float) -> float:
-	return maxf(gap - reach * 0.5, 0.0)
-
-## Static Step: a dash to my target (it stops short of walls, like Blink), and
-## my next weapon ability hits harder.
-func _static_step(w: Dictionary) -> void:
-	var col := Abilities.color_of(STATIC_STEP_ID)
-	if status.has(WHIP_CRACK_FX):
-		status.remove(WHIP_CRACK_FX)   # Whip Crack: that was the cheaper one (it was paid for already)
-	var from := global_position
-	if _has_valid_target():
-		var gap := Vector2(target.global_position.x - from.x, target.global_position.z - from.z).length() \
-			- Combat.hitbox_radius(target) - Combat.hitbox_radius(self)
-		var want := static_step_travel(gap, float(w.get("attack_range", 1.5)))
-		var dist := minf(_dash_distance(want), want) if want > 0.0 else 0.0
-		if dist > 0.0:
-			var to := from + _flat_forward() * dist
-			# Up or down a slope with the target: as far along the climb as along the dash.
-			to.y = from.y + (Combat.feet_y(target) - Combat.feet_y(self)) * dist / want + 0.05
-			global_position = to
-			if running_start_applies(dist):
-				_gain("energy", _talent("lightning_running_start"))   # Running Start: a long dash gives Energy
-	_ring_effect(0.8, col, from)
-	_ring_effect(0.8, col)
-	LASH.spawn(get_tree().current_scene, from + Vector3(0, 0.3, 0), global_position + Vector3(0, 0.3, 0), col)
-	status.apply(_melee_buff(STATIC_STEP_FX, STATIC_STEP_ID, Balance.STATIC_STEP_TIME,
-		"Your next weapon ability deals %s%% more damage." % Stats.num(Balance.STATIC_STEP_PCT)), self)
-
-## Is this hit of mine a weapon ability's own hit? (What Static Step and Polar
-## Strike empower: not auto-attacks, not procs, not damage over time.)
-static func is_weapon_ability_hit(id: String, is_proc: bool, is_dot: bool) -> bool:
-	return not is_proc and not is_dot and not id.begins_with("auto_") and Abilities.uses_weapon(id)
-
-## Does Polar Strike's charge empower ability `id`? Any weapon ability but Polar Strike itself.
-static func polarity_applies(id: String) -> bool:
-	return id != POLAR_ID
-
-## A hit of mine is being worked out (_on_damage_modify): Static Step and the
-## charge of Polar Strike make my next weapon ability hit harder. Every hit of
-## that ability landing this frame gets it (an AoE uses it once).
-func _empower_weapon_ability(info: RefCounted, id: String) -> void:
-	if status == null or not is_weapon_ability_hit(id, bool(info.is_proc), bool(info.is_dot)):
-		return
-	if status.has(STATIC_STEP_FX):
-		info.add_bonus(Balance.STATIC_STEP_PCT, STATIC_STEP_LABEL)
-		_use_charge(STATIC_STEP_FX)
-	if polarity_applies(id) and status.has(POLARITY_FX):
-		info.add_bonus(Balance.POLARITY_PCT, POLARITY_LABEL)
-		_use_charge(POLARITY_FX)
-
-## A "your next weapon ability" buff was used: it is gone at the end of the frame.
-func _use_charge(fx_id: String) -> void:
-	if _charges_used.has(fx_id):
-		return
-	if _charges_used.is_empty():
-		_drop_used_charges.call_deferred()
-	_charges_used[fx_id] = true
-
-func _drop_used_charges() -> void:
-	for fx_id in _charges_used:
-		if status != null:
-			status.remove(str(fx_id))
-	_charges_used.clear()
-
-func _start_back_current() -> void:
-	var col := Abilities.color_of(BACK_CURRENT_ID)
-	status.apply(_melee_buff(BACK_CURRENT_FX, BACK_CURRENT_ID, Balance.BACK_CURRENT_TIME,
-		"Every melee hit you take zaps the attacker and gives you %s Energy." % Stats.num(Balance.BACK_CURRENT_ENERGY)), self)
-	_ring_effect(1.3, col)
-
-## Which press of Cadence comes next (0 = the first) after `stacks` presses.
-static func cadence_step(stacks: int) -> int:
-	return clampi(stacks, 0, Balance.CADENCE_MULTS.size() - 1)
-
-## Weapon damage multiplier of that press.
-static func cadence_mult(step: int) -> float:
-	return float(Balance.CADENCE_MULTS[clampi(step, 0, Balance.CADENCE_MULTS.size() - 1)])
-
-## Cadence: each press in time hits harder; the last also hits everything
-## around me (more than AOE_TARGET_CAP enemies share that many hits' damage),
-## then the count starts over.
-func _cadence(w: Dictionary, res: Resource) -> void:
-	var col := Abilities.color_of(CADENCE_ID)
-	var last := Balance.CADENCE_MULTS.size() - 1
-	var step := cadence_step(int(status.stacks_of(CADENCE_FX)))
-	var coef := float(w.get("damage", 0.0)) * cadence_mult(step) + float(res.damage)
-	if step < last:
-		status.apply(_melee_buff(CADENCE_FX, CADENCE_ID, Balance.CADENCE_WINDOW,
-			"Your next Cadence hits harder. The count is lost after %s sec." % Stats.num(Balance.CADENCE_WINDOW), last), self)
-		deal_damage(target, coef, CADENCE_ID)
-		_slash_effect(col)
-		return
-	status.remove(CADENCE_FX)
-	var hit := _enemies_within(float(res.radius))
-	if not hit.has(target):
-		hit.append(target)   # in weapon reach, but outside the burst's
-	var share := Balance.aoe_share(hit.size())
-	_cadence_third = true   # Third Beat: these hits are the third strike (_on_damage_modify)
-	for e in hit:
-		if is_instance_valid(e) and e.is_alive():
-			deal_damage(e, coef * share, CADENCE_ID)
-	_cadence_third = false
-	if _capstone("lightning_third_beat"):
-		_gain("energy", Balance.THIRD_BEAT_ENERGY)
-	for i in 2:
-		_slash_effect(col)
-	_ring_effect(float(res.radius), col)
-
-## A global cooldown of `gcd` seconds with Split Second up: shorter, but never
-## below SPLIT_SECOND_MIN_GCD (and never longer than it already was).
-static func split_second_gcd(gcd: float) -> float:
-	return maxf(gcd - Balance.SPLIT_SECOND_GCD, minf(gcd, Balance.SPLIT_SECOND_MIN_GCD))
-
-func _start_split_second() -> void:
-	var col := Abilities.color_of(SPLIT_SECOND_ID)
-	status.apply(_melee_buff(SPLIT_SECOND_FX, SPLIT_SECOND_ID, Balance.SPLIT_SECOND_TIME,
-		"Your global cooldown is %s sec shorter." % Stats.num(Balance.SPLIT_SECOND_GCD)), self)
-	_ring_effect(1.0, col)
-	_ring_effect(0.6, Color(0.95, 0.95, 1.0))
-
-## Whiplash: an instant hit from afar, drawn as a line of lightning.
-func _whiplash(w: Dictionary, res: Resource) -> void:
-	var col := Abilities.color_of(WHIPLASH_ID)
-	var from := _muzzle()
-	LASH.spawn(get_tree().current_scene, from, target.global_position + Vector3(0, 0.3, 0), col)
-	_net_fx("lash", from, target, {"c": col})
-	_slash_effect(col)
-	var away := Vector2(target.global_position.x - global_position.x, target.global_position.z - global_position.z).length()
-	if deal_damage(target, _weapon_hit(w, res), WHIPLASH_ID) > 0 and whip_crack_applies(away):
-		_whip_crack()   # Whip Crack: a long lash readies a cheaper Static Step
-
-## Energy Faraday Guard pays for `spared` damage at `max_hp` max health.
-static func faraday_energy(spared: float, max_hp: float) -> float:
-	if max_hp <= 0.0 or Balance.FARADAY_GUARD_HEALTH_PCT <= 0.0:
-		return 0.0
-	return maxf(spared, 0.0) / max_hp * 100.0 / Balance.FARADAY_GUARD_HEALTH_PCT * Balance.FARADAY_GUARD_ENERGY
-
-func _start_faraday_guard() -> void:
-	var col := Abilities.color_of(FARADAY_ID)
-	status.apply(_melee_buff(FARADAY_FX, FARADAY_ID, Balance.FARADAY_GUARD_TIME,
-		"You take %s%% less damage; your Energy pays for it instead. Ends if you run out of Energy." % Stats.num(Balance.FARADAY_GUARD_PCT)), self)
-	_ring_effect(1.4, col)
-	_ring_effect(0.9, Color(0.95, 0.95, 1.0))
-
-func _start_reflex_arc() -> void:
-	var col := Abilities.color_of(REFLEX_ID)
-	status.apply(_melee_buff(REFLEX_FX, REFLEX_ID, Balance.REFLEX_ARC_TIME,
-		"The next melee attack against you is avoided, counting as both a parry and a block, and you strike back."), self)
-	_slash_effect(col)
-	_ring_effect(1.0, col)
-
-## A hit on me is being worked out (_on_damage_modify). Reflex Arc turns the next
-## melee attack into nothing (its effects too); Faraday Guard takes a share off
-## every hit while I have Energy to pay for it (_melee_kit_hit_taken does the rest).
-func _guard_incoming(info: RefCounted) -> void:
-	if status == null:
-		return
-	if status.has(REFLEX_FX) and is_melee_attack(info.tags, bool(info.is_dot)):
-		info.add_bonus(-AVOID_PCT, REFLEX_LABEL)
-		info.effects = []
-		info.force_parry_block = true   # it counts as a parry AND a block (CombatSystem.force_avoid)
-		return
-	if status.has(FARADAY_FX) and float(resources["energy"]) > 0.0:
-		info.add_bonus(-Balance.FARADAY_GUARD_PCT, FARADAY_LABEL)
-
-## Something hit me (_on_hit_taken): Reflex Arc's strike back, Faraday Guard's
-## bill, Back-Current's zap.
-func _melee_kit_hit_taken(info: RefCounted) -> void:
-	var foe: Variant = info.source
-	var foe_ok: bool = foe != null and is_instance_valid(foe) and foe is Node3D and foe.is_in_group("enemies") and foe.is_alive()
-	# Reflex Arc: that attack did nothing. The strike back is the ability's own hit.
-	if bonus_named(info.bonus_parts, REFLEX_LABEL) != 0.0:
-		status.remove(REFLEX_FX)
-		var col := Abilities.color_of(REFLEX_ID)   # (CombatSystem already showed "Parry")
-		var w := _weapon()
-		if foe_ok and w.get("weapon", "") == "melee":
-			var at: Vector3 = foe.global_position
-			deal_damage(foe, _weapon_hit(w, Abilities.get_resource(REFLEX_ID)), REFLEX_ID)
-			_slash_effect(col)
-			_ring_effect(0.7, col, at)
-		return
-	# Faraday Guard: what it spared me comes out of my Energy; at none it ends.
-	var spared_pct := -bonus_named(info.bonus_parts, FARADAY_LABEL)
-	if spared_pct > 0.0 and not info.blocked and int(info.amount) > 0:
-		var spared := heat_sink_stored(float(info.amount), float(info.bonus_pct), spared_pct)
-		resources["energy"] = maxf(float(resources["energy"]) - faraday_energy(spared, float(max_health)), 0.0)
-		if float(resources["energy"]) <= 0.0:
-			status.remove(FARADAY_FX)
-	# Back-Current: a melee hit that landed gives Energy and zaps whoever dealt it.
-	if status.has(BACK_CURRENT_FX) and not info.blocked and int(info.amount) > 0 \
-			and is_melee_attack(info.tags, bool(info.is_dot)):
-		_gain("energy", Balance.BACK_CURRENT_ENERGY)
-		if foe_ok:
-			deal_damage(foe, float(Abilities.get_resource(BACK_CURRENT_ID).damage), BACK_CURRENT_ID, true)
-
-## Polar Strike (Rune of Polarity): the hit, then my charge flips. The charge
-## empowers my next OTHER weapon ability; another Polar Strike only flips it.
-func _polar_strike(w: Dictionary, res: Resource) -> void:
-	deal_damage(target, _weapon_hit(w, res), POLAR_ID)
-	_polar_positive = not _polar_positive
-	var fx := _melee_buff(POLARITY_FX, POLAR_ID, Balance.POLARITY_TIME,
-		"Your next weapon ability other than %s deals %s%% more damage." % [Abilities.ability_name(POLAR_ID), Stats.num(Balance.POLARITY_PCT)])
-	fx.display_name = "Positive Charge" if _polar_positive else "Negative Charge"
-	fx.color = Color(0.6, 0.9, 1.0) if _polar_positive else Color(1.0, 0.5, 0.4)
-	status.remove(POLARITY_FX)   # (a fresh buff: its name and colour follow the charge)
-	status.apply(fx, self)
-	for i in 2:
-		_slash_effect(fx.color)
-
-# --- Lightning tank (a parry tank with a two-handed weapon) ---------------------------------
-# Stormbreak gives Energy. Humming Blade raises my Parry and its cap, and makes
-# every parry give Energy. A parry opens Return Stroke (one answer per parry).
-# Shock Ring spends Energy for threat around me, Crossguard parries everything
-# for a moment, and Draw the Storm pulls enemies onto me and makes my parries
-# zap them. Numbers are in balance.gd.
-
-const STORMBREAK_ID := "stormshield"   # (the id it had as Stormshield Slam)
-const HUMMING_ID := "thunderaegis"     # (the id it had as Aegis of Thunder)
-const HUMMING_FX := "humming_blade"
-const RETURN_STROKE_ID := "returnstroke"
-const RETURN_STROKE_FX := "return_stroke"
-const SHOCK_RING_ID := "shockring"
-const CROSSGUARD_ID := "crossguard"
-const CROSSGUARD_FX := "crossguard"
-const STORM_ID := "drawthestorm"
-const STORM_FX := "draw_the_storm"
-const COUNTER_CHARGE_LABEL := "Counter-Charge"
-
-## Is a two-handed weapon in my Main Hand?
-func has_two_hander() -> bool:
-	return bool(_weapon().get("locks_offhand", false))
-
-## The most Parry chance (%) that counts with these up: all of it during
-## Crossguard, HUMMING_BLADE_PARRY_CAP with Humming Blade, the usual cap otherwise.
-static func parry_cap_for(humming: bool, crossguard: bool) -> float:
-	if crossguard:
-		return 100.0
-	return Balance.HUMMING_BLADE_PARRY_CAP if humming else Stats.MAX_PARRY
-
-## My Parry cap right now (CombatSystem and the stat panel ask).
-func parry_cap() -> float:
-	return parry_cap_for(status != null and status.has(HUMMING_FX), status != null and status.has(CROSSGUARD_FX))
-
-## Energy an attack I parry gives during Humming Blade, with Closed Circuit adding `more`.
-static func parry_energy(more: float) -> float:
-	return Balance.HUMMING_BLADE_ENERGY + maxf(more, 0.0)
-
-## Seconds left of a cooldown of `left` once Quick Wrists takes `off` away for a parry.
-static func quick_wrists_cooldown(left: float, off: float) -> float:
-	return maxf(left - maxf(off, 0.0), 0.0)
-
-func _start_humming_blade() -> void:
-	var col := Abilities.color_of(HUMMING_ID)
-	var fx := _melee_buff(HUMMING_FX, HUMMING_ID, Balance.HUMMING_BLADE_TIME,
-		"+%s%% Parry, and your Parry cap is %s%%. Each attack you parry gives you Energy." % [
-			Stats.num(Balance.HUMMING_BLADE_PARRY), Stats.num(Balance.HUMMING_BLADE_PARRY_CAP)])
-	fx.stat_modifiers = {Stats.PARRY: Balance.HUMMING_BLADE_PARRY}
-	status.apply(fx, self)
-	_slash_effect(col)
-	_ring_effect(1.2, col)
-
-func _start_crossguard() -> void:
-	var col := Abilities.color_of(CROSSGUARD_ID)
-	var fx := _melee_buff(CROSSGUARD_FX, CROSSGUARD_ID, Balance.CROSSGUARD_TIME,
-		"You parry every attack that can be parried.")
-	fx.stat_modifiers = {Stats.PARRY: 100.0}   # (and parry_cap() lets all of it count)
-	status.apply(fx, self)
-	for i in 2:
-		_slash_effect(col)
-	_ring_effect(0.9, Color(0.95, 0.95, 1.0))
-
-## Shock Ring: everything around me is hit; more than AOE_TARGET_CAP enemies
-## share that many hits' damage.
-func _shock_ring(res: Resource) -> void:
-	var col := Abilities.color_of(SHOCK_RING_ID)
-	var hit := _enemies_within(float(res.radius))
-	var coef := float(res.damage) * Balance.aoe_share(hit.size())
-	for e in hit:
-		if is_instance_valid(e) and e.is_alive():
-			deal_damage(e, coef, SHOCK_RING_ID)
-	_ring_effect(float(res.radius), col)
-	_ring_effect(float(res.radius) * 0.6, Color(0.95, 0.95, 1.0))
-
-## Draw the Storm: every enemy around me has to attack me for a moment, and
-## for as long as it lasts my parries zap the enemies around me (_storm_zap).
-func _draw_the_storm(res: Resource) -> void:
-	var col := Abilities.color_of(STORM_ID)
-	status.apply(_melee_buff(STORM_FX, STORM_ID, Balance.DRAW_THE_STORM_TIME,
-		"Each attack you parry zaps the enemies around you."), self)
-	for e in _enemies_within(float(res.radius)):
-		_net_taunt(e, Balance.DRAW_THE_STORM_TAUNT)
-		_ring_effect(0.8, Color(1.0, 0.35, 0.25), e.global_position)
-	_ring_effect(float(res.radius), col)
-	_ring_effect(1.0, Color(0.95, 0.95, 1.0))
-
-## The zap a parry sends out during Draw the Storm (a proc: it feeds nothing else).
-func _storm_zap() -> void:
-	var hit := _enemies_within(Balance.DRAW_THE_STORM_ZAP_RADIUS)
-	var coef := float(Abilities.EXTRA_HITS[STORM_ID]) * Balance.aoe_share(hit.size())
-	for e in hit:
-		if is_instance_valid(e) and e.is_alive():
-			deal_damage(e, coef, STORM_ID, true)
-	_ring_effect(Balance.DRAW_THE_STORM_ZAP_RADIUS, Abilities.color_of(STORM_ID))
-
-## Something hit me (_on_hit_taken): an attack I parried opens Return Stroke,
-## gives Energy during Humming Blade, brings Crossguard back sooner (Quick
-## Wrists) and zaps the enemies around me during Draw the Storm.
-func _parry_kit_hit_taken(info: RefCounted) -> void:
-	if not info.parried:
-		return
-	var pd := get_node_or_null("/root/PlayerData")
-	if pd and pd.has_ability(RETURN_STROKE_ID):
-		status.apply(_melee_buff(RETURN_STROKE_FX, RETURN_STROKE_ID, Balance.RETURN_STROKE_WINDOW,
-			"You parried an attack: %s can be used once." % Abilities.ability_name(RETURN_STROKE_ID)), self)
-	if status.has(HUMMING_FX):
-		_gain("energy", parry_energy(_talent("lightning_closed_circuit")))   # + Closed Circuit
-	var wrists := _talent("lightning_quick_wrists")
-	if wrists > 0.0 and cooldowns.has(CROSSGUARD_ID):
-		cooldowns[CROSSGUARD_ID] = quick_wrists_cooldown(float(cooldowns[CROSSGUARD_ID]), wrists)
-	if status.has(STORM_FX):
-		_storm_zap()
-	# Earth Return: every parry heals me a little.
-	var mend := earth_return_heal(max_health, _talent("lightning_earth_return"))
-	if mend > 0 and health < max_health:
-		_combat().heal(self, self, float(mend), "earth_return", true)
-	# Tempo: every parry makes my auto-attacks faster for a while (it stacks).
-	var tempo := _talent("lightning_tempo")
-	if tempo > 0.0:
-		status.apply(_tempo_buff(tempo), self)
-
-const REEL_IN_ID := "reelin"
-const RECHARGE_ID := "recharge"
-const RESONANCE_RUNE := "resonance"
-const TEMPO_FX := "tempo"
-## Stat key of attack speed buffs: % faster auto-attacks (Tempo). Not Haste: casts
-## and the global cooldown are untouched.
-const ATTACK_SPEED := "attack_speed"
-var _tempo_fx: Resource
-
-## Where Reel In drags an enemy at `foe` to: `gap` metres from `me` on the line
-## between us (it stays where it is if it is already that close). Flat: the
-## caller sets the height.
-static func reel_in_point(me: Vector3, foe: Vector3, gap: float) -> Vector3:
-	var flat := Vector3(foe.x - me.x, 0.0, foe.z - me.z)
-	var dist := flat.length()
-	if dist <= gap or dist < 0.001:
-		return foe
-	var p := me + flat / dist * gap
-	p.y = foe.y
-	return p
-
-## Reel In: a lash drags my target to me (the host moves it) and it has to
-## attack me for a moment. Bosses are only made to attack.
-func _reel_in() -> void:
-	var col := Abilities.color_of(REEL_IN_ID)
-	var from := _muzzle()
-	LASH.spawn(get_tree().current_scene, from, target.global_position + Vector3(0, 0.3, 0), col, 0.4)
-	_net_fx("lash", from, target, {"c": col})
-	var gap := Combat.hitbox_radius(target) + Combat.hitbox_radius(self) + Balance.REEL_IN_GAP
-	var to := reel_in_point(global_position, target.global_position, gap)
-	to.y = target.global_position.y + (Combat.feet_y(self) - Combat.feet_y(target))   # onto my level
-	var net := _net()
-	if net:
-		net.pull(target, self, to, Balance.REEL_IN_TAUNT)
-	elif target.has_method("pull_to"):
-		target.pull_to(self, to, Balance.REEL_IN_TAUNT, Balance.REEL_IN_DRAG_TIME)
-	else:
-		_net_taunt(target, Balance.REEL_IN_TAUNT)
-	_slash_effect(col)
-	_ring_effect(0.8, Color(1.0, 0.35, 0.25), target.global_position)
-
-## Health a Recharge that spent `energy` restores to a character with `max_hp`.
-static func recharge_heal(max_hp: int, energy: float) -> int:
-	return int(round(float(max_hp) * Balance.RECHARGE_PCT_PER_STEP / 100.0 * maxf(energy, 0.0) / Balance.ENERGY_STEP))
-
-## Recharge: all my Energy becomes health.
-func _recharge() -> void:
-	var spent := _spend_all_energy()
-	var amount := recharge_heal(max_health, spent)
-	if amount > 0:
-		_combat().heal(self, self, float(amount), RECHARGE_ID, true)
-	_ring_effect(1.2, Color(0.45, 1.0, 0.5))
-	_ring_effect(0.8, Abilities.color_of(RECHARGE_ID))
-
-## Energy Return Stroke costs: `base` after a parry (`answered`), RESONANCE_COST
-## when the Rune of Resonance lets it be used without one.
-static func return_stroke_cost(base: float, answered: bool, resonance: bool) -> float:
-	return Balance.RESONANCE_COST if (resonance and not answered) else base
-
-## Can Return Stroke be used: after a parry, or any time with the Rune of Resonance.
-static func return_stroke_usable(answered: bool, resonance: bool) -> bool:
-	return answered or resonance
-
-## % faster my auto-attacks are from attack speed buffs (Tempo).
-func attack_speed_bonus() -> float:
-	return status.stat_mod(ATTACK_SPEED) if status != null else 0.0
-
-## Tempo's buff at `pct` % attack speed per stack (rebuilt when the talent's rank changes).
-func _tempo_buff(pct: float) -> Resource:
-	if _tempo_fx == null or not is_equal_approx(float(_tempo_fx.stat_modifiers.get(ATTACK_SPEED, 0.0)), pct):
-		_tempo_fx = StatusContainer.make_buff(TEMPO_FX, "Tempo", ATTACK_SPEED, pct,
-			Balance.TEMPO_TIME, Balance.TEMPO_MAX_STACKS, Abilities.color_of(HUMMING_ID))
-		_tempo_fx.tags = PackedStringArray(["Lightning"])
-		_tempo_fx.description = "Your auto-attacks are %s%% faster per stack." % Stats.num(pct)
-	return _tempo_fx
-
-# --- Rune of Overload (Epic): Static, Overload and Grounded -------------------------------
-# With the rune on my gear, my Lightning spells and abilities build Static (own
-# only): more Lightning damage per stack. Building it at the cap is an Overload:
-# every stack discharges as a weak burst around me, and no Static can be built
-# for a few seconds. A short break from Lightning makes me Grounded: no Overload
-# for the next stretch of Lightning casts. So the rhythm is Lightning for
-# OVERLOAD_GROUND_TIME, something else for OVERLOAD_GROUND_AFTER, and the stacks
-# are kept. The numbers are in balance.gd and the rune's own data.
-
-const OVERLOAD_RUNE := "overload"
-const STATIC_ID := "static"
-const OVERLOADED_ID := "overloaded"
-const GROUNDED_ID := "grounded"
-const OVERLOAD_COLOR := Color(0.45, 0.55, 1.0)
-var _static_fx: Resource
-var _overloaded_fx: Resource
-var _grounded_fx: Resource
-var _static_last := ""   # "<ability>@<frame>" of the last cast that built Static
-var _lightning_cast_at := -1000.0   # seconds: when I last started or finished a Lightning spell / ability
-var _ground_check_at := 0.0
-
-## Has a break from Lightning been long enough to be Grounded?
-static func grounds(idle_seconds: float) -> bool:
-	return idle_seconds >= Balance.OVERLOAD_GROUND_AFTER
-
-## Does building Static and ending up at `stacks` Overload me?
-static func overloads(stacks: int, grounded: bool) -> bool:
-	return stacks >= Balance.STATIC_MAX_STACKS and not grounded
-
-## Grounded: no Overload while it lasts.
-static func make_grounded_fx() -> Resource:
-	var fx := StatusContainer.make_buff(GROUNDED_ID, "Grounded", GROUNDED_ID, 0.0,
-		Balance.OVERLOAD_GROUND_TIME, 1, Color(0.7, 0.8, 1.0))
-	fx.stat_modifiers = {}
-	fx.description = "You cannot Overload."
-	return fx
-
-func _ground() -> void:
-	if _grounded_fx == null:
-		_grounded_fx = make_grounded_fx()
-	status.apply(_grounded_fx, self)
-
-## A spell or ability of mine started or went off. A Lightning one ends the
-## break; coming back after a long enough one, Grounded runs its full time from here.
-func _on_cast_for_static(id: String, _duration: float = 0.0) -> void:
-	if not Abilities.tags_of(id).has("Lightning"):
-		return
-	var now := Time.get_ticks_msec() / 1000.0
-	if status and _has_rune(OVERLOAD_RUNE) and grounds(now - _lightning_cast_at):
-		_ground()
-	_lightning_cast_at = now
-
-## Twice a second: Grounded is kept up for as long as I stay off Lightning.
-func _tick_grounded() -> void:
-	var now := Time.get_ticks_msec() / 1000.0
-	if now < _ground_check_at:
-		return
-	_ground_check_at = now + 0.5
-	if status == null or not _has_rune(OVERLOAD_RUNE):
-		return
-	if casting and Abilities.tags_of(current_spell).has("Lightning"):
-		_lightning_cast_at = now   # a long Lightning cast or channel is not a break
-		return
-	if grounds(now - _lightning_cast_at):
-		_ground()
-
-func static_stacks() -> int:
-	return int(status.stacks_of(STATIC_ID)) if status else 0
-
-## Does a hit of mine build Static? Lightning spells and abilities that do damage;
-## never procs (chain jumps, runes) or damage-over-time ticks.
-static func builds_static(damage_type: String, tags: PackedStringArray, is_proc: bool, is_dot: bool, amount: int) -> bool:
-	if is_proc or is_dot or amount <= 0:
-		return false
-	if damage_type != "lightning" and not tags.has("Lightning"):
-		return false
-	return tags.has("Spell") or tags.has("Ability")
-
-## Damage coefficient of an Overload discharging `stacks` Static.
-static func overload_coef(stacks: int, per_stack: float) -> float:
-	return per_stack * maxi(stacks, 0)
-
-## The Static buff: a stacking % bonus to all Lightning damage I deal.
-static func make_static_fx() -> Resource:
-	var fx := StatusContainer.make_buff(STATIC_ID, "Static", STATIC_ID, 0.0,
-		Balance.STATIC_TIME, Balance.STATIC_MAX_STACKS, OVERLOAD_COLOR)
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Lightning"])
-	fx.damage_mod_pct = Balance.STATIC_DAMAGE_PCT
-	fx.mod_damage_types = PackedStringArray(["lightning"])
-	fx.mod_affects_dots = true
-	fx.description = "You deal %s%% more Lightning damage per stack. Building it at %d stacks makes you Overload unless you are Grounded. All Static is lost after %s sec without gaining a stack." % [
-		Stats.num(Balance.STATIC_DAMAGE_PCT), Balance.STATIC_MAX_STACKS, Stats.num(Balance.STATIC_TIME)]
-	return fx
-
-## The lockout after an Overload.
-static func make_overloaded_fx() -> Resource:
-	var fx := StatusContainer.make_buff(OVERLOADED_ID, "Overloaded", OVERLOADED_ID, 0.0,
-		Balance.OVERLOAD_LOCKOUT, 1, OVERLOAD_COLOR.darkened(0.35))
-	fx.stat_modifiers = {}
-	fx.is_debuff = true
-	fx.description = "You cannot build Static."
-	return fx
-
-## A hit of mine landed: a Lightning spell or ability builds one Static per cast
-## (an AoE hitting five enemies is still one). Ending up at the cap Overloads,
-## unless I am Grounded (then the stacks just stay at the cap).
-func _static_on_hit(info: RefCounted, tags: PackedStringArray) -> void:
-	if not _has_rune(OVERLOAD_RUNE) or status.has(OVERLOADED_ID):
-		return
-	if not builds_static(str(info.damage_type), tags, bool(info.is_proc), bool(info.is_dot), int(info.amount)):
-		return
-	var key := "%s@%d" % [str(info.ability_id), Engine.get_process_frames()]
-	if key == _static_last:
-		return   # the same cast hitting another enemy
-	_static_last = key
-	if _static_fx == null:
-		_static_fx = make_static_fx()
-	status.apply(_static_fx, self)
-	if overloads(static_stacks(), status.has(GROUNDED_ID)):
-		_overload()
-
-## Every stack of Static discharges around me, then the lockout starts.
-func _overload() -> void:
-	var stacks := static_stacks()
-	if stacks <= 0:
-		return
-	status.remove(STATIC_ID)
-	if _overloaded_fx == null:
-		_overloaded_fx = make_overloaded_fx()
-	status.apply(_overloaded_fx, self)
-	var rune := Runes.get_resource(OVERLOAD_RUNE)
-	if rune == null:
-		return
-	var radius := float(rune.radius)
-	var hit := _enemies_within(radius)
-	var coef := overload_coef(stacks, float(rune.effect_amount)) * Balance.aoe_share(hit.size())
-	for e in hit:
-		if not is_instance_valid(e) or not e.is_alive():
-			continue
-		# (A proc with its own line on the meter: it builds and spends nothing.)
-		var info := DamageInfo.make(self, e, coef, OVERLOAD_RUNE)
-		info.tags = rune.effect_tags
-		info.damage_type = str(rune.damage_type)
-		info.is_proc = true
-		info.no_empower = true
-		_combat().deal(info)
-	_ring_effect(radius, OVERLOAD_COLOR)
-
 # --- Pacts -----------------------------------------------------------------------------------
 # One Pact for the dungeon (scripts/pacts.gd says what each is and changes; the
 # choice is PlayerData.pact). Here its bonus and drawback are applied and its
@@ -5921,7 +4455,7 @@ func _on_damage_dealt_fire(info: RefCounted) -> void:
 	_slag_on_hit(info, tags)
 	_heat_on_hit(info, tags)
 	_afterglow_on_hit(info)
-	_static_on_hit(info, tags)
+	overload_kit._static_on_hit(info, tags)
 	if str(info.damage_type) != "fire" or not tags.has("Spell") or int(info.amount) <= 0:
 		return   # (effect-only hits like Immolate landing build nothing)
 	if info.no_empower:
@@ -6951,12 +5485,12 @@ func _on_hit_taken(info: RefCounted) -> void:
 		if status.has(SLAG_ID):
 			status.set_remaining(SLAG_ID, minf(status.remaining_of(SLAG_ID) + Balance.CINDER_GUARD_EXTEND, Balance.SLAG_SKIN_TIME))
 			_sync_slag()
-	_melee_kit_hit_taken(info)   # Reflex Arc, Faraday Guard, Back-Current
-	_parry_kit_hit_taken(info)   # Return Stroke, Humming Blade, Quick Wrists, Draw the Storm
+	lightning_melee._melee_kit_hit_taken(info)   # Reflex Arc, Faraday Guard, Back-Current
+	lightning_tank._parry_kit_hit_taken(info)   # Return Stroke, Humming Blade, Quick Wrists, Draw the Storm
 	arcane_tank._reflection_kit_hit_taken(info)   # a dodge (or Stand-In) shatters a Reflection
 	censer._censer_hit_taken(info)   # Incense from hits and blocks; Unfallen counts the damage
 	arcane_open._mirror_finish(info)   # Mirror Finish: what I dodge, parry or block hurts the attacker
-	_tempered(info)   # Tempered: a block gives Armor for a while
+	fire_lightning_talents._tempered(info)   # Tempered: a block gives Armor for a while
 	shadow_talents._spite_on_hit_taken(info)   # Spite: taking damage boosts my next spell or ability
 	holy_talents._penitent_hit(info)   # Penitent: a big hit makes my next heal on myself stronger
 

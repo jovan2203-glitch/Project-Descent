@@ -577,7 +577,7 @@ func _on_damage_dealt_arcane(info: RefCounted) -> void:
 	_countdown_tally(info.target, id, str(info.damage_type), amount)
 	player.arcane_melee._trace_hit(info, id, amount)   # Arcane melee: a strike leaves a Trace
 	player.arcane_open._echo_talent(info, id, amount)   # Echo: any spell or ability may be repeated
-	player._spillover_talent(info, id, amount)   # Spillover: part of a critical strike jumps on
+	player.fire_lightning_talents._spillover_talent(info, id, amount)   # Spillover: part of a critical strike jumps on
 	if bool(info.is_dot) or player.status == null or not (info.target is Node3D):
 		return
 	if player.status.has(MIRROR_FX) and mirror_echoes(info.tags, bool(info.is_proc), id,

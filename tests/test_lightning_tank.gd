@@ -127,8 +127,8 @@ func test_humming_blade() -> void:
 	assert_eq(Balance.HUMMING_BLADE_ENERGY, 10.0)
 	assert_true(Balance.HUMMING_BLADE_TIME > float(r.cooldown), "it can be kept up")
 	var p := _player()
-	assert_eq(p.parry_energy(0.0), 10.0)
-	assert_eq(p.parry_energy(6.0), 16.0, "Closed Circuit")
+	assert_eq(LightningTankKit.parry_energy(0.0), 10.0)
+	assert_eq(LightningTankKit.parry_energy(6.0), 16.0, "Closed Circuit")
 	var text := Abilities.fill("thunderaegis", str(_file("thunderaegis").description), Callable(), {})
 	assert_contains(text, "increased by 10%")
 	assert_contains(text, "45% instead of 30%")
@@ -136,10 +136,10 @@ func test_humming_blade() -> void:
 
 func test_parry_cap() -> void:
 	var p := _player()
-	assert_eq(p.parry_cap_for(false, false), Stats.MAX_PARRY)
-	assert_eq(p.parry_cap_for(true, false), Balance.HUMMING_BLADE_PARRY_CAP)
-	assert_eq(p.parry_cap_for(false, true), 100.0, "Crossguard: everything")
-	assert_eq(p.parry_cap_for(true, true), 100.0)
+	assert_eq(LightningTankKit.parry_cap_for(false, false), Stats.MAX_PARRY)
+	assert_eq(LightningTankKit.parry_cap_for(true, false), Balance.HUMMING_BLADE_PARRY_CAP)
+	assert_eq(LightningTankKit.parry_cap_for(false, true), 100.0, "Crossguard: everything")
+	assert_eq(LightningTankKit.parry_cap_for(true, true), 100.0)
 	# 40% Parry, a roll of 35: over the usual cap of 30, under Humming Blade's 45.
 	var usual: Dictionary = CombatSystem.compute_damage(10.0, 0.0, 0.0, 0.0, 0.0, 99.0, 99.0, true, true, 1.0, 0.5, 0.0, 40.0, 99.0, 35.0)
 	assert_false(usual["parried"])
@@ -187,7 +187,7 @@ func test_crossguard() -> void:
 	assert_false(Abilities.has_scaling("crossguard"), "nothing to scale")
 	# +100% Parry with all of it counting: every roll is a parry.
 	var hit: Dictionary = CombatSystem.compute_damage(10.0, 0.0, 0.0, 0.0, 0.0, 99.0, 99.0, true, true, 1.0, 0.5, 0.0, 100.0, 99.0, 99.9,
-		_player().parry_cap_for(false, true))
+		LightningTankKit.parry_cap_for(false, true))
 	assert_true(hit["parried"])
 	assert_eq(hit["amount"], 0)
 	# What cannot be parried (damage over time) still lands.
@@ -219,11 +219,11 @@ func test_reel_in() -> void:
 	assert_contains(Abilities.fill("reelin", str(_file("reelin").description), Callable(), {}), "up to 25 m away")
 	# It lands `gap` metres from me, on the line between us.
 	var p := _player()
-	var at: Vector3 = p.reel_in_point(Vector3.ZERO, Vector3(20, 0, 0), 1.5)
+	var at: Vector3 = LightningTankKit.reel_in_point(Vector3.ZERO, Vector3(20, 0, 0), 1.5)
 	assert_true(at.distance_to(Vector3(1.5, 0, 0)) < 0.001, "dragged to 1.5 m in front of me: %s" % at)
-	var diagonal: Vector3 = p.reel_in_point(Vector3(2, 0, 2), Vector3(5, 3, 6), 1.0)
+	var diagonal: Vector3 = LightningTankKit.reel_in_point(Vector3(2, 0, 2), Vector3(5, 3, 6), 1.0)
 	assert_true(absf(Vector2(diagonal.x - 2.0, diagonal.z - 2.0).length() - 1.0) < 0.001, "1 m away, measured on the ground")
-	assert_eq(p.reel_in_point(Vector3.ZERO, Vector3(1, 0, 0), 1.5), Vector3(1, 0, 0), "already next to me: it stays put")
+	assert_eq(LightningTankKit.reel_in_point(Vector3.ZERO, Vector3(1, 0, 0), 1.5), Vector3(1, 0, 0), "already next to me: it stays put")
 	# Enemies can be dragged; the host does it for party members.
 	var enemy: GDScript = load("res://scripts/enemy.gd")
 	var has_pull := false
@@ -244,10 +244,10 @@ func test_recharge() -> void:
 	assert_eq(Balance.RECHARGE_PCT_PER_STEP, 1.5)
 	assert_false(Abilities.has_scaling("recharge"), "a share of max health: nothing to scale")
 	var p := _player()
-	assert_eq(p.recharge_heal(1000, 100.0), 150, "15% of max health at a full bar")
-	assert_eq(p.recharge_heal(1000, 10.0), 15, "1.5% per 10 Energy")
-	assert_eq(p.recharge_heal(1000, 0.0), 0)
-	assert_eq(p.recharge_heal(2550, 60.0), 230, "9% of 2550, rounded")
+	assert_eq(LightningTankKit.recharge_heal(1000, 100.0), 150, "15% of max health at a full bar")
+	assert_eq(LightningTankKit.recharge_heal(1000, 10.0), 15, "1.5% per 10 Energy")
+	assert_eq(LightningTankKit.recharge_heal(1000, 0.0), 0)
+	assert_eq(LightningTankKit.recharge_heal(2550, 60.0), 230, "9% of 2550, rounded")
 	var text := Abilities.fill("recharge", str(_file("recharge").description), Callable(), {})
 	assert_contains(text, "1.5% of your maximum health per 10 Energy")
 	assert_contains(text, "up to 15%")
@@ -262,14 +262,14 @@ func test_rune_of_resonance() -> void:
 	assert_eq(Balance.RESONANCE_COST, 40.0)
 	assert_eq(Balance.RESONANCE_COOLDOWN, 3.0)
 	var p := _player()
-	assert_eq(p.RESONANCE_RUNE, "resonance")
+	assert_eq(LightningTankKit.RESONANCE_RUNE, "resonance")
 	# After a parry it is Return Stroke as always, rune or not.
-	assert_eq(p.return_stroke_cost(15.0, true, true), 15.0, "with a parry it costs no more")
-	assert_eq(p.return_stroke_cost(15.0, true, false), 15.0)
-	assert_eq(p.return_stroke_cost(15.0, false, true), 40.0, "without one: 40 Energy")
-	assert_true(p.return_stroke_usable(true, false))
-	assert_true(p.return_stroke_usable(false, true), "the rune lets it be used without a parry")
-	assert_false(p.return_stroke_usable(false, false), "no parry, no rune: not usable")
+	assert_eq(LightningTankKit.return_stroke_cost(15.0, true, true), 15.0, "with a parry it costs no more")
+	assert_eq(LightningTankKit.return_stroke_cost(15.0, true, false), 15.0)
+	assert_eq(LightningTankKit.return_stroke_cost(15.0, false, true), 40.0, "without one: 40 Energy")
+	assert_true(LightningTankKit.return_stroke_usable(true, false))
+	assert_true(LightningTankKit.return_stroke_usable(false, true), "the rune lets it be used without a parry")
+	assert_false(LightningTankKit.return_stroke_usable(false, false), "no parry, no rune: not usable")
 	var text := Runes.description("resonance")
 	assert_eq(TextFill.leftover(text), "", "the rune's text is filled in")
 	assert_false(text.contains("?"), text)
@@ -284,11 +284,11 @@ func test_tempo() -> void:
 	assert_eq(Balance.TEMPO_TIME, 5.0)
 	assert_eq(Balance.TEMPO_MAX_STACKS, 3)
 	var p := _player()
-	assert_true(is_equal_approx(p.auto_interval(1.6, 1.0, false, 0.0), 1.6))
-	assert_true(is_equal_approx(p.auto_interval(1.6, 1.0, false), 1.6), "nothing without the talent")
-	assert_true(is_equal_approx(p.auto_interval(1.6, 1.0, false, 18.0), 1.6 / 1.18), "three stacks at rank 3: 18% faster swings")
-	assert_true(is_equal_approx(p.auto_interval(1.6, 1.25, false, 6.0), 1.6 / 1.25 / 1.06), "on top of Haste")
-	assert_true(is_equal_approx(p.auto_interval(1.6, 1.0, true, 6.0), 1.6 / 1.4 / 1.06), "and of Overdrive")
+	assert_true(is_equal_approx(LightningMeleeKit.auto_interval(1.6, 1.0, false, 0.0), 1.6))
+	assert_true(is_equal_approx(LightningMeleeKit.auto_interval(1.6, 1.0, false), 1.6), "nothing without the talent")
+	assert_true(is_equal_approx(LightningMeleeKit.auto_interval(1.6, 1.0, false, 18.0), 1.6 / 1.18), "three stacks at rank 3: 18% faster swings")
+	assert_true(is_equal_approx(LightningMeleeKit.auto_interval(1.6, 1.25, false, 6.0), 1.6 / 1.25 / 1.06), "on top of Haste")
+	assert_true(is_equal_approx(LightningMeleeKit.auto_interval(1.6, 1.0, true, 6.0), 1.6 / 1.4 / 1.06), "and of Overdrive")
 	var text := Talents.description(Talents.id_for_key("lightning_tempo"))
 	assert_contains(text, "attack speed by 2 / 4 / 6%")
 	assert_contains(text, "for 5 sec")
@@ -349,10 +349,10 @@ func test_talent_texts() -> void:
 
 func test_quick_wrists() -> void:
 	var p := _player()
-	assert_eq(p.quick_wrists_cooldown(10.0, 1.0), 9.0)
-	assert_eq(p.quick_wrists_cooldown(10.0, 0.5), 9.5)
-	assert_eq(p.quick_wrists_cooldown(0.4, 1.0), 0.0, "never below zero")
-	assert_eq(p.quick_wrists_cooldown(5.0, 0.0), 5.0)
+	assert_eq(LightningTankKit.quick_wrists_cooldown(10.0, 1.0), 9.0)
+	assert_eq(LightningTankKit.quick_wrists_cooldown(10.0, 0.5), 9.5)
+	assert_eq(LightningTankKit.quick_wrists_cooldown(0.4, 1.0), 0.0, "never below zero")
+	assert_eq(LightningTankKit.quick_wrists_cooldown(5.0, 0.0), 5.0)
 
 ## A talent of one ability does nothing until that ability is learned.
 func test_ability_talents_need_their_ability() -> void:

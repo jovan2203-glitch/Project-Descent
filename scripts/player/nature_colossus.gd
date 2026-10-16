@@ -166,7 +166,7 @@ func _grasp() -> void:
 	var foe: Node3D = player.target
 	player.weaver._creature("hand", player.weaver._ground_under(foe), player.weaver._ground_under(player))
 	var gap := Combat.hitbox_radius(foe) + Combat.hitbox_radius(player) + Balance.GRASP_GAP
-	var to := Player.reel_in_point(player.global_position, foe.global_position, gap)
+	var to := LightningTankKit.reel_in_point(player.global_position, foe.global_position, gap)
 	to.y = foe.global_position.y + (Combat.feet_y(player) - Combat.feet_y(foe))   # onto my level
 	var net := player._net()
 	if net:

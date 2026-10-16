@@ -54,11 +54,11 @@ func test_leaping_arc() -> void:
 	assert_eq(Balance.LEAPING_ARC_JUMPS, 3)
 	var p := _player()
 	assert_true(p.ENEMY_BOLTS.has("chainlightning"), "cast at an enemy like the bolts")
-	assert_eq(p.arc_returns(0), 3, "one target: every leap comes back")
-	assert_eq(p.arc_returns(1), 2)
-	assert_eq(p.arc_returns(3), 0, "enough enemies: none do")
-	assert_eq(p.arc_returns(8), 0)
-	assert_true(is_equal_approx(p.arc_return_coef(0.6), 0.24), "a returning leap deals 40% of a leap")
+	assert_eq(LightningCasterKit.arc_returns(0), 3, "one target: every leap comes back")
+	assert_eq(LightningCasterKit.arc_returns(1), 2)
+	assert_eq(LightningCasterKit.arc_returns(3), 0, "enough enemies: none do")
+	assert_eq(LightningCasterKit.arc_returns(8), 0)
+	assert_true(is_equal_approx(LightningCasterKit.arc_return_coef(0.6), 0.24), "a returning leap deals 40% of a leap")
 
 func test_lightning_bolt_spends_energy() -> void:
 	assert_eq(Abilities.resource_of("lightningbolt"), "energy")
@@ -102,8 +102,8 @@ func test_live_wire() -> void:
 	assert_eq(Balance.LIVE_WIRE_ENERGY, 3.0, "3 Energy per tick")
 	var p := _player()
 	assert_true(p.ENEMY_BOLTS.has("livewire"))
-	assert_false(p.wire_breaks(25.0))
-	assert_true(p.wire_breaks(25.1), "past 25 m it breaks")
+	assert_false(BottledLightningKit.wire_breaks(25.0))
+	assert_true(BottledLightningKit.wire_breaks(25.1), "past 25 m it breaks")
 	assert_true(LiveWire.breaks_at(30.0, 25.0), "a party member's line ends at the same range")
 	assert_false(LiveWire.breaks_at(30.0, 0.0), "mine is ended by the game, not by the picture")
 
@@ -129,10 +129,10 @@ func test_forked_bolt() -> void:
 	assert_eq(float(r.damage), 0.9)
 	var p := _player()
 	assert_true(p.ENEMY_BOLTS.has("forkedbolt"))
-	var two: Array = p.forked_bolt_hits(0.9, true)
+	var two: Array = BottledLightningKit.forked_bolt_hits(0.9, true)
 	assert_eq(two.size(), 2, "two prongs with a second enemy")
 	assert_true(is_equal_approx(float(two[0]), 0.9) and is_equal_approx(float(two[1]), 0.9))
-	var one: Array = p.forked_bolt_hits(0.9, false)
+	var one: Array = BottledLightningKit.forked_bolt_hits(0.9, false)
 	assert_eq(one.size(), 1, "one hit without")
 	assert_true(is_equal_approx(float(one[0]), 1.3))
 
@@ -166,9 +166,9 @@ func test_capacitor() -> void:
 	assert_eq(Balance.CAPACITOR_TIME, 20.0)
 	var p := _player()
 	assert_false(p.on_gcd("capacitor"), "off the global cooldown")
-	assert_eq(p.capacitor_takes(60.0), 60.0, "all of it")
-	assert_eq(p.capacitor_takes(140.0), 100.0, "up to 100")
-	assert_eq(p.capacitor_takes(0.0), 0.0)
+	assert_eq(BottledLightningKit.capacitor_takes(60.0), 60.0, "all of it")
+	assert_eq(BottledLightningKit.capacitor_takes(140.0), 100.0, "up to 100")
+	assert_eq(BottledLightningKit.capacitor_takes(0.0), 0.0)
 
 func test_which_of_them_scale() -> void:
 	for id in ["jolt", "flicker", "capacitor", "groundingsurge"]:
@@ -185,9 +185,9 @@ func test_discharge() -> void:
 	assert_contains(Abilities.tooltip("discharge"), "All Energy")
 	var p := _player()
 	assert_true(p.ENEMY_BOLTS.has("discharge"))
-	assert_true(is_equal_approx(p.discharge_coef(10.0), 0.3), "0.3 Frost Bolts per 10 Energy")
-	assert_true(is_equal_approx(p.discharge_coef(100.0), 3.0), "a full bar = 3 Frost Bolts")
-	assert_eq(p.discharge_coef(0.0), 0.0)
+	assert_true(is_equal_approx(LightningCasterKit.discharge_coef(10.0), 0.3), "0.3 Frost Bolts per 10 Energy")
+	assert_true(is_equal_approx(LightningCasterKit.discharge_coef(100.0), 3.0), "a full bar = 3 Frost Bolts")
+	assert_eq(LightningCasterKit.discharge_coef(0.0), 0.0)
 
 func test_ground_out() -> void:
 	var r := Abilities.get_resource("groundout")
@@ -197,8 +197,8 @@ func test_ground_out() -> void:
 	assert_true(Abilities.SPENDS_ALL.has("groundout"))
 	var p := _player()
 	assert_true(p.on_gcd("groundout"))
-	assert_true(p.ground_out_coef(100.0) > p.ground_out_coef(50.0), "more Energy, bigger shield")
-	assert_true(is_equal_approx(p.ground_out_coef(100.0), Balance.GROUND_OUT_PER_STEP * 10.0))
+	assert_true(LightningCasterKit.ground_out_coef(100.0) > LightningCasterKit.ground_out_coef(50.0), "more Energy, bigger shield")
+	assert_true(is_equal_approx(LightningCasterKit.ground_out_coef(100.0), Balance.GROUND_OUT_PER_STEP * 10.0))
 
 func test_ball_lightning() -> void:
 	var r := Abilities.get_resource("balllightning")
@@ -221,7 +221,7 @@ func test_grounding_surge() -> void:
 	var p := _player()
 	assert_false(p.on_gcd("groundingsurge"), "off the global cooldown")
 	assert_true(p.on_gcd("discharge"), "the rest of the kit is on it")
-	assert_eq(p.surge_energy_cost(30.0, true), 15.0, "Energy costs are halved")
-	assert_eq(p.surge_energy_cost(30.0, false), 30.0)
-	assert_eq(p.energy_left_after_all(80.0, true), 40.0, "a spend-all ability leaves half")
-	assert_eq(p.energy_left_after_all(80.0, false), 0.0, "without it everything goes")
+	assert_eq(LightningCasterKit.surge_energy_cost(30.0, true), 15.0, "Energy costs are halved")
+	assert_eq(LightningCasterKit.surge_energy_cost(30.0, false), 30.0)
+	assert_eq(LightningCasterKit.energy_left_after_all(80.0, true), 40.0, "a spend-all ability leaves half")
+	assert_eq(LightningCasterKit.energy_left_after_all(80.0, false), 0.0, "without it everything goes")

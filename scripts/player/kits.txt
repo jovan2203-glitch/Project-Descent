@@ -15,3 +15,10 @@ arcane_melee ArcaneMeleeKit arcane_melee.gd
 arcane_open ArcaneOpenTalentsKit arcane_talents_open.gd
 arcane_tank ArcaneTankKit arcane_tank.gd
 arcane_caster ArcaneCasterKit arcane_caster.gd
+overload_kit OverloadKit lightning_overload.gd
+lightning_tank LightningTankKit lightning_tank.gd
+lightning_melee LightningMeleeKit lightning_melee.gd
+fire_lightning_talents FireLightningTalentsKit open_talents_fire_lightning.gd
+bottled_kit BottledLightningKit lightning_bottled.gd
+storm_arrow_kit StormArrowKit lightning_bow.gd
+lightning_caster LightningCasterKit lightning_caster.gd

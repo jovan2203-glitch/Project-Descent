@@ -12,4 +12,6 @@ l=$(grep -n "^# --- $last" $f | head -1 | cut -d: -f1)
 e=$(awk -v s="$l" 'NR>s && /^# --- /{print NR-1; exit}' $f)
 [ -z "$e" ] && e=$(wc -l < $f)
 if grep -qE "^(static func|func|var|const|@[a-z]+ var) $var\b" $f; then echo "player.gd already has a member named $var" >&2; exit 1; fi
+# ... nor a local variable or parameter (it would hide the component in that function).
+if grep -qE "(\bvar|\bfor|[(,]) +$var\b" $f scripts/player/*.gd; then echo "$var is already a local name in player.gd or a component" >&2; exit 1; fi
 perl tools/split_section.pl "$s" "$e" "$file" "$cls" "$var"
