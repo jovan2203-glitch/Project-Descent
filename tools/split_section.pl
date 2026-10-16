@@ -20,24 +20,44 @@ use warnings;
 my ($start, $end, $file, $class, $var) = @ARGV;
 die "usage: start end file Class var\n" unless defined $var;
 my $root = ".";
-my $player = "$root/scripts/player.gd";
-my $kit_dir = "$root/scripts/player";
-my $registry = "$kit_dir/kits.txt";   # one line per component: var Class file
+# SPLIT_HOST=menu splits scripts/main_menu.gd into scripts/menu/ instead (same rules,
+# "menu" for "player", MainMenu for Player, _part for _kit, scripts/menu/menu_part.gd).
+my $HOST = $ENV{SPLIT_HOST} // 'player';
+my %HOSTS = (
+	player => {file => 'scripts/player.gd', dir => 'scripts/player', registry => 'kits.txt', class => 'Player',
+		back => 'player', base => 'player_kit.gd', make => '_kit',
+		consts => [qw(Combat Stats StatusContainer Abilities Balance ARROW Items Runes Macros DamageInfo SHIELDS PlayerDataScript)],
+		builtins => [], callers => 'player|p|pl|owner_node|_player'},
+	menu => {file => 'scripts/main_menu.gd', dir => 'scripts/menu', registry => 'parts.txt', class => 'MainMenu',
+		back => 'menu', base => 'menu_part.gd', make => '_part',
+		consts => [qw(UI Items Runes Talents TalentIcons SOCIAL_PANEL ChatBox RuneScreens RuneManager MacroWindow Abilities Categories Keywords Pacts SkillCards DB)],
+		builtins => [qw(create_tween get_viewport get_window set_process set_process_input queue_free)], callers => 'menu'},
+);
+my $H = $HOSTS{$HOST} or die "SPLIT_HOST must be player or menu\n";
+my ($BACK, $HCLASS) = ($H->{back}, $H->{class});
+my $player = "$root/$H->{file}";
+my $kit_dir = "$root/$H->{dir}";
+my $registry = "$kit_dir/$H->{registry}";   # one line per component: var Class file
 
 open(my $fh, '<', $player) or die $!;
 my @lines = <$fh>;
 close $fh;
 my @section = @lines[$start - 1 .. $end - 1];
 my @rest = (@lines[0 .. $start - 2], @lines[$end .. $#lines]);
+# Engine callbacks only run on the host node: they stay there and call into the component.
+for (@section) {
+	die "Section defines $1 (an engine callback): move it out of the section first\n"
+		if /^func (_(?:ready|process|physics_process|input|unhandled_input|unhandled_key_input|shortcut_input|gui_input|notification|enter_tree|exit_tree|draw))\s*\(/;
+}
 
 # --- Who is what -------------------------------------------------------------
 my %BUILTIN = map { $_ => 1 } qw(global_position global_transform position rotation velocity transform
 	is_inside_tree get_tree get_viewport get_node_or_null get_node get_instance_id is_in_group has_method
 	get_parent add_child get_world_3d is_on_floor look_at name visible get_children set_meta get_meta has_meta
 	add_to_group remove_from_group global_rotation basis scale is_queued_for_deletion);
-# Consts every component already has (scripts/player/player_kit.gd).
-my %KIT_CONSTS = map { $_ => 1 } qw(Combat Stats StatusContainer Abilities Balance ARROW Items Runes Macros
-	DamageInfo SHIELDS PlayerDataScript);
+$BUILTIN{$_} = 1 for @{$H->{builtins}};
+# Consts every component already has (its base script, e.g. scripts/player/player_kit.gd).
+my %KIT_CONSTS = map { $_ => 1 } @{$H->{consts}};
 
 sub members {
 	my %m;
@@ -72,7 +92,7 @@ for my $k (@kits) {
 # --- Rewriting identifiers outside strings and comments, minding locals --------
 # $resolve->(name, \%locals) returns the replacement text or undef.
 sub rewrite {
-	my ($text_lines, $resolve, $dot_prefix) = @_;
+	my ($text_lines, $resolve, $dot_prefix, $node_paths) = @_;
 	my @out;
 	my %locals;
 	for my $line (@$text_lines) {
@@ -99,6 +119,13 @@ sub rewrite {
 			}
 			if ($ch eq '"' || $ch eq "'") { $instr = $ch; $new .= $ch; $i++; next; }
 			if ($ch eq '#') { $new .= substr($line, $i); last; }
+			# $Child / $"Child/Path" (a node of the host) -> host.get_node("...")
+			if ($node_paths && $ch eq '$' && substr($line, $i) =~ /^\$(?:"([^"]+)"|([A-Za-z_][\w\/]*))/) {
+				my $path = defined $1 ? $1 : $2;
+				$new .= "$BACK.get_node(\"$path\")";
+				$i += length($&);
+				next;
+			}
 			if (substr($line, $i) =~ /^([A-Za-z_]\w*)/) {
 				my $word = $1;
 				my $prev = $i > 0 ? substr($line, $i - 1, 1) : '';
@@ -128,16 +155,16 @@ my @moved = rewrite(\@section, sub {
 	my ($w, $how) = @_;
 	return undef unless $how eq 'bare';
 	return undef if $mine{$w} || $KIT_CONSTS{$w};
-	return 'player' if $w eq 'self';
+	return $BACK if $w eq 'self';
 	if (my $o = $other{$w}) {
-		return ($o->[2] eq 'const' || $o->[2] eq 'static') ? "$o->[1].$w" : "player.$o->[0].$w";
+		return ($o->[2] eq 'const' || $o->[2] eq 'static') ? "$o->[1].$w" : "$BACK.$o->[0].$w";
 	}
 	if (my $k = $core{$w}) {
-		return ($k eq 'const' || $k eq 'static') ? "Player.$w" : "player.$w";
+		return ($k eq 'const' || $k eq 'static') ? "$HCLASS.$w" : "$BACK.$w";
 	}
-	return "player.$w" if $BUILTIN{$w};
+	return "$BACK.$w" if $BUILTIN{$w};
 	return undef;
-}, 0);
+}, 0, 1);
 
 # player.gd without the section, references pointed at the component.
 my @core_out = rewrite(\@rest, sub {
@@ -150,7 +177,7 @@ my @core_out = rewrite(\@rest, sub {
 # --- Forwards on the player for what other scripts call --------------------------
 my $outside = '';
 for my $f (glob("$root/scripts/*.gd"), glob("$root/scripts/*/*.gd"), glob("$root/scripts/*/*/*.gd")) {
-	next if $f =~ m{scripts/player\.gd$} || $f =~ m{scripts/player/};
+	next if $f eq $player || index($f, "$kit_dir/") == 0;
 	open(my $o, '<', $f) or next; local $/; $outside .= <$o>; close $o;
 }
 my @forwards;
@@ -168,7 +195,7 @@ for my $line (@section) {
 		push @forwards, "var $n$type:\n\tget:\n\t\treturn $var.$n\n\tset(v):\n\t\t$var.$n = v\n";
 	} elsif ($line =~ /^const ([A-Z]\w*)/) {
 		my $n = $1;
-		next unless $outside =~ /\b(?:player|p|pl|owner_node|_player)\.\Q$n\E\b/;
+		next unless $outside =~ /\b(?:$H->{callers})\.\Q$n\E\b/;
 		push @forwards, "const $n = $class.$n\n";
 	}
 }
@@ -177,19 +204,20 @@ s/\s+:\n/:\n/ for @forwards;
 # --- Write -------------------------------------------------------------------------
 mkdir $kit_dir unless -d $kit_dir;
 open(my $k, '>', "$kit_dir/$file") or die $!;
-print $k "extends \"res://scripts/player/player_kit.gd\"\nclass_name $class\n\n";
-print $k "# Moved out of scripts/player.gd as it was (player = the player node). Hooked up from\n";
-print $k "# player.gd through its var \"$var\".\n";
+my $host_base = $H->{file}; $host_base =~ s{.*/}{};
+print $k "extends \"res://$H->{dir}/$H->{base}\"\nclass_name $class\n\n";
+print $k "# Moved out of $H->{file} as it was ($BACK = the $HOST node). Hooked up from\n";
+print $k "# $host_base through its var \"$var\".\n";
 print $k @moved;
 close $k;
 
-# Hook the component up in player.gd: its var (made in _init via _kit) and the forwards.
+# Hook the component up in the host: its var (made via _kit / _part) and the forwards.
 my $text = join('', @core_out);
-my $decl = "var $var: $class = _kit($class) as $class\n";
-$text =~ s/(# --- Components[^\n]*\n(?:#[^\n]*\n)*)/$1$decl/ or die "No '# --- Components' section in player.gd\n";
+my $decl = "var $var: $class = $H->{make}($class) as $class\n";
+$text =~ s/(# --- Components[^\n]*\n(?:#[^\n]*\n)*)/$1$decl/ or die "No '# --- Components' section in $H->{file}\n";
 if (@forwards) {
 	my $fw = "\n# Forwards to $class (called from other scripts).\n" . join("\n", @forwards);
-	$text =~ s/(# --- End of components ---[^\n]*\n)/$fw\n$1/ or die "No '# --- End of components ---' line in player.gd\n";
+	$text =~ s/(# --- End of components ---[^\n]*\n)/$fw\n$1/ or die "No '# --- End of components ---' line in $H->{file}\n";
 }
 open(my $out, '>', $player) or die $!;
 print $out $text;
@@ -204,8 +232,8 @@ for my $kk (@kits) {
 	my $changed = 0;
 	for (@kl) {
 		my $before = $_;
-		s/\bplayer\.(\w+)/exists $mine{$1} ? (($mine{$1} eq 'const' || $mine{$1} eq 'static') ? "$class.$1" : "player.$var.$1") : "player.$1"/ge;
-		s/\bPlayer\.(\w+)/exists $mine{$1} ? "$class.$1" : "Player.$1"/ge;
+		s/\b\Q$BACK\E\.(\w+)/exists $mine{$1} ? (($mine{$1} eq 'const' || $mine{$1} eq 'static') ? "$class.$1" : "$BACK.$var.$1") : "$BACK.$1"/ge;
+		s/\b\Q$HCLASS\E\.(\w+)/exists $mine{$1} ? "$class.$1" : "$HCLASS.$1"/ge;
 		$changed ||= $_ ne $before;
 	}
 	if ($changed) { open(my $w, '>', $path) or die $!; print $w @kl; close $w; }
@@ -219,4 +247,4 @@ close $reg;
 open(my $mv, '>', "$kit_dir/.last_moved") or die $!;
 print $mv "$_ $mine{$_}\n" for sort keys %mine;
 close $mv;
-printf "Moved %d lines to scripts/player/%s (%s, var %s); %d forwards.\n", scalar(@section), $file, $class, $var, scalar(@forwards);
+printf "Moved %d lines to $H->{dir}/%s (%s, var %s); %d forwards.\n", scalar(@section), $file, $class, $var, scalar(@forwards);
