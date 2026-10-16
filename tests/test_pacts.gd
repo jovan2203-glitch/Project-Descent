@@ -299,17 +299,17 @@ func test_the_player_applies_it() -> void:
 	assert_contains(FileAccess.get_file_as_string("res://scripts/core/combat_system.gd"), "target.heal_taken_mult(source, ability_id)")
 
 func test_the_pacts_tab_sits_above_rune_spells_and_the_books_do_not_move() -> void:
-	var menu: GDScript = load("res://scripts/main_menu.gd")
-	var consts := menu.get_script_constant_map()
+	var consts := MenuSource.constants()   # main_menu.gd and its parts (scripts/menu/)
 	assert_eq(int(consts["SHELF_TAB_HEIGHT"]) * 2 + int(consts["SHELF_TAB_GAP"]), 60,
 		"the two tabs together are as tall as the Rune Spells tab was alone")
 	assert_eq((consts["PACT_LINES"] as Array).size(), PARTS.size())
 	for i in PARTS.size():
 		assert_eq(str(consts["PACT_LINES"][i][1]), str(PARTS[i]), "a card shows the bonus, the drawback, the vow, then what breaking it costs")
 	assert_eq(_typed_number(str(consts["PACT_HINT"])), "")
+	var names := MenuSource.methods().map(func(m): return str(m["name"]))
 	for m in ["_shelf_pact_tab", "_build_pacts_page", "_open_pacts", "_close_pacts", "_refresh_pacts", "_pact_card", "_take_pact"]:
-		assert_true(_has_method(menu, m), "main_menu.gd has %s" % m)
-	var src := FileAccess.get_file_as_string("res://scripts/main_menu.gd")
+		assert_true(names.has(m), "the main menu has %s" % m)
+	var src := MenuSource.text()
 	var pact_at := src.find("rune_tab.add_child(_shelf_pact_tab())")
 	var rune_at := src.find("rune_tab.add_child(_shelf_rune_tab())")
 	assert_true(pact_at > 0 and rune_at > pact_at, "Pacts first, Rune Spells under it")

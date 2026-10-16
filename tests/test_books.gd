@@ -17,7 +17,7 @@ func test_the_order_is_fixed() -> void:
 	assert_false(Categories.ORDER.has(Categories.RUNE), "Rune Spells is its own tab above the books")
 
 func test_every_screen_uses_that_order_as_it_is() -> void:
-	var menu := FileAccess.get_file_as_string("res://scripts/main_menu.gd")
+	var menu := MenuSource.text()
 	# The shelf: one card for each book, in order, whatever you have learned.
 	assert_contains(menu, "\tfor cat in Categories.ORDER:\n\t\tgrid.add_child(_shelf_book(cat))")
 	assert_contains(menu, "grid.columns = Categories.shelf_columns(Categories.ORDER.size())")
@@ -68,7 +68,7 @@ func test_specs_in_keeps_only_what_is_asked_and_drops_empty_specs() -> void:
 	assert_eq(runes[0][0], "")
 
 func test_both_spellbooks_draw_the_specs() -> void:
-	var menu := FileAccess.get_file_as_string("res://scripts/main_menu.gd")
+	var menu := MenuSource.text()
 	assert_contains(menu, "var specs := Abilities.specs_in(_book_cat)")
 	assert_contains(menu, "UI.spec_divider(spec[0]")
 	var game := FileAccess.get_file_as_string("res://scripts/game_ui.gd")
