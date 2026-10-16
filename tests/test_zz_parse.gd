@@ -28,6 +28,18 @@ func test_scripts_parse() -> void:
 		var s: GDScript = ResourceLoader.load(f, "", ResourceLoader.CACHE_MODE_REPLACE)
 		assert_true(s != null and s.reload(true) == OK, "parses: " + f)
 
+func test_menu_parts_parse() -> void:
+	# Every part of the main menu (scripts/menu/parts.txt: var Class file) parses; its typed
+	# `menu` makes a reference to something the menu doesn't have a parse error.
+	for line in FileAccess.get_file_as_string("res://scripts/menu/parts.txt").split("\n", false):
+		var parts := line.split(" ", false)
+		if parts.size() != 3:
+			continue
+		var f := "res://scripts/menu/" + parts[2]
+		var s: GDScript = ResourceLoader.load(f, "", ResourceLoader.CACHE_MODE_REPLACE)
+		assert_true(s != null and s.reload(true) == OK, "parses: " + f)
+		assert_eq(str(s.get_global_name()), parts[1], f + " is class " + parts[1])
+
 func test_build_every_dungeon() -> void:
 	for r in DB.recipes():
 		var rng := RandomNumberGenerator.new()
