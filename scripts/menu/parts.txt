@@ -8,3 +8,4 @@ book_search BookSearch book_search.gd
 pacts_page PactsPage pacts_page.gd
 talent_tree TalentTreePage talent_tree.gd
 open_book OpenBook open_book.gd
+shelf ShelfPage shelf.gd

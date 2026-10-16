@@ -99,13 +99,13 @@ func _build_pacts_page() -> PanelContainer:
 	return page
 
 func _open_pacts() -> void:
-	menu._shelf.visible = false
+	menu.shelf._shelf.visible = false
 	_pacts_page.visible = true
 	_refresh_pacts()
 
 func _close_pacts() -> void:
 	_pacts_page.visible = false
-	menu._shelf.visible = true
+	menu.shelf._shelf.visible = true
 
 ## The tab's summary, and (while the page is open) one card for each Pact.
 func _refresh_pacts() -> void:

@@ -28,16 +28,16 @@ func _refresh_search() -> void:
 		_update_marks()
 		return
 	var searching := _search_query != ""
-	for c in menu._shelf_browse:
+	for c in menu.shelf._shelf_browse:
 		c.visible = not searching
 	_search_results.visible = searching
 	for c in _search_list.get_children():
 		c.queue_free()
 	if not searching:
-		menu._shelf_hint.text = MainMenu.SHELF_HINT
+		menu.shelf._shelf_hint.text = ShelfPage.SHELF_HINT
 		return
 	var keys: Array = Keywords.search(_search_query, "at")
-	menu._shelf_hint.text = "%d %s for \"%s\"  •  click one to open its book with it highlighted" % [
+	menu.shelf._shelf_hint.text = "%d %s for \"%s\"  •  click one to open its book with it highlighted" % [
 		keys.size(), "result" if keys.size() == 1 else "results", _search_query]
 	if keys.is_empty():
 		_search_list.add_child(menu._label("Nothing matches \"%s\"." % _search_query, 14, MainMenu.C_TEXT_DIM))

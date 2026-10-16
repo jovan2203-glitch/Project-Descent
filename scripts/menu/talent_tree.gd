@@ -118,7 +118,7 @@ func _draw_talent_canvas(canvas: Control) -> void:
 func _refresh_talents() -> void:
 	var pd := menu.get_node("/root/PlayerData")
 	menu._talent_points_label.text = "Level %d  •  Talent points: %d / %d" % [pd.level, pd.talent_points_left(), pd.talent_points_total()]
-	for cat in menu._shelf_info:
+	for cat in menu.shelf._shelf_info:
 		var ids := Abilities.in_category(cat)
 		var have := 0
 		for id in ids:
@@ -134,9 +134,9 @@ func _refresh_talents() -> void:
 			parts.append("%d %s" % [have, "ability" if have == 1 else "abilities"])
 		if talents > 0:
 			parts.append("%d %s" % [talents, "talent" if talents == 1 else "talents"])
-		menu._shelf_info[cat].text = "  •  ".join(parts)
+		menu.shelf._shelf_info[cat].text = "  •  ".join(parts)
 		if cat == Categories.RUNE:
-			menu._shelf_info[cat].text = "%d of %d known" % [have, ids.size()] if have > 0 else "None on your gear"
+			menu.shelf._shelf_info[cat].text = "%d of %d known" % [have, ids.size()] if have > 0 else "None on your gear"
 	if menu.open_book._book_cat == "":
 		return
 	var pts: int = pd.tree_points(menu.open_book._book_cat)

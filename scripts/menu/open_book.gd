@@ -180,10 +180,10 @@ func _open_book(cat: String) -> void:
 		(_book_right_head[0] as Label).text = "Runes" if runes else "Talents"
 		(_book_right_head[1] as Label).text = RUNE_HINT if runes else TALENT_HINT
 	menu.talent_tree._build_talent_tree()
-	menu._shelf.visible = false
+	menu.shelf._shelf.visible = false
 	_book.visible = true
 	_book_tabs.visible = true
-	menu._refresh_book_tabs()
+	menu.shelf._refresh_book_tabs()
 	menu._refresh_abilities()
 	menu.book_search._update_marks()
 
@@ -196,7 +196,7 @@ func _close_book() -> void:
 	menu.talent_tree._row_status.clear()
 	_book.visible = false
 	_book_tabs.visible = false
-	menu._shelf.visible = true
+	menu.shelf._shelf.visible = true
 	menu.book_search._refresh_search()
 
 func _refresh_book_abilities() -> void:
