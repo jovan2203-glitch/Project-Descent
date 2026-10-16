@@ -139,7 +139,7 @@ func test_concentrated_fire_stacks() -> void:
 	assert_eq(st.stacks_of("concentrated_fire"), 3, "one stack per Fire spell that hit")
 	assert_true(st.set_remaining("concentrated_fire", 5.0))
 	var left := float(st.list()[0]["remaining"])
-	assert_true(left > 4.5 and left <= 5.0, "the window is 5 s once Cool Head ends")
+	assert_true(left > 4.5 and left <= 5.001, "the window is 5 s once Cool Head ends")   # (+1 ms: float rounding of the clock)
 	assert_true(st.spend_stacks("concentrated_fire"))
 	assert_eq(st.stacks_of("concentrated_fire"), 2, "an instant cast spends one stack")
 	st.spend_stacks("concentrated_fire")

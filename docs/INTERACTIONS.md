@@ -271,7 +271,7 @@ Code: `player.gd`, "Holy healer: the Hymns"; numbers `balance.gd` (`VERSE_*`, `M
 - On every heal of mine (`_on_heal_done_hymns`, ids in `HYMN_HEALS`): Mercy's Ear, Chorus's splash (`_chorus_splash`, meter `chorus_splash`) and Vigil's shield (`vigil_ward`).
 - Party members: heals as usual (`support_ally "heal"`); less damage taken `support_ally "hymn_dr"` -> `receive_hymn_dr` (Vigil renewed every `VIGIL_TELL_EVERY` for `VIGIL_BUFF_TIME`, Steady Voice, Bulwark of Song); shields `"hymn_ward"` (Shelter, Vigil's); Watchful: the ally's `_vigil_taken` answers `"vigil_hit"`. Friendly dummies are handled locally.
 - Pictures: `scripts/hymn_ring.gd` (`show_on`, `boom`), sent as the `"hymn"` / `"hymn_boom"` fx. HUD: the VS row in `hud.gd` (`_build_verse_row`), colours `Abilities.HYMN_COLORS`.
-- Runes: Resounding (`RESOUNDING_*`, meter `resounding`), Overture (`overture_ready` in `_begin_spell`; spent when the cast starts).
+- Runes: Resounding (`RESOUNDING_*`, meter `resounding`), Overture (`overture_ready` and `_overture_cast` in `_begin_spell`; used up when the cast lands, castable on the move).
 - Tests: `tests/test_hymns.gd`.
 
 ## Interrupts

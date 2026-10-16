@@ -181,7 +181,7 @@ func test_feeding_only_touches_my_own_copy() -> void:
 	var tick_before := float(st.effects[my_key]["next_tick"])
 	assert_true(st.set_remaining_from("immolate", me, 5.0))
 	var mine: float = st.remaining_from("immolate", me)
-	assert_true(mine > 4.8 and mine <= 5.0, "mine now has 5 s left, got %s" % mine)
+	assert_true(mine > 4.8 and mine <= 5.001, "mine now has 5 s left, got %s" % mine)   # (+1 ms: float rounding of the clock)
 	var theirs: float = st.remaining_from("immolate", ally)
 	assert_true(theirs > 11.8, "an ally's Immolate is left alone, got %s" % theirs)
 	assert_eq(float(st.effects[my_key]["next_tick"]), tick_before, "the tick timer doesn't move")

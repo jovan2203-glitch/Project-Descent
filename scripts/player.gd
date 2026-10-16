@@ -2064,14 +2064,14 @@ func _begin_spell(spell: String, display_name: String, duration: float, channel:
 	_bottled_cast = not _instinct_cast and not _conc_cast and not _flicker_cast and bottled_ready(spell)
 	if _bottled_cast:
 		duration = 0.05   # Rune of Bottled Lightning: this Discharge is instant (released next frame)
-	if not channel and not _instinct_cast and not _conc_cast and not _flicker_cast and not _bottled_cast and overture_ready(spell):
-		duration = 0.05   # Rune of the Overture: the first cast after a boom is instant
-		status.remove(OVERTURE_FX)
+	_overture_cast = not channel and not _instinct_cast and not _conc_cast and not _flicker_cast and not _bottled_cast and overture_ready(spell)
+	if _overture_cast:
+		duration = 0.05   # Rune of the Overture: the first cast after a boom is instant (used up when it lands)
 	# Cinder Step: this cast can be finished on the move (instant ones don't need it).
 	_cinder_cast = not channel and not _conc_cast and not _instinct_cast and cinder_step_ready(spell)
 	# Glint: this cast or channel can go on while I move (instant ones don't need it).
 	_glint_cast = not _conc_cast and not _instinct_cast and not _flicker_cast and not _bottled_cast \
-		and not _cinder_cast and glint_ready(spell)
+		and not _cinder_cast and not _overture_cast and glint_ready(spell)
 	if _glint_cast and channel and status:
 		status.spend_stacks(GLINT_FX, 1)   # a channel is paid for when it starts, and uses Glint up then too (Keep Moving: one of its casts)
 	if on_gcd(spell):
@@ -2094,6 +2094,7 @@ func _cancel_cast() -> void:
 	_conc_cast = false       # so does the Concentrated Fire stack
 	_cinder_cast = false     # and Cinder Step's cast on the move
 	_flicker_cast = false    # and Flicker's instant Lightning Bolt
+	_overture_cast = false   # and the Overture's instant cast
 	_bottled_cast = false    # and Bottled Lightning's instant Discharge
 	_glint_cast = false      # and Glint's cast on the move
 	_volley_left = 0         # a broken Ember Volley launches no more embers
@@ -2131,6 +2132,8 @@ func _release_cast() -> void:
 	_conc_cast = false
 	var flick := _flicker_cast
 	_flicker_cast = false
+	var overture := _overture_cast
+	_overture_cast = false
 	var bottled := _bottled_cast
 	_bottled_cast = false
 	if not _pay(spell):
@@ -2138,6 +2141,8 @@ func _release_cast() -> void:
 		return
 	if flick and status:
 		status.remove(FLICKER_FX)      # Flicker: that was its instant Lightning Bolt
+	if overture and status:
+		status.remove(OVERTURE_FX)     # Rune of the Overture: that was its instant cast
 	if bottled and status:
 		status.remove(BOTTLED_FX)      # Rune of Bottled Lightning: that was its instant Discharge
 	if conc and status:
@@ -2356,7 +2361,7 @@ func _physics_process(delta: float) -> void:
 	# (And the one cast Cinder Step lets you finish while moving.)
 	# (And whatever Glint lets you cast or channel on the move.)
 	var steady := casting and (current_spell == "steadyshot" or _conc_cast or _cinder_cast or _flicker_cast or _bottled_cast
-		or _glint_cast)
+		or _glint_cast or _overture_cast)
 	if steady:
 		var aimed: bool = current_spell == "steadyshot" or current_spell in ENEMY_BOLTS or current_spell == "embervolley" \
 			or current_spell == GLACIAL_DRAW_ID or current_spell == SIGIL_DARTS_ID
@@ -3168,8 +3173,8 @@ func _pick_support_target(id: String) -> Array:
 	var res := Abilities.get_resource(id)
 	var lockout: Resource = res.get("ally_lockout_effect") if res else null
 	var lock_id := str(lockout.id) if lockout else ""
-	if id == "flashfreeze":
-		return [null, ""]
+	if id == "flashfreeze" or id == "canticle" or id == "exultation":
+		return [null, ""]   # (around me: whoever my friendly target is does not matter)
 	# Everlasting Rime: Rime Shell can't go on enemies (it goes on your friendly target / you).
 	if id == "rimeshell" and _has_valid_target() and not _has_rune("everlasting_rime"):
 		if global_position.distance_to(target.global_position) > float(res.cast_range):
@@ -3195,6 +3200,9 @@ func _start_support_cast(id: String) -> void:
 		return
 	if cooldown_left(id) > 0.0 and float(cooldowns.get(id, 0.0)) > 0.0:
 		_error("%s is not ready yet" % Abilities.ability_name(id))
+		return
+	if (id == "psalm" or id == "outpour") and not has_friendly_target() and health >= max_health:
+		_error("Already at full health")
 		return
 	var pick := _pick_support_target(id)
 	if pick[0] == null and str(pick[1]) != "":
@@ -3946,6 +3954,7 @@ var _wire_target: Node3D        # the enemy my Live Wire is on
 var _wire_line: Node3D          # its picture
 var _wire_since := 0.0          # when it landed (seconds)
 var _flicker_cast := false      # the current Lightning Bolt cast is Flicker's instant one
+var _overture_cast := false     # the current cast is the Overture's instant one (Holy healer rune)
 var _capacitor_stored := 0.0    # Energy put aside in the Capacitor
 
 # --- Rune of Bottled Lightning, and the talents Standing Charge, Whip Crack and Storm Cycle ---
@@ -11885,6 +11894,7 @@ const BOOM_NAMES := {"mercy": "Benediction", "chorus": "Chorale", "vigil": "Bulw
 ## Meter / log ids (Details.HIT_NAMES) of the booms' heals, Chorus's splash and the rune's hit.
 const BOOM_IDS := {"mercy": "benediction", "chorus": "chorale", "vigil": "bulwark_of_song"}
 const CHORUS_SPLASH_ID := "chorus_splash"
+const ANTIPHON_SELF_ID := "antiphon_self"   # Antiphon's heal on me (shown as Antiphon)
 const RESOUNDING_ID := "resounding"
 const RESOUNDING_RUNE := "resounding"
 const OVERTURE_RUNE := "overture"
@@ -11977,17 +11987,18 @@ static func health_share(hp: float, max_hp: float) -> float:
 
 # Gaining and spending Verses.
 
+## `n` Verses that suit `kind` (Swell: more, whatever gives them).
 func _add_verses(kind: String, n: int) -> void:
-	verses = verses_after_gain(verses, kind if kind != "" else "mercy", n)
+	var extra: int = Balance.SWELL_EXTRA if status != null and status.has(SWELL_FX) else 0
+	verses = verses_after_gain(verses, kind if kind != "" else "mercy", n + extra)
 
-## Ability `id` was used: its Verses (Swell: more).
+## Ability `id` was used: its Verses.
 func _gain_verses(id: String) -> void:
 	var g: Array = VERSE_GAINS.get(id, [])
 	if g.is_empty():
 		return
 	var kind := str(g[1]) if str(g[1]) != "" else hymn
-	var extra: int = Balance.SWELL_EXTRA if status != null and status.has(SWELL_FX) else 0
-	_add_verses(kind, int(g[0]) + extra)
+	_add_verses(kind, int(g[0]))
 
 ## The healer talents that give a Verse now and then (Mercy's Ear, Many Voices,
 ## Watchful): their value is the seconds between two of them.
@@ -12060,7 +12071,9 @@ func _do_boom(h: String, matches: int, full: bool, scale: float) -> void:
 	var at := global_position
 	match h:
 		"mercy":
-			var who: Node3D = friendly_target if has_friendly_target() else self
+			# My friendly target if Psalm could reach it (range, line of sight), else me.
+			var pick: Variant = _pick_support_target("psalm")[0]
+			var who: Node3D = pick if pick != null else self
 			_heal_coef(who, Balance.BENEDICTION_HEAL * mult, BOOM_IDS[h])
 			at = who.global_position
 		"chorus":
@@ -12129,7 +12142,7 @@ func _hymn_use(id: String, res: Resource) -> void:
 			if who:
 				var amount := _heal_coef(who, _hymn_heal_coef(id), id)
 				if not is_same(who, self):
-					_heal_exact(self, int(round(amount * Balance.ANTIPHON_SELF_PCT / 100.0)), id)
+					_heal_exact(self, int(round(amount * Balance.ANTIPHON_SELF_PCT / 100.0)), ANTIPHON_SELF_ID)   # (its own id: no second splash or ward)
 				_ring_effect(0.8, HOLY_LIGHT, who.global_position)
 		"shelter":
 			var who: Node3D = _pick_support_target(id)[0]
@@ -12210,12 +12223,15 @@ func _tick_refrains(now: float) -> void:
 	for key in _refrains.keys():
 		var e: Dictionary = _refrains[key]
 		var who: Variant = e["node"]
-		if who == null or not is_instance_valid(who) or not who.is_alive() or now > float(e["until"]):
+		if who == null or not is_instance_valid(who) or not who.is_alive():
 			_refrains.erase(key)
 			continue
-		if now >= float(e["next"]):
+		# Every tick due by now, the one that falls on its last moment included.
+		while now >= float(e["next"]) and float(e["next"]) <= float(e["until"]) + 0.001:
 			e["next"] = float(e["next"]) + Balance.REFRAIN_TICK / maxf(haste_mult(), 0.1)
 			_heal_coef(who, float(e["per"]), "refrain")
+		if float(e["next"]) > float(e["until"]) + 0.001:
+			_refrains.erase(key)
 
 # What my heals do on top (SignalBus.heal_done hears every heal).
 
@@ -12297,6 +12313,9 @@ func _hymn_ward(who: Variant, fx_id: String, amount: int, time: float) -> void:
 func _hymn_ward_on(st: Node, from: Node, fx_id: String, amount: int, time: float) -> void:
 	if st == null or amount <= 0:
 		return
+	# A new one never shrinks the shield already there: Vigil's adds to it, Shelter keeps the bigger.
+	var left: int = st.absorb_left(fx_id) if st.has(fx_id) else 0
+	amount = left + amount if fx_id == VIGIL_WARD_FX else maxi(left, amount)
 	st.apply(make_hymn_ward_fx(fx_id, time), from)
 	st.set_remaining(fx_id, time)
 	st.set_absorb(fx_id, amount)

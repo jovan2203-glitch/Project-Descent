@@ -76,7 +76,7 @@ func test_my_own_reapplication_moves_my_clock() -> void:
 	st.effects["chilled"]["by"][me.get_instance_id()] = Time.get_ticks_msec() / 1000.0 + 0.5
 	st.apply(chill, me)
 	var left: float = st.own_expires(st.effects["chilled"], me) - Time.get_ticks_msec() / 1000.0
-	assert_true(left > 2.8 and left <= 3.0, "my refresh restarts my own 3 s, got %s" % left)
+	assert_true(left > 2.8 and left <= 3.001, "my refresh restarts my own 3 s, got %s" % left)   # (+1 ms: float rounding of the clock)
 
 ## A mirrored copy (party member's machine) has no caster list: its listed caster counts.
 func test_a_mirrored_effect_belongs_to_its_listed_caster() -> void:

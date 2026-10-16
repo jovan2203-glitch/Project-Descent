@@ -53,7 +53,7 @@ Code: player.gd, "Holy healer: the Hymns". Numbers: balance.gd (VERSE_*, MERCY_*
 
 ### Runes (Epic)
 - Resounding: booms also deal 0.6 FB Holy damage within 8 m (Benediction around the ally, the others around you), split past the AoE cap.
-- Overture: after a boom, your next spell with a cast time within 3 s is instant.
+- Overture: after a boom, your next spell with a cast time within 3 s is instant (and can be cast on the move). It is used up when that cast lands.
 
 ## Block tank (Standards, requires a shield) - spec "Standard Bearer"
 - Theme: you plant tall white-and-gold standards. Two within 20 m of each other are joined by a beam of light at waist height.
