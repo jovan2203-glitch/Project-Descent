@@ -30,6 +30,7 @@ const STATE_NAMES := ["Idle", "Chase", "Attack", "Return", "Dead"]
 
 const OUTLINE_SHADER: Shader = preload("res://shaders/outline.gdshader")
 const Combat = preload("res://scripts/combat_utils.gd")
+const CrowdGrid = preload("res://scripts/core/crowd_grid.gd")
 const STATUS_CONTAINER = preload("res://scripts/core/status_container.gd")
 const BREACH_FX = preload("res://scripts/breach_fx.gd")
 const DamageInfo = preload("res://scripts/core/damage_info.gd")
@@ -1333,12 +1334,12 @@ func _crowd_velocity(around: Node3D) -> Vector3:
 	var push := Vector3.ZERO
 	var spread := Vector3.ZERO
 	var r := Combat.hitbox_radius(self)
-	for e in get_tree().get_nodes_in_group("enemies"):
-		if e == self or not (e is Node3D) or not e.is_alive():
+	for entry in CrowdGrid.near(get_tree(), &"enemies", global_position, r):
+		if entry[0] == self:
 			continue
-		var d: Vector3 = global_position - e.global_position
+		var d: Vector3 = global_position - entry[1]
 		d.y = 0.0
-		var sum := r + Combat.hitbox_radius(e)
+		var sum: float = r + float(entry[2])
 		var dist := d.length()
 		if dist >= sum:
 			continue
