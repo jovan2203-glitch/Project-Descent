@@ -1,8 +1,22 @@
 extends Node3D
+class_name MainMenu
 
 # Main menu: 3D player on a pedestal with UI layered on top.
 # Tabs: Lobby (party slots + Play), Character (gear slots), Abilities & Talents
 # (category books), Skill Cards, Bank, Queue.
+
+# --- Components ----------------------------------------------------------------------------
+# Each tab's own code lives in a part (scripts/menu/*.gd, see menu_part.gd), made
+# here as a child node; SPLIT_HOST=menu tools/split_batch.sh adds the line for each one.
+
+func _part(script: Script) -> Node:
+	var p: Node = script.new()
+	p.name = str(script.get_global_name())
+	p.set("menu", self)
+	add_child(p)
+	return p
+
+# --- End of components ---
 
 const UI = preload("res://scripts/ui_kit.gd")
 const Items = preload("res://scripts/items.gd")
@@ -92,10 +106,7 @@ const RuneScreens = preload("res://scripts/ui/rune_screens.gd")
 const RuneManager = preload("res://scripts/ui/rune_manager.gd")
 const MacroWindow = preload("res://scripts/ui/macro_window.gd")
 
-# --- Rune Transfer ------------------------------------------------------------------
-# Source Item (must be runed) -> Target Item. Transfer: the rune moves to
-# the target, is learned permanently, and the source is destroyed.
-# Extract: learn the rune and destroy the source (no target needed).
+# --- Input, per-frame updates and toasts ---------------------------------------------
 
 func _toast_ok(msg: String) -> void:
 	_toast_if(msg)
@@ -1199,187 +1210,6 @@ func _gear_column(slots: Array, left_side: bool) -> Control:
 			row.add_child(labels)
 		col.add_child(row)
 	return col
-
-# --- Part: Rune Transfer --------
-var _et_panel: PanelContainer
-var _et_shade: ColorRect
-var _et_src := {}
-var _et_tgt := {}
-var _et_pick := ""          # "src" / "tgt" while choosing from the list
-var _et_src_btn: Button
-var _et_tgt_btn: Button
-var _et_list: VBoxContainer
-var _et_list_title: Label
-
-func _close_rune_transfer() -> void:
-	_et_panel.visible = false
-	_et_shade.visible = false
-
-func _build_rune_transfer() -> void:
-	_et_shade = ColorRect.new()
-	_et_shade.color = Color(0, 0, 0, 0.5)
-	_et_shade.set_anchors_preset(Control.PRESET_FULL_RECT)
-	ui.add_child(_et_shade)
-
-	_et_panel = PanelContainer.new()
-	_et_panel.anchor_left = 0.5
-	_et_panel.anchor_right = 0.5
-	_et_panel.anchor_top = 0.5
-	_et_panel.anchor_bottom = 0.5
-	_et_panel.offset_left = -260
-	_et_panel.offset_right = 260
-	_et_panel.offset_top = -230
-	_et_panel.offset_bottom = 230
-	var sb := UI.box(UI.PANEL_BG, UI.ACCENT.darkened(0.3), 2, 10)
-	sb.content_margin_left = 16
-	sb.content_margin_right = 16
-	sb.content_margin_top = 12
-	sb.content_margin_bottom = 14
-	_et_panel.add_theme_stylebox_override("panel", sb)
-	ui.add_child(_et_panel)
-
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 10)
-	_et_panel.add_child(v)
-	v.add_child(UI.label("Rune Transfer", 22, C_ACCENT))
-	var info := UI.label("The rune is learned permanently and the source item is destroyed.", 13, C_TEXT_DIM)
-	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v.add_child(info)
-
-	var slots := HBoxContainer.new()
-	slots.alignment = BoxContainer.ALIGNMENT_CENTER
-	slots.add_theme_constant_override("separation", 24)
-	v.add_child(slots)
-	_et_src_btn = _et_slot_column(slots, "Source Item", "src")
-	var arrow := UI.label("→", 30, C_ACCENT)
-	arrow.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	slots.add_child(arrow)
-	_et_tgt_btn = _et_slot_column(slots, "Target Item", "tgt")
-
-	_et_list_title = UI.label("", 14, Color.WHITE)
-	v.add_child(_et_list_title)
-	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(0, 170)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	v.add_child(scroll)
-	_et_list = VBoxContainer.new()
-	_et_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_et_list.add_theme_constant_override("separation", 4)
-	scroll.add_child(_et_list)
-
-	var buttons := HBoxContainer.new()
-	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
-	buttons.add_theme_constant_override("separation", 10)
-	v.add_child(buttons)
-	var transfer := UI.button("Transfer", 16, Vector2(130, 38))
-	transfer.pressed.connect(_do_transfer)
-	buttons.add_child(transfer)
-	var extract := UI.button("Extract (learn only)", 16, Vector2(170, 38))
-	extract.pressed.connect(_do_extract)
-	buttons.add_child(extract)
-	var close := UI.button("Close", 16, Vector2(90, 38))
-	close.pressed.connect(_close_rune_transfer)
-	buttons.add_child(close)
-	_et_panel.visible = false
-	_et_shade.visible = false
-
-func _et_slot_column(parent: Control, title: String, mode: String) -> Button:
-	var col := VBoxContainer.new()
-	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	var l := UI.label(title, 14, Color.WHITE)
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	col.add_child(l)
-	var b := UI.slot(66, "Click to choose")
-	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	b.pressed.connect(func():
-		_et_pick = mode
-		_refresh_rune_transfer())
-	col.add_child(b)
-	parent.add_child(col)
-	return b
-
-func _et_where(ref: Dictionary) -> String:
-	if ref.get("where") == "equip":
-		return "Equipped (%s)" % ref["slot"]
-	return "Bank"
-
-func _refresh_rune_transfer() -> void:
-	var pd := get_node("/root/PlayerData")
-	# Drop stale selections (item moved/destroyed).
-	if not _et_src.is_empty() and Items.rune_of(pd.get_item_at(_et_src)) == "":
-		_et_src = {}
-	if not _et_tgt.is_empty() and pd.get_item_at(_et_tgt) == "":
-		_et_tgt = {}
-	UI.set_slot_item(_et_src_btn, pd.get_item_at(_et_src) if not _et_src.is_empty() else "")
-	UI.set_slot_item(_et_tgt_btn, pd.get_item_at(_et_tgt) if not _et_tgt.is_empty() else "")
-	_et_src_btn.add_theme_stylebox_override("normal", UI.box(UI.BG, C_ACCENT if _et_pick == "src" else UI.BORDER, 2, 5))
-	_et_tgt_btn.add_theme_stylebox_override("normal", UI.box(UI.BG, C_ACCENT if _et_pick == "tgt" else UI.BORDER, 2, 5))
-
-	for c in _et_list.get_children():
-		c.queue_free()
-	var refs: Array[Dictionary] = []
-	if _et_pick == "src":
-		_et_list_title.text = "Choose a Source Item (with a rune):"
-		refs = pd.list_items(1)
-	elif _et_pick == "tgt":
-		_et_list_title.text = "Choose a Target Item (no rune):"
-		refs = pd.list_items(0)
-	else:
-		_et_list_title.text = "Click a slot to choose an item."
-	if _et_pick != "" and refs.is_empty():
-		_et_list.add_child(UI.label("No suitable items in your gear or bank.", 13, C_TEXT_DIM))
-	for ref in refs:
-		var item: String = pd.get_item_at(ref)
-		var row := UI.button("", 14, Vector2(0, 40))
-		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		row.text = "          %s   —   %s" % [Items.item_name(item), _et_where(ref)]
-		row.set_meta("tip_item", item)
-		row.set_meta("tip_equipped", ref.get("where") == "equip")
-		var icon := UI.slot(32, "")
-		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon.position = Vector2(4, 4)
-		UI.set_slot_item(icon, item)
-		row.add_child(icon)
-		var mode := _et_pick
-		row.pressed.connect(func():
-			if mode == "src":
-				_et_src = ref
-				_et_pick = "tgt" if _et_tgt.is_empty() else ""
-			else:
-				_et_tgt = ref
-				_et_pick = ""
-			_refresh_rune_transfer())
-		_et_list.add_child(row)
-
-func _do_transfer() -> void:
-	var pd := get_node("/root/PlayerData")
-	if _et_src.is_empty() or _et_tgt.is_empty():
-		_toast_if("Choose a source and a target item")
-		return
-	var e := Items.rune_of(pd.get_item_at(_et_src))
-	var err: String = pd.transfer_rune(_et_src, _et_tgt)
-	if err != "":
-		_toast_if(err)
-		return
-	_toast_ok("Learned %s and applied it to %s" % [Runes.rune_name(e), Items.item_name(pd.get_item_at(_et_tgt))])
-	_et_src = {}
-	_et_pick = "src"
-	_refresh_rune_transfer()
-
-func _do_extract() -> void:
-	var pd := get_node("/root/PlayerData")
-	if _et_src.is_empty():
-		_toast_if("Choose a source item")
-		return
-	var e := Items.rune_of(pd.get_item_at(_et_src))
-	var err: String = pd.extract_rune(_et_src)
-	if err != "":
-		_toast_if(err)
-		return
-	_toast_ok("Learned %s" % Runes.rune_name(e))
-	_et_src = {}
-	_et_pick = "src"
-	_refresh_rune_transfer()
 
 # --- Part: Bank page: show items, Ctrl+click multi-select, drag to trash --------
 var _bank_buttons: Array[Button] = []
