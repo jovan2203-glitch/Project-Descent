@@ -1,9 +1,8 @@
 extends "res://scripts/menu/menu_part.gd"
 class_name CardsPage
 
-# Moved out of scripts/main_menu.gd as it was (menu = the menu node). Hooked up from
-# main_menu.gd through its var "cards_page".
-# --- Part: Skill Cards: a loadout that guarantees abilities in level-up drafts --------
+# The Skill Cards page: a loadout that guarantees abilities in level-up drafts.
+
 var _cards_row: VBoxContainer
 var _cards_tabs: HFlowContainer
 var _cards_count_label: Label

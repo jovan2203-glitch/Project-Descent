@@ -1,9 +1,14 @@
 extends "res://scripts/menu/menu_part.gd"
 class_name LobbyPage
 
-# Moved out of scripts/main_menu.gd as it was (menu = the menu node). Hooked up from
-# main_menu.gd through its var "lobby_page".
-# --- Part: Lobby page: party slots, social panel, queue banner, party podiums --------
+# The Lobby page: party slots, the friends (social) panel and the queue banner.
+# Every party card has a 3D podium standing in it (behind the UI, lined up with the
+# card each frame), and a party member's character stands on theirs. Cards are
+# mostly see-through so the podium / character shows. Party members use the same
+# base model as you for now; gear and character customization plug in at
+# _make_party_model later.
+
+const PARTY_MODEL = preload("res://assets/player/Idle.fbx")
 var social: PanelContainer
 var _party_slots: Array[Button] = []
 var _you_label: Label
@@ -38,7 +43,7 @@ func _build_party_podiums() -> void:
 ## A party member's character. Same base model as yours for now (later: their
 ## gear and customization, from `info`).
 func _make_party_model(_info: Dictionary) -> Node3D:
-	var m: Node3D = MainMenu.PARTY_MODEL.instantiate()
+	var m: Node3D = PARTY_MODEL.instantiate()
 	menu.add_child(m)
 	var anim: AnimationPlayer = m.find_child("AnimationPlayer", true, false)
 	if anim and anim.has_animation("mixamo_com"):

@@ -1,9 +1,10 @@
 extends "res://scripts/menu/menu_part.gd"
 class_name CharacterPage
 
-# Moved out of scripts/main_menu.gd as it was (menu = the menu node). Hooked up from
-# main_menu.gd through its var "character_page".
-# --- Part: Character page: gear, runes panel, stats, attributes, level lock, prestige, Alt popup --------
+# The Character page: gear slots (right-click -> bank, Alt+hover -> pick from the
+# bank), the runes panel, stats, attributes (1 point per level; freely movable here,
+# add-only in game), the level lock and Prestige.
+
 var _hovered_slot := ""
 var _hovered_btn: Button
 var _alt_popup: PanelContainer
@@ -251,6 +252,21 @@ func _open_alt_popup() -> void:
 const ALT_GRACE := 0.15
 var _alt_popup_btn: Button
 var _alt_grace := 0.0
+
+## Every frame (main_menu.gd _process): close the Alt popup once the mouse has left it and its slot.
+func _update_alt_popup(delta: float) -> void:
+	if _alt_popup == null or not _alt_popup.visible:
+		return
+	var mouse := menu.get_viewport().get_mouse_position()
+	var over := _alt_popup.get_global_rect().has_point(mouse)
+	if is_instance_valid(_alt_popup_btn) and _alt_popup_btn.is_visible_in_tree():
+		over = over or _alt_popup_btn.get_global_rect().has_point(mouse)
+	if over:
+		_alt_grace = ALT_GRACE
+		return
+	_alt_grace -= delta
+	if _alt_grace <= 0.0:
+		_alt_popup.visible = false
 
 # Show equipped items in the Character tab's gear squares.
 func _refresh_gear() -> void:

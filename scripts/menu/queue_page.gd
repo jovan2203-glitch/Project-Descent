@@ -1,9 +1,11 @@
 extends "res://scripts/menu/menu_part.gd"
 class_name QueuePage
 
-# Moved out of scripts/main_menu.gd as it was (menu = the menu node). Hooked up from
-# main_menu.gd through its var "queue_page".
-# --- Part: Queue: pick a dungeon and go in --------
+# Queue (the Play screen): pick a dungeon and go in. "Random Dungeon" is the real
+# queue: you (and your party) get sent into a random dungeon from the pool. Below it
+# every dungeon can be joined on its own - for testing. Enemy level = the group's
+# average pulled toward its highest level.
+
 var _instances: Array = []
 const QUEUE_ROWS := [["Queue", "Dungeon Finder"], ["Test", "Join a specific dungeon (testing)"], ["Raid", "Raids"]]
 

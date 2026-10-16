@@ -1,9 +1,9 @@
 extends "res://scripts/menu/menu_part.gd"
 class_name EscMenuPart
 
-# Moved out of scripts/main_menu.gd as it was (menu = the menu node). Hooked up from
-# main_menu.gd through its var "esc".
-# --- Part: Esc menu (Resume / Settings / Wipe / Quit) --------
+# The Esc menu overlay (Resume / Settings / Wipe / Quit). The Esc key itself is
+# handled in main_menu.gd (_unhandled_input), which closes whatever is open first.
+
 func _build_esc_menu() -> void:
 	menu.esc_menu = UI.small_panel("Menu")
 	menu.esc_menu.offset_top = -175

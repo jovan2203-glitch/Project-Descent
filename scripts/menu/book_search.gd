@@ -1,9 +1,10 @@
 extends "res://scripts/menu/menu_part.gd"
 class_name BookSearch
 
-# Moved out of scripts/main_menu.gd as it was (menu = the menu node). Hooked up from
-# main_menu.gd through its var "book_search".
-# --- Part: Search --------
+# Search (one bar at the top of the Abilities & Talents page): on the shelf it lists
+# matches to pick from; in an open book it highlights them. Hovering an ability or a
+# talent highlights everything that mentions it (or that it mentions).
+
 const SEARCH_COL := Color(0.4, 1.0, 0.6)      # matches the search
 const FOCUS_COL := Color(1.0, 1.0, 1.0)       # the result you clicked
 const SEARCH_MAX_RESULTS := 60

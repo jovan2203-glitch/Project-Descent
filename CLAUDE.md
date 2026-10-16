@@ -6,6 +6,7 @@ Godot 4.7 3D co-op action-RPG (dungeons, ability books, talents, runes, Pacts). 
 - `scripts/balance.gd` - every damage, cooldown, cost, duration and talent rank value. Never hard-code these elsewhere.
 - `scripts/abilities.gd`, `talents.gd`, `runes.gd`, `skill_cards.gd`, `items.gd` - content definitions.
 - `scripts/player.gd` - the player's shared core (stats, casting, targeting, damage, resources, co-op). Each spec's code is a component in `scripts/player/` (see `player_kit.gd`): a new spec gets its own component file, hooked from player.gd, never a new section in player.gd.
+- `scripts/main_menu.gd` - the main menu's shared core (scene, pages, nav bar, XP bar, input callbacks, toasts). Each tab's code is a part in `scripts/menu/` (see `menu_part.gd`): a new tab or overlay gets its own part, never a new section in main_menu.gd. Tests that check menu code text read `MenuSource.text()`.
 - `scripts/net/` - networking. `scripts/dungeon/` - dungeons. `scripts/ui/` - interface.
 - `tests/test_*.gd` - test suites. Run them headless with `tools/test.sh [suite] [test]` (no editor, no stale caches), or with the godot-ai `test_run` tool (open `res://scenes/main_menu.tscn` first). Tests that check player code text read `PlayerSource.text()`.
 - `tools/balance_sim.tscn` - approximate per-spec DPS / HPS at level 50; writes `docs/BALANCE_REPORT.md` (`godot --headless --path . res://tools/balance_sim.tscn`). Rerun it after balance changes.

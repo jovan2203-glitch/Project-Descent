@@ -1,9 +1,12 @@
 extends "res://scripts/menu/menu_part.gd"
 class_name ShelfPage
 
-# Moved out of scripts/main_menu.gd as it was (menu = the menu node). Hooked up from
-# main_menu.gd through its var "shelf".
-# --- Part: Shelf: the Abilities & Talents page, one book per category --------
+# The Abilities & Talents page. Top: the action bar (drag abilities onto it, drag
+# them off to remove). Below: a shelf of books, one per category, plus the Pacts and
+# Rune Spells tabs. Opening a book shows its abilities and talent tree (open_book.gd,
+# talent_tree.gd). Talent rows unlock globally: 3 points in a row of ANY tree opens
+# the next row in EVERY tree, so trees can be mixed freely.
+
 var _shelf: PanelContainer
 var _shelf_info := {}          # category -> Label (abilities / points summary)
 ## Highlight the open book's button in the quick switcher.

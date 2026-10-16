@@ -1,9 +1,8 @@
 extends "res://scripts/menu/menu_part.gd"
 class_name TalentTreePage
 
-# Moved out of scripts/main_menu.gd as it was (menu = the menu node). Hooked up from
-# main_menu.gd through its var "talent_tree".
-# --- Part: Talent tree of the open book --------
+# The talent tree on the right page of the open book.
+
 var _book_tree: Control         # the talent page (the grid scales to fit it)
 var _talent_buttons := {}      # talent id -> Button (open book only)
 var _row_status: Array[Label] = []

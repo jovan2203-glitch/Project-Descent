@@ -36,6 +36,15 @@ const Talents = preload("res://scripts/talents.gd")
 const TalentIcons = preload("res://scripts/talent_icons.gd")
 const PARTY_SLOTS = 4
 const SOCIAL_PANEL = preload("res://scripts/ui/social_panel.gd")
+const RuneScreens = preload("res://scripts/ui/rune_screens.gd")
+const RuneManager = preload("res://scripts/ui/rune_manager.gd")
+const MacroWindow = preload("res://scripts/ui/macro_window.gd")
+const Abilities = preload("res://scripts/abilities.gd")
+const Categories = preload("res://scripts/categories.gd")
+const Keywords = preload("res://scripts/core/keywords.gd")
+const Pacts = preload("res://scripts/pacts.gd")
+const SkillCards = preload("res://scripts/skill_cards.gd")
+const DB = preload("res://scripts/dungeon/dungeon_db.gd")
 
 const LEFT_GEAR = ["Head", "Neck", "Shoulder", "Back", "Chest", "Gloves"]
 const RIGHT_GEAR = ["Legs", "Boots", "Finger 1", "Finger 2", "Trinket 1", "Trinket 2"]
@@ -101,23 +110,10 @@ func _ready() -> void:
 	net.system_message.connect(_toast_ok)
 	lobby_page._refresh_party()
 
-# --- Party podiums + party members' characters ---------------------------------------
-# Every party card has a 3D podium standing in it (behind the UI, lined up with
-# the card each frame), and a party member's character stands on theirs. Cards
-# are mostly see-through so the podium / character shows. Party members use the
-# same base model as you for now; gear and character customization plug in at
-# _make_party_model later.
-const PARTY_MODEL = preload("res://assets/player/Idle.fbx")
-# --- Gear: right-click -> bank, Alt+hover -> pick from bank -----------------------
+# --- Input, per-frame updates and toasts ---------------------------------------------
 
 var _toast_label: Label
 var _toast_tween: Tween
-
-const RuneScreens = preload("res://scripts/ui/rune_screens.gd")
-const RuneManager = preload("res://scripts/ui/rune_manager.gd")
-const MacroWindow = preload("res://scripts/ui/macro_window.gd")
-
-# --- Input, per-frame updates and toasts ---------------------------------------------
 
 func _toast_ok(msg: String) -> void:
 	_toast_if(msg)
@@ -134,18 +130,7 @@ func _process(delta: float) -> void:
 	lobby_page._layout_party_3d()
 	cards_page._check_bar_drag_end()
 	character_page._update_gear_highlights()
-	if character_page._alt_popup == null or not character_page._alt_popup.visible:
-		return
-	var mouse := get_viewport().get_mouse_position()
-	var over := character_page._alt_popup.get_global_rect().has_point(mouse)
-	if is_instance_valid(character_page._alt_popup_btn) and character_page._alt_popup_btn.is_visible_in_tree():
-		over = over or character_page._alt_popup_btn.get_global_rect().has_point(mouse)
-	if over:
-		character_page._alt_grace = CharacterPage.ALT_GRACE
-		return
-	character_page._alt_grace -= delta
-	if character_page._alt_grace <= 0.0:
-		character_page._alt_popup.visible = false
+	character_page._update_alt_popup(delta)
 
 func _toast_if(msg: String) -> void:
 	if msg == "":
@@ -172,7 +157,7 @@ func _toast_if(msg: String) -> void:
 	_toast_tween.tween_interval(1.2)
 	_toast_tween.tween_property(_toast_label, "modulate:a", 0.0, 0.5)
 
-# --- Bank: show items, Ctrl+click multi-select, drag to trash --------------------
+# --- The 3D player on the pedestal -----------------------------------------------------
 
 func _play_idle() -> void:
 	var anim: AnimationPlayer = model.find_child("AnimationPlayer", true, false)
@@ -307,7 +292,7 @@ func _update_xp_bar() -> void:
 	_xp_fill.size.x = (XP_BAR_W - 2.0) * clampf(float(pd.xp) / need, 0.0, 1.0)
 	_xp_label.text = "Level %d  •  %d / %d XP" % [pd.level, pd.xp, need]
 
-# --- Esc menu (Resume / Settings / Quit) --------------------------------------
+# --- Esc key, nav bar and page frames ------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
@@ -412,39 +397,16 @@ func _full_rect_page() -> Control:
 	page.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return page
 
-# --- Abilities & Talents -----------------------------------------------------------
-# Top: the action bar (drag abilities onto it, drag them off to remove).
-# Below: a shelf of books, one per category. Opening a book shows that
-# category's abilities on the left page and its talent tree on the right page.
-# Talent rows unlock globally: 3 points in a row of ANY tree opens the next row
-# in EVERY tree, so trees can be mixed freely.
+# --- Book pages: colours shared by the Abilities & Talents parts -------------------------
 
-const Abilities = preload("res://scripts/abilities.gd")
-const Categories = preload("res://scripts/categories.gd")
 const PAGE_BG := Color(0.12, 0.105, 0.085, 0.98)
 const PAGE_BORDER := Color(0.32, 0.26, 0.18)
 const INK := Color(0.93, 0.88, 0.78)
 const INK_DIM := Color(0.62, 0.57, 0.5)
 
 var _talent_points_label: Label
-# Search (one bar at the top of the page): on the shelf it lists matches to pick
-# from; in an open book it highlights them. Hovering an ability or a talent
-# highlights everything that mentions it (or that it mentions).
-const Keywords = preload("res://scripts/core/keywords.gd")
-# --- Pacts: the tab above Rune Spells, and the page it opens ------------------------------
-# One Pact at a time (scripts/pacts.gd; PlayerData.pact). It can only be changed
-# here, so once a dungeon starts it is locked in.
 
-const Pacts = preload("res://scripts/pacts.gd")
-# --- Skill Cards: a loadout that guarantees abilities in level-up drafts ------------
-
-const SkillCards = preload("res://scripts/skill_cards.gd")
-# --- Queue: pick a dungeon and go in --------------------------------------------
-# "Random Dungeon" is the real queue: you (and your party) get sent into a random
-# dungeon from the pool. Below it every dungeon can be joined on its own - for
-# testing. Enemy level = the group's average pulled toward its highest level.
-
-const DB = preload("res://scripts/dungeon/dungeon_db.gd")
+# --- Placeholder pages -------------------------------------------------------------------
 
 func _build_empty_page(title: String) -> Control:
 	var page := _full_rect_page()

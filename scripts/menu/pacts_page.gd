@@ -1,9 +1,10 @@
 extends "res://scripts/menu/menu_part.gd"
 class_name PactsPage
 
-# Moved out of scripts/main_menu.gd as it was (menu = the menu node). Hooked up from
-# main_menu.gd through its var "pacts_page".
-# --- Part: Pacts: the tab above Rune Spells, and the page it opens --------
+# Pacts: the tab above Rune Spells, and the page it opens. One Pact at a time
+# (scripts/pacts.gd; PlayerData.pact). It can only be changed here, so once a
+# dungeon starts it is locked in.
+
 ## The two tabs above the books (Pacts, Rune Spells) and the gap between them:
 ## 28 + 4 + 28 = the 60 px the Rune Spells tab had alone.
 const SHELF_TAB_HEIGHT := 28

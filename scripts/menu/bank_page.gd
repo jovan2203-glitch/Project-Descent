@@ -1,9 +1,8 @@
 extends "res://scripts/menu/menu_part.gd"
 class_name BankPage
 
-# Moved out of scripts/main_menu.gd as it was (menu = the menu node). Hooked up from
-# main_menu.gd through its var "bank_page".
-# --- Part: Bank page: show items, Ctrl+click multi-select, drag to trash --------
+# The Bank page: shows your items; Ctrl+click multi-selects, drag to the trash.
+
 var _bank_buttons: Array[Button] = []
 var _bank_selected := {}     # bank index -> true
 

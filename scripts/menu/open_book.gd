@@ -1,9 +1,9 @@
 extends "res://scripts/menu/menu_part.gd"
 class_name OpenBook
 
-# Moved out of scripts/main_menu.gd as it was (menu = the menu node). Hooked up from
-# main_menu.gd through its var "open_book".
-# --- Part: The open book: abilities (left page) + rune page --------
+# The open book: its abilities (left page) and, for Rune Spells, the rune page.
+# The talent tree on the right page is talent_tree.gd.
+
 var _book: PanelContainer
 var _book_cat := ""            # open book's category ("" = shelf showing)
 var _book_emblem: Control
