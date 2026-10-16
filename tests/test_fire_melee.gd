@@ -69,29 +69,29 @@ func test_heat_numbers() -> void:
 
 func test_what_builds_and_spends_heat() -> void:
 	var p := _player()
-	assert_eq(p.heat_from("auto_melee"), 1, "an auto-attack builds 1")
-	assert_eq(p.heat_from("slam"), 1, "any melee ability builds 1")
-	assert_eq(p.heat_from("searingstrike"), 2, "Searing Strike builds 2")
-	assert_eq(p.heat_from("quench"), 0, "the spenders build none")
-	assert_eq(p.heat_from("flare"), 0)
-	assert_eq(p.heat_needed("quench"), 3)
-	assert_eq(p.heat_needed("flare"), 3)
-	assert_eq(p.heat_needed("searingstrike"), 0)
+	assert_eq(FireMeleeKit.heat_from("auto_melee"), 1, "an auto-attack builds 1")
+	assert_eq(FireMeleeKit.heat_from("slam"), 1, "any melee ability builds 1")
+	assert_eq(FireMeleeKit.heat_from("searingstrike"), 2, "Searing Strike builds 2")
+	assert_eq(FireMeleeKit.heat_from("quench"), 0, "the spenders build none")
+	assert_eq(FireMeleeKit.heat_from("flare"), 0)
+	assert_eq(FireMeleeKit.heat_needed("quench"), 3)
+	assert_eq(FireMeleeKit.heat_needed("flare"), 3)
+	assert_eq(FireMeleeKit.heat_needed("searingstrike"), 0)
 	assert_true(Abilities.tags_of("searingstrike").has("Melee") and Abilities.tags_of("auto_melee").has("Melee"),
 		"Heat comes from hits tagged Melee")
 	assert_false(Abilities.tags_of("immolate").has("Melee"))
 
 func test_quench_damage() -> void:
 	var p := _player()
-	assert_eq(p.quench_coef(1.0, 0), 1.0)
-	assert_true(absf(float(p.quench_coef(1.0, 3)) - 1.75) < 0.0001, "3 Heat: +75%")
-	assert_true(absf(float(p.quench_coef(1.0, 10)) - 3.5) < 0.0001, "10 Heat: 3.5x")
-	assert_true(absf(float(p.quench_coef(2.0, 10)) - 7.0) < 0.0001, "it multiplies the weapon hit")
+	assert_eq(FireMeleeKit.quench_coef(1.0, 0), 1.0)
+	assert_true(absf(float(FireMeleeKit.quench_coef(1.0, 3)) - 1.75) < 0.0001, "3 Heat: +75%")
+	assert_true(absf(float(FireMeleeKit.quench_coef(1.0, 10)) - 3.5) < 0.0001, "10 Heat: 3.5x")
+	assert_true(absf(float(FireMeleeKit.quench_coef(2.0, 10)) - 7.0) < 0.0001, "it multiplies the weapon hit")
 
 ## The buff: +4% per stack, only on Fire damage dealt by abilities.
 func test_heat_boosts_fire_abilities_only() -> void:
 	var st := _status()
-	var fx: Resource = _player().make_heat_fx()
+	var fx: Resource = FireMeleeKit.make_heat_fx()
 	assert_eq(str(fx.id), "heat")
 	assert_false(bool(fx.is_debuff), "a buff on you")
 	assert_false(bool(fx.consume_on_use), "hits don't use it up")
@@ -126,7 +126,7 @@ func test_heat_boosts_fire_abilities_only() -> void:
 
 func test_heat_caps_and_every_stack_restarts_the_timer() -> void:
 	var st := _status()
-	var fx: Resource = _player().make_heat_fx()
+	var fx: Resource = FireMeleeKit.make_heat_fx()
 	for i in Balance.HEAT_MAX_STACKS + 4:
 		st.apply(fx)
 	assert_eq(st.stacks_of("heat"), Balance.HEAT_MAX_STACKS, "capped")
@@ -137,7 +137,7 @@ func test_heat_caps_and_every_stack_restarts_the_timer() -> void:
 
 func test_flare_spends_three_and_quench_takes_it_all() -> void:
 	var st := _status()
-	var fx: Resource = _player().make_heat_fx()
+	var fx: Resource = FireMeleeKit.make_heat_fx()
 	for i in 7:
 		st.apply(fx)
 	st.set_remaining("heat", 1.5)
@@ -151,11 +151,11 @@ func test_flare_spends_three_and_quench_takes_it_all() -> void:
 
 func test_fresh_tinder_never_passes_the_base_duration() -> void:
 	var p := _player()
-	assert_eq(p.tinder_time(5.0, 1.0, 12.0), 6.0)
-	assert_eq(p.tinder_time(5.0, 2.0, 12.0), 7.0, "the capstone adds 2")
-	assert_eq(p.tinder_time(11.5, 2.0, 12.0), 12.0, "capped at the base duration")
-	assert_eq(p.tinder_time(12.0, 1.0, 12.0), 12.0)
-	assert_eq(p.tinder_time(13.0, 1.0, 12.0), 13.0, "never shortens a longer one")
+	assert_eq(FireMeleeKit.tinder_time(5.0, 1.0, 12.0), 6.0)
+	assert_eq(FireMeleeKit.tinder_time(5.0, 2.0, 12.0), 7.0, "the capstone adds 2")
+	assert_eq(FireMeleeKit.tinder_time(11.5, 2.0, 12.0), 12.0, "capped at the base duration")
+	assert_eq(FireMeleeKit.tinder_time(12.0, 1.0, 12.0), 12.0)
+	assert_eq(FireMeleeKit.tinder_time(13.0, 1.0, 12.0), 13.0, "never shortens a longer one")
 	assert_eq(Balance.FRESH_TINDER_SECONDS, 1.0)
 	assert_eq(Balance.FRESH_TINDER_CAPSTONE_SECONDS, 2.0)
 
@@ -190,9 +190,9 @@ func test_feeding_only_touches_my_own_copy() -> void:
 
 func test_afterglow_damage() -> void:
 	var p := _player()
-	assert_eq(p.afterglow_damage(200, 10.0), 20.0)
-	assert_eq(p.afterglow_damage(200, 20.0), 40.0)
-	assert_eq(p.afterglow_damage(0, 20.0), 0.0)
+	assert_eq(FireMeleeKit.afterglow_damage(200, 10.0), 20.0)
+	assert_eq(FireMeleeKit.afterglow_damage(200, 20.0), 40.0)
+	assert_eq(FireMeleeKit.afterglow_damage(0, 20.0), 0.0)
 	assert_eq(Balance.AFTERGLOW_TIME, 4.0)
 	assert_eq(Details.spell_name("afterglow"), "Afterglow", "its hits are named after it in the meter")
 
@@ -218,8 +218,8 @@ func test_melee_talents() -> void:
 
 func test_swings_glow_hotter() -> void:
 	var p := _player()
-	var cold: Color = p.heat_tint(0)
-	var hot: Color = p.heat_tint(Balance.HEAT_MAX_STACKS)
+	var cold: Color = FireMeleeKit.heat_tint(0)
+	var hot: Color = FireMeleeKit.heat_tint(Balance.HEAT_MAX_STACKS)
 	assert_true(cold.b > cold.r, "no Heat: steel")
 	assert_true(hot.r >= 0.99 and hot.r > hot.b, "full Heat: white-hot")
-	assert_true(p.heat_tint(5).b < cold.b, "warming up in between")
+	assert_true(FireMeleeKit.heat_tint(5).b < cold.b, "warming up in between")

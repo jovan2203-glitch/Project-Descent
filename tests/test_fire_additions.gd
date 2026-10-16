@@ -60,10 +60,10 @@ func test_pitch_is_one_per_archer_and_speeds_up_their_burns() -> void:
 	assert_true(bool(fx.get("per_caster")), "each archer has their own pitch (own only)")
 	var p := _player()
 	assert_eq(Balance.PITCH_TICK_SPEED_PCT, 25.0)
-	assert_eq(p.pitch_speed("burning", true), 1.25)
-	assert_eq(p.pitch_speed("immolate", true), 1.25)
-	assert_eq(p.pitch_speed("hoarfrost", true), 1.0, "only Burning and Immolate")
-	assert_eq(p.pitch_speed("burning", false), 1.0, "no pitch of mine on it: normal speed")
+	assert_eq(FireBowKit.pitch_speed("burning", true), 1.25)
+	assert_eq(FireBowKit.pitch_speed("immolate", true), 1.25)
+	assert_eq(FireBowKit.pitch_speed("hoarfrost", true), 1.0, "only Burning and Immolate")
+	assert_eq(FireBowKit.pitch_speed("burning", false), 1.0, "no pitch of mine on it: normal speed")
 
 ## The container side: a caster that speeds up its burns gets shorter ticks; nobody else does.
 func test_only_the_archers_own_burns_tick_faster() -> void:
@@ -115,9 +115,9 @@ func test_phoenix() -> void:
 	assert_true(float(Abilities.HEALS.get("cinderwing", 0.0)) > 0.0, "each cast heals")
 	assert_true(Balance.PHOENIX_RANGE > 0.0)
 	var p := _player()
-	assert_eq(p.lowest_share([1.0, 0.4, 0.7]), 1, "the ally with the least health left")
-	assert_eq(p.lowest_share([0.5, 0.5]), 0, "a tie: the first (you)")
-	assert_eq(p.lowest_share([]), -1, "nobody in range")
+	assert_eq(FireCooldownsKit.lowest_share([1.0, 0.4, 0.7]), 1, "the ally with the least health left")
+	assert_eq(FireCooldownsKit.lowest_share([0.5, 0.5]), 0, "a tie: the first (you)")
+	assert_eq(FireCooldownsKit.lowest_share([]), -1, "nobody in range")
 
 func test_new_talents() -> void:
 	var want := {
@@ -149,10 +149,10 @@ func test_new_talents() -> void:
 func test_talent_maths() -> void:
 	var p := _player()
 	# Forge Heat: the buff simply lasts longer.
-	assert_eq(float(p.make_heat_fx().duration), Balance.HEAT_TIME)
-	assert_eq(float(p.make_heat_fx(Balance.HEAT_TIME + 2.0).duration), 5.0, "4 / 4: 3 s + 2 s")
+	assert_eq(float(FireMeleeKit.make_heat_fx().duration), Balance.HEAT_TIME)
+	assert_eq(float(FireMeleeKit.make_heat_fx(Balance.HEAT_TIME + 2.0).duration), 5.0, "4 / 4: 3 s + 2 s")
 	# Long Burn raises what Fresh Tinder can fill up to.
-	assert_eq(p.tinder_time(14.0, 2.0, 12.0 + 3.0), 15.0)
+	assert_eq(FireMeleeKit.tinder_time(14.0, 2.0, 12.0 + 3.0), 15.0)
 	# Stoked Kiln: 20% -> 30 / 40%.
 	var kiln := Talents.id_for_key("fire_stoked_kiln")
 	assert_eq(Balance.KILN_BLAST_IMMOLATE_PCT + Talents.value_at(kiln, 1), 30.0)
@@ -169,28 +169,28 @@ func test_talent_maths() -> void:
 	assert_eq(pitch_time + Talents.value_at(pitch, 2), float(Abilities.get_resource("pitcharrow").cooldown))
 	assert_eq(str(Talents.get_talent(pitch).get("requires", "")), "pitcharrow")
 	# Banked Mana: part of the mana cost comes back.
-	assert_eq(p.banked_mana_refund(200.0, 5.0), 10.0)
-	assert_eq(p.banked_mana_refund(200.0, 10.0), 20.0)
-	assert_eq(p.banked_mana_refund(0.0, 10.0), 0.0, "a free cast gives nothing back")
+	assert_eq(FireCasterKit.banked_mana_refund(200.0, 5.0), 10.0)
+	assert_eq(FireCasterKit.banked_mana_refund(200.0, 10.0), 20.0)
+	assert_eq(FireCasterKit.banked_mana_refund(0.0, 10.0), 0.0, "a free cast gives nothing back")
 	assert_eq(Abilities.resource_of("fireball"), "mana", "Firebolt costs mana: it can refund")
 	assert_ne(Abilities.resource_of("searingstrike"), "mana", "abilities don't")
 	# Warm Blood counts my burns: the same ones Rekindle refreshes.
 	assert_true(Balance.REKINDLE_EFFECTS.has("burning") and Balance.REKINDLE_EFFECTS.has("immolate"))
 	# White Heat: only at the maximum Heat, and no Fire slot is left empty.
-	assert_eq(p.white_heat_bonus(Balance.HEAT_MAX_STACKS, 15.0), 15.0)
-	assert_eq(p.white_heat_bonus(Balance.HEAT_MAX_STACKS - 1, 15.0), 0.0, "one stack short: nothing")
-	assert_eq(p.white_heat_bonus(0, 15.0), 0.0)
-	assert_eq(p.white_heat_bonus(Balance.HEAT_MAX_STACKS, 0.0), 0.0, "nothing without the talent")
+	assert_eq(FireMeleeKit.white_heat_bonus(Balance.HEAT_MAX_STACKS, 15.0), 15.0)
+	assert_eq(FireMeleeKit.white_heat_bonus(Balance.HEAT_MAX_STACKS - 1, 15.0), 0.0, "one stack short: nothing")
+	assert_eq(FireMeleeKit.white_heat_bonus(0, 15.0), 0.0)
+	assert_eq(FireMeleeKit.white_heat_bonus(Balance.HEAT_MAX_STACKS, 0.0), 0.0, "nothing without the talent")
 	assert_contains(Talents.description(Talents.id_for_key("fire_white_heat")), "maximum %d Heat" % Balance.HEAT_MAX_STACKS)
 	for id in Talents.in_tree("fire"):
 		assert_false(bool(Talents.get_talent(id).get("placeholder", true)), "%s: every Fire slot holds a talent" % id)
 	# Slag Mending: % of max health per stack.
-	assert_eq(p.slag_mending_heal(1000, 6, 2.0), 120)
-	assert_eq(p.slag_mending_heal(1000, 3, 1.0), 30)
-	assert_eq(p.slag_mending_heal(1000, 6, 0.0), 0, "nothing without the talent")
+	assert_eq(FireCooldownsKit.slag_mending_heal(1000, 6, 2.0), 120)
+	assert_eq(FireCooldownsKit.slag_mending_heal(1000, 3, 1.0), 30)
+	assert_eq(FireCooldownsKit.slag_mending_heal(1000, 6, 0.0), 0, "nothing without the talent")
 	# Furnace Heart: Cinder Guard's 40 Rage -> 30 / 20.
 	var guard_cost := float(Abilities.get_resource("cinderguard").resource_cost)
 	assert_eq(guard_cost, 40.0)
-	assert_eq(p.furnace_heart_cost(guard_cost, 10.0), 30.0)
-	assert_eq(p.furnace_heart_cost(guard_cost, 20.0), 20.0)
-	assert_eq(p.furnace_heart_cost(10.0, 20.0), 0.0, "never below 0")
+	assert_eq(FireCooldownsKit.furnace_heart_cost(guard_cost, 10.0), 30.0)
+	assert_eq(FireCooldownsKit.furnace_heart_cost(guard_cost, 20.0), 20.0)
+	assert_eq(FireCooldownsKit.furnace_heart_cost(10.0, 20.0), 0.0, "never below 0")

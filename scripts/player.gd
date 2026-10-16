@@ -23,6 +23,12 @@ const BLIZZARD_RADIUS = 2.5
 # --- Components ----------------------------------------------------------------------------
 # Each spec's own code lives in a component (scripts/player/*.gd, see player_kit.gd),
 # made here as a child node; tools/split_section.pl adds the line for each one.
+var fire_runes: FireRunesKit = _kit(FireRunesKit) as FireRunesKit
+var fire_caster: FireCasterKit = _kit(FireCasterKit) as FireCasterKit
+var fire_tank: FireTankKit = _kit(FireTankKit) as FireTankKit
+var fire_melee: FireMeleeKit = _kit(FireMeleeKit) as FireMeleeKit
+var fire_bow: FireBowKit = _kit(FireBowKit) as FireBowKit
+var fire_cooldowns: FireCooldownsKit = _kit(FireCooldownsKit) as FireCooldownsKit
 var lightning_caster: LightningCasterKit = _kit(LightningCasterKit) as LightningCasterKit
 var storm_arrow_kit: StormArrowKit = _kit(StormArrowKit) as StormArrowKit
 var bottled_kit: BottledLightningKit = _kit(BottledLightningKit) as BottledLightningKit
@@ -293,6 +299,47 @@ func surge_active() -> bool:
 func ball_lightning_zapped(zaps: int) -> void:
 	lightning_caster.ball_lightning_zapped(zaps)
 
+
+# Forwards to FireCooldownsKit (called from other scripts).
+func phoenix_cast() -> void:
+	fire_cooldowns.phoenix_cast()
+
+func crucible_radius() -> float:
+	return fire_cooldowns.crucible_radius()
+
+func crucible_duration() -> float:
+	return fire_cooldowns.crucible_duration()
+
+func cinder_step_ready(id: String) -> bool:
+	return fire_cooldowns.cinder_step_ready(id)
+
+func cool_head_active() -> bool:
+	return fire_cooldowns.cool_head_active()
+
+func concentrated_fire_ready(id: String) -> bool:
+	return fire_cooldowns.concentrated_fire_ready(id)
+
+
+# Forwards to FireBowKit (called from other scripts).
+func dot_speed_mult(tgt: Node, res: Resource) -> float:
+	return fire_bow.dot_speed_mult(tgt, res)
+
+
+# Forwards to FireMeleeKit (called from other scripts).
+func heat_stacks() -> int:
+	return fire_melee.heat_stacks()
+
+func gain_heat(n: int) -> void:
+	fire_melee.gain_heat(n)
+
+
+# Forwards to FireCasterKit (called from other scripts).
+func charges_text(id: String) -> String:
+	return fire_caster.charges_text(id)
+
+func stacks_kept_on_use(res: Resource, stacks: int) -> int:
+	return fire_caster.stacks_kept_on_use(res, stacks)
+
 # --- End of components ---
 
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
@@ -401,9 +448,9 @@ func _die() -> void:
 	cancel_placement()
 	change_state(PState.DEAD)
 	current_state = "dead"   # the party's puppet of me stops showing "Downed"
-	_fuses.clear()
+	fire_caster._fuses.clear()
 	arcane_caster._clear_arcane()
-	_heat_on = false
+	fire_cooldowns._heat_on = false
 	if status:
 		status.clear()
 	_set_target(null)
@@ -448,9 +495,9 @@ func _go_down() -> void:
 	cancel_placement()
 	clear_queue()
 	change_state(PState.DOWNED)
-	_fuses.clear()   # Slow Fuse charges fizzle with me
+	fire_caster._fuses.clear()   # Slow Fuse charges fizzle with me
 	arcane_caster._clear_arcane()  # (so do Countdown marks; the Mirror Sigil and the Afterimage go)
-	_heat_on = false
+	fire_cooldowns._heat_on = false
 	if status:
 		status.clear()
 	_set_target(null)
@@ -600,7 +647,7 @@ func _ready() -> void:
 	_bus().cast_finished.connect(holy_talents._zeal_on_cast)   # Zeal (an open Holy talent)
 	_bus().ability_used.connect(_cold_precision_on_use)
 	_bus().damage_dealt.connect(_on_damage_dealt_frost)
-	_bus().damage_dealt.connect(_on_damage_dealt_fire)
+	_bus().damage_dealt.connect(fire_runes._on_damage_dealt_fire)
 	_bus().damage_dealt.connect(bottled_kit._on_damage_dealt_lightning)
 	_bus().damage_dealt.connect(arcane_caster._on_damage_dealt_arcane)
 	_bus().damage_dealt.connect(decay._on_damage_dealt_shadow)
@@ -614,8 +661,8 @@ func _ready() -> void:
 	_bus().cast_finished.connect(fire_lightning_talents._change_of_pace)
 	_bus().cast_started.connect(overload_kit._on_cast_for_static)
 	_bus().cast_finished.connect(overload_kit._on_cast_for_static)
-	_bus().damage_dealt.connect(_slag_skin_retaliate)
-	_bus().damage_dealt.connect(_on_hit_taken)
+	_bus().damage_dealt.connect(fire_tank._slag_skin_retaliate)
+	_bus().damage_dealt.connect(fire_cooldowns._on_hit_taken)
 	_bus().damage_modify.connect(_on_damage_modify)
 	_bus().player_hit.connect(_on_hit_talents)
 	var listener := Node.new()
@@ -758,22 +805,22 @@ func _unhandled_input(event: InputEvent) -> void:
 				pass   # still on the global cooldown: keep aiming, click again
 			elif (placing_id == PrismsKit.SET_PRISM_ID or placing_id == PrismsKit.REALIGN_ID or placing_id == LightstringKit.PRISM_ARROW_ID) and prism_kit._prism_place_error(placing_id, cast_point) != "":
 				_error(prism_kit._prism_place_error(placing_id, cast_point))   # (out of range: keep aiming)
-			elif placing_id == CINDER_RAIN_ID and _cinder_rain_error(cast_point) != "":
-				_error(_cinder_rain_error(cast_point))   # out of range: keep aiming
+			elif placing_id == FireBowKit.CINDER_RAIN_ID and fire_bow._cinder_rain_error(cast_point) != "":
+				_error(fire_bow._cinder_rain_error(cast_point))   # out of range: keep aiming
 			elif placing_id == ArcaneTankKit.DECOY_ID and arcane_tank._decoy_error(cast_point) != "":
 				_error(arcane_tank._decoy_error(cast_point))         # (the same for Decoy)
 			elif (placing_id == WeaverKit.MOSSBACK_ID or placing_id == WeaverKit.VIPERS_ID) and weaver._finisher_place_error(placing_id, cast_point) != "":
 				_error(weaver._finisher_place_error(placing_id, cast_point))   # (Nature finishers: keep aiming)
 			else:
 				cancel_placement()
-				if placing_id == CRUCIBLE_ID:
-					_start_crucible(cast_point)
+				if placing_id == FireCooldownsKit.CRUCIBLE_ID:
+					fire_cooldowns._start_crucible(cast_point)
 				elif placing_id == ArcaneTankKit.DECOY_ID:
 					arcane_tank._start_decoy(cast_point)
 				elif placing_id == PrismsKit.SET_PRISM_ID or placing_id == PrismsKit.REALIGN_ID or placing_id == LightstringKit.PRISM_ARROW_ID:
 					prism_kit._start_prism_place(placing_id, cast_point)
-				elif placing_id == CINDER_RAIN_ID:
-					_start_cinder_rain(cast_point)
+				elif placing_id == FireBowKit.CINDER_RAIN_ID:
+					fire_bow._start_cinder_rain(cast_point)
 				elif placing_id == LightningCasterKit.THUNDERHEAD_ID:
 					bottled_kit._start_thunderhead(cast_point)
 				elif placing_id == ArcaneCasterKit.COLLAPSE_ID:
@@ -938,7 +985,7 @@ func _use_ability_now(id: String) -> void:
 				cancel_placement()
 			else:
 				cancel_placement()
-				var rain_err := _cinder_rain_error()
+				var rain_err := fire_bow._cinder_rain_error()
 				if rain_err != "":
 					_error(rain_err)
 				else:
@@ -957,10 +1004,10 @@ func _use_ability_now(id: String) -> void:
 			_start_glacial_draw()
 		"embervolley":
 			cancel_placement()
-			_start_ember_volley()
+			fire_caster._start_ember_volley()
 		"walloffire":
 			cancel_placement()
-			_start_fire_wall()
+			fire_caster._start_fire_wall()
 		"balllightning":
 			cancel_placement()
 			lightning_caster._start_ball_lightning()
@@ -1047,8 +1094,8 @@ func _setup_status() -> void:
 	add_child(status)
 	status.shield_broken.connect(_on_my_shield_broken)
 	status.changed.connect(func():
-		_cool_head_check()
-		_heat_sink_check()
+		fire_cooldowns._cool_head_check()
+		fire_cooldowns._heat_sink_check()
 		_on_stats_changed()
 		_sync_support_state()
 		arcane_tank._sync_reflections()
@@ -1264,7 +1311,7 @@ func _on_hit_extra(enemy: Node, at: Vector3, id: String) -> void:
 			# Lightning Rod: the arrow stays stuck in the target (the effect goes
 			# through the combat pipeline, so in a party it reaches the host).
 			if _talent("lightning_rod") > 0.0:
-				_apply_effect_hit(enemy, preload("res://scripts/core/effects.gd").get_effect(LightningCasterKit.ROD_FX), LightningCasterKit.ROD_FX,
+				fire_caster._apply_effect_hit(enemy, preload("res://scripts/core/effects.gd").get_effect(LightningCasterKit.ROD_FX), LightningCasterKit.ROD_FX,
 					PackedStringArray(["Lightning"]), "lightning")
 			var r := float(Abilities.get_resource(id).radius)
 			for e in _enemies_near(at, r, enemy):
@@ -1324,8 +1371,8 @@ func can_afford(id: String, report: bool = false) -> bool:
 			_error("No Ice Shard charges")
 		return false
 	# Quench and Flare run on Heat.
-	var heat_need := heat_needed(id)
-	if heat_need > 0 and heat_stacks() < heat_need:
+	var heat_need := FireMeleeKit.heat_needed(id)
+	if heat_need > 0 and fire_melee.heat_stacks() < heat_need:
 		if report:
 			_error("Requires %d Heat" % heat_need)
 		return false
@@ -1379,11 +1426,11 @@ func can_afford(id: String, report: bool = false) -> bool:
 func resource_cost(id: String, with_storm_cycle: bool = true) -> float:
 	if Abilities.is_a(id, "frostbolt") and (_instinct_cast or (not casting and frozen_instinct_ready())):
 		return 0.0   # Frozen Instinct: free
-	if id == CRUCIBLE_ID and _crucible_standing():
+	if id == FireCooldownsKit.CRUCIBLE_ID and fire_cooldowns._crucible_standing():
 		return 0.0   # moving a Crucible that still stands is free
 	var cost := float(Abilities.cost_of(id))
 	if id == "cinderguard":
-		cost = furnace_heart_cost(cost, _talent("fire_furnace_heart"))   # Furnace Heart
+		cost = FireCooldownsKit.furnace_heart_cost(cost, _talent("fire_furnace_heart"))   # Furnace Heart
 	if id == LightningTankKit.RETURN_STROKE_ID:   # Rune of Resonance: dearer without a parry behind it
 		cost = LightningTankKit.return_stroke_cost(cost, status != null and status.has(LightningTankKit.RETURN_STROKE_FX), _has_rune(LightningTankKit.RESONANCE_RUNE))
 	if id == LightningMeleeKit.STATIC_STEP_ID and status != null and status.has(BottledLightningKit.WHIP_CRACK_FX):
@@ -1608,7 +1655,7 @@ func _tick_cooldowns(delta: float) -> void:
 			cooldowns.erase(id)
 	arcane_open._tick_borrowed_time()   # Borrowed Time: a long cooldown just came back?
 	_tick_ice_shards(delta)
-	_tick_vent_charges(delta)
+	fire_caster._tick_vent_charges(delta)
 
 # --- Ice Shards: charges, and firing one shard per charge ---------------------------
 # Up to ICE_SHARDS_MAX_CHARGES charges: one every ICE_SHARDS_RECHARGE seconds, one
@@ -1716,19 +1763,19 @@ func _on_damage_modify(info: RefCounted) -> void:
 			info.add_bonus(-dr, "Numbing Cold")
 		# Cool Under Fire: tougher while Cool Head is up.
 		var cuf := _talent("fire_cool_under_fire")
-		if cuf > 0.0 and cool_head_active():
+		if cuf > 0.0 and fire_cooldowns.cool_head_active():
 			info.add_bonus(-cuf, "Cool Under Fire")
 		# Heat Sink: part of every hit is stored instead (see _on_hit_taken).
-		if status and status.has(HEAT_SINK_ID):
+		if status and status.has(FireCooldownsKit.HEAT_SINK_ID):
 			info.add_bonus(-Balance.HEAT_SINK_PCT, "Heat Sink")
 		# Warm Blood: less damage from an enemy that carries one of my burns.
 		var warm := _talent("fire_warm_blood")
-		if warm > 0.0 and _my_burn_on(info.source):
+		if warm > 0.0 and fire_caster._my_burn_on(info.source):
 			info.add_bonus(-warm, "Warm Blood")
 		# Brand: an enemy carrying my brand hits me for less.
 		if info.source != null and is_instance_valid(info.source) and info.source is Node:
 			var brand_st: Node = info.source.get_node_or_null("Status")
-			if brand_st and brand_st.has_from(BRAND_FX_ID, self):
+			if brand_st and brand_st.has_from(FireTankKit.BRAND_FX_ID, self):
 				info.add_bonus(-(Balance.BRAND_PCT + _talent("fire_deep_brand")), "Brand")   # + Deep Brand
 		arcane_tank._reflection_talents_incoming(info)   # Empty Room, Bent Light
 		lightning_melee._guard_incoming(info)   # Reflex Arc, Faraday Guard
@@ -1745,7 +1792,7 @@ func _on_damage_modify(info: RefCounted) -> void:
 	# Crucible: enemies standing in MINE take more periodic Fire damage from me
 	# (own only: a party member's Crucible does nothing for my burns).
 	if info.is_dot and str(info.damage_type) == "fire" and info.target is Node3D \
-			and CRUCIBLE.covers(get_tree(), info.target, "me"):
+			and FireCooldownsKit.CRUCIBLE.covers(get_tree(), info.target, "me"):
 		info.add_bonus(Balance.CRUCIBLE_DOT_PCT, "Crucible")
 	# Lingering Embers: my periodic Fire damage (burns and burning ground) hits harder.
 	if info.is_dot and str(info.damage_type) == "fire":
@@ -1818,7 +1865,7 @@ func _on_damage_modify(info: RefCounted) -> void:
 	# White Heat: while I hold full Heat, the Fire damage of my abilities is higher
 	# (the same hits Heat itself boosts: abilities and their burns, never spells).
 	if str(info.damage_type) == "fire" and info.tags.has("Ability"):
-		var white := white_heat_bonus(heat_stacks(), _talent("fire_white_heat"))
+		var white := FireMeleeKit.white_heat_bonus(fire_melee.heat_stacks(), _talent("fire_white_heat"))
 		if white > 0.0:
 			info.add_bonus(white, "White Heat")
 	# Shatterpoint: every shatter hit (tagged "Shatter", whatever its name) hits harder.
@@ -1900,7 +1947,7 @@ func _on_hit_talents(ability_id: String, tgt: Node, amount: int, _crit: bool, is
 	var tinder := _talent("fire_fresh_tinder")
 	if tinder > 0.0 and not is_proc and not periodic and Abilities.tags_of(ability_id).has("Ability") \
 			and randf() * 100.0 < tinder:
-		_feed_immolate(tgt)
+		fire_melee._feed_immolate(tgt)
 	# Brittle Rime: direct damage may make your Hoarfrost on the target burst early.
 	var burst := _talent("frost_hoarfrost_burst")
 	if burst > 0.0 and not periodic and ability_id != "hoarfrost" and amount > 0:
@@ -2087,7 +2134,7 @@ func _try_auto_attack(moving: bool) -> void:
 			enemy, self, shot, "auto_ranged")
 	else:
 		deal_damage(enemy, float(w["damage"]) * Balance.AUTO_ATTACK_MULT, "auto_melee")
-		_slash_effect(heat_tint(heat_stacks()))   # the swing glows hotter with Heat
+		_slash_effect(FireMeleeKit.heat_tint(fire_melee.heat_stacks()))   # the swing glows hotter with Heat
 	# Auto-attacks and auto-shots build rage when you're playing a rage user.
 	if _has_rage_spender():
 		_gain("rage", AUTO_ATTACK_RAGE)
@@ -2352,7 +2399,7 @@ func _start_bolt(id: String) -> void:
 	if not _has_valid_target():
 		_error("No target")
 		return
-	if id == "rekindle" and _rekindle_targets(target).is_empty():
+	if id == "rekindle" and fire_caster._rekindle_targets(target).is_empty():
 		_error("You have nothing burning there")
 		return
 	if not target_in_range(id):
@@ -2393,23 +2440,23 @@ func _begin_spell(spell: String, display_name: String, duration: float, channel:
 	if Abilities.is_a(spell, "frostbolt") and frozen_instinct_ready():
 		duration = 0.05   # Frozen Instinct: instant (released next frame)
 		_instinct_cast = true
-	_conc_cast = not _instinct_cast and concentrated_fire_ready(spell)
-	if _conc_cast:
+	fire_cooldowns._conc_cast = not _instinct_cast and fire_cooldowns.concentrated_fire_ready(spell)
+	if fire_cooldowns._conc_cast:
 		duration = 0.05   # Concentrated Fire: instant (released next frame)
-	storm_arrow_kit._flicker_cast = not _instinct_cast and not _conc_cast and bottled_kit.flicker_ready(spell)
+	storm_arrow_kit._flicker_cast = not _instinct_cast and not fire_cooldowns._conc_cast and bottled_kit.flicker_ready(spell)
 	if storm_arrow_kit._flicker_cast:
 		duration = 0.05   # Flicker: this Lightning Bolt is instant (released next frame)
-	bottled_kit._bottled_cast = not _instinct_cast and not _conc_cast and not storm_arrow_kit._flicker_cast and bottled_kit.bottled_ready(spell)
+	bottled_kit._bottled_cast = not _instinct_cast and not fire_cooldowns._conc_cast and not storm_arrow_kit._flicker_cast and bottled_kit.bottled_ready(spell)
 	if bottled_kit._bottled_cast:
 		duration = 0.05   # Rune of Bottled Lightning: this Discharge is instant (released next frame)
-	storm_arrow_kit._overture_cast = not channel and not _instinct_cast and not _conc_cast and not storm_arrow_kit._flicker_cast and not bottled_kit._bottled_cast and hymns.overture_ready(spell)
+	storm_arrow_kit._overture_cast = not channel and not _instinct_cast and not fire_cooldowns._conc_cast and not storm_arrow_kit._flicker_cast and not bottled_kit._bottled_cast and hymns.overture_ready(spell)
 	if storm_arrow_kit._overture_cast:
 		duration = 0.05   # Rune of the Overture: the first cast after a boom is instant (used up when it lands)
 	# Cinder Step: this cast can be finished on the move (instant ones don't need it).
-	_cinder_cast = not channel and not _conc_cast and not _instinct_cast and cinder_step_ready(spell)
+	fire_cooldowns._cinder_cast = not channel and not fire_cooldowns._conc_cast and not _instinct_cast and fire_cooldowns.cinder_step_ready(spell)
 	# Glint: this cast or channel can go on while I move (instant ones don't need it).
-	arcane_caster._glint_cast = not _conc_cast and not _instinct_cast and not storm_arrow_kit._flicker_cast and not bottled_kit._bottled_cast \
-		and not _cinder_cast and not storm_arrow_kit._overture_cast and arcane_caster.glint_ready(spell)
+	arcane_caster._glint_cast = not fire_cooldowns._conc_cast and not _instinct_cast and not storm_arrow_kit._flicker_cast and not bottled_kit._bottled_cast \
+		and not fire_cooldowns._cinder_cast and not storm_arrow_kit._overture_cast and arcane_caster.glint_ready(spell)
 	if arcane_caster._glint_cast and channel and status:
 		status.spend_stacks(ArcaneCasterKit.GLINT_FX, 1)   # a channel is paid for when it starts, and uses Glint up then too (Keep Moving: one of its casts)
 	if on_gcd(spell):
@@ -2429,13 +2476,13 @@ func _begin_spell(spell: String, display_name: String, duration: float, channel:
 
 func _cancel_cast() -> void:
 	_instinct_cast = false   # Frozen Instinct stays for the next Frost Bolt
-	_conc_cast = false       # so does the Concentrated Fire stack
-	_cinder_cast = false     # and Cinder Step's cast on the move
+	fire_cooldowns._conc_cast = false       # so does the Concentrated Fire stack
+	fire_cooldowns._cinder_cast = false     # and Cinder Step's cast on the move
 	storm_arrow_kit._flicker_cast = false    # and Flicker's instant Lightning Bolt
 	storm_arrow_kit._overture_cast = false   # and the Overture's instant cast
 	bottled_kit._bottled_cast = false    # and Bottled Lightning's instant Discharge
 	arcane_caster._glint_cast = false      # and Glint's cast on the move
-	_volley_left = 0         # a broken Ember Volley launches no more embers
+	fire_caster._volley_left = 0         # a broken Ember Volley launches no more embers
 	arcane_caster._darts_left = 0          # nor does a broken Sigil Darts launch more darts
 	_queued = ""             # a cancelled cast drops whatever was queued behind it
 	if casting:
@@ -2446,8 +2493,8 @@ func _cancel_cast() -> void:
 
 func _release_cast() -> void:
 	var spell := current_spell
-	var cinder := _cinder_cast
-	_cinder_cast = false
+	var cinder := fire_cooldowns._cinder_cast
+	fire_cooldowns._cinder_cast = false
 	var glint := arcane_caster._glint_cast
 	arcane_caster._glint_cast = false
 	casting = false
@@ -2457,7 +2504,7 @@ func _release_cast() -> void:
 		_finish_revive()   # not a spell: no cost, no cast events
 		return
 	if spell == "embervolley":
-		_ember_volley_tick(true)   # the last ember (the channel was paid for when it started)
+		fire_caster._ember_volley_tick(true)   # the last ember (the channel was paid for when it started)
 		_bus().cast_finished.emit(spell)
 		return
 	if spell == PrismsKit.MENDING_RAY_ID:
@@ -2470,8 +2517,8 @@ func _release_cast() -> void:
 		return
 	_bus().cast_finished.emit(spell)
 	# Casts pay their cost when they complete (a cancelled cast costs nothing).
-	var conc := _conc_cast
-	_conc_cast = false
+	var conc := fire_cooldowns._conc_cast
+	fire_cooldowns._conc_cast = false
 	var flick := storm_arrow_kit._flicker_cast
 	storm_arrow_kit._flicker_cast = false
 	var overture := storm_arrow_kit._overture_cast
@@ -2488,9 +2535,9 @@ func _release_cast() -> void:
 	if bottled and status:
 		status.remove(BottledLightningKit.BOTTLED_FX)      # Rune of Bottled Lightning: that was its instant Discharge
 	if conc and status:
-		status.spend_stacks(CONC_ID)   # Concentrated Fire: one stack per instant cast
+		status.spend_stacks(FireCooldownsKit.CONC_ID)   # Concentrated Fire: one stack per instant cast
 	if cinder and status:
-		status.remove(CINDER_ID)       # Cinder Step: that was the cast on the move
+		status.remove(FireCooldownsKit.CINDER_ID)       # Cinder Step: that was the cast on the move
 	if glint and status:
 		status.spend_stacks(ArcaneCasterKit.GLINT_FX, 1)   # Glint: so was this (Keep Moving: one of its casts)
 	if Abilities.is_a(spell, "frostbolt") and (_instinct_cast or frozen_instinct_ready()):
@@ -2509,7 +2556,7 @@ func _release_cast() -> void:
 		_loose_glacial_draw()
 		return
 	if spell == "walloffire":
-		_raise_fire_wall()
+		fire_caster._raise_fire_wall()
 		return
 	if spell == LightningCasterKit.BALL_LIGHTNING_ID:
 		lightning_caster._launch_ball_lightning()
@@ -2526,8 +2573,8 @@ func _release_cast() -> void:
 	if spell == DecayKit.PALL_ID:
 		decay._cast_pall()
 		return
-	if spell == CRUCIBLE_ID:
-		_place_crucible(false)
+	if spell == FireCooldownsKit.CRUCIBLE_ID:
+		fire_cooldowns._place_crucible(false)
 		return
 	if spell == "blizzard":
 		var bliz := Node3D.new()
@@ -2561,10 +2608,10 @@ func _release_cast() -> void:
 		bottled_kit._forked_bolt(target)
 		return
 	if spell == "slowfuse":
-		_plant_fuse(target)
+		fire_caster._plant_fuse(target)
 		return
 	if spell == "rekindle":
-		_rekindle(target)
+		fire_caster._rekindle(target)
 		return
 	if spell == ArcaneCasterKit.COUNTDOWN_ID:
 		arcane_caster._plant_countdown(target)
@@ -2577,7 +2624,7 @@ func _release_cast() -> void:
 			ArcaneCasterKit.convergence_coef(float(bolt_res.damage), arcane_caster.arcane_cooldowns(ArcaneCasterKit.CONVERGENCE_ID)))
 		return
 	if spell == "immolate":
-		_immolate_spread(target)   # recast on a target that already has mine: it jumps to others
+		fire_caster._immolate_spread(target)   # recast on a target that already has mine: it jumps to others
 	if spell == PrismsKit.PIERCING_LIGHT_ID:
 		prism_kit._piercing_light(target)   # Holy healer #2: a beam, not a bolt
 		return
@@ -2605,8 +2652,8 @@ func _begin_placement(id: String = "blizzard") -> void:
 	var r := float(Abilities.get_resource(id).radius)
 	if id == "blizzard":
 		r = blizzard_radius()
-	elif id == CRUCIBLE_ID:
-		r = crucible_radius()   # Deep Crucible
+	elif id == FireCooldownsKit.CRUCIBLE_ID:
+		r = fire_cooldowns.crucible_radius()   # Deep Crucible
 	elif id == PrismsKit.SET_PRISM_ID or id == PrismsKit.REALIGN_ID or id == LightstringKit.PRISM_ARROW_ID:
 		r = 1.0   # (where the prism / the middle of the group lands)
 	(aoe_indicator.mesh as QuadMesh).size = Vector2(r * 2.0, r * 2.0)
@@ -2648,7 +2695,7 @@ func _process(_delta: float) -> void:
 	_tick_health_regen(_delta)
 	_scan_my_slows()
 	_tick_permafrost()
-	_tick_fuses()
+	fire_caster._tick_fuses()
 	arcane_caster._tick_countdowns()
 	decay._tick_decay()
 	overload_kit._tick_grounded()
@@ -2724,7 +2771,7 @@ func _physics_process(delta: float) -> void:
 	# (So can the instant casts from Concentrated Fire.)
 	# (And the one cast Cinder Step lets you finish while moving.)
 	# (And whatever Glint lets you cast or channel on the move.)
-	var steady := casting and (current_spell == "steadyshot" or _conc_cast or _cinder_cast or storm_arrow_kit._flicker_cast or bottled_kit._bottled_cast
+	var steady := casting and (current_spell == "steadyshot" or fire_cooldowns._conc_cast or fire_cooldowns._cinder_cast or storm_arrow_kit._flicker_cast or bottled_kit._bottled_cast
 		or arcane_caster._glint_cast or storm_arrow_kit._overture_cast)
 	if steady:
 		var aimed: bool = current_spell == "steadyshot" or current_spell in ENEMY_BOLTS or current_spell == "embervolley" \
@@ -2736,7 +2783,7 @@ func _physics_process(delta: float) -> void:
 		else:
 			cast_timer -= delta
 			if current_spell == "embervolley":
-				_ember_volley_tick()     # a channel on the move launches as it goes, like one standing still
+				fire_caster._ember_volley_tick()     # a channel on the move launches as it goes, like one standing still
 			elif current_spell == ArcaneCasterKit.SIGIL_DARTS_ID:
 				arcane_caster._sigil_darts_tick()
 			elif current_spell == PrismsKit.MENDING_RAY_ID:
@@ -2769,7 +2816,7 @@ func _physics_process(delta: float) -> void:
 			_face(face_at, delta)
 			cast_timer -= delta
 			if current_spell == "embervolley":
-				_ember_volley_tick()
+				fire_caster._ember_volley_tick()
 			elif current_spell == ArcaneCasterKit.SIGIL_DARTS_ID:
 				arcane_caster._sigil_darts_tick()
 			elif current_spell == PrismsKit.MENDING_RAY_ID:
@@ -2902,8 +2949,8 @@ func _use_drafted(id: String) -> void:
 		# Interrupts share a cooldown: this one never has less than the shared
 		# one, and every other interrupt now waits at least that long too.
 		cooldowns.merge(interrupt_cooldowns(id, float(res.cooldown), cooldowns), true)
-	if id == VENT_ID:
-		_vent_charge_used(float(res.cooldown))   # Hair Trigger: charges instead of one cooldown
+	if id == FireCasterKit.VENT_ID:
+		fire_caster._vent_charge_used(float(res.cooldown))   # Hair Trigger: charges instead of one cooldown
 	if res.resource_generated > 0:
 		_gain(Abilities.resource_of(id), float(Abilities.generated_of(id)))   # (with talents: Honed Edge)
 	if res.requires_target and _has_valid_target():
@@ -3001,7 +3048,7 @@ func _use_drafted(id: String) -> void:
 		"icebreaker":
 			_icebreaker(w, res)
 		"cinderwing":
-			_summon_phoenix()
+			fire_cooldowns._summon_phoenix()
 		# Melee abilities
 		"froststrike":
 			_winters_bite(target, _weapon_hit(w, res))
@@ -3020,7 +3067,7 @@ func _use_drafted(id: String) -> void:
 				deal_damage(e, float(res.damage), id)
 			_ring_effect(float(res.radius), Abilities.color_of(id))
 		"coolhead":
-			_start_cool_head()
+			fire_cooldowns._start_cool_head()
 		"stoke":
 			# Eat my Burning on the target: its remaining damage lands now, on top
 			# of Stoke's own. It never crits (adjust_crit).
@@ -3041,7 +3088,7 @@ func _use_drafted(id: String) -> void:
 				rotation.y = atan2(-to_target.x, -to_target.z)
 			var breath_lock := float(INTERRUPT_LOCKOUT[id])
 			var breath_net := _net()
-			for e in _enemies_in_cone(float(res.radius), Balance.FURNACE_BREATH_ARC):
+			for e in fire_tank._enemies_in_cone(float(res.radius), Balance.FURNACE_BREATH_ARC):
 				deal_damage(e, float(res.damage), id)
 				if breath_net:
 					breath_net.interrupt(e, self, breath_lock)   # the host owns enemy casts in a party
@@ -3051,12 +3098,12 @@ func _use_drafted(id: String) -> void:
 			_cone_effect(float(res.radius) * 0.6, Balance.FURNACE_BREATH_ARC * 0.5, Color(1.0, 0.9, 0.4))
 		"slagskin":
 			# The armor comes from Slag stacks (melee hits that don't crit, see _slag_on_hit).
-			var slag := StatusContainer.make_buff(SLAG_ID, "Slag Skin", SLAG_ID, 0.0,
+			var slag := StatusContainer.make_buff(FireTankKit.SLAG_ID, "Slag Skin", FireTankKit.SLAG_ID, 0.0,
 				Balance.SLAG_SKIN_TIME, 1, Abilities.color_of(id))
 			slag.stat_modifiers = {}
 			slag.description = "Enemies that attack you are burned. Your melee hits that do not critically strike add Slag; a melee critical strike shatters it."
 			status.apply(slag, self)
-			_sync_slag()   # Slag you already carry lasts as long as the fresh Slag Skin
+			fire_tank._sync_slag()   # Slag you already carry lasts as long as the fresh Slag Skin
 			_ring_effect(1.3, Abilities.color_of(id))
 			_ring_effect(0.8, Color(0.25, 0.2, 0.18))
 		"brand":
@@ -3073,26 +3120,26 @@ func _use_drafted(id: String) -> void:
 		"quench":
 			# Every stack of Heat goes into this one hit. The Heat is gone before it
 			# lands, so the hit gets no Heat bonus of its own; it never crits (adjust_crit).
-			var heat := heat_stacks()
-			status.remove(HEAT_ID)
-			deal_damage(target, quench_coef(_weapon_hit(w, res), heat), id)
+			var heat := fire_melee.heat_stacks()
+			status.remove(FireMeleeKit.HEAT_ID)
+			deal_damage(target, FireMeleeKit.quench_coef(_weapon_hit(w, res), heat), id)
 			_slash_effect(Color(1.0, 0.9, 0.4))
 			_slash_effect(Abilities.color_of(id))
 			_ring_effect(0.8, Color(0.85, 0.93, 1.0), target.global_position)   # steam
 			if _talent("fire_afterglow") > 0.0:
-				_start_afterglow()
+				fire_melee._start_afterglow()
 		"flare":
-			_flare(w, res)
+			fire_melee._flare(w, res)
 		"cinderguard":
-			var guard := StatusContainer.make_buff(CINDER_GUARD_ID, "Cinder Guard", "block_chance", Balance.CINDER_GUARD_BLOCK,
+			var guard := StatusContainer.make_buff(FireTankKit.CINDER_GUARD_ID, "Cinder Guard", "block_chance", Balance.CINDER_GUARD_BLOCK,
 				Balance.CINDER_GUARD_TIME, 1, Abilities.color_of(id))
 			guard.description = "+%d%% chance to block. Attacks you block burn the attacker and extend Slag Skin." % int(Balance.CINDER_GUARD_BLOCK)
 			status.apply(guard, self)
 			_ring_effect(1.3, Abilities.color_of(id))
 		"cinderstep":
-			_cinder_step(res)
+			fire_cooldowns._cinder_step(res)
 		"heatsink":
-			_start_heat_sink()
+			fire_cooldowns._start_heat_sink()
 		"ventflames":
 			# One instant hit; "always crits" and its crit-chance bonus are in adjust_crit.
 			deal_damage(target, float(res.damage), id)
@@ -4433,62 +4480,6 @@ func _tick_dusk() -> void:
 		_dawn_fx = make_dawn_fx()
 	status.apply(_dawn_fx, self)
 
-# --- Smoldering Focus and Afterburn (Fire talents) ---------------------------------------
-# Smoldering Focus (was a Legendary rune): every Fire spell hit that does NOT
-# crit builds a stack of the buff (data/effects/smoldering_focus.tres: stacks,
-# duration, "next Fire spell crit spends them"). The talent's rank sets what a
-# stack is worth: crit chance x 0.1 per rank.
-# Afterburn is its mirror image (data/effects/afterburn.tres): every Fire spell
-# hit that DOES crit builds a stack, the next Fire spell hit that doesn't crit
-# spends them, and a stack is worth (100 - crit chance) x 0.1 per rank.
-# For both, proc hits count and damage-over-time ticks don't.
-
-var _smolder_fx: Resource   # my own copy of each buff (its factor follows the talent rank)
-var _afterburn_fx: Resource
-
-func _on_damage_dealt_fire(info: RefCounted) -> void:
-	if not is_same(info.source, self) or info.avoided() or info.is_dot or status == null:
-		return
-	var tags: PackedStringArray = info.tags if not info.tags.is_empty() else Abilities.tags_of(str(info.ability_id))
-	_cool_head_on_hit(info, tags)
-	_fuse_on_hit(info)
-	_slag_on_hit(info, tags)
-	_heat_on_hit(info, tags)
-	_afterglow_on_hit(info)
-	overload_kit._static_on_hit(info, tags)
-	if str(info.damage_type) != "fire" or not tags.has("Spell") or int(info.amount) <= 0:
-		return   # (effect-only hits like Immolate landing build nothing)
-	if info.no_empower:
-		return   # passive damage (the Slag kit) builds nothing either
-	if not info.crit:
-		_pressure_valve(info)
-		_banked_mana(info)
-	if info.crit:
-		var burn := _talent("fire_afterburn")
-		if burn > 0.0:
-			_afterburn_fx = _stack_scaled_fx(_afterburn_fx, "afterburn", burn,
-				"Your next Fire spell hit that does not critically strike deals ((100 - critical strike chance) x %s)%% more damage per stack.")
-	else:
-		var factor := _talent("fire_smoldering_focus")
-		if factor > 0.0:
-			_smolder_fx = _stack_scaled_fx(_smolder_fx, "smoldering_focus", factor,
-				"Your next Fire spell critical strike deals (critical strike chance x %s)%% more damage per stack.")
-
-## Add a stack of a talent buff whose scale factor follows the talent's rank.
-## `mine` = my own copy of data/effects/<id>.tres (made on first use); returns it.
-func _stack_scaled_fx(mine: Resource, id: String, factor: float, text: String) -> Resource:
-	if mine == null:
-		var base: Resource = preload("res://scripts/core/effects.gd").get_effect(id)
-		if base == null:
-			return null
-		mine = base.duplicate()
-		mine.mod_scale_factor = -1.0   # so the first use fills in the text
-	if not is_equal_approx(float(mine.mod_scale_factor), factor):
-		mine.mod_scale_factor = factor
-		mine.description = text % str(snappedf(factor, 0.01))
-	status.apply(mine, self)
-	return mine
-
 # --- Auto-target -----------------------------------------------------------------------
 # Using something that needs an enemy target while you have none picks the
 # closest enemy it could legally be used on: alive, in range and in line of sight
@@ -4524,7 +4515,7 @@ func _auto_target(id: String) -> void:
 			var est: Node = e.get_node_or_null("Status")
 			if est == null or not est.has_from("burning", self):
 				continue
-		if id == "rekindle" and _rekindle_targets(e).is_empty():
+		if id == "rekindle" and fire_caster._rekindle_targets(e).is_empty():
 			continue
 		if (id == DecayKit.CALL_DUE_ID or id == DecayKit.SPILL_ID or id == DecayKit.TAKE_IT_BACK_ID) and decay.decay_on(e) <= 0.0:
 			continue   # (these work on my Decay: an enemy without it is no use)
@@ -4534,1166 +4525,6 @@ func _auto_target(id: String) -> void:
 			best = e
 	if best:
 		_set_target(best)
-
-# --- Slow Fuse: a charge that grows with your hits, then explodes ---------------------
-# One charge per enemy. It explodes SLOW_FUSE_TIME seconds after it was planted
-# for the ability's damage + SLOW_FUSE_GROW per growth. Your direct hits on
-# that enemy grow it (not damage over time, not the explosion itself): without
-# the Volatile Fuse talent every hit that doesn't crit does; the talent moves
-# that over to Fire crits (fuse_grow_chance). Planting again on the same enemy
-# sets the old charge off first.
-
-const FUSE_FX_ID := "slow_fuse"
-var _fuses := {}   # enemy instance id -> {"target": Node3D, "grows": int, "at": explode time, "base": float}
-
-## Chance (%) that a direct hit grows your Slow Fuse. `talent_pct` = Volatile Fuse (0 = not taken).
-static func fuse_grow_chance(crit: bool, is_fire: bool, talent_pct: float) -> float:
-	if crit:
-		return talent_pct if is_fire else 0.0
-	return clampf(100.0 - talent_pct, 0.0, 100.0)
-
-## The explosion (as a coefficient) of a charge that grew `grows` times.
-static func fuse_size(base: float, grows: int) -> float:
-	return base + Balance.SLOW_FUSE_GROW * clampi(grows, 0, Balance.SLOW_FUSE_MAX_GROWS)
-
-func _plant_fuse(tgt: Node3D) -> void:
-	if tgt == null or not is_instance_valid(tgt) or not tgt.is_alive():
-		return
-	var key := tgt.get_instance_id()
-	if _fuses.has(key):
-		_explode_fuse(key)   # the old charge goes off now
-		if not is_instance_valid(tgt) or not tgt.is_alive():
-			return
-	_fuses[key] = {"target": tgt, "grows": 0, "base": float(Abilities.get_resource("slowfuse").damage),
-		"at": Time.get_ticks_msec() / 1000.0 + Balance.SLOW_FUSE_TIME}
-	# The debuff shows the charge and its size to the whole party.
-	_apply_effect_hit(tgt, preload("res://scripts/core/effects.gd").get_effect(FUSE_FX_ID), "slowfuse",
-		PackedStringArray(["Fire", "Spell"]))
-	_ring_effect(0.8, Abilities.color_of("slowfuse"), tgt.global_position)
-
-## A direct hit of mine landed (called for every one): it may grow the charge on that enemy.
-func _fuse_on_hit(info: RefCounted) -> void:
-	if _fuses.is_empty() or int(info.amount) <= 0 or str(info.ability_id) == "slowfuse":
-		return
-	if int(info.part) == 1:
-		return   # a split hit (Frostfire Bolt) is one hit: its Fire half is the one that counts here
-	if info.target == null or not is_instance_valid(info.target):
-		return
-	var key: int = info.target.get_instance_id()
-	if not _fuses.has(key):
-		return
-	var f: Dictionary = _fuses[key]
-	if int(f["grows"]) >= Balance.SLOW_FUSE_MAX_GROWS:
-		return
-	var chance := fuse_grow_chance(bool(info.crit), str(info.damage_type) == "fire", _talent("fire_fuse_crit"))
-	if chance <= 0.0 or randf() * 100.0 >= chance:
-		return
-	f["grows"] = int(f["grows"]) + 1
-	var net := _net()
-	if net:
-		net.set_effect_stacks(info.target, self, FUSE_FX_ID, int(f["grows"]) + 1)   # enemy effects live on the host
-	else:
-		var st: Node = info.target.get_node_or_null("Status")
-		if st:
-			st.set_stacks_from(FUSE_FX_ID, self, int(f["grows"]) + 1)
-
-func _tick_fuses() -> void:
-	if _fuses.is_empty():
-		return
-	var now := Time.get_ticks_msec() / 1000.0
-	for key in _fuses.keys():
-		var f: Dictionary = _fuses[key]
-		if not is_instance_valid(f["target"]) or not f["target"].is_alive():
-			_fuses.erase(key)
-		elif now >= float(f["at"]):
-			_explode_fuse(key)
-
-func _explode_fuse(key: int) -> void:
-	var f: Dictionary = _fuses[key]
-	_fuses.erase(key)
-	var tgt: Variant = f["target"]
-	if not is_instance_valid(tgt) or not tgt.is_alive():
-		return
-	var net := _net()
-	if net:
-		net.remove_effect(tgt, self, FUSE_FX_ID)
-	else:
-		var st: Node = tgt.get_node_or_null("Status")
-		if st:
-			st.remove_from(FUSE_FX_ID, self)
-	_ring_effect(1.6, Abilities.color_of("slowfuse"), tgt.global_position)
-	_ring_effect(0.9, Color(1.0, 0.9, 0.4), tgt.global_position)
-	_flashover(tgt)   # (before the blast: the target may not survive it)
-	deal_damage(tgt, fuse_size(float(f["base"]), int(f["grows"])), "slowfuse", true)
-
-## Flashover talent: Slow Fuse going off on a target with my Immolate may set
-## each other enemy near it alight too.
-func _flashover(tgt: Node3D) -> void:
-	var chance := _talent("fire_flashover")
-	if chance <= 0.0:
-		return
-	var st: Node = tgt.get_node_or_null("Status")
-	if st == null or not st.has_from("immolate", self):
-		return
-	for e in _enemies_near(tgt.global_position, Balance.IMMOLATE_SPREAD_RADIUS, tgt):
-		if randf() * 100.0 < chance:
-			deal_damage(e, 0.0, "immolate", true)   # no damage: just its on-hit effect
-			_ring_effect(0.7, Abilities.color_of("immolate"), e.global_position)
-
-## Put status effect `res` on an enemy as a hit with no damage. It goes through
-## the combat pipeline, so in a party it reaches the host (who owns enemy
-## effects) exactly like an effect from a real hit. It can't be blocked or crit.
-func _apply_effect_hit(e: Node, res: Resource, ability_id: String, tags: PackedStringArray,
-		damage_type: String = "fire") -> void:
-	if res == null or e == null or not is_instance_valid(e) or not e.is_alive():
-		return
-	var info := DamageInfo.make(self, e, 0.0, ability_id)
-	info.damage_type = damage_type
-	info.tags = tags if not tags.is_empty() else PackedStringArray(["Fire", "Spell"])
-	info.is_proc = true
-	info.can_crit = false
-	info.can_block = false
-	info.effects.append(res)
-	_combat().deal(info)
-
-# --- Rekindle: refresh my burns around the target ------------------------------------
-
-## Enemies within REKINDLE_RADIUS of `tgt` (and `tgt` itself) that carry one of my burns.
-func _rekindle_targets(tgt: Node3D) -> Array:
-	var out: Array = []
-	if tgt == null or not is_instance_valid(tgt):
-		return out
-	var around: Array = [tgt]
-	around.append_array(_enemies_near(tgt.global_position, Balance.REKINDLE_RADIUS, tgt))
-	for e in around:
-		var st: Node = e.get_node_or_null("Status")
-		if st == null:
-			continue
-		for fx_id in Balance.REKINDLE_EFFECTS:
-			if st.has_from(str(fx_id), self):
-				out.append(e)
-				break
-	return out
-
-func _rekindle(tgt: Node3D) -> void:
-	var Effects = preload("res://scripts/core/effects.gd")
-	for e in _rekindle_targets(tgt):
-		var st: Node = e.get_node_or_null("Status")
-		for fx_id in Balance.REKINDLE_EFFECTS:
-			var res: Resource = Effects.get_effect(str(fx_id))
-			if res == null or not st.has_from(str(fx_id), self):
-				continue
-			# Applying my own burn again starts it over at full duration.
-			var entry: Dictionary = st.effects.get(StatusContainer.key_for(res, self), {})
-			_apply_effect_hit(e, res, "rekindle", entry.get("tags", PackedStringArray()))
-		_ring_effect(0.7, Abilities.color_of("rekindle"), e.global_position)
-	if is_instance_valid(tgt):
-		_ring_effect(Balance.REKINDLE_RADIUS, Abilities.color_of("rekindle"), tgt.global_position)
-
-# --- Wall of Fire -----------------------------------------------------------------------
-# A cast: the wall goes across your target (if you have one in range and in
-# sight) or FIRE_WALL_DISTANCE in front of you, side-on to you. Where it goes is
-# fixed when the cast starts. The wall itself is scripts/fire_wall.gd.
-
-const FIRE_WALL = preload("res://scripts/fire_wall.gd")
-var _wall_yaw := 0.0
-
-func _start_fire_wall() -> void:
-	var id := "walloffire"
-	if casting or not is_on_floor():
-		return
-	if cooldown_left(id) > 0.0:
-		_error("%s is not ready yet" % Abilities.ability_name(id))
-		return
-	if not can_afford(id, true):
-		return
-	var res := Abilities.get_resource(id)
-	var fwd := _flat_forward()
-	var centre := global_position + fwd * Balance.FIRE_WALL_DISTANCE
-	var floor_y := Combat.feet_y(self)
-	if _has_valid_target() and can_see(target) \
-			and global_position.distance_to(target.global_position) <= float(res.cast_range):
-		centre = target.global_position
-		floor_y = Combat.feet_y(target)
-	var dir := centre - global_position
-	dir.y = 0.0
-	if dir.length() < 0.5:
-		dir = fwd
-	_wall_yaw = atan2(-dir.x, -dir.z)   # the wall's length runs across this direction
-	cast_point = Vector3(centre.x, floor_y, centre.z)
-	_begin_spell(id, str(res.display_name), float(res.cast_time))
-
-func _raise_fire_wall() -> void:
-	var res := Abilities.get_resource("walloffire")
-	cooldowns["walloffire"] = float(res.cooldown)
-	var wall := Node3D.new()
-	wall.set_script(FIRE_WALL)
-	wall.length = float(res.radius) * 2.0
-	wall.depth = Balance.FIRE_WALL_DEPTH
-	wall.duration = Balance.FIRE_WALL_TIME
-	wall.tick = maxf(Balance.FIRE_WALL_TICK / haste_mult(), 0.1)
-	wall.damage = float(res.damage)
-	wall.tags = res.tags
-	wall.source = self
-	get_tree().current_scene.add_child(wall)
-	wall.global_position = cast_point
-	wall.rotation.y = _wall_yaw
-	_net_fx("firewall", cast_point, null, {"yaw": _wall_yaw, "len": wall.length, "depth": wall.depth, "time": wall.duration})
-
-# --- Immolate: recasting it on a target that has yours spreads it ---------------------
-
-func _immolate_spread(tgt: Node3D) -> void:
-	var st: Node = tgt.get_node_or_null("Status") if is_instance_valid(tgt) else null
-	if st == null or not st.has_from("immolate", self):
-		return
-	# The closest enemies around the target; ones without my Immolate first.
-	var fresh: Array = []
-	var burning: Array = []
-	for e in _enemies_near(tgt.global_position, Balance.IMMOLATE_SPREAD_RADIUS, tgt):
-		var est: Node = e.get_node_or_null("Status")
-		if est and est.has_from("immolate", self):
-			burning.append(e)
-		else:
-			fresh.append(e)
-	for e in (fresh + burning).slice(0, Balance.IMMOLATE_SPREAD_TARGETS):
-		deal_damage(e, 0.0, "immolate", true)   # no damage: just its on-hit effect
-		_ring_effect(0.7, Abilities.color_of("immolate"), e.global_position)
-
-# --- Hair Trigger rune: Vent Flames has charges ---------------------------------------
-# Without the rune Vent Flames uses its plain cooldown. With it there are
-# HAIR_TRIGGER_CHARGES charges, recharging one after the other; the button's
-# cooldown only shows while no charge is left.
-
-const VENT_ID := "ventflames"
-var _vent_charges := Balance.HAIR_TRIGGER_CHARGES
-var _vent_recharge := 0.0   # seconds until the next charge (0 = all charges ready)
-var _vent_cd := 10.0
-
-func _vent_max() -> int:
-	return Balance.HAIR_TRIGGER_CHARGES if _has_rune("hair_trigger") else 1
-
-func _vent_charge_used(cd: float) -> void:
-	if _vent_max() <= 1:
-		return
-	_vent_cd = cd
-	_vent_charges = maxi(mini(_vent_charges, _vent_max()) - 1, 0)
-	if _vent_recharge <= 0.0:
-		_vent_recharge = cd
-	if _vent_charges > 0:
-		cooldowns.erase(VENT_ID)
-	else:
-		cooldowns[VENT_ID] = _vent_recharge
-
-func _tick_vent_charges(delta: float) -> void:
-	if _vent_recharge <= 0.0:
-		return
-	_vent_recharge -= delta
-	if _vent_recharge <= 0.0:
-		_vent_charges = mini(_vent_charges + 1, maxi(_vent_max(), 1))
-		_vent_recharge = _vent_cd if _vent_charges < _vent_max() else 0.0
-
-## Take `seconds` off Vent Flames' cooldown (with Hair Trigger: off the charge
-## that is recharging).
-func _vent_reduce(seconds: float) -> void:
-	if seconds <= 0.0:
-		return
-	if _vent_max() > 1:
-		if _vent_recharge > 0.0:
-			_vent_recharge = maxf(_vent_recharge - seconds, 0.01)
-			if cooldowns.has(VENT_ID):
-				cooldowns[VENT_ID] = _vent_recharge
-	elif cooldowns.has(VENT_ID):
-		cooldowns[VENT_ID] = vent_after_cut(float(cooldowns[VENT_ID]), seconds)
-
-## Cooldown left after Pressure Valve takes `cut` seconds off `left`.
-static func vent_after_cut(left: float, cut: float) -> float:
-	return maxf(left - cut, 0.0)
-
-var _valve_last := ""   # "<ability>@<frame>" of the last spell that fed Pressure Valve
-
-## Pressure Valve talent: a Fire spell of mine just failed to crit. Once per
-## use, however many enemies it hit (an Ember Volley counts once); not procs.
-func _pressure_valve(info: RefCounted) -> void:
-	var cut := _talent("fire_pressure_valve")
-	if cut <= 0.0 or info.is_proc:
-		return
-	var key := "%s@%d" % [str(info.ability_id), Engine.get_process_frames()]
-	if str(info.ability_id) == "embervolley":
-		key = "embervolley#%d" % _volley_serial
-	if key == _valve_last:
-		return
-	_valve_last = key
-	_vent_reduce(cut)
-
-var _banked_mana_last := ""   # "<ability>@<frame>" of the last spell that fed Banked Mana
-
-## Mana a spell that cost `cost` gives back with Banked Mana at `pct` percent.
-static func banked_mana_refund(cost: float, pct: float) -> float:
-	return maxf(cost, 0.0) * maxf(pct, 0.0) / 100.0
-
-## Banked Mana talent: a Fire spell of mine just failed to crit, so part of its
-## mana cost comes back. Once per use, however many enemies it hit (an Ember
-## Volley counts once); not procs, not ticks, not spells that cost no mana.
-func _banked_mana(info: RefCounted) -> void:
-	var pct := _talent("fire_banked_mana")
-	if pct <= 0.0 or info.is_proc:
-		return
-	var id := str(info.ability_id)
-	if Abilities.resource_of(id) != "mana":
-		return
-	var key := "%s@%d" % [id, Engine.get_process_frames()]
-	if id == "embervolley":
-		key = "embervolley#%d" % _volley_serial
-	if key == _banked_mana_last:
-		return
-	_banked_mana_last = key
-	var back := banked_mana_refund(resource_cost(id), pct)
-	if back > 0.0:
-		_gain("mana", back)
-
-## Is one of my burns (Balance.REKINDLE_EFFECTS: Immolate, Burning) on `enemy`? (Warm Blood)
-func _my_burn_on(enemy: Variant) -> bool:   # untyped: may be a freed enemy
-	if enemy == null or not is_instance_valid(enemy) or not (enemy is Node):
-		return false
-	var st: Node = enemy.get_node_or_null("Status")
-	if st == null:
-		return false
-	for fx_id in Balance.REKINDLE_EFFECTS:
-		if st.has_from(str(fx_id), self):
-			return true
-	return false
-
-## Number shown on an action-bar button with charges ("" = none).
-func charges_text(id: String) -> String:
-	if id == WeaverKit.MOSSBACK_ID or id == WeaverKit.VIPERS_ID:
-		return str(weaver._mulch.size())   # Nature caster: my patches of mulch
-	if id == LightstringKit.PRISM_ARROW_ID:
-		return str(lightstring._prism_arrows)   # Holy archer: Prism Arrow's charges
-	if id == "iceshards":
-		return str(int(ice_shard_charges))
-	if id == VENT_ID and _vent_max() > 1:
-		return str(clampi(_vent_charges, 0, _vent_max()))
-	if heat_needed(id) > 0:
-		return str(heat_stacks())   # Quench / Flare: the Heat you hold
-	if id == ArcaneTankKit.FULL_SET_ID or id == ArcaneTankKit.TRADE_PLACES_ID or (id == ArcaneTankKit.DECOY_ID and arcane_tank.decoy_needs_reflection()):
-		return str(arcane_tank.reflections())   # the Reflections you have (to fill up, or to spend)
-	if id == ArcaneMeleeKit.ENCORE_ID:
-		return str(arcane_melee.traces())   # the Traces it would replay
-	if id == StringsKit.STRING_ID:
-		return str(strings.string_charges())   # the Strings in your hand
-	if hymns.verses_text(id) != "":
-		return hymns.verses_text(id)   # Holy healer: the Verses you hold
-	if id == ArcaneCasterKit.CONVERGENCE_ID:
-		# Convergence: the Arcane spells on cooldown that would count right now.
-		var running := mini(arcane_caster.arcane_cooldowns(ArcaneCasterKit.CONVERGENCE_ID), Balance.CONVERGENCE_MAX)
-		return str(running) if running > 0 else ""
-	return ""
-
-# --- Banked Coals (Fire talent) ----------------------------------------------------------
-
-## Stacks left after `stacks` are spent with Banked Coals at `pct` percent (rounded down).
-static func banked_stacks(stacks: int, pct: float) -> int:
-	return int(floor(stacks * pct / 100.0 + 0.0001))
-
-## The StatusContainer asks when a "consume on use" buff of mine is used up:
-## Banked Coals keeps part of the Smoldering Focus / Afterburn stacks.
-func stacks_kept_on_use(res: Resource, stacks: int) -> int:
-	var id := str(res.id)
-	if id != "smoldering_focus" and id != "afterburn":
-		return 0
-	return banked_stacks(stacks, _talent("fire_banked_coals"))
-
-# --- Ember Volley (Fire channel) ------------------------------------------------------
-# A channel that launches EMBER_VOLLEY_HITS embers, spread evenly over it (so
-# Haste makes them come faster). Each ember is its own hit with its own crit
-# roll. Paid for, and put on cooldown, when the channel starts.
-
-var _volley_left := 0      # embers still to launch this channel
-var _volley_dmg := 0.0
-var _volley_serial := 0    # counts channels (Cool Head gives one stack per channel)
-
-func _start_ember_volley() -> void:
-	var id := "embervolley"
-	if casting or not is_on_floor():
-		return
-	if cooldown_left(id) > 0.0:
-		_error("%s is not ready yet" % Abilities.ability_name(id))
-		return
-	if not _has_valid_target():
-		_error("No target")
-		return
-	var res := Abilities.get_resource(id)
-	if res.cast_range > 0.0 and global_position.distance_to(target.global_position) > res.cast_range:
-		_error("Target out of range")
-		return
-	var sight_err := _target_error(target)
-	if sight_err != "":
-		_error(sight_err)
-		return
-	var instant := concentrated_fire_ready(id)
-	if not _pay(id):
-		return
-	cooldowns[id] = float(res.cooldown)
-	_volley_dmg = float(res.damage)
-	_volley_serial += 1
-	if instant:
-		# Concentrated Fire: no channel, the whole volley goes out in a quick burst.
-		status.spend_stacks(CONC_ID)
-		var tgt := target
-		for i in Balance.EMBER_VOLLEY_HITS:
-			get_tree().create_timer(Balance.EMBER_VOLLEY_BURST_GAP * i).timeout.connect(func():
-				if is_alive() and is_instance_valid(tgt) and tgt.is_alive():
-					_launch_ember(tgt))
-		_bus().cast_finished.emit(id)   # an instant: starts the global cooldown like one
-		return
-	_begin_spell(id, str(res.display_name), float(res.cast_time), true)
-	_volley_left = Balance.EMBER_VOLLEY_HITS if casting and current_spell == id else 0
-
-## One ember at `tgt`, plus one at each extra enemy near it (Scattered Embers talent).
-func _launch_ember(tgt: Node3D) -> void:
-	var scene := get_tree().current_scene
-	FROST_BOLT.spawn(scene, _muzzle(), tgt, self, false, "embervolley", _volley_dmg)
-	var extra := int(_talent("fire_volley_targets"))
-	if extra <= 0:
-		return
-	var others := _enemies_near(tgt.global_position, Balance.EMBER_VOLLEY_SPLIT_RADIUS, tgt).filter(
-		func(e): return can_see(e))
-	for e in others.slice(0, extra):
-		FROST_BOLT.spawn(scene, _muzzle(), e, self, false, "embervolley", _volley_dmg)
-
-## Launch every ember that is due by now (`final` = all that are left).
-func _ember_volley_tick(final: bool = false) -> void:
-	if _volley_left <= 0:
-		return
-	var hits := Balance.EMBER_VOLLEY_HITS
-	var due := hits
-	if not final:
-		var every := maxf(cast_duration / hits, 0.01)
-		due = mini(int(floor((cast_duration - maxf(cast_timer, 0.0)) / every + 0.0001)), hits)
-	while hits - _volley_left < due:
-		_volley_left -= 1
-		if _has_valid_target():
-			_launch_ember(target)
-
-# --- Furnace Breath (cone) and Slag Skin (armor + burns attackers) ---------------------
-
-## Is the point `to` (relative to you) inside a cone `arc_deg` wide around `forward`?
-## Flat (height ignored). Something right on top of you always counts.
-static func in_cone(forward: Vector3, to: Vector3, arc_deg: float) -> bool:
-	var f := Vector2(forward.x, forward.z)
-	var d := Vector2(to.x, to.z)
-	if d.length() < 0.5 or f.length() < 0.001:
-		return true
-	return absf(rad_to_deg(f.angle_to(d))) <= arc_deg * 0.5 + 0.001
-
-## Visible enemies within `radius` and inside a cone `arc_deg` wide in front of you.
-func _enemies_in_cone(radius: float, arc_deg: float) -> Array:
-	var fwd := _flat_forward()
-	return _enemies_within(radius).filter(func(e): return in_cone(fwd, e.global_position - global_position, arc_deg))
-
-const SLAG_ID := "slagskin"
-var _slag_hit_at := {}   # attacker instance id -> last time Slag Skin burned it
-
-## Slag Skin: an enemy whose attack reaches you (hit or blocked; not damage over
-## time) is burned, at most once per SLAG_SKIN_ICD seconds each.
-func _slag_skin_retaliate(info: RefCounted) -> void:
-	if not is_same(info.target, self) or info.is_dot or status == null or not status.has(SLAG_ID) or is_dead():
-		return
-	var foe: Variant = info.source
-	if foe == null or not is_instance_valid(foe) or not (foe is Node) or not foe.is_in_group("enemies") or not foe.is_alive():
-		return
-	var now := Time.get_ticks_msec() / 1000.0
-	var key: int = foe.get_instance_id()
-	if now - float(_slag_hit_at.get(key, -100.0)) < Balance.SLAG_SKIN_ICD:
-		return
-	_slag_hit_at[key] = now
-	var burn := float(Abilities.get_resource(SLAG_ID).damage)
-	if info.blocked:
-		burn = block_burn(burn, _talent("fire_hot_iron"))   # Hot Iron
-	# Passive damage: it never builds or spends Smoldering Focus / Afterburn.
-	var back = _combat().ability_hit_info(self, foe, burn, SLAG_ID, true)
-	back.no_empower = true
-	_combat().deal(back)
-
-# --- Slag (the Fire tank's armor) ---------------------------------------------------------
-# While Slag Skin is up, each melee hit of mine that doesn't crit adds a stack of
-# Slag (armor per stack; once per use, however many enemies it hit). A melee crit
-# shatters every stack as Fire damage around me. Slag lasts exactly as long as
-# Slag Skin does, so letting Slag Skin drop loses it.
-
-const SLAG_STACK_ID := "slag"
-var _slag_fx: Resource
-var _slag_last := ""   # "<ability>@<frame>" of the last hit that added a stack
-
-## Armor one Slag stack gives, in flat units, with Thick Slag at `talent_pct`.
-static func slag_armor(talent_pct: float) -> float:
-	return Balance.SLAG_ARMOR * (1.0 + talent_pct / 100.0)
-
-## Damage coefficient of `stacks` Slag shattering.
-static func slag_shatter_coef(stacks: int) -> float:
-	return float(Balance.EXTRA_HITS["slagskin"]) * maxi(stacks, 0)
-
-## Retaliation damage for an attack that was blocked, with Hot Iron at `hot_iron_pct`.
-static func block_burn(base: float, hot_iron_pct: float) -> float:
-	return base * (1.0 + hot_iron_pct / 100.0)
-
-## Slag stacks run out together with Slag Skin.
-func _sync_slag() -> void:
-	if status and status.has(SLAG_STACK_ID):
-		status.set_remaining(SLAG_STACK_ID, status.remaining_of(SLAG_ID))
-
-func _slag_stack_fx() -> Resource:
-	var per := slag_armor(_talent("fire_thick_slag")) * _flat_unit()
-	if _slag_fx == null or not is_equal_approx(float(_slag_fx.stat_modifiers.get(Stats.ARMOR, 0.0)), per):
-		_slag_fx = StatusContainer.make_buff(SLAG_STACK_ID, "Slag", Stats.ARMOR, per,
-			Balance.SLAG_SKIN_TIME, Balance.SLAG_MAX_STACKS, Color(0.75, 0.45, 0.3))
-		_slag_fx.description = "Hardened slag: Armor per stack. A melee critical strike of yours shatters it."
-	return _slag_fx
-
-## A hit of mine landed: melee hits (not procs) build or shatter Slag.
-func _slag_on_hit(info: RefCounted, tags: PackedStringArray) -> void:
-	if info.is_proc or int(info.amount) <= 0 or not tags.has("Melee") or not status.has(SLAG_ID):
-		return
-	if info.crit:
-		_slag_shatter()
-		return
-	var key := "%s@%d" % [str(info.ability_id), Engine.get_process_frames()]
-	if key == _slag_last:
-		return   # the same swing hitting another enemy
-	_slag_last = key
-	status.apply(_slag_stack_fx(), self)
-	_sync_slag()
-
-func _slag_shatter() -> void:
-	var stacks: int = status.stacks_of(SLAG_STACK_ID)
-	if stacks <= 0:
-		return
-	status.remove(SLAG_STACK_ID)
-	# Slag Mending: the breaking slag heals me, per stack.
-	var mend := slag_mending_heal(max_health, stacks, _talent("fire_slag_mending"))
-	if mend > 0:
-		_combat().heal(self, self, float(mend), "slag_mending", true)
-	var coef := slag_shatter_coef(stacks)
-	var tags := PackedStringArray(["Fire", "Spell", "AoE"])
-	var hit := _enemies_within(Balance.SLAG_SHATTER_RADIUS)
-	var share := Balance.aoe_share(hit.size())
-	for e in hit:
-		if not is_instance_valid(e) or not e.is_alive():
-			continue
-		# (A proc: it never feeds Cool Head, Pressure Valve or hit-counting runes.)
-		var info := DamageInfo.make(self, e, coef * share, "slag_shatter")
-		info.tags = tags
-		info.damage_type = "fire"
-		info.threat_multiplier = Balance.SLAG_SHATTER_THREAT
-		info.is_proc = true
-		# Passive damage: a shatter must not spend a full stack of Smoldering Focus
-		# (one crit did 15x a normal shatter that way) or build it / Afterburn.
-		info.no_empower = true
-		_combat().deal(info)
-	_ring_effect(Balance.SLAG_SHATTER_RADIUS, Abilities.color_of(SLAG_ID))
-	_ring_effect(Balance.SLAG_SHATTER_RADIUS * 0.6, Color(0.25, 0.2, 0.18))
-	# Smoldering Debris talent: the broken slag keeps burning where I stand. Each
-	# tick is that share of what the shatter did to each enemy (before its crit;
-	# ticks roll their own crit like any periodic damage).
-	var debris := _talent("fire_clinker")
-	if debris > 0.0:
-		var side := Balance.CLINKER_RADIUS * 2.0
-		_fire_patch(Vector3(global_position.x, Combat.feet_y(self), global_position.z), rotation.y, side, side,
-			Balance.CLINKER_TIME, Balance.CLINKER_TICK, debris_tick_coef(coef * share, debris), tags, DEBRIS_ID, true)
-
-## Meter / log id of the Smoldering Debris patch (its ticks are "dot_" + this).
-const DEBRIS_ID := "smoldering_debris"
-
-## Coefficient of one Smoldering Debris tick: `pct` percent of the shatter's hit.
-static func debris_tick_coef(shatter_coef_per_enemy: float, pct: float) -> float:
-	return shatter_coef_per_enemy * pct / 100.0
-
-## A strip (or square) of fire on the ground: `damage` to enemies standing in it
-## every `tick` seconds, as periodic Fire damage of mine. Its length runs along
-## its local X axis. Party members get the picture; the damage is dealt here.
-func _fire_patch(at: Vector3, yaw: float, length: float, depth: float, time: float, tick: float,
-		damage: float, tags: PackedStringArray, effect_id: String, passive: bool = false) -> void:
-	var patch := Node3D.new()
-	patch.set_script(FIRE_WALL)
-	patch.length = length
-	patch.depth = depth
-	patch.duration = time
-	patch.tick = maxf(tick / haste_mult(), 0.1)
-	patch.damage = damage
-	patch.tags = tags
-	patch.effect_id = effect_id
-	patch.passive = passive
-	patch.source = self
-	get_tree().current_scene.add_child(patch)
-	patch.global_position = at
-	patch.rotation.y = yaw
-	_net_fx("firewall", at, null, {"yaw": yaw, "len": length, "depth": depth, "time": time})
-
-# --- Cinder Guard and Brand (Fire tank) ------------------------------------------------------
-
-const CINDER_GUARD_ID := "cinder_guard"
-const BRAND_FX_ID := "branded"
-
-# --- Heat (Fire melee) ------------------------------------------------------------------------
-# Every melee hit of mine (auto-attacks and abilities; not procs, not ticks) on a
-# target carrying MY Immolate builds a stack of Heat: once per swing, however
-# many enemies it hit. Searing Strike builds SEARING_STRIKE_HEAT (Kindling may add
-# one more). Each stack makes my Fire ABILITIES (not spells) hit harder. A new
-# stack restarts the HEAT_TIME timer; when that runs out all of it is lost. Crits
-# play no part. Flare spends some, Quench removes it all for bonus damage.
-# Only my own Immolate counts: another player's never builds my Heat.
-
-const HEAT_ID := "heat"
-const AFTERGLOW_ID := "afterglow"
-var _heat_fx: Resource
-var _heat_last := ""   # "<ability>@<frame>" of the last swing that built Heat
-
-func heat_stacks() -> int:
-	return int(status.stacks_of(HEAT_ID)) if status else 0
-
-## Heat an ability needs to be used (Quench, Flare); 0 for everything else.
-static func heat_needed(id: String) -> int:
-	match id:
-		"quench":
-			return Balance.QUENCH_MIN_HEAT
-		"flare":
-			return Balance.FLARE_HEAT_COST
-	return 0
-
-## Heat one swing of `ability_id` builds on a target with my Immolate (before Kindling).
-static func heat_from(ability_id: String) -> int:
-	if heat_needed(ability_id) > 0:
-		return 0   # the Heat spenders build none
-	return Balance.SEARING_STRIKE_HEAT if ability_id == "searingstrike" else 1
-
-## White Heat (Fire talent): % more Fire damage my abilities deal while I hold
-## `stacks` Heat, at `pct` per its rank. Only at the very top: one stack short is nothing.
-static func white_heat_bonus(stacks: int, pct: float) -> float:
-	return pct if stacks >= Balance.HEAT_MAX_STACKS else 0.0
-
-## Quench's damage coefficient with `heat` stacks removed.
-static func quench_coef(base: float, heat: int) -> float:
-	return base * (1.0 + Balance.QUENCH_PCT_PER_HEAT / 100.0 * maxi(heat, 0))
-
-## An Immolate with `left` seconds to go, fed `add` more: never above its base duration.
-static func tinder_time(left: float, add: float, base: float) -> float:
-	return minf(left + add, maxf(base, left))
-
-## Fire damage Afterglow adds to an auto-attack that dealt `amount`.
-static func afterglow_damage(amount: int, pct: float) -> float:
-	return maxf(float(amount) * pct / 100.0, 0.0)
-
-## Colour of a weapon swing at `stacks` Heat: steel, then orange, white-hot at the cap.
-static func heat_tint(stacks: int) -> Color:
-	var cold := Color(0.9, 0.95, 1.0)
-	if stacks <= 0:
-		return cold
-	var t := clampf(float(stacks) / float(maxi(Balance.HEAT_MAX_STACKS, 1)), 0.0, 1.0)
-	if t < 0.7:
-		return cold.lerp(Color(1.0, 0.5, 0.12), t / 0.7)
-	return Color(1.0, 0.5, 0.12).lerp(Color(1.0, 0.95, 0.7), (t - 0.7) / 0.3)
-
-## The Heat buff: a stacking % bonus to Fire damage dealt by abilities.
-## `time` = seconds without a new stack before it is lost (Forge Heat makes it longer).
-static func make_heat_fx(time: float = Balance.HEAT_TIME) -> Resource:
-	var fx := StatusContainer.make_buff(HEAT_ID, "Heat", HEAT_ID, 0.0,
-		time, Balance.HEAT_MAX_STACKS, Color(1.0, 0.55, 0.15))
-	fx.stat_modifiers = {}
-	fx.damage_mod_pct = Balance.HEAT_DAMAGE_PCT
-	fx.mod_damage_types = PackedStringArray(["fire"])
-	fx.mod_required_tags = PackedStringArray(["Ability"])
-	fx.mod_affects_dots = true   # an ability's burn (Searing Strike's Burning) counts too
-	fx.description = "Your abilities deal %s%% more Fire damage per stack. All Heat is lost after %s sec without gaining a stack." % [
-		Stats.num(Balance.HEAT_DAMAGE_PCT), Stats.num(time)]
-	return fx
-
-func _heat_stack_fx() -> Resource:
-	var time := Balance.HEAT_TIME + _talent("fire_forge_heat")   # Forge Heat
-	if _heat_fx == null or not is_equal_approx(float(_heat_fx.duration), time):
-		_heat_fx = make_heat_fx(time)
-	return _heat_fx
-
-## Add `n` stacks of Heat (every stack restarts its timer, also at the cap).
-func gain_heat(n: int) -> void:
-	for i in maxi(n, 0):
-		status.apply(_heat_stack_fx(), self)
-
-## A hit of mine landed: melee swings on a target with my Immolate build Heat.
-func _heat_on_hit(info: RefCounted, tags: PackedStringArray) -> void:
-	if info.is_proc or int(info.amount) <= 0 or not tags.has("Melee"):
-		return
-	var id := str(info.ability_id)
-	var gain := heat_from(id)
-	if gain <= 0 or info.target == null or not is_instance_valid(info.target):
-		return
-	var st: Node = info.target.get_node_or_null("Status")
-	if st == null or not st.has_from("immolate", self):
-		return
-	var key := "%s@%d" % [id, Engine.get_process_frames()]
-	if key == _heat_last:
-		return   # the same swing hitting another enemy
-	_heat_last = key
-	if id == "searingstrike" and randf() * 100.0 < _talent("fire_kindling"):
-		gain += 1   # Kindling
-	gain_heat(gain)
-
-## Flare: a sweep in front of me. Its Heat is spent first (what is left still
-## boosts it). Everything in the arc is hit - more than AOE_TARGET_CAP enemies
-## share that many hits' damage - and my target's Immolate goes onto every enemy
-## hit that doesn't carry mine yet (it never refreshes one that does).
-func _flare(w: Dictionary, res: Resource) -> void:
-	status.spend_stacks(HEAT_ID, Balance.FLARE_HEAT_COST)
-	var has_target := _has_valid_target()
-	var tst: Node = target.get_node_or_null("Status") if has_target else null
-	var spread: bool = tst != null and tst.has_from("immolate", self)
-	var hit := _enemies_in_cone(float(res.radius), Balance.FLARE_ARC)
-	if has_target and not hit.has(target):
-		hit.append(target)   # in weapon reach, but outside the sweep's
-	var coef := _weapon_hit(w, res) * Balance.aoe_share(hit.size())
-	for e in hit:
-		if not is_instance_valid(e) or not e.is_alive():
-			continue
-		var est: Node = e.get_node_or_null("Status")
-		var had: bool = est != null and est.has_from("immolate", self)
-		deal_damage(e, coef, "flare")
-		if spread and not had and is_instance_valid(e) and e.is_alive():
-			deal_damage(e, 0.0, "immolate", true)   # no damage: just its on-hit effect
-	for i in 2:
-		_slash_effect(Abilities.color_of("flare"))
-	_cone_effect(float(res.radius), Balance.FLARE_ARC * 0.5, Abilities.color_of("flare"))
-
-## Fresh Tinder: my Immolate on `tgt` lasts longer, up to its base duration.
-## The tick timer is left alone, so it simply gets more ticks.
-func _feed_immolate(tgt: Node) -> void:
-	var st: Node = tgt.get_node_or_null("Status") if tgt != null and is_instance_valid(tgt) else null
-	if st == null or not st.has_from("immolate", self):
-		return
-	var fx: Resource = Abilities.get_resource("immolate").on_hit_effect
-	if fx == null:
-		return
-	var add := Balance.FRESH_TINDER_CAPSTONE_SECONDS if _capstone("fire_fresh_tinder") else Balance.FRESH_TINDER_SECONDS
-	var left: float = st.remaining_from("immolate", self)
-	var fed := tinder_time(left, add, float(fx.duration) + effect_duration_bonus(fx))   # base duration incl. Long Burn
-	if fed <= left + 0.001:
-		return   # already at its base duration
-	var net := _net()
-	if net:
-		net.set_effect_remaining(tgt, self, "immolate", fed)   # the host owns enemy effects in a party
-	else:
-		st.set_remaining_from("immolate", self, fed)
-
-## Afterglow talent: Quench leaves the weapon glowing for a few seconds.
-func _start_afterglow() -> void:
-	var fx := StatusContainer.make_buff(AFTERGLOW_ID, "Afterglow", AFTERGLOW_ID, 0.0,
-		Balance.AFTERGLOW_TIME, 1, Color(1.0, 0.75, 0.3))
-	fx.stat_modifiers = {}
-	fx.description = "Your auto-attacks also deal %s%% of their damage as Fire damage." % Stats.num(_talent("fire_afterglow"))
-	status.apply(fx, self)
-
-## An auto-attack of mine landed during Afterglow: part of it again, as Fire
-## damage. An exact share of the swing (its crit is already in it), dealt as a
-## proc: it builds no Heat and feeds nothing else.
-func _afterglow_on_hit(info: RefCounted) -> void:
-	if str(info.ability_id) != "auto_melee" or int(info.amount) <= 0 or not status.has(AFTERGLOW_ID):
-		return
-	var extra_dmg := afterglow_damage(int(info.amount), _talent("fire_afterglow"))
-	if extra_dmg <= 0.0 or info.target == null or not is_instance_valid(info.target) or not info.target.is_alive():
-		return
-	var extra := DamageInfo.make(self, info.target, 1.0, AFTERGLOW_ID)
-	extra.unit = extra_dmg
-	extra.exact = true
-	extra.add_power = false
-	extra.can_crit = false
-	extra.can_block = false
-	extra.is_proc = true
-	extra.damage_type = "fire"
-	extra.tags = PackedStringArray(["Fire", "Melee"])
-	_combat().deal(extra)
-
-# --- Fire bow: Pitch Arrow and Cinder Rain ------------------------------------------------
-# Pitch Arrow leaves my own "pitched" debuff on its target (one per archer).
-# While it is there MY Burning and Immolate on that target tick faster: the
-# StatusContainer asks dot_speed_mult() before every tick. Own only.
-# Cinder Rain is aimed on the ground like Blizzard but is instant: the volley
-# lands where you click (scripts/cinder_rain.gd).
-
-const PITCH_FX_ID := "pitched"
-const CINDER_RAIN_ID := "cinderrain"
-const CINDER_RAIN = preload("res://scripts/cinder_rain.gd")
-
-## How much faster effect `effect_id` ticks on a target that has my pitch on it (or not).
-static func pitch_speed(effect_id: String, pitched: bool) -> float:
-	if pitched and Balance.PITCH_EFFECTS.has(effect_id):
-		return 1.0 + Balance.PITCH_TICK_SPEED_PCT / 100.0
-	return 1.0
-
-## The StatusContainer asks before every tick of one of MY damage-over-time effects.
-func dot_speed_mult(tgt: Node, res: Resource) -> float:
-	var id := str(res.id)
-	var wasting := ShadowTalentsKit.dot_speed_with(1.0, _talent("shadow_wasting"))   # Wasting: all of my damage over time
-	if not Balance.PITCH_EFFECTS.has(id) or tgt == null or not is_instance_valid(tgt):
-		return wasting
-	var st: Node = tgt.get_node_or_null("Status")
-	return pitch_speed(id, st != null and st.has_from(PITCH_FX_ID, self)) * wasting
-
-## Why Cinder Rain can't be used right now ("" = it can). `point` = where it would land.
-func _cinder_rain_error(point: Variant = null) -> String:
-	if cooldown_left(CINDER_RAIN_ID) > 0.0:
-		return "%s is not ready yet" % Abilities.ability_name(CINDER_RAIN_ID)
-	if _weapon().get("weapon", "") != "ranged":
-		return "Requires a bow"
-	if point is Vector3:
-		var reach := float(Abilities.get_resource(CINDER_RAIN_ID).cast_range)
-		if reach > 0.0 and Vector2(point.x - global_position.x, point.z - global_position.z).length() > reach:
-			return "Out of range"
-	return ""
-
-func _start_cinder_rain(point: Vector3) -> void:
-	if casting or not is_on_floor():
-		return
-	var err := _cinder_rain_error(point)
-	if err != "":
-		_error(err)
-		return
-	if not _pay(CINDER_RAIN_ID):
-		return
-	var res := Abilities.get_resource(CINDER_RAIN_ID)
-	cooldowns[CINDER_RAIN_ID] = float(res.cooldown)
-	var dir := point - global_position
-	if Vector2(dir.x, dir.z).length() > 0.3:
-		rotation.y = atan2(-dir.x, -dir.z)
-	var rain := Node3D.new()
-	rain.set_script(CINDER_RAIN)
-	rain.radius = float(res.radius)
-	rain.duration = Balance.CINDER_RAIN_TIME
-	rain.tick = maxf(Balance.CINDER_RAIN_TICK / haste_mult(), 0.1)
-	rain.damage = _weapon_hit(_weapon(), res)   # per tick
-	rain.tags = res.tags
-	rain.source = self
-	get_tree().current_scene.add_child(rain)
-	rain.global_position = point
-	_net_fx(CINDER_RAIN_ID, point, null, {"r": float(res.radius), "time": Balance.CINDER_RAIN_TIME})
-	if on_gcd(CINDER_RAIN_ID):
-		_start_gcd()
-	_bus().cast_finished.emit(CINDER_RAIN_ID)
-
-# --- Cinderwing: the phoenix (Fire healing cooldown) -----------------------------------------
-# A phoenix follows me and, every PHOENIX_INTERVAL seconds, casts a heal on the
-# ally with the lowest health within PHOENIX_RANGE (me included): PHOENIX_CASTS
-# casts, then it leaves. The bird is scripts/phoenix.gd; it calls phoenix_cast().
-# The heals are mine (my Spell Power, my threat, my line in the meter).
-
-const PHOENIX_ID := "cinderwing"
-const PHOENIX = preload("res://scripts/phoenix.gd")
-var _phoenix: Node3D
-
-func _summon_phoenix() -> void:
-	if is_instance_valid(_phoenix):
-		_phoenix.vanish()
-	var time: float = PHOENIX.life_time(Balance.PHOENIX_CASTS, Balance.PHOENIX_INTERVAL)
-	_phoenix = PHOENIX.spawn(get_tree().current_scene, self, Balance.PHOENIX_CASTS, Balance.PHOENIX_INTERVAL)
-	_net_fx("phoenix", global_position, null, {"time": time})   # the party sees the bird; the heals come from here
-	var fx := StatusContainer.make_buff(PHOENIX_ID, "Cinderwing", PHOENIX_ID, 0.0, time, 1, Abilities.color_of(PHOENIX_ID))
-	fx.stat_modifiers = {}
-	fx.description = "A phoenix heals the ally with the lowest health near you every %s sec." % Abilities.secs(Balance.PHOENIX_INTERVAL)
-	status.apply(fx, self)
-	_ring_effect(1.2, Abilities.color_of(PHOENIX_ID))
-
-## The phoenix casts: one heal on the ally with the lowest health in range.
-func phoenix_cast() -> void:
-	if is_dead():
-		return
-	var tgt := _lowest_health_ally(Balance.PHOENIX_RANGE)
-	if tgt == null:
-		return
-	_heal_someone(tgt, float(Abilities.HEALS[PHOENIX_ID]), PHOENIX_ID)
-	if tgt is Node3D:
-		_ring_effect(0.8, Abilities.color_of(PHOENIX_ID), (tgt as Node3D).global_position)
-
-## Heal `tgt` - me, a party member or a friendly dummy - for coefficient `coef`,
-## as `id` in the log and the meter. A party member is healed on their own machine.
-func _heal_someone(tgt: Node, coef: float, id: String) -> void:
-	if tgt == null or not is_instance_valid(tgt):
-		return
-	coef *= strings._others_heal_mult(tgt)   # Many Hands
-	if tgt == self:
-		heal(coef, id)
-	elif tgt.is_in_group("friendly"):
-		_combat().heal(self, tgt, coef, id)   # a local friendly (training ally dummy)
-	else:
-		var amount: int = _combat().heal_amount(self, coef, id)
-		_combat().float_text(tgt, "+%d" % amount, Color(0.45, 1.0, 0.45), false)
-		_bus().heal_done.emit(self, tgt, amount, amount, id, false)   # Details meter
-		if _net():
-			_net().heal_ally(tgt, self, amount)   # their machine heals them (+ threat)
-
-## Me + party members + friendly dummies within `radius` metres of me (alive ones).
-func _allies_within(radius: float) -> Array:
-	var out: Array = [self] if is_alive() else []
-	for a in get_tree().get_nodes_in_group("remote_player") + get_tree().get_nodes_in_group("friendly"):
-		if a is Node3D and a.is_alive() and _flat_dist_to(a.global_position) <= radius:
-			out.append(a)
-	return out
-
-## Index of the smallest health share in `shares` (the first one wins a tie), -1 if empty.
-static func lowest_share(shares: Array) -> int:
-	var best := -1
-	var best_f := INF
-	for i in shares.size():
-		if float(shares[i]) < best_f:
-			best_f = float(shares[i])
-			best = i
-	return best
-
-# --- Deep Crucible (Fire talent): a wider Crucible that stands longer ----------------------------
-
-func crucible_radius() -> float:
-	# Deep Crucible makes it 1 / 2 m WIDER, so half of that goes on the radius.
-	return float(Abilities.get_resource(CRUCIBLE_ID).radius) + Abilities.radius_bonus(CRUCIBLE_ID)
-
-func crucible_duration() -> float:
-	return Balance.CRUCIBLE_TIME + _talent("fire_deep_crucible", "values2")
-
-## Health Slag Mending restores when `stacks` of Slag shatter, at `pct` % of max health per stack.
-static func slag_mending_heal(max_hp: int, stacks: int, pct: float) -> int:
-	return int(round(float(max_hp) * pct / 100.0 * maxi(stacks, 0)))
-
-## Rage Cinder Guard costs with Furnace Heart taking `less` off it (never below 0).
-static func furnace_heart_cost(cost: float, less: float) -> float:
-	return maxf(cost - less, 0.0)
-
-## Something hit me (or I blocked it).
-func _on_hit_taken(info: RefCounted) -> void:
-	if not is_same(info.target, self) or status == null or is_dead():
-		return
-	strings._crossed_taken(info)   # Crossed Strings: what it spared me goes to the enemy at the other end
-	hymns._vigil_taken(info)     # Watchful: a big hit while I stand in a healer's Vigil
-	shepherd._owl_taken(info)       # a Nature healer's Owl watching over me dives
-	colossus._colossus_hit_taken(info)   # Nature tank: hits on my Giant's Hands give Sap
-	# Heat Sink: what it spared me is stored for the burst.
-	if _heat_on and status.has(HEAT_SINK_ID) and not info.blocked and int(info.amount) > 0:
-		_heat_stored += heat_sink_stored(float(info.amount), float(info.bonus_pct), Balance.HEAT_SINK_PCT)
-	# Winter Hide: an enemy whose melee attack reaches me (hit or blocked) is Chilled.
-	if status.has(WINTER_HIDE_ID) and winter_hide_chills(info.tags, info.is_dot):
-		_chill(info.source, WINTER_HIDE_ID)
-	# Cinder Guard: a blocked attack burns the attacker and keeps Slag Skin going.
-	if info.blocked and not info.is_dot and status.has(CINDER_GUARD_ID):
-		var foe: Variant = info.source
-		if foe != null and is_instance_valid(foe) and foe is Node and foe.is_in_group("enemies") and foe.is_alive():
-			deal_damage(foe, block_burn(float(Abilities.get_resource("cinderguard").damage), _talent("fire_hot_iron")),
-				"cinderguard", true)
-		if status.has(SLAG_ID):
-			status.set_remaining(SLAG_ID, minf(status.remaining_of(SLAG_ID) + Balance.CINDER_GUARD_EXTEND, Balance.SLAG_SKIN_TIME))
-			_sync_slag()
-	lightning_melee._melee_kit_hit_taken(info)   # Reflex Arc, Faraday Guard, Back-Current
-	lightning_tank._parry_kit_hit_taken(info)   # Return Stroke, Humming Blade, Quick Wrists, Draw the Storm
-	arcane_tank._reflection_kit_hit_taken(info)   # a dodge (or Stand-In) shatters a Reflection
-	censer._censer_hit_taken(info)   # Incense from hits and blocks; Unfallen counts the damage
-	arcane_open._mirror_finish(info)   # Mirror Finish: what I dodge, parry or block hurts the attacker
-	fire_lightning_talents._tempered(info)   # Tempered: a block gives Armor for a while
-	shadow_talents._spite_on_hit_taken(info)   # Spite: taking damage boosts my next spell or ability
-	holy_talents._penitent_hit(info)   # Penitent: a big hit makes my next heal on myself stronger
-
-# --- Heat Sink ------------------------------------------------------------------------------
-# For HEAT_SINK_TIME seconds HEAT_SINK_PCT% of the damage I take is stored instead
-# (_on_damage_modify takes it off the hit, _on_hit_taken counts it). When the buff
-# runs out the heat bursts around me: the ability's damage, growing with what was
-# stored up to (1 + HEAT_SINK_BONUS) times it at HEAT_SINK_FULL_AT% of my health.
-
-const HEAT_SINK_ID := "heat_sink"
-var _heat_on := false
-var _heat_stored := 0.0
-
-## Damage Heat Sink kept off me on a hit that still dealt `amount`, when all the
-## hit's modifiers (Heat Sink's -`pct` included) added up to `bonus_pct`.
-static func heat_sink_stored(amount: float, bonus_pct: float, pct: float) -> float:
-	var mult := 1.0 + bonus_pct / 100.0
-	if mult <= 0.0 or pct <= 0.0:
-		return 0.0
-	return amount * (pct / 100.0) / mult
-
-## Coefficient of the burst with `stored` damage soaked, at `max_hp` max health.
-static func heat_sink_coef(base: float, stored: float, max_hp: float) -> float:
-	var full := maxf(max_hp * Balance.HEAT_SINK_FULL_AT / 100.0, 1.0)
-	return base * (1.0 + Balance.HEAT_SINK_BONUS * clampf(stored / full, 0.0, 1.0))
-
-func _start_heat_sink() -> void:
-	_heat_stored = 0.0
-	_heat_on = true
-	var fx := StatusContainer.make_buff(HEAT_SINK_ID, "Heat Sink", HEAT_SINK_ID, 0.0,
-		Balance.HEAT_SINK_TIME, 1, Abilities.color_of("heatsink"))
-	fx.stat_modifiers = {}
-	fx.description = "You take %d%% less damage; it is stored and bursts out as Fire damage when this ends." % int(Balance.HEAT_SINK_PCT)
-	status.apply(fx, self)
-	_ring_effect(1.2, Abilities.color_of("heatsink"))
-
-## Heat Sink just ran out: let the heat go.
-func _heat_sink_check() -> void:
-	if not _heat_on or status.has(HEAT_SINK_ID):
-		return
-	_heat_on = false
-	if is_dead():
-		return
-	var res := Abilities.get_resource("heatsink")
-	var hit := _enemies_within(float(res.radius))
-	var coef := heat_sink_coef(float(res.damage), _heat_stored, float(max_health)) * Balance.aoe_share(hit.size())
-	_heat_stored = 0.0
-	for e in hit:
-		deal_damage(e, coef, "heatsink", true)
-	_ring_effect(float(res.radius), Abilities.color_of("heatsink"))
-	_ring_effect(float(res.radius) * 0.6, Color(1.0, 0.9, 0.4))
-
-# --- Cinder Step ----------------------------------------------------------------------------
-# A dash straight ahead (like Blink it stops short of walls) that leaves a line
-# of cinders, and lets the next Fire spell with a cast time be cast on the move.
-
-const CINDER_ID := "cinder_step"
-var _cinder_cast := false   # the current cast may be finished while moving
-var _cinder_fx: Resource
-
-## Can Cinder Step's buff carry this cast? Fire spells with a cast time; not channels.
-static func cinder_step_applies(tags: PackedStringArray, cast_time: float, channel: bool) -> bool:
-	return not channel and cast_time > 0.0 and tags.has("Fire") and tags.has("Spell")
-
-func cinder_step_ready(id: String) -> bool:
-	if status == null or not status.has(CINDER_ID):
-		return false
-	var res := Abilities.get_resource(id)
-	return res != null and cinder_step_applies(res.tags, float(res.cast_time), int(res.cast_type) == 2)
-
-func _cinder_step(res: Resource) -> void:
-	var from := global_position
-	var dir := _flat_forward()
-	var dist := _dash_distance(Balance.CINDER_STEP_DISTANCE)
-	global_position += dir * dist
-	_ring_effect(0.8, Abilities.color_of("cinderstep"), from)
-	_ring_effect(0.8, Abilities.color_of("cinderstep"))
-	if dist > 0.5:
-		var mid := from + dir * dist * 0.5
-		# (A fire strip's length runs across its facing, so it is turned a quarter.)
-		_fire_patch(Vector3(mid.x, Combat.feet_y(self), mid.z), atan2(-dir.x, -dir.z) + PI / 2.0, dist,
-			Balance.CINDER_STEP_LINE_DEPTH, Balance.CINDER_STEP_LINE_TIME, Balance.CINDER_STEP_TICK,
-			float(res.damage), res.tags, "cinderstep")
-	if _cinder_fx == null:
-		_cinder_fx = StatusContainer.make_buff(CINDER_ID, "Cinder Step", CINDER_ID, 0.0,
-			Balance.CINDER_STEP_BUFF_TIME, 1, Abilities.color_of("cinderstep"))
-		_cinder_fx.stat_modifiers = {}
-		_cinder_fx.description = "Your next Fire spell with a cast time can be cast while moving."
-	status.apply(_cinder_fx, self)
-
-# --- Crucible -------------------------------------------------------------------------------
-# A circle placed on the ground (like Blizzard) for CRUCIBLE_TIME seconds: enemies
-# in it take more periodic Fire damage (_on_damage_modify). While mine stands,
-# casting it again is instant and free and moves it (it keeps the time it had
-# left, unless Balance.CRUCIBLE_MOVE_REFRESHES).
-
-const CRUCIBLE_ID := "crucible"
-const CRUCIBLE = preload("res://scripts/crucible.gd")
-var _crucible: Node3D   # my Crucible on the ground (null / gone = none)
-
-func _crucible_standing() -> bool:
-	return is_instance_valid(_crucible) and _crucible.time_left() > 0.0
-
-## Seconds a Crucible placed now lasts: a fresh one the full time, a moved one
-## what the old one had left (or the full time again if moving refreshes it).
-static func crucible_time(moving: bool, left: float, full: float, move_refreshes: bool) -> float:
-	return left if moving and not move_refreshes else full
-
-func _start_crucible(point: Vector3) -> void:
-	if casting or not is_on_floor():
-		return
-	cast_point = point
-	if _crucible_standing():
-		_place_crucible(true)   # moving it: instant and free
-		if on_gcd(CRUCIBLE_ID):
-			_start_gcd()
-		_bus().cast_finished.emit(CRUCIBLE_ID)
-		return
-	if not can_afford(CRUCIBLE_ID, true):
-		return
-	var res := Abilities.get_resource(CRUCIBLE_ID)
-	_begin_spell(CRUCIBLE_ID, str(res.display_name), float(res.cast_time))
-
-func _place_crucible(moving: bool) -> void:
-	var res := Abilities.get_resource(CRUCIBLE_ID)
-	var standing := _crucible_standing()
-	var time := crucible_time(moving and standing, _crucible.time_left() if standing else 0.0,
-		crucible_duration(), Balance.CRUCIBLE_MOVE_REFRESHES)
-	var radius := crucible_radius()   # Deep Crucible: wider, and it stands longer
-	_crucible = CRUCIBLE.spawn(get_tree().current_scene, cast_point, radius, time, "me")
-	_net_fx("crucible", cast_point, null, {"r": radius, "time": time})
-	_ring_effect(radius, Abilities.color_of(CRUCIBLE_ID), cast_point)
-
-# --- Cool Head (Fire ability) and Concentrated Fire ---------------------------------------
-# Cool Head (Balance.COOL_HEAD_TIME): your Fire spells and abilities can't crit
-# (adjust_crit), and each one that deals damage gives a stack of Concentrated
-# Fire: once per use, however many enemies it hits; ticks and procs don't count.
-# When Cool Head ends the stacks stay for CONCENTRATED_FIRE_WINDOW seconds and
-# each one makes a Fire spell / ability with a cast time instant (_begin_spell).
-
-const COOL_HEAD_ID := "cool_head"
-const CONC_ID := "concentrated_fire"
-var _cool_head_on := false       # Cool Head is running (stacks build; no instant casts yet)
-var _conc_cast := false          # the current cast is an instant Concentrated Fire one
-var _conc_fx: Resource
-var _conc_last := ""             # "<ability>@<frame>" of the last hit that gave a stack
-
-## A Fire spell or ability (by its tags)?
-static func is_fire_action(tags: PackedStringArray) -> bool:
-	return tags.has("Fire") and (tags.has("Spell") or tags.has("Ability"))
-
-func cool_head_active() -> bool:
-	return status != null and status.has(COOL_HEAD_ID)
-
-func _start_cool_head() -> void:
-	status.remove(CONC_ID)
-	var fx := StatusContainer.make_buff(COOL_HEAD_ID, "Cool Head", COOL_HEAD_ID, 0.0,
-		Balance.COOL_HEAD_TIME, 1, Color(0.65, 0.88, 1.0))
-	fx.stat_modifiers = {}
-	fx.description = "Your Fire spells and abilities cannot critically strike. Each one that deals damage grants a stack of Concentrated Fire."
-	_cool_head_on = true
-	status.apply(fx, self)
-	_ring_effect(1.2, Color(0.65, 0.88, 1.0))
-
-## A hit of mine landed: during Cool Head, a Fire spell / ability gives a stack.
-func _cool_head_on_hit(info: RefCounted, tags: PackedStringArray) -> void:
-	if not cool_head_active() or info.is_proc or int(info.amount) <= 0 or not is_fire_action(tags):
-		return
-	var key := "%s@%d" % [str(info.ability_id), Engine.get_process_frames()]
-	if str(info.ability_id) == "embervolley":
-		key = "embervolley#%d" % _volley_serial   # one stack per channel, not per ember
-	if key == _conc_last:
-		return   # the same use hitting another enemy
-	_conc_last = key
-	if _conc_fx == null:
-		_conc_fx = StatusContainer.make_buff(CONC_ID, "Concentrated Fire", CONC_ID, 0.0,
-			Balance.COOL_HEAD_TIME + Balance.CONCENTRATED_FIRE_WINDOW, Balance.CONCENTRATED_FIRE_MAX, Color(1.0, 0.6, 0.2))
-		_conc_fx.stat_modifiers = {}
-		_conc_fx.description = "When Cool Head ends, your next Fire spells and abilities with a cast time are instant: one cast per stack."
-	status.apply(_conc_fx, self)
-	# The stacks always run out CONCENTRATED_FIRE_WINDOW seconds after Cool Head does.
-	status.set_remaining(CONC_ID, status.remaining_of(COOL_HEAD_ID) + Balance.CONCENTRATED_FIRE_WINDOW)
-
-## Cool Head just ran out: the Concentrated Fire window starts.
-func _cool_head_check() -> void:
-	if _cool_head_on and not cool_head_active():
-		_cool_head_on = false
-		status.set_remaining(CONC_ID, Balance.CONCENTRATED_FIRE_WINDOW)
-
-## Would casting `id` right now be instant from Concentrated Fire?
-func concentrated_fire_ready(id: String) -> bool:
-	if status == null or cool_head_active() or not status.has(CONC_ID):
-		return false
-	var res := Abilities.get_resource(id)
-	# (Ember Volley counts too: its whole volley goes out at once, see _start_ember_volley.)
-	return res != null and concentrated_applies(res.tags, float(res.cast_time), _has_rune("level_head"))
-
-## Can Concentrated Fire make this instant? Fire spells and abilities with a
-## cast time; with the Rune of the Level Head (`any_school`), spells of any school.
-static func concentrated_applies(tags: PackedStringArray, cast_time: float, any_school: bool) -> bool:
-	if cast_time <= 0.0:
-		return false
-	return is_fire_action(tags) or (any_school and tags.has("Spell"))
 
 # --- Crit changes (CombatSystem asks for every hit I deal) ------------------------------
 
@@ -5723,7 +4554,7 @@ func adjust_crit(info: RefCounted, chance: float) -> float:
 			info.add_bonus(float(fire[1]), "Vent Flames" if id == "ventflames" else "Tempered Flame")
 		chance = float(fire[0])
 	var tags: PackedStringArray = info.tags
-	if cool_head_active() and is_fire_action(tags):
+	if fire_cooldowns.cool_head_active() and FireCooldownsKit.is_fire_action(tags):
 		return 0.0                               # Cool Head: no Fire crits at all (ticks and Vent Flames included)
 	var frost_spell := tags.has("Frost") and tags.has("Spell")
 	if not info.is_dot and float(_empowered.get(id, 0.0)) > Time.get_ticks_msec() / 1000.0:
@@ -5872,17 +4703,17 @@ func _aegis_amount(share: float) -> int:
 
 ## Me + party members + friendly dummies within FROZEN_AEGIS_RADIUS.
 func _aegis_allies() -> Array:
-	return _allies_within(Balance.FROZEN_AEGIS_RADIUS)
+	return fire_cooldowns._allies_within(Balance.FROZEN_AEGIS_RADIUS)
 
 ## The ally (me included) within `radius` with the smallest share of their health left.
 func _lowest_health_ally(radius: float = Balance.FROZEN_AEGIS_RADIUS) -> Node:
-	var allies := _allies_within(radius)
+	var allies := fire_cooldowns._allies_within(radius)
 	var shares: Array = []
 	for a in allies:
 		var h: Variant = a.get("health")
 		var mh: Variant = a.get("max_health")
 		shares.append(float(h) / maxf(float(mh), 1.0) if h != null and mh != null else 1.0)
-	var i := lowest_share(shares)
+	var i := FireCooldownsKit.lowest_share(shares)
 	return allies[i] if i >= 0 else null
 
 func _give_aegis(who: Node, amount: int) -> void:
@@ -6141,7 +4972,7 @@ func _sleet_wave(res: Resource) -> void:
 func _snow_ward(res: Resource) -> void:
 	var amount := _aegis_amount(Balance.SNOW_WARD_SHARE)
 	var armor := _talent("frost_shield_armor")
-	for who in _allies_within(float(res.radius)):
+	for who in fire_cooldowns._allies_within(float(res.radius)):
 		if who == self:
 			receive_snow_ward(self, amount, armor)
 		elif who.is_in_group("remote_player"):

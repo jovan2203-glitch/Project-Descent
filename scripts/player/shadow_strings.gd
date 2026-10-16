@@ -840,7 +840,7 @@ func _tug() -> void:
 ## my STRING_MAX) for a while.
 func _cats_cradle(res: Resource) -> void:
 	var now := _str_now()
-	for a in player._allies_within(float(res.radius)):
+	for a in player.fire_cooldowns._allies_within(float(res.radius)):
 		_heal_coef(a, float(Abilities.HEALS[CRADLE_ID]), CRADLE_ID)
 		var e := _string_entry(a, false)
 		e["loose"] = now + Balance.LOOSE_STRING_TIME
@@ -1060,7 +1060,7 @@ func _string_up() -> void:
 	var foe: Node3D = player.target
 	var fx: Resource = preload("res://scripts/core/effects.gd").get_effect(STRUNG_UP_FX)
 	var hangs := Balance.STRING_UP_TIME + player.effect_duration_bonus(fx)   # (Left Hanging: my stuns last longer)
-	player._apply_effect_hit(foe, fx, STRING_UP_ID, PackedStringArray(STRING_TAGS), "shadow")
+	player.fire_caster._apply_effect_hit(foe, fx, STRING_UP_ID, PackedStringArray(STRING_TAGS), "shadow")
 	PUPPETEER.string_up(player.get_tree().current_scene, foe, hangs)
 	player._net_fx("strungup", foe.global_position, foe, {"time": hangs})   # the party sees it hang
 	if player._talent("shadow_long_drop") > 0.0:
@@ -1073,7 +1073,7 @@ func _tangle(res: Resource) -> void:
 	var r := float(res.radius)
 	var fx: Resource = preload("res://scripts/core/effects.gd").get_effect(TANGLED_FX)
 	for e in player._enemies_near(at, r):
-		player._apply_effect_hit(e, fx, TANGLE_ID, PackedStringArray(STRING_TAGS), "shadow")
+		player.fire_caster._apply_effect_hit(e, fx, TANGLE_ID, PackedStringArray(STRING_TAGS), "shadow")
 	var ground := Vector3(at.x, Combat.feet_y(foe), at.z)
 	var held := Balance.TANGLE_TIME + player.effect_duration_bonus(fx)   # (Left Hanging: my roots last longer)
 	PUPPETEER.tangle(player.get_tree().current_scene, ground, r, held)

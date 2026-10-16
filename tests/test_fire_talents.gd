@@ -123,9 +123,9 @@ func test_cool_head() -> void:
 	assert_true(Abilities.ALL.has("coolhead") and Abilities.DRAFT_POOL.has("coolhead") and SkillCards.ALL.has("coolhead"))
 	assert_eq(SkillCards.ability_of("coolhead"), "coolhead")
 	var player_script: GDScript = load("res://scripts/player.gd")
-	assert_true(player_script.is_fire_action(Abilities.tags_of("fireball")), "Fire spells count")
-	assert_true(player_script.is_fire_action(Abilities.tags_of("searingstrike")), "Fire abilities count")
-	assert_false(player_script.is_fire_action(Abilities.tags_of("frostbolt")), "other schools don't")
+	assert_true(FireCooldownsKit.is_fire_action(Abilities.tags_of("fireball")), "Fire spells count")
+	assert_true(FireCooldownsKit.is_fire_action(Abilities.tags_of("searingstrike")), "Fire abilities count")
+	assert_false(FireCooldownsKit.is_fire_action(Abilities.tags_of("frostbolt")), "other schools don't")
 	assert_true(float(Abilities.get_resource("fireball").cast_time) > 0.0, "Firebolt has a cast time to make instant")
 
 func test_concentrated_fire_stacks() -> void:
@@ -212,12 +212,12 @@ func test_furnace_breath() -> void:
 	assert_true(Abilities.DRAFT_POOL.has("furnacebreath") and SkillCards.ALL.has("furnacebreath"))
 	# The cone: 90 degrees wide around where you face (forward = -Z).
 	var fwd := Vector3(0, 0, -1)
-	assert_true(player_script.in_cone(fwd, Vector3(0, 0, -5), 90.0), "straight ahead")
-	assert_true(player_script.in_cone(fwd, Vector3(2, 0, -3), 90.0), "34 degrees to the side")
-	assert_false(player_script.in_cone(fwd, Vector3(3, 0, -2), 90.0), "56 degrees to the side")
-	assert_false(player_script.in_cone(fwd, Vector3(0, 0, 4), 90.0), "behind you")
-	assert_true(player_script.in_cone(fwd, Vector3(0, 3, -4), 90.0), "height doesn't matter")
-	assert_true(player_script.in_cone(fwd, Vector3.ZERO, 90.0), "standing on top of you")
+	assert_true(FireTankKit.in_cone(fwd, Vector3(0, 0, -5), 90.0), "straight ahead")
+	assert_true(FireTankKit.in_cone(fwd, Vector3(2, 0, -3), 90.0), "34 degrees to the side")
+	assert_false(FireTankKit.in_cone(fwd, Vector3(3, 0, -2), 90.0), "56 degrees to the side")
+	assert_false(FireTankKit.in_cone(fwd, Vector3(0, 0, 4), 90.0), "behind you")
+	assert_true(FireTankKit.in_cone(fwd, Vector3(0, 3, -4), 90.0), "height doesn't matter")
+	assert_true(FireTankKit.in_cone(fwd, Vector3.ZERO, 90.0), "standing on top of you")
 
 func test_slag_skin() -> void:
 	var r := Abilities.get_resource("slagskin")
@@ -241,10 +241,10 @@ func test_banked_coals_sits_between_the_two() -> void:
 	assert_eq(Talents.value_at(id, 2), 50.0)
 	assert_true(TalentIcons.has_icon(id))
 	var player_script: GDScript = load("res://scripts/player.gd")
-	assert_eq(player_script.banked_stacks(4, 50.0), 2)
-	assert_eq(player_script.banked_stacks(20, 25.0), 5)
-	assert_eq(player_script.banked_stacks(1, 50.0), 0, "rounded down: a single stack is always spent")
-	assert_eq(player_script.banked_stacks(7, 0.0), 0, "nothing kept without the talent")
+	assert_eq(FireCasterKit.banked_stacks(4, 50.0), 2)
+	assert_eq(FireCasterKit.banked_stacks(20, 25.0), 5)
+	assert_eq(FireCasterKit.banked_stacks(1, 50.0), 0, "rounded down: a single stack is always spent")
+	assert_eq(FireCasterKit.banked_stacks(7, 0.0), 0, "nothing kept without the talent")
 
 ## The container side: a carrier that keeps stacks still has them after the buff is used.
 func test_spent_stacks_can_be_kept() -> void:
@@ -404,11 +404,11 @@ func test_level_head_rune() -> void:
 	var player_script: GDScript = load("res://scripts/player.gd")
 	var frostbolt := Abilities.get_resource("frostbolt")
 	var firebolt := Abilities.get_resource("fireball")
-	assert_true(player_script.concentrated_applies(firebolt.tags, float(firebolt.cast_time), false), "Fire casts: always")
-	assert_false(player_script.concentrated_applies(frostbolt.tags, float(frostbolt.cast_time), false), "other schools: not without the rune")
-	assert_true(player_script.concentrated_applies(frostbolt.tags, float(frostbolt.cast_time), true), "other schools: with the rune")
-	assert_false(player_script.concentrated_applies(frostbolt.tags, 0.0, true), "instants have nothing to make instant")
-	assert_false(player_script.concentrated_applies(Abilities.tags_of("steadyshot"), 1.2, true), "the rune is for spells, not abilities")
+	assert_true(FireCooldownsKit.concentrated_applies(firebolt.tags, float(firebolt.cast_time), false), "Fire casts: always")
+	assert_false(FireCooldownsKit.concentrated_applies(frostbolt.tags, float(frostbolt.cast_time), false), "other schools: not without the rune")
+	assert_true(FireCooldownsKit.concentrated_applies(frostbolt.tags, float(frostbolt.cast_time), true), "other schools: with the rune")
+	assert_false(FireCooldownsKit.concentrated_applies(frostbolt.tags, 0.0, true), "instants have nothing to make instant")
+	assert_false(FireCooldownsKit.concentrated_applies(Abilities.tags_of("steadyshot"), 1.2, true), "the rune is for spells, not abilities")
 
 func test_kiln_blast() -> void:
 	var r := Abilities.get_resource("kilnblast")
@@ -426,13 +426,13 @@ func test_slow_fuse() -> void:
 	assert_eq(Balance.SLOW_FUSE_TIME, 5.0, "explodes after 5 s")
 	assert_true(Effects.get_effect("slow_fuse") != null or ResourceLoader.exists("res://data/effects/slow_fuse.tres"))
 	var player_script: GDScript = load("res://scripts/player.gd")
-	assert_true(is_equal_approx(player_script.fuse_size(1.5, 0), 1.5), "no growth: the base explosion")
-	assert_true(is_equal_approx(player_script.fuse_size(1.5, 4), 1.5 + 4 * Balance.SLOW_FUSE_GROW))
-	assert_true(is_equal_approx(player_script.fuse_size(1.5, 999), 1.5 + Balance.SLOW_FUSE_MAX_GROWS * Balance.SLOW_FUSE_GROW), "growth is capped")
+	assert_true(is_equal_approx(FireCasterKit.fuse_size(1.5, 0), 1.5), "no growth: the base explosion")
+	assert_true(is_equal_approx(FireCasterKit.fuse_size(1.5, 4), 1.5 + 4 * Balance.SLOW_FUSE_GROW))
+	assert_true(is_equal_approx(FireCasterKit.fuse_size(1.5, 999), 1.5 + Balance.SLOW_FUSE_MAX_GROWS * Balance.SLOW_FUSE_GROW), "growth is capped")
 	# Without the talent: every non-crit grows it, crits never do.
-	assert_eq(player_script.fuse_grow_chance(false, true, 0.0), 100.0)
-	assert_eq(player_script.fuse_grow_chance(false, false, 0.0), 100.0, "a non-crit of any school")
-	assert_eq(player_script.fuse_grow_chance(true, true, 0.0), 0.0)
+	assert_eq(FireCasterKit.fuse_grow_chance(false, true, 0.0), 100.0)
+	assert_eq(FireCasterKit.fuse_grow_chance(false, false, 0.0), 100.0, "a non-crit of any school")
+	assert_eq(FireCasterKit.fuse_grow_chance(true, true, 0.0), 0.0)
 
 func test_volatile_fuse() -> void:
 	var id := Talents.id_for_key("fire_fuse_crit")
@@ -444,10 +444,10 @@ func test_volatile_fuse() -> void:
 	var player_script: GDScript = load("res://scripts/player.gd")
 	for rank in range(1, 4):
 		var pct := Talents.value_at(id, rank)
-		assert_eq(player_script.fuse_grow_chance(true, true, pct), pct, "rank %d: Fire crits grow it %d%% of the time" % [rank, int(pct)])
-		assert_eq(player_script.fuse_grow_chance(false, true, pct), 100.0 - pct, "rank %d: non-crits %d%% less often" % [rank, int(pct)])
-		assert_eq(player_script.fuse_grow_chance(true, false, pct), 0.0, "only FIRE crits count")
-	assert_eq(player_script.fuse_grow_chance(false, true, 100.0), 0.0, "rank 3: non-crits never grow it")
+		assert_eq(FireCasterKit.fuse_grow_chance(true, true, pct), pct, "rank %d: Fire crits grow it %d%% of the time" % [rank, int(pct)])
+		assert_eq(FireCasterKit.fuse_grow_chance(false, true, pct), 100.0 - pct, "rank %d: non-crits %d%% less often" % [rank, int(pct)])
+		assert_eq(FireCasterKit.fuse_grow_chance(true, false, pct), 0.0, "only FIRE crits count")
+	assert_eq(FireCasterKit.fuse_grow_chance(false, true, 100.0), 0.0, "rank 3: non-crits never grow it")
 
 func test_rekindle() -> void:
 	var r := Abilities.get_resource("rekindle")
@@ -463,7 +463,7 @@ func test_rekindle() -> void:
 		assert_true(player_script.ENEMY_BOLTS.has(id), "%s is cast at an enemy" % id)
 		assert_eq(Abilities.category_of(id), "fire")
 		assert_true(Abilities.DRAFT_POOL.has(id) and SkillCards.ALL.has(id), "%s is draftable and has a card" % id)
-		assert_true(player_script.concentrated_applies(Abilities.tags_of(id), float(Abilities.get_resource(id).cast_time), false), "%s can be made instant" % id)
+		assert_true(FireCooldownsKit.concentrated_applies(Abilities.tags_of(id), float(Abilities.get_resource(id).cast_time), false), "%s can be made instant" % id)
 
 ## Slow Fuse grows by changing the debuff's stacks without restarting its timer.
 func test_set_stacks_keeps_the_timer() -> void:

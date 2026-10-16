@@ -383,7 +383,7 @@ func _melee_kit_hit_taken(info: RefCounted) -> void:
 	# Faraday Guard: what it spared me comes out of my Energy; at none it ends.
 	var spared_pct := -bonus_named(info.bonus_parts, FARADAY_LABEL)
 	if spared_pct > 0.0 and not info.blocked and int(info.amount) > 0:
-		var spared := Player.heat_sink_stored(float(info.amount), float(info.bonus_pct), spared_pct)
+		var spared := FireCooldownsKit.heat_sink_stored(float(info.amount), float(info.bonus_pct), spared_pct)
 		player.resources["energy"] = maxf(float(player.resources["energy"]) - faraday_energy(spared, float(player.max_health)), 0.0)
 		if float(player.resources["energy"]) <= 0.0:
 			player.status.remove(FARADAY_FX)

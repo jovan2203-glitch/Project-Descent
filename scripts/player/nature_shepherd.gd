@@ -228,7 +228,7 @@ func _fawn_hop(who: Node3D, from_pos: Vector3, coef: float, left: int, healed: A
 
 ## Wild Herd: a Fawn at each of the lowest-health allies within `radius` of me.
 func _wild_herd(radius: float) -> void:
-	var allies := player._allies_within(radius)
+	var allies := player.fire_cooldowns._allies_within(radius)
 	allies.sort_custom(func(a, b): return player.hymns._health_share_of(a) < player.hymns._health_share_of(b))
 	var from := player._muzzle() if player.is_inside_tree() else player.global_position
 	for i in mini(allies.size(), Balance.WILD_HERD_FAWNS):
@@ -338,7 +338,7 @@ func _rootguard_broke(who: Variant) -> void:
 # Heartwood Elk: heals every ally near me, more for their Blossoms.
 
 func _heartwood_elk(radius: float) -> void:
-	var allies := player._allies_within(radius)
+	var allies := player.fire_cooldowns._allies_within(radius)
 	var share := Balance.aoe_share(allies.size())
 	var feet := player.weaver._ground_under(player)
 	player.weaver._creature("elk", feet + player.global_transform.basis.z * 1.5, feet)

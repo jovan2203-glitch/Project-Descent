@@ -330,7 +330,7 @@ func _decay_show(d: Dictionary, now: float, fresh: bool = false) -> void:
 		if shown != "" and shown != want:
 			_decay_unshow(foe, shown)
 		# (A hit with no damage, so in a party it reaches the host like any other effect.)
-		player._apply_effect_hit(foe, preload("res://scripts/core/effects.gd").get_effect(want), DECAY_HIT_ID,
+		player.fire_caster._apply_effect_hit(foe, preload("res://scripts/core/effects.gd").get_effect(want), DECAY_HIT_ID,
 			PackedStringArray(DECAY_TAGS), "shadow")
 		d["shown"] = want
 		if open:

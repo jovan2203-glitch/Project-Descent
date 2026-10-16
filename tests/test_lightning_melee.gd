@@ -224,7 +224,7 @@ func test_faraday_guard() -> void:
 	assert_eq(LightningMeleeKit.faraday_energy(0.0, 1000.0), 0.0)
 	assert_eq(LightningMeleeKit.faraday_energy(50.0, 0.0), 0.0)
 	# A hit of 100 before modifiers lands for 70: 30 was spared.
-	assert_true(is_equal_approx(p.heat_sink_stored(70.0, -30.0, 30.0), 30.0))
+	assert_true(is_equal_approx(FireCooldownsKit.heat_sink_stored(70.0, -30.0, 30.0), 30.0))
 	assert_eq(LightningMeleeKit.bonus_named([["Brand", -20.0], [LightningMeleeKit.FARADAY_LABEL, -30.0]], LightningMeleeKit.FARADAY_LABEL), -30.0)
 	assert_eq(LightningMeleeKit.bonus_named([["Brand", -20.0]], LightningMeleeKit.FARADAY_LABEL), 0.0)
 	assert_false(Abilities.has_scaling("faradayguard"))

@@ -228,7 +228,7 @@ func _start_sigil_darts() -> void:
 	if sight_err != "":
 		player._error(sight_err)
 		return
-	var instant := player.concentrated_fire_ready(id)
+	var instant := player.fire_cooldowns.concentrated_fire_ready(id)
 	if not player._pay(id):
 		return
 	if float(res.cooldown) > 0.0:
@@ -242,7 +242,7 @@ func _start_sigil_darts() -> void:
 		player.status.remove(SCATTER_FX)   # this is the Sigil Darts it was waiting for
 	if instant:
 		# Concentrated Fire (Rune of the Level Head): no channel, the darts go out in a quick burst.
-		player.status.spend_stacks(Player.CONC_ID)
+		player.status.spend_stacks(FireCooldownsKit.CONC_ID)
 		var tgt := player.target
 		for i in _darts_total:
 			player.get_tree().create_timer(Balance.SIGIL_DARTS_BURST_GAP * i).timeout.connect(func():
@@ -305,7 +305,7 @@ func _plant_countdown(tgt: Node3D) -> void:
 	_countdowns[key] = {"target": tgt, "dealt": 0, "base": float(Abilities.get_resource(COUNTDOWN_ID).damage),
 		"at": Time.get_ticks_msec() / 1000.0 + Balance.COUNTDOWN_TIME}
 	# The debuff shows the mark to the whole party (it only ever counts MY damage).
-	player._apply_effect_hit(tgt, preload("res://scripts/core/effects.gd").get_effect(COUNTDOWN_FX), COUNTDOWN_ID,
+	player.fire_caster._apply_effect_hit(tgt, preload("res://scripts/core/effects.gd").get_effect(COUNTDOWN_FX), COUNTDOWN_ID,
 		PackedStringArray(ARCANE_TAGS), "arcane")
 	player._ring_effect(0.8, Abilities.color_of(COUNTDOWN_ID), tgt.global_position)
 
@@ -704,7 +704,7 @@ func _aftershock(e: Node) -> void:
 	if slow <= 0.0:
 		return
 	_slow_mult_now = aftershock_mult(slow)   # (slow_mult() answers with this while the effect is applied)
-	player._apply_effect_hit(e, preload("res://scripts/core/effects.gd").get_effect(AFTERSHOCK_FX), COLLAPSE_ID,
+	player.fire_caster._apply_effect_hit(e, preload("res://scripts/core/effects.gd").get_effect(AFTERSHOCK_FX), COLLAPSE_ID,
 		PackedStringArray(ARCANE_TAGS), "arcane")
 	_slow_mult_now = 1.0
 

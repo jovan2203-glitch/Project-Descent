@@ -169,7 +169,7 @@ func _tick_hymns() -> void:
 	# Vigil: allies near me take less damage (renewed while they stay near).
 	if hymn == "vigil" and now >= _vigil_told:
 		_vigil_told = now + Balance.VIGIL_TELL_EVERY
-		for a in player._allies_within(Balance.VIGIL_RADIUS):
+		for a in player.fire_cooldowns._allies_within(Balance.VIGIL_RADIUS):
 			_hymn_dr(a, VIGIL_FX, Balance.VIGIL_DR_PCT, Balance.VIGIL_BUFF_TIME)
 	_tick_refrains(now)
 	for key in _vigil_from.keys():
@@ -219,11 +219,11 @@ func _do_boom(h: String, matches: int, full: bool, scale: float) -> void:
 			player.strings._heal_coef(who, Balance.BENEDICTION_HEAL * mult, BOOM_IDS[h])
 			at = who.global_position
 		"chorus":
-			for a in player._allies_within(Balance.CHORALE_RADIUS):
+			for a in player.fire_cooldowns._allies_within(Balance.CHORALE_RADIUS):
 				player.strings._heal_coef(a, Balance.CHORALE_HEAL * mult, BOOM_IDS[h])
 		"vigil":
 			var t := bulwark_song_time(matches, full) + player._talent("holy_long_note")   # + Long Note
-			for a in player._allies_within(Balance.BULWARK_SONG_RADIUS):
+			for a in player.fire_cooldowns._allies_within(Balance.BULWARK_SONG_RADIUS):
 				_hymn_dr(a, BULWARK_SONG_FX, Balance.BULWARK_SONG_PCT * scale, t)
 	# Rune of Resounding: the boom strikes the enemies around it as well.
 	if player._has_rune(RESOUNDING_RUNE):
@@ -293,7 +293,7 @@ func _hymn_use(id: String, res: Resource) -> void:
 				_hymn_ward(who, SHELTER_FX, player._combat().heal_amount(player, coef, id), Balance.SHELTER_TIME)
 				player._ring_effect(1.0, HOLY_LIGHT, who.global_position)
 		"steadyvoice":
-			for a in player._allies_within(float(res.radius)):
+			for a in player.fire_cooldowns._allies_within(float(res.radius)):
 				_hymn_dr(a, STEADY_VOICE_FX, Balance.STEADY_VOICE_PCT, Balance.STEADY_VOICE_TIME)
 			player._ring_effect(float(res.radius), Abilities.HYMN_COLORS["vigil"])
 		"reprise":
@@ -328,7 +328,7 @@ func _hymn_cast_heal(spell: String, tgt: Variant, kind: String) -> void:
 			player._ring_effect(1.2, HOLY_LIGHT, (who as Node3D).global_position)
 		"canticle":
 			# The injured allies near me, lowest health first.
-			var hurt: Array = player._allies_within(float(Abilities.get_resource(spell).radius)).filter(func(a):
+			var hurt: Array = player.fire_cooldowns._allies_within(float(Abilities.get_resource(spell).radius)).filter(func(a):
 				return _health_share_of(a) < 1.0)
 			hurt.sort_custom(func(a, b): return _health_share_of(a) < _health_share_of(b))
 			hurt = hurt.slice(0, Balance.CANTICLE_TARGETS)
@@ -338,7 +338,7 @@ func _hymn_cast_heal(spell: String, tgt: Variant, kind: String) -> void:
 			if hurt.size() >= Balance.MANY_VOICES_ALLIES:
 				_talent_verse("holy_many_voices", "chorus")   # Many Voices
 		"exultation":
-			var all := player._allies_within(float(Abilities.get_resource(spell).radius))
+			var all := player.fire_cooldowns._allies_within(float(Abilities.get_resource(spell).radius))
 			for a in all:
 				player.strings._heal_coef(a, _hymn_heal_coef(spell), spell)
 			player._ring_effect(float(Abilities.get_resource(spell).radius), HOLY_LIGHT)
@@ -400,7 +400,7 @@ func _chorus_splash(healed: Node3D, amount: int) -> void:
 	if healed == null:
 		return
 	var near: Array = []
-	for a in player._allies_within(INF):
+	for a in player.fire_cooldowns._allies_within(INF):
 		if not is_same(a, healed) and (a as Node3D).global_position.distance_to(healed.global_position) <= Balance.CHORUS_SPLASH_RADIUS:
 			near.append(a)
 	near.sort_custom(func(a, b): return healed.global_position.distance_squared_to(a.global_position) \
@@ -416,11 +416,11 @@ func _chorus_splash(healed: Node3D, amount: int) -> void:
 func _on_damage_dealt_holy(info: RefCounted) -> void:
 	if info.source != player or info.ability_id != HIGH_NOTE_ID or int(info.amount) <= 0 or info.is_proc:
 		return
-	var allies := player._allies_within(Balance.HIGH_NOTE_REACH)
+	var allies := player.fire_cooldowns._allies_within(Balance.HIGH_NOTE_REACH)
 	if allies.is_empty():
 		return
 	var shares: Array = allies.map(func(a): return _health_share_of(a))
-	var who: Node3D = allies[Player.lowest_share(shares)]
+	var who: Node3D = allies[FireCooldownsKit.lowest_share(shares)]
 	player.strings._heal_exact(who, int(round(float(info.amount) * Balance.HIGH_NOTE_HEAL_PCT / 100.0)), HIGH_NOTE_ID)
 
 # Effects on allies: less damage taken, and shields.
