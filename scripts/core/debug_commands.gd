@@ -93,11 +93,9 @@ static func run(tree: SceneTree, line: String) -> Array:
 		"learn", "learnall":
 			var Abilities = preload("res://scripts/abilities.gd")
 			if cmd == "learnall" or (not args.is_empty() and args[0] == "all"):
-				var n := 0
-				for id in Abilities.DRAFT_POOL:
-					if not pd.has_ability(id):
-						pd.learn_ability(id)
-						n += 1
+				var todo: Array = Abilities.DRAFT_POOL.filter(func(id): return not pd.has_ability(id))
+				var n := todo.size()
+				pd.learn_abilities(todo)   # (one change for all of them: no rebuild per ability)
 				return ["Learned %d abilities — you now know all %d (open the Spellbook, P)" % [n, Abilities.DRAFT_POOL.size()]]
 			if args.is_empty() or not Abilities.DRAFT_POOL.has(args[0]):
 				return ["Usage: /learn <all|%s>" % "|".join(Abilities.DRAFT_POOL)]

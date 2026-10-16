@@ -33,7 +33,7 @@ func _ready() -> void:
 		bus.level_up.connect(func(_lv): _open_after_combat = true)
 	var pd := _pd()
 	if pd:
-		pd.changed.connect(_refresh)
+		pd.changed_late.connect(_refresh)
 	_refresh.call_deferred()
 
 func _pd() -> Node:

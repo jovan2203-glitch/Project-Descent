@@ -76,7 +76,15 @@ const ICONED := ["frost_haste", "frost_cold_draw", "frost_black_ice", "frost_cle
 	"shadow_steady_hands", "shadow_heave", "shadow_long_drop", "shadow_snap_back", "shadow_give_and_take",
 	"shadow_many_hands", "shadow_lean_on_me", "shadow_left_hanging",
 	"shadow_deep_call", "shadow_ill_will", "shadow_hard_pull", "shadow_wide_pack",
-	"holy_mercys_ear", "holy_many_voices", "holy_watchful", "holy_key_change", "holy_open_doors"]
+	"holy_mercys_ear", "holy_many_voices", "holy_watchful", "holy_key_change", "holy_open_doors",
+	"holy_grace", "holy_burnished", "holy_steadfast", "holy_long_note", "holy_overflowing", "holy_penitent", "holy_zeal",
+	"holy_clear_mind", "holy_sheltering_light", "holy_long_glass", "holy_second_breath", "holy_heavy_chain", "holy_absolution",
+	"holy_unbroken", "holy_glimmering", "holy_steady_aim", "holy_swelling_chorus", "holy_quick_lance", "holy_full_quiver",
+	"holy_wide_break", "holy_watchful_eye", "holy_last_rites", "holy_bright_motes", "holy_steady_ray", "holy_censers_weight",
+	"holy_sunsteel", "holy_radiance", "holy_mote_magnet", "holy_bright_barrier", "holy_lingering_light", "holy_wide_arc",
+	"holy_deep_pour", "holy_high_censer", "holy_clear_glass", "holy_deep_crystal", "holy_sharp_facets", "holy_wide_burst",
+	"holy_prismatic_burst", "holy_quick_realign", "holy_wide_fan", "holy_split_light", "holy_bright_quiver", "holy_deep_burn",
+	"holy_swift_light", "holy_long_volley"]
 
 static func draw(c: Control, id: String) -> void:
 	if not has_icon(id):
@@ -194,6 +202,16 @@ static func _plus(c: Control, at: Vector2, r: float, col: Color, w: float) -> vo
 	c.draw_line(at - Vector2(r, 0), at + Vector2(r, 0), col, w, true)
 	c.draw_line(at - Vector2(0, r), at + Vector2(0, r), col, w, true)
 
+## Holy gold (censer, gold prisms, the light of the book).
+const HOLY_GOLD := Color(1.0, 0.82, 0.35)
+
+## A censer hanging from its chain, centred on `at`.
+static func _censer(c: Control, at: Vector2, k: float) -> void:
+	c.draw_line(at + Vector2(0, -12) * k, at + Vector2(0, -5) * k, WHITE, 1.6 * k, true)
+	c.draw_colored_polygon(_p(at, k, [Vector2(-7, -5), Vector2(7, -5), Vector2(5, 5), Vector2(-5, 5)]), HOLY_GOLD)
+	c.draw_arc(at + Vector2(0, -5) * k, 7.0 * k, PI, TAU, 10, WHITE, 1.6 * k, true)
+	c.draw_circle(at + Vector2(0, 0) * k, 2.0 * k, WHITE)
+
 ## The pale of a puppet String (Shadow healer; the same as on its ability icons).
 const STRING_PALE := Color(0.93, 0.86, 1.0)
 
@@ -236,6 +254,224 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			c.draw_colored_polygon(_p(mid, k, [Vector2(-6, 16), Vector2(-6, -8), Vector2(-16, -12), Vector2(-16, 14)]), col.darkened(0.2))
 			c.draw_colored_polygon(_p(mid, k, [Vector2(6, 16), Vector2(6, -8), Vector2(16, -12), Vector2(16, 14)]), col.darkened(0.2))
 			c.draw_arc(mid + Vector2(0, -8) * k, 6.0 * k, PI, TAU, 10, WHITE, 2.5 * k, true)
+		# --- Holy: open talents ---
+		"holy_grace":   # an open hand, and a heal rising from it to someone else
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-14, 8), Vector2(-4, 14), Vector2(10, 14), Vector2(14, 8), Vector2(-2, 8)]), WHITE)
+			for x in [-2.0, 3.0, 8.0]:
+				c.draw_line(mid + Vector2(x, 8) * k, mid + Vector2(x + 1.0, 3) * k, WHITE, 2.4 * k, true)
+			_plus(c, mid + Vector2(4, -9) * k, 6.0 * k, HEAL_GREEN, 3.0 * k)
+		"holy_burnished":   # a polished golden disc with a shine across it
+			c.draw_circle(mid, 13.0 * k, HOLY_GOLD)
+			c.draw_arc(mid, 13.0 * k, 0, TAU, 24, WHITE, 1.8 * k, true)
+			c.draw_line(mid + Vector2(-8, -3) * k, mid + Vector2(-2, -9) * k, WHITE, 2.4 * k, true)
+			c.draw_line(mid + Vector2(-5, 2) * k, mid + Vector2(4, -7) * k, Color(WHITE, 0.7), 1.6 * k, true)
+		"holy_steadfast":   # a shield, light along its rim
+			_shield(c, mid, k, col.darkened(0.2), HOLY_GOLD)
+			c.draw_line(mid + Vector2(0, -10) * k, mid + Vector2(0, 10) * k, WHITE, 2.2 * k, true)
+			c.draw_line(mid + Vector2(-7, -4) * k, mid + Vector2(7, -4) * k, WHITE, 2.2 * k, true)
+		"holy_long_note":   # a note held on and on
+			c.draw_circle(mid + Vector2(-10, 8) * k, 4.5 * k, WHITE)
+			c.draw_line(mid + Vector2(-6, 8) * k, mid + Vector2(-6, -12) * k, WHITE, 2.4 * k, true)
+			c.draw_line(mid + Vector2(-6, -12) * k, mid + Vector2(16, -12) * k, light, 2.4 * k, true)
+			for i in 3:
+				c.draw_line(mid + Vector2(-2 + i * 6, -4) * k, mid + Vector2(2 + i * 6, -4) * k, Color(light, 0.9 - i * 0.25), 2.0 * k, true)
+		"holy_overflowing":   # a cup running over, the spill becoming a shield
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-10, -8), Vector2(6, -8), Vector2(3, 6), Vector2(-7, 6)]), HOLY_GOLD)
+			c.draw_line(mid + Vector2(-2, 6) * k, mid + Vector2(-2, 12) * k, HOLY_GOLD, 2.4 * k, true)
+			c.draw_line(mid + Vector2(-7, 13) * k, mid + Vector2(3, 13) * k, HOLY_GOLD, 2.4 * k, true)
+			c.draw_line(mid + Vector2(6, -9) * k, mid + Vector2(12, -2) * k, HEAL_GREEN, 2.4 * k, true)
+			c.draw_arc(mid + Vector2(13, 6) * k, 6.0 * k, -PI * 0.5, PI * 0.5, 8, WHITE, 2.4 * k, true)
+		"holy_penitent":   # a cracked heart, a heal mending it
+			c.draw_circle(mid + Vector2(-5, -2) * k, 6.0 * k, Color(1.0, 0.45, 0.45))
+			c.draw_circle(mid + Vector2(5, -2) * k, 6.0 * k, Color(1.0, 0.45, 0.45))
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-10.6, 0), Vector2(10.6, 0), Vector2(0, 13)]), Color(1.0, 0.45, 0.45))
+			c.draw_polyline(_p(mid, k, [Vector2(0, -6), Vector2(-3, 0), Vector2(2, 4), Vector2(-1, 10)]), PIT, 1.8 * k, true)
+			_plus(c, mid + Vector2(13, -12) * k, 4.0 * k, HEAL_GREEN, 2.4 * k)
+		"holy_zeal":   # a figure dashing ahead, light streaming behind
+			_figure(c, mid + Vector2(6, 0) * k, 16.0 * k, WHITE, 2.4 * k)
+			for i in 3:
+				c.draw_line(mid + Vector2(-16, -6 + i * 6) * k, mid + Vector2(-5, -6 + i * 6) * k, Color(HOLY_GOLD, 0.9 - i * 0.2), 2.2 * k, true)
+		"holy_clear_mind":   # a head in profile, a clear drop of mana in it
+			c.draw_arc(mid + Vector2(-1, -2) * k, 12.0 * k, PI * 0.75, PI * 2.25, 20, WHITE, 2.6 * k, true)
+			c.draw_line(mid + Vector2(8, 6) * k, mid + Vector2(5, 15) * k, WHITE, 2.6 * k, true)
+			_drop(c, mid + Vector2(-1, 0) * k, 0.45 * k, Color(0.45, 0.7, 1.0), WHITE, k)
+		"holy_sheltering_light":   # a dome of light over a small figure
+			c.draw_arc(mid + Vector2(0, 12) * k, 16.0 * k, PI, TAU, 20, HOLY_GOLD, 3.0 * k, true)
+			c.draw_arc(mid + Vector2(0, 12) * k, 12.0 * k, PI, TAU, 16, Color(HOLY_GOLD, 0.45), 2.0 * k, true)
+			_figure(c, mid + Vector2(0, 4) * k, 10.0 * k, WHITE, 2.0 * k)
+			c.draw_line(mid + Vector2(-17, 12) * k, mid + Vector2(17, 12) * k, light, 2.0 * k, true)
+		"holy_long_glass":   # a prism, and a clock face showing the time it stays
+			_pane(c, mid + Vector2(-5, 0) * k, Vector2(8, 14) * k, Color(WHITE, 0.55), WHITE, 1.8 * k)
+			_clock(c, mid + Vector2(9, 8) * k, 7.0 * k, HOLY_GOLD, k)
+			c.draw_line(mid + Vector2(9, 8) * k, mid + Vector2(9, 3) * k, HOLY_GOLD, 1.8 * k, true)
+		"holy_second_breath":   # a heal lifting a bar, and a drop of mana coming back
+			c.draw_rect(Rect2(mid + Vector2(-15, -4) * k, Vector2(16, 8) * k), Color(0, 0, 0, 0.5))
+			c.draw_rect(Rect2(mid + Vector2(-15, -4) * k, Vector2(13, 8) * k), HEAL_GREEN)
+			c.draw_line(mid + Vector2(-12, 12) * k, mid + Vector2(-2, 6) * k, WHITE, 2.0 * k, true)
+			_drop(c, mid + Vector2(10, 0) * k, 0.55 * k, Color(0.45, 0.7, 1.0), WHITE, k)
+		# --- Holy: shared by several specs ---
+		"holy_heavy_chain":   # a censer hanging from heavy links
+			for i in 3:
+				c.draw_arc(mid + Vector2(0, -15 + i * 6) * k, 3.2 * k, 0, TAU, 10, WHITE, 2.2 * k, true)
+			_censer(c, mid + Vector2(0, 7) * k, k)
+		"holy_absolution":   # a censer tipped, a heal pouring out of it
+			_censer(c, mid + Vector2(-6, -4) * k, k)
+			_plus(c, mid + Vector2(8, 10) * k, 6.0 * k, HEAL_GREEN, 3.0 * k)
+		"holy_unbroken":   # a ring of light that never closes up, a clock inside
+			c.draw_arc(mid, 15.0 * k, 0, TAU, 28, HOLY_GOLD, 3.0 * k, true)
+			_clock(c, mid, 8.0 * k, WHITE, k)
+			c.draw_line(mid, mid + Vector2(5, -3) * k, WHITE, 1.8 * k, true)
+		"holy_glimmering":   # an arrow with a glint at its tip
+			c.draw_line(mid + Vector2(-14, 14) * k, mid + Vector2(8, -8) * k, WOOD, 2.4 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(14, -14), Vector2(5, -10), Vector2(10, -5)]), WHITE)
+			_plus(c, mid + Vector2(13, -13) * k, 6.0 * k, HOLY_GOLD, 1.8 * k)
+		"holy_steady_aim":   # sights over a drawn bow
+			c.draw_arc(mid + Vector2(-6, 0) * k, 14.0 * k, -PI * 0.45, PI * 0.45, 12, WOOD, 3.0 * k, true)
+			c.draw_line(mid + Vector2(-1, -13) * k, mid + Vector2(-1, 13) * k, WHITE, 1.2 * k, true)
+			c.draw_arc(mid + Vector2(8, 0) * k, 6.0 * k, 0, TAU, 14, HOLY_GOLD, 2.0 * k, true)
+			c.draw_line(mid + Vector2(8, -9) * k, mid + Vector2(8, 9) * k, HOLY_GOLD, 1.4 * k, true)
+			c.draw_line(mid + Vector2(-1, 0) * k, mid + Vector2(17, 0) * k, HOLY_GOLD, 1.4 * k, true)
+		"holy_swelling_chorus":   # waves of song growing as they go
+			c.draw_circle(mid + Vector2(-12, 0) * k, 3.5 * k, WHITE)
+			for i in 3:
+				c.draw_arc(mid + Vector2(-12, 0) * k, (7.0 + i * 6.0) * k, -0.7, 0.7, 10, Color(light, 1.0 - i * 0.2), (2.0 + i * 0.6) * k, true)
+		"holy_quick_lance":   # a lance of light, cast in a flash
+			c.draw_line(mid + Vector2(-14, 12) * k, mid + Vector2(12, -10) * k, HOLY_GOLD, 3.2 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(16, -14), Vector2(9, -11), Vector2(13, -7)]), WHITE)
+			for i in 2:
+				c.draw_line(mid + Vector2(-14 + i * 4, 2 + i * 4) * k, mid + Vector2(-6 + i * 4, -4 + i * 4) * k, Color(WHITE, 0.6), 1.6 * k, true)
+		"holy_full_quiver":   # a quiver packed with golden arrows
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-8, -4), Vector2(6, -4), Vector2(4, 16), Vector2(-6, 16)]), WOOD)
+			for x in [-5.0, -1.0, 3.0]:
+				c.draw_line(mid + Vector2(x, -4) * k, mid + Vector2(x + 3.0, -15) * k, HOLY_GOLD, 2.0 * k, true)
+				c.draw_circle(mid + Vector2(x + 3.0, -15) * k, 1.6 * k, WHITE)
+		"holy_wide_break":   # a gold prism breaking, its ring reaching wide
+			_pane(c, mid, Vector2(6, 10) * k, HOLY_GOLD, WHITE, 1.6 * k)
+			c.draw_arc(mid, 16.0 * k, 0, TAU, 28, Color(HOLY_GOLD, 0.7), 2.2 * k, true)
+			c.draw_line(mid + Vector2(-2, -6) * k, mid + Vector2(2, 4) * k, PIT, 1.4 * k, true)
+		"holy_watchful_eye":   # an eye, the hit it saw, and the heal it makes stronger
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-14, -2), Vector2(-5, -9), Vector2(5, -9), Vector2(14, -2), Vector2(5, 5), Vector2(-5, 5)]), WHITE)
+			c.draw_circle(mid + Vector2(0, -2) * k, 4.0 * k, HOLY_GOLD)
+			c.draw_polyline(_p(mid, k, [Vector2(-12, 10), Vector2(-8, 14), Vector2(-4, 9)]), Color(1.0, 0.45, 0.45), 2.2 * k, true)
+			_plus(c, mid + Vector2(9, 12) * k, 4.5 * k, HEAL_GREEN, 2.6 * k)
+		"holy_last_rites":   # a book of hymns, a candle burning low beside it
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-15, -6), Vector2(-2, -3), Vector2(-2, 14), Vector2(-15, 11)]), WHITE)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-2, -3), Vector2(5, -6), Vector2(5, 11), Vector2(-2, 14)]), light)
+			c.draw_rect(Rect2(mid + Vector2(10, 2) * k, Vector2(5, 12) * k), WHITE)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(12.5, -6), Vector2(10.5, 0), Vector2(14.5, 0)]), HOLY_GOLD)
+		"holy_bright_motes":   # motes of light with a heal in them
+			for v in [Vector2(-9, -8), Vector2(8, -6), Vector2(0, 9)]:
+				c.draw_circle(mid + (v as Vector2) * k, 5.0 * k, Color(HOLY_GOLD, 0.8))
+				c.draw_circle(mid + (v as Vector2) * k, 2.2 * k, WHITE)
+			_plus(c, mid + Vector2(12, 11) * k, 4.0 * k, HEAL_GREEN, 2.4 * k)
+		"holy_steady_ray":   # a straight, even beam from one point to another
+			c.draw_circle(mid + Vector2(-14, 10) * k, 3.5 * k, WHITE)
+			c.draw_circle(mid + Vector2(14, -10) * k, 3.5 * k, HEAL_GREEN)
+			c.draw_line(mid + Vector2(-14, 10) * k, mid + Vector2(14, -10) * k, Color(WHITE, 0.45), 6.0 * k, true)
+			c.draw_line(mid + Vector2(-14, 10) * k, mid + Vector2(14, -10) * k, WHITE, 2.0 * k, true)
+		# --- Holy: the bottom row ---
+		"holy_censers_weight":   # a heavy censer swinging down hard
+			_censer(c, mid + Vector2(2, 2) * k, k)
+			c.draw_line(mid + Vector2(-14, -14) * k, mid + Vector2(0, -4) * k, WHITE, 2.0 * k, true)
+			for i in 2:
+				c.draw_arc(mid + Vector2(2, 2) * k, (14.0 + i * 3.0) * k, PI * 0.6, PI * 1.0, 8, Color(light, 0.7 - i * 0.3), 2.0 * k, true)
+		"holy_sunsteel":   # an arrowhead with a sun rising behind it
+			c.draw_circle(mid + Vector2(0, 6) * k, 9.0 * k, HOLY_GOLD)
+			for i in 7:
+				var a := PI + PI * i / 6.0
+				c.draw_line(mid + Vector2(0, 6) * k + Vector2(cos(a), sin(a)) * 11.0 * k,
+					mid + Vector2(0, 6) * k + Vector2(cos(a), sin(a)) * 16.0 * k, HOLY_GOLD, 1.8 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(0, -12), Vector2(-6, 2), Vector2(6, 2)]), WHITE)
+		"holy_radiance":   # a heal shining in every direction
+			for i in 8:
+				var a := TAU * i / 8.0
+				c.draw_line(mid + Vector2(cos(a), sin(a)) * 10.0 * k, mid + Vector2(cos(a), sin(a)) * 16.0 * k, HOLY_GOLD, 2.0 * k, true)
+			_plus(c, mid, 8.0 * k, HEAL_GREEN, 4.0 * k)
+		# --- Holy tank: the Censer ---
+		"holy_mote_magnet":   # motes drawn in from afar to a hand
+			c.draw_arc(mid + Vector2(-6, 4) * k, 9.0 * k, PI * 0.5, PI * 1.5, 12, WHITE, 3.0 * k, true)
+			for v in [Vector2(6, -10), Vector2(12, -2), Vector2(8, 8)]:
+				c.draw_circle(mid + (v as Vector2) * k, 2.8 * k, HOLY_GOLD)
+				c.draw_line(mid + (v as Vector2) * k, mid + (v as Vector2) * k + Vector2(-5, 1) * k, Color(HOLY_GOLD, 0.5), 1.4 * k, true)
+		"holy_bright_barrier":   # a barrier of light in layers
+			for i in 3:
+				c.draw_arc(mid + Vector2(0, 14) * k, (8.0 + i * 5.0) * k, PI * 1.1, PI * 1.9, 14, Color(HOLY_GOLD, 1.0 - i * 0.25), 2.6 * k, true)
+			c.draw_circle(mid + Vector2(0, 10) * k, 3.0 * k, WHITE)
+		"holy_lingering_light":   # a mote of light beside an hourglass
+			c.draw_circle(mid + Vector2(-8, 4) * k, 6.0 * k, Color(HOLY_GOLD, 0.8))
+			c.draw_circle(mid + Vector2(-8, 4) * k, 2.6 * k, WHITE)
+			_hourglass(c, mid + Vector2(9, 0) * k, 0.6 * k, HOLY_GOLD, WHITE)
+		"holy_wide_arc":   # a censer's swing drawn wide
+			c.draw_arc(mid + Vector2(0, 10) * k, 16.0 * k, PI * 1.05, PI * 1.95, 18, HOLY_GOLD, 3.0 * k, true)
+			c.draw_arc(mid + Vector2(0, 10) * k, 11.0 * k, PI * 1.15, PI * 1.85, 14, Color(HOLY_GOLD, 0.5), 2.0 * k, true)
+			c.draw_circle(mid + Vector2(15, 4) * k, 3.5 * k, WHITE)
+		"holy_deep_pour":   # a censer tipped over, a wave of light pouring out
+			_censer(c, mid + Vector2(-8, -6) * k, k)
+			c.draw_polyline(_p(mid, k, [Vector2(-4, 4), Vector2(2, 10), Vector2(8, 6), Vector2(14, 12)]), HOLY_GOLD, 3.0 * k, true)
+			c.draw_line(mid + Vector2(-16, 15) * k, mid + Vector2(16, 15) * k, Color(HOLY_GOLD, 0.6), 2.4 * k, true)
+		"holy_high_censer":   # a censer hanging high over a ring on the ground
+			_censer(c, mid + Vector2(0, -6) * k, k)
+			_ellipse(c, mid + Vector2(0, 13) * k, Vector2(14, 3.5) * k, Color(HOLY_GOLD, 0.25), HOLY_GOLD, 1.6 * k)
+			c.draw_line(mid + Vector2(0, 2) * k, mid + Vector2(0, 10) * k, Color(HOLY_GOLD, 0.5), 1.4 * k, true)
+		# --- Holy healer #2: the Prisms ---
+		"holy_clear_glass":   # a beam grazing a prism, the reach marked either side
+			_pane(c, mid + Vector2(2, -4) * k, Vector2(5, 9) * k, Color(WHITE, 0.6), WHITE, 1.6 * k)
+			c.draw_line(mid + Vector2(-16, 12) * k, mid + Vector2(16, 4) * k, HEAL_GREEN, 2.4 * k, true)
+			c.draw_line(mid + Vector2(-16, 6) * k, mid + Vector2(16, -2) * k, Color(HEAL_GREEN, 0.4), 1.2 * k, true)
+		"holy_deep_crystal":   # a prism filled high with light
+			_pane(c, mid, Vector2(9, 15) * k, Color(WHITE, 0.25), WHITE, 1.8 * k)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-7, 3), Vector2(7, 3), Vector2(0, 14)]), HEAL_GREEN)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-8.5, 1), Vector2(8.5, 1), Vector2(7, 3), Vector2(-7, 3)]), Color(HEAL_GREEN, 0.6))
+		"holy_sharp_facets":   # a cut gem, each facet catching a heal
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-12, -4), Vector2(-6, -12), Vector2(6, -12), Vector2(12, -4), Vector2(0, 14)]), Color(WHITE, 0.7))
+			c.draw_polyline(_p(mid, k, [Vector2(-12, -4), Vector2(12, -4), Vector2(0, 14), Vector2(-6, -4), Vector2(-6, -12)]), light, 1.4 * k, true)
+			c.draw_line(mid + Vector2(6, -12) * k, mid + Vector2(6, -4) * k, light, 1.4 * k, true)
+			_plus(c, mid + Vector2(13, 11) * k, 3.5 * k, HEAL_GREEN, 2.2 * k)
+		"holy_wide_burst":   # a prism shattering into a wide ring of healing
+			_pane(c, mid, Vector2(5, 8) * k, Color(WHITE, 0.7), WHITE, 1.4 * k)
+			c.draw_arc(mid, 13.0 * k, 0, TAU, 24, HEAL_GREEN, 2.2 * k, true)
+			c.draw_arc(mid, 17.0 * k, 0, TAU, 28, Color(HEAL_GREEN, 0.45), 1.6 * k, true)
+		"holy_prismatic_burst":   # shards of a prism flying out in colours
+			var cols := [Color(1.0, 0.45, 0.45), HOLY_GOLD, HEAL_GREEN, Color(0.45, 0.7, 1.0), Color(0.8, 0.5, 1.0)]
+			for i in 5:
+				var a := TAU * i / 5.0 - PI / 2.0
+				_shard(c, mid + Vector2(cos(a), sin(a)) * 15.0 * k, Vector2(cos(a), sin(a)), 8.0 * k, 3.0 * k, cols[i], WHITE, k)
+			c.draw_circle(mid, 3.0 * k, WHITE)
+		"holy_quick_realign":   # prisms turning around a circle of arrows
+			c.draw_arc(mid, 12.0 * k, 0.3, TAU - 0.6, 24, light, 2.2 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(12, -2), Vector2(8, -8), Vector2(16, -7)]), light)
+			_pane(c, mid + Vector2(-6, 0) * k, Vector2(3, 5) * k, WHITE, WHITE, 1.2 * k)
+			_pane(c, mid + Vector2(5, 4) * k, Vector2(3, 5) * k, WHITE, WHITE, 1.2 * k)
+		# --- Holy archer: Lightstring ---
+		"holy_wide_fan":   # one prism fanning arrows out wide
+			_pane(c, mid + Vector2(-8, 0) * k, Vector2(5, 9) * k, HOLY_GOLD, WHITE, 1.4 * k)
+			for a in [-0.6, 0.0, 0.6]:
+				var d := Vector2(cos(a), sin(a))
+				c.draw_line(mid + Vector2(-3, 0) * k, mid + Vector2(-3, 0) * k + d * 17.0 * k, WHITE, 1.8 * k, true)
+		"holy_split_light":   # an arrow of light splitting in two
+			c.draw_line(mid + Vector2(-16, 0) * k, mid + Vector2(-2, 0) * k, HOLY_GOLD, 2.8 * k, true)
+			c.draw_line(mid + Vector2(-2, 0) * k, mid + Vector2(14, -10) * k, HOLY_GOLD, 2.4 * k, true)
+			c.draw_line(mid + Vector2(-2, 0) * k, mid + Vector2(14, 10) * k, HOLY_GOLD, 2.4 * k, true)
+			c.draw_circle(mid + Vector2(-2, 0) * k, 3.0 * k, WHITE)
+		"holy_bright_quiver":   # a quiver glowing gold, its light flowing out
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-8, -6), Vector2(6, -6), Vector2(4, 15), Vector2(-6, 15)]), HOLY_GOLD)
+			c.draw_line(mid + Vector2(-1, -6) * k, mid + Vector2(2, -15) * k, WHITE, 2.0 * k, true)
+			for i in 3:
+				c.draw_circle(mid + Vector2(11, -6 + i * 7) * k, 1.8 * k, Color(HOLY_GOLD, 0.9 - i * 0.25))
+		"holy_deep_burn":   # an arrow drinking the light out of a prism
+			_pane(c, mid + Vector2(-6, -4) * k, Vector2(6, 10) * k, Color(HOLY_GOLD, 0.35), WHITE, 1.4 * k)
+			c.draw_line(mid + Vector2(-16, 12) * k, mid + Vector2(12, -2) * k, WOOD, 2.4 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(16, -4), Vector2(9, -4), Vector2(12, 2)]), HOLY_GOLD)
+			c.draw_line(mid + Vector2(-6, -4) * k, mid + Vector2(10, -1) * k, Color(1.0, 0.55, 0.2), 2.0 * k, true)
+		"holy_swift_light":   # a step of light from one spot to a prism
+			_pane(c, mid + Vector2(10, -4) * k, Vector2(4, 7) * k, HOLY_GOLD, WHITE, 1.2 * k)
+			_figure(c, mid + Vector2(-8, 2) * k, 12.0 * k, WHITE, 2.0 * k)
+			c.draw_arc(mid + Vector2(1, 4) * k, 9.0 * k, PI * 1.1, PI * 1.9, 10, Color(HOLY_GOLD, 0.8), 2.0 * k, true)
+		"holy_long_volley":   # arrows still falling, a long trail of them
+			for i in 4:
+				var x := -12.0 + i * 8.0
+				c.draw_line(mid + Vector2(x, -14 + i * 2) * k, mid + Vector2(x - 3.0, 6 + i * 2) * k, Color(HOLY_GOLD, 1.0 - i * 0.18), 2.0 * k, true)
+			c.draw_line(mid + Vector2(-16, 15) * k, mid + Vector2(16, 15) * k, light, 2.0 * k, true)
 		# --- Shadow: the Breach for builds that dip into it ---
 		"shadow_tainted_steel":   # Baited Steel: a blade, and the hand that comes up after what it cut
 			c.draw_line(mid + Vector2(-11, 5) * k, mid + Vector2(14, -18) * k, Color(0.9, 0.9, 0.95), 4.0 * k, true)

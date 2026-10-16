@@ -541,3 +541,27 @@ func test_zombie_loot_file_loads() -> void:
 	var t: Resource = load("res://data/loot/zombie.tres")
 	assert_true(t != null and t.has_method("roll"), "zombie loot table loads")
 	assert_eq(t.chance_drops.size(), 4)
+
+## A burst of changes rebuilds the UI once: learning many abilities is one `changed`,
+## and `changed_late` (what the UI listens to) fires once per frame however many came.
+func test_bursts_of_changes_rebuild_the_ui_once() -> void:
+	var pd := _pd()
+	var count := {"now": 0, "late": 0}
+	var on_now := func(): count["now"] += 1
+	var on_late := func(): count["late"] += 1
+	pd.changed.connect(on_now)
+	pd.changed_late.connect(on_late)
+	var todo: Array = ["thornshot", "fawn", "vinefist", "fangarrow"].filter(func(id): return not pd.has_ability(id))
+	pd.learn_abilities(todo)
+	for id in todo:
+		assert_true(pd.has_ability(id), "%s learned" % id)
+	assert_eq(int(count["now"]), 1 if not todo.is_empty() else 0, "one change for all of them")
+	pd.changed.emit()
+	pd.changed.emit()
+	assert_true(bool(pd._late_queued), "queued for the end of the frame")
+	assert_eq(int(count["late"]), 0, "not yet")
+	pd._emit_changed_late()   # (what the end of the frame runs, once)
+	assert_eq(int(count["late"]), 1, "the UI hears it once")
+	assert_false(bool(pd._late_queued))
+	pd.changed.disconnect(on_now)
+	pd.changed_late.disconnect(on_late)

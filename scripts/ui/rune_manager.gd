@@ -101,13 +101,13 @@ func _ready() -> void:
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	right.size_flags_stretch_ratio = 3.0
 	body.add_child(right)
-	_pd().changed.connect(_refresh)
+	_pd().changed_late.connect(_refresh)
 	_refresh()
 
 func _exit_tree() -> void:
 	var pd := get_node_or_null("/root/PlayerData")
-	if pd and pd.changed.is_connected(_refresh):
-		pd.changed.disconnect(_refresh)
+	if pd and pd.changed_late.is_connected(_refresh):
+		pd.changed_late.disconnect(_refresh)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:

@@ -590,7 +590,7 @@ func _build_action_bar() -> void:
 
 	var pd := get_node_or_null("/root/PlayerData")
 	if pd:
-		pd.changed.connect(_refresh_action_bar)
+		pd.changed_late.connect(_refresh_action_bar)
 	var settings := get_node("/root/Settings")
 	settings.keybinds_changed.connect(_refresh_action_bar)
 	settings.interface_changed.connect(_apply_bar_settings)

@@ -4,6 +4,10 @@ extends Node
 # Survives scene changes (death/restart, main menu <-> game).
 
 signal changed
+## Once per frame, after any number of `changed` emits that frame: for UI that
+## rebuilds itself (a burst of changes, like learning every ability, then costs
+## one rebuild, not one per change). Gameplay listeners stay on `changed`.
+signal changed_late
 signal item_looted(id: String)
 
 const Items = preload("res://scripts/items.gd")
@@ -368,6 +372,21 @@ func rune_spells() -> Array[String]:
 		if spell != "" and not out.has(spell):
 			out.append(spell)
 	return out
+
+## Learn several at once (one `changed` for all of them, e.g. /learn all).
+func learn_abilities(ids: Array) -> void:
+	var bus := _bus()
+	var any := false
+	for v in ids:
+		var id := str(v)
+		if id == "" or has_ability(id):
+			continue
+		learned_abilities.append(id)
+		any = true
+		if bus:
+			bus.ability_learned.emit(id)
+	if any:
+		changed.emit()
 
 ## Learn a drafted ability. It's only learned: put it on the action bar in game
 ## from the Spellbook (P).
@@ -1072,9 +1091,22 @@ var bank: Array[String] = []
 func _init() -> void:
 	preload("res://scripts/core/user_dir_migration.gd").run()
 
+var _late_queued := false
+
+func _queue_changed_late() -> void:
+	if _late_queued:
+		return
+	_late_queued = true
+	_emit_changed_late.call_deferred()
+
+func _emit_changed_late() -> void:
+	_late_queued = false
+	changed_late.emit()
+
 func _ready() -> void:
 	# Connected first, so every other listener reads fresh stats.
 	changed.connect(_invalidate_stats)
+	changed.connect(_queue_changed_late)
 	inventory.resize(INVENTORY_SIZE)
 	for i in INVENTORY_SIZE:
 		inventory[i] = ""

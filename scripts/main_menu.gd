@@ -64,7 +64,7 @@ func _ready() -> void:
 	_build_party_podiums()
 	_show_page("Lobby")
 	_refresh_gear()
-	get_node("/root/PlayerData").changed.connect(_refresh_gear)
+	get_node("/root/PlayerData").changed_late.connect(_refresh_gear)
 	_wire_bank()
 	_wire_gear()
 	# Party / online
@@ -576,10 +576,10 @@ func _wire_gear() -> void:
 	col.add_child(_shards_label)
 	# Connect a method (not a lambda) so Godot drops the connection when the menu is
 	# freed — a lambda on the PlayerData autoload outlives the menu and crashed on death.
-	pd.changed.connect(_refresh_shards)
+	pd.changed_late.connect(_refresh_shards)
 	_refresh_shards()
 	col.add_child(_build_attribute_panel())
-	pd.changed.connect(_refresh_attributes)
+	pd.changed_late.connect(_refresh_attributes)
 	_refresh_attributes()
 	# Stats get their own column on the left edge (it used to sit under the
 	# attributes and ran off the screen / over the other panels).
@@ -594,8 +594,8 @@ func _wire_gear() -> void:
 	_menu_stat_panel = UI.stat_panel(220)
 	_menu_stat_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	left.add_child(_menu_stat_panel)
-	pd.changed.connect(_refresh_menu_stats)
-	pd.changed.connect(_rebuild_runes_panel)
+	pd.changed_late.connect(_refresh_menu_stats)
+	pd.changed_late.connect(_rebuild_runes_panel)
 	_refresh_menu_stats()
 
 	for b in pages["Character"].find_children("*", "Button", true, false):
@@ -773,7 +773,7 @@ func _wire_bank() -> void:
 				func(_pos): return null,
 				func(_pos, data): return data is Dictionary and data.get("type") == "bank",
 				func(_pos, data): _trash(data["indices"]))
-	pd.changed.connect(_refresh_bank)
+	pd.changed_late.connect(_refresh_bank)
 	_refresh_bank()
 
 func _on_bank_clicked(idx: int) -> void:
@@ -990,7 +990,7 @@ func _build_xp_bar() -> void:
 	_xp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_xp_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	root.add_child(_xp_label)
-	get_node("/root/PlayerData").changed.connect(_update_xp_bar)
+	get_node("/root/PlayerData").changed_late.connect(_update_xp_bar)
 	get_node("/root/SignalBus").xp_changed.connect(_on_xp_changed)
 	_update_xp_bar()
 
@@ -1344,7 +1344,7 @@ func _level_lock_row() -> Control:
 	prestige.tooltip_text = "Start over at level 1: forget every learned ability except the starter ones everyone has.\nYour bank, runes and Skill Cards are kept."
 	prestige.pressed.connect(_open_prestige)
 	row.add_child(prestige)
-	pd.changed.connect(_refresh_level_lock)
+	pd.changed_late.connect(_refresh_level_lock)
 	_refresh_level_lock.call_deferred()
 	row.offset_left -= 60
 	row.offset_right += 60
@@ -1666,7 +1666,7 @@ func _build_abilities_page() -> Control:
 	area.add_child(_pacts_page)
 
 	var pd := get_node("/root/PlayerData")
-	pd.changed.connect(_refresh_abilities)
+	pd.changed_late.connect(_refresh_abilities)
 	_refresh_abilities.call_deferred()
 	return page
 
@@ -2655,7 +2655,7 @@ func _build_cards_page() -> Control:
 	_cards_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_cards_row.add_theme_constant_override("separation", 10)
 	scroll.add_child(_cards_row)
-	get_node("/root/PlayerData").changed.connect(_refresh_cards)
+	get_node("/root/PlayerData").changed_late.connect(_refresh_cards)
 	_refresh_cards.call_deferred()
 	return page
 

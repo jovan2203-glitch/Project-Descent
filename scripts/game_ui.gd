@@ -81,7 +81,7 @@ func _wire_items() -> void:
 	for b in windows["Bank"].find_children("*", "Button", true, false):
 		if b.has_meta("bank_index"):
 			_bank_buttons.append(b)
-	_pd().changed.connect(_refresh_items)
+	_pd().changed_late.connect(_refresh_items)
 	_refresh_items()
 	var bus := get_node("/root/SignalBus")
 	bus.buffs_changed.connect(_refresh_stats)
@@ -456,7 +456,7 @@ func _build_spellbook(width: float, list_height: float) -> PanelContainer:
 		(c as Control).set_drag_forwarding(func(_p): return null,
 			func(_p, data): return data is Dictionary and data.get("type") == "hud_bar" and not _in_combat(),
 			func(_p, data): _pd().clear_action_slot(int(data["slot"]) - 1))
-	_pd().changed.connect(func(): _book_dirty = true)
+	_pd().changed_late.connect(func(): _book_dirty = true)
 	get_node("/root/SignalBus").combat_state_changed.connect(func(_c): _book_dirty = true)
 	return win
 
