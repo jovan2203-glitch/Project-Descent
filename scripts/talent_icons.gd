@@ -84,7 +84,8 @@ const ICONED := ["frost_haste", "frost_cold_draw", "frost_black_ice", "frost_cle
 	"holy_sunsteel", "holy_radiance", "holy_mote_magnet", "holy_bright_barrier", "holy_lingering_light", "holy_wide_arc",
 	"holy_deep_pour", "holy_high_censer", "holy_clear_glass", "holy_deep_crystal", "holy_sharp_facets", "holy_wide_burst",
 	"holy_prismatic_burst", "holy_quick_realign", "holy_wide_fan", "holy_split_light", "holy_bright_quiver", "holy_deep_burn",
-	"holy_swift_light", "holy_long_volley"]
+	"holy_swift_light", "holy_long_volley",
+	"nature_running_herd", "nature_hunting_party", "nature_thick_sap", "nature_lingering_venom"]
 
 static func draw(c: Control, id: String) -> void:
 	if not has_icon(id):
@@ -472,6 +473,31 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 				var x := -12.0 + i * 8.0
 				c.draw_line(mid + Vector2(x, -14 + i * 2) * k, mid + Vector2(x - 3.0, 6 + i * 2) * k, Color(HOLY_GOLD, 1.0 - i * 0.18), 2.0 * k, true)
 			c.draw_line(mid + Vector2(-16, 15) * k, mid + Vector2(16, 15) * k, light, 2.0 * k, true)
+		# --- Nature: the specs' linked talents ---
+		"nature_running_herd":   # two fawns leaping one after the other, a heal between them
+			for i in 2:
+				var o := mid + Vector2(-8 + i * 13, 6 - i * 10) * k
+				c.draw_colored_polygon(_p(o, k, [Vector2(-6, 2), Vector2(4, -2), Vector2(7, -6), Vector2(8, -2), Vector2(4, 3), Vector2(-5, 5)]), light if i == 1 else col.lightened(0.2))
+				c.draw_line(o + Vector2(-4, 4) * k, o + Vector2(-7, 9) * k, light, 1.4 * k, true)
+			c.draw_arc(mid + Vector2(-2, 4) * k, 10.0 * k, PI * 1.15, PI * 1.85, 10, Color(WHITE, 0.6), 1.6 * k, true)
+			_plus(c, mid + Vector2(12, 12) * k, 3.5 * k, HEAL_GREEN, 2.2 * k)
+		"nature_hunting_party":   # three claw marks: the tiger strikes more than one
+			for i in 3:
+				var x := -9.0 + i * 9.0
+				c.draw_line(mid + Vector2(x + 3, -13) * k, mid + Vector2(x - 3, 13) * k, light if i == 1 else col.lightened(0.25), 3.0 * k, true)
+			c.draw_circle(mid + Vector2(12, -11) * k, 3.0 * k, WHITE)
+		"nature_thick_sap":   # a thick drop of amber sap on bark
+			c.draw_rect(Rect2(mid + Vector2(-14, -15) * k, Vector2(28, 30) * k), col.darkened(0.3))
+			for x in [-8.0, 0.0, 8.0]:
+				c.draw_line(mid + Vector2(x, -15) * k, mid + Vector2(x + 1.0, 15) * k, col.darkened(0.5), 1.6 * k, true)
+			_drop(c, mid + Vector2(0, 0) * k, 0.9 * k, Color(1.0, 0.72, 0.25), WHITE, k)
+		"nature_lingering_venom":   # a green burst with one drop still hanging on after it
+			c.draw_circle(mid + Vector2(-4, 4) * k, 8.0 * k, Color(0.4, 0.95, 0.3, 0.6))
+			for i in 6:
+				var a := TAU * i / 6.0
+				var d := Vector2(cos(a), sin(a))
+				c.draw_line(mid + Vector2(-4, 4) * k + d * 8.0 * k, mid + Vector2(-4, 4) * k + d * 12.0 * k, light, 1.8 * k, true)
+			_drop(c, mid + Vector2(10, -6) * k, 0.45 * k, Color(0.4, 0.95, 0.3), WHITE, k)
 		# --- Shadow: the Breach for builds that dip into it ---
 		"shadow_tainted_steel":   # Baited Steel: a blade, and the hand that comes up after what it cut
 			c.draw_line(mid + Vector2(-11, 5) * k, mid + Vector2(14, -18) * k, Color(0.9, 0.9, 0.95), 4.0 * k, true)

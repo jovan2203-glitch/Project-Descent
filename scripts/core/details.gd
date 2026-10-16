@@ -570,7 +570,7 @@ static func spell_color(id: String) -> Color:
 			return Color(0.75, 0.72, 0.66)
 		"burning", "afterglow", "slag_mending", "slag_shatter", "smoldering_debris":
 			return Abilities.color_of("fireball")
-		"chilled", "frozen", "frozen_shatter":
+		"chilled", "frozen", "frozen_shatter", "splintering", "permafrost", "deepfreeze", "icefloe":
 			return Abilities.color_of("frostbolt")
 		"overload", "earth_return", "parting_spark", "lightning_rod", "spillover":
 			return Abilities.color_of("lightningbolt")
@@ -588,6 +588,8 @@ static func spell_color(id: String) -> Color:
 			return Color(0.45, 0.85, 0.3)
 		"bleeding":
 			return Color(0.8, 0.2, 0.2)
+		"lifesteal":
+			return Color(0.85, 0.25, 0.35)   # (blood red, a little pinker than Bleeding)
 		"corrupted", "decay":
 			return Abilities.color_of("corruption")
 		"hound_bite", "hound_lunge", "hound_drag", "stand_over":

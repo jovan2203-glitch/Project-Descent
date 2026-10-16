@@ -20,7 +20,7 @@ extends Node
 const PATH := "user://profile.cfg"
 const TMP_PATH := "user://profile.cfg.tmp"
 const BAK_PATH := "user://profile.cfg.bak"
-const VERSION := 7
+const VERSION := 8
 const AUTOSAVE_DELAY := 0.5
 
 const Items = preload("res://scripts/items.gd")
@@ -236,7 +236,7 @@ func load_profile() -> bool:
 	pd.pact_book = saved_book if pact_ok and Pacts.needs_book(saved_pact) else ""
 	pd.pact_broken = false
 
-	pd.talents = _valid_talents(cfg.get_value("talents", "ranks", {}))
+	pd.talents = _valid_talents(cfg.get_value("talents", "ranks", {}), pd.has_ability)
 	if not pd.validate_talents():
 		_log(1, "Talent points exceeded level %d budget: talents were refunded" % pd.level)
 	pd.attribute_points = {}
@@ -293,6 +293,8 @@ func _migrate(cfg: ConfigFile, from_version: int) -> void:
 				_migrate_5_to_6(cfg)
 			6:
 				_migrate_6_to_7(cfg)
+			7:
+				_migrate_7_to_8(cfg)
 		v += 1
 		cfg.set_value("meta", "version", v)
 
@@ -372,6 +374,19 @@ func _migrate_6_to_7(cfg: ConfigFile) -> void:
 		cfg.set_value("talents", "ranks", Talents.rearranged(ranks, Talents.SHADOW_MIDDLE_MOVED, []))
 	_log(1, "Migrated profile to v7 (Shadow talents rearranged)")
 
+# v7 -> v8: four empty Nature talent slots (which took points) became the specs'
+# linked talents (Running Herd, Hunting Party, Thick Sap, Lingering Venom); points
+# put in the empty slots are refunded instead of becoming those talents.
+const NATURE_FILLED_SLOTS := ["nature_r1c3", "nature_r1c5", "nature_r2c4", "nature_r2c7"]
+
+func _migrate_7_to_8(cfg: ConfigFile) -> void:
+	var ranks: Variant = cfg.get_value("talents", "ranks", {})
+	if ranks is Dictionary:
+		for id in NATURE_FILLED_SLOTS:
+			(ranks as Dictionary).erase(id)
+		cfg.set_value("talents", "ranks", ranks)
+	_log(1, "Migrated profile to v8 (points in old empty Nature talents refunded)")
+
 # --- Validation --------------------------------------------------------------------
 
 # Slot value -> valid item instance id (or "").
@@ -396,7 +411,7 @@ func _clean_item(v: Variant) -> String:
 	return s
 
 func _log(level: int, text: String) -> void:
-	var gl := get_node_or_null("/root/GameLog")
+	var gl := get_node_or_null("/root/GameLog") if is_inside_tree() else null
 	if gl:
 		gl.log_line(level, "save", text)
 	elif level >= 2:
@@ -458,13 +473,18 @@ func _valid_equipment(saved: Variant) -> Dictionary:
 				out[str(slot)] = it
 	return out
 
-func _valid_talents(saved: Variant) -> Dictionary:
+## Saved talent ranks, cleaned up: unknown talents are dropped, and so is a talent whose required ability `knows` says isn't learned
+## (its points come back). Ranks are clamped to the talent's maximum.
+func _valid_talents(saved: Variant, knows: Callable = Callable()) -> Dictionary:
 	var out := {}
 	if saved is Dictionary:
 		for id in saved:
 			var tid := Talents.current_id(str(id))   # a talent that changed slot keeps its points
 			var t := Talents.get_talent(tid)
 			if t.is_empty():
+				continue
+			var req := Talents.required_ability(tid)
+			if req != "" and knows.is_valid() and not bool(knows.call(req)):
 				continue
 			var rank := clampi(int(saved[id]), 0, int(t.get("max_rank", 1)))
 			if rank > 0:
