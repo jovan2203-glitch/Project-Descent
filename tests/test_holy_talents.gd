@@ -48,7 +48,7 @@ func test_overflowing() -> void:
 	assert_eq(p.overflowing_shield(5000, 30.0, 1000), 100, "never more than 10% of their max health")
 	assert_eq(p.overflowing_shield(0, 30.0, 1000), 0, "no overhealing, no shield")
 	assert_eq(p.overflowing_shield(-50, 30.0, 1000), 0)
-	assert_contains(FileAccess.get_file_as_string("res://scripts/player.gd"), "_overflowing(tgt, amount, id)")
+	assert_contains(PlayerSource.text(), "_overflowing(tgt, amount, id)")
 
 func test_penitent_and_zeal() -> void:
 	var p := _p()
@@ -66,7 +66,7 @@ func test_radiance_counts_holy_heals() -> void:
 		assert_false(p.is_holy_heal(id), "%s is not" % id)
 
 func test_hooks_are_in_place() -> void:
-	var src := FileAccess.get_file_as_string("res://scripts/player.gd")
+	var src := PlayerSource.text()
 	assert_contains(src, "_holy_talents_outgoing(info)   # Burnished, Censer's Weight, Sunsteel")
 	assert_contains(src, "var grace := 1.0 + _talent(\"holy_grace\") / 100.0 if other else 1.0")
 	assert_contains(src, "_penitent_hit(info)")
@@ -97,7 +97,7 @@ func test_second_breath() -> void:
 	assert_false(p.second_breath(0, 0, 100))
 
 func test_shared_hooks() -> void:
-	var src := FileAccess.get_file_as_string("res://scripts/player.gd")
+	var src := PlayerSource.text()
 	assert_contains(src, "if is_holy_heal(id):\n\t\tcost *= 1.0 - _talent(\"holy_clear_mind\") / 100.0")
 	assert_contains(src, "amount = int(round(float(amount) * (1.0 + _talent(\"holy_sheltering_light\") / 100.0)))")
 	assert_contains(src, "_second_breath(tgt, amount, id)")
@@ -110,7 +110,7 @@ func test_fourth_facet_rune() -> void:
 	const Runes = preload("res://scripts/runes.gd")
 	assert_true(Runes.ALL.has("fourth_facet"))
 	assert_eq(Runes.rarity_name("fourth_facet"), "Epic")
-	assert_contains(FileAccess.get_file_as_string("res://scripts/player.gd"),
+	assert_contains(PlayerSource.text(),
 		"return Balance.PRISM_MAX + (1 if _has_rune(FOURTH_FACET_RUNE) else 0)")
 
 # --- The tree is full ------------------------------------------------------------------------
@@ -125,7 +125,7 @@ func test_the_tree_is_full() -> void:
 	assert_eq(Abilities.COOLDOWN_TALENTS.get("lastverse", ""), "holy_last_rites")
 
 func test_watchful_eye() -> void:
-	var src := FileAccess.get_file_as_string("res://scripts/player.gd")
+	var src := PlayerSource.text()
 	assert_contains(src, "if not is_same(tgt, self) and hit_recently(tgt, Balance.WATCHFUL_EYE_WINDOW):")
 	assert_contains(FileAccess.get_file_as_string("res://scripts/net/remote_player.gd"), "hurt_at = Time.get_ticks_msec() / 1000.0")
 	# A puppet hit just now counts; one hit long ago doesn't.

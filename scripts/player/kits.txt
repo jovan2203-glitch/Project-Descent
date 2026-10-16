@@ -1,0 +1,4 @@
+venomstring VenomstringKit nature_venomstring.gd
+colossus ColossusKit nature_colossus.gd
+shepherd ShepherdKit nature_shepherd.gd
+weaver WeaverKit nature_weaver.gd

@@ -185,5 +185,5 @@ func test_hands_burst_out_where_a_spell_lands() -> void:
 	var net := FileAccess.get_file_as_string("res://scripts/net/net.gd")
 	assert_contains(net, "\"claws\":")
 	assert_contains(net, "BREACH_FX.burst(w, at")
-	var player_src := FileAccess.get_file_as_string("res://scripts/player.gd")
+	var player_src := PlayerSource.text()
 	assert_contains(player_src, "_net_fx(\"claws\", at, null")

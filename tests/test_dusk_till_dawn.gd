@@ -129,6 +129,6 @@ func test_dawn_boosts_holy_damage_only() -> void:
 	assert_eq(shadow.bonus_pct, 0.0, "not Shadow")
 
 func test_it_is_wired_into_the_player() -> void:
-	var src := FileAccess.get_file_as_string("res://scripts/player.gd")
+	var src := PlayerSource.text()
 	assert_contains(src, "_dusk_on_hit(info)")
 	assert_contains(src, "\t_tick_dusk()\n")

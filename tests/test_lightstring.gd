@@ -25,7 +25,7 @@ func _p() -> GDScript:
 	return load("res://scripts/player.gd")
 
 func _src() -> String:
-	return FileAccess.get_file_as_string("res://scripts/player.gd")
+	return PlayerSource.text()
 
 # --- The kit ---------------------------------------------------------------------------
 

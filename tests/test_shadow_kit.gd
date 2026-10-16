@@ -400,7 +400,7 @@ func test_rune_of_the_long_fall() -> void:
 	assert_eq(p.LONG_FALL_HIT_ID, "rune_long_fall")
 	assert_eq(Details.spell_name(p.LONG_FALL_HIT_ID), "Rune of the Long Fall")
 	assert_eq(p.decay_feed_pct(p.LONG_FALL_HIT_ID, SHADOW, true, false), 0.0)
-	var src := FileAccess.get_file_as_string("res://scripts/player.gd")
+	var src := PlayerSource.text()
 	assert_contains(src, "_decay_hit(foe, all, LONG_FALL_HIT_ID, false, [], 0.0, true)")
 
 func test_many_hands_is_the_ground_spell() -> void:

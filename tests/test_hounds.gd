@@ -232,7 +232,7 @@ func test_their_hits() -> void:
 		assert_ne(Details.spell_color(id), Color(0.7, 0.7, 0.75), "%s has a colour on the meter" % id)
 	# A proc: it feeds no Breach (Tainted Steel), whatever the talent's rank.
 	assert_eq(p.decay_feed_pct(p.HOUND_BITE_ID, PackedStringArray(p.HOUND_TAGS), true, false, 30.0, 5.0), 0.0)
-	var src := FileAccess.get_file_as_string("res://scripts/player.gd")
+	var src := PlayerSource.text()
 	assert_contains(src, "info.is_proc = true       # runes and \"on hit\" talents do not fire off it")
 	assert_contains(src, "info.no_empower = true")
 	# Dusk till Dawn's Dusk is a Shadow damage bonus of mine: their bites get it.
@@ -255,7 +255,7 @@ func test_what_sets_them_on_an_enemy() -> void:
 	assert_true(p.keeps_prey(true, true), "they were just sent to my target by this same cast")
 	assert_false(p.keeps_prey(true, false), "sent to another enemy by this cast: the next one hit takes them")
 	assert_false(p.keeps_prey(false, true), "a later hit on anything else always moves them")
-	var src := FileAccess.get_file_as_string("res://scripts/player.gd")
+	var src := PlayerSource.text()
 	assert_contains(src, "if not sets_prey(bool(info.is_proc), bool(info.is_dot), int(info.amount)):")
 	assert_contains(Keywords.keyword_text("hounds"), "the last enemy you damaged directly")
 
@@ -337,7 +337,7 @@ func test_guard_dogs() -> void:
 	assert_contains(tip, "For 5 sec you take 30% less damage")
 	assert_contains(tip, "keep biting")
 	# Nothing stops the Hounds biting while it is up.
-	var src := FileAccess.get_file_as_string("res://scripts/player.gd")
+	var src := PlayerSource.text()
 	var from := src.find("func _tick_hounds()")
 	var tick := src.substr(from, src.find("\nfunc ", from + 10) - from)
 	assert_true(tick.contains("_hound_bite(i)"), "the bite loop")
@@ -369,7 +369,7 @@ func test_open_ups_mark_is_own_only() -> void:
 	st.apply(mark, me)
 	assert_true(st.has_from("laid_open", me))
 	assert_contains(Abilities.tooltip("openup"), "30% more damage")
-	assert_contains(FileAccess.get_file_as_string("res://scripts/player.gd"), "st.has_from(LAID_OPEN_FX, self)")
+	assert_contains(PlayerSource.text(), "st.has_from(LAID_OPEN_FX, self)")
 
 # --- Words ---------------------------------------------------------------------------------
 
@@ -556,7 +556,7 @@ func test_they_dash_at_far_prey() -> void:
 		h.set_prey(null)
 		h._advance(0.05)
 		assert_false(h.is_dashing())
-	var src := FileAccess.get_file_as_string("res://scripts/player.gd")
+	var src := PlayerSource.text()
 	assert_contains(src, "now + HOUND.travel_time(from, to.global_position)", "a bite waits for the dash, not for a run")
 	assert_contains(Keywords.keyword_text("hounds"), "they dash to it")
 
@@ -600,7 +600,7 @@ func test_a_third_hound() -> void:
 	Hound.show_for(scene, puppet, null, 0.0)
 	assert_true(pack[0].leaving() and pack[1].leaving())
 	# In the rules: it bites, lunges and drags like the other two, for as long as Off the Chain lasts.
-	var src := FileAccess.get_file_as_string("res://scripts/player.gd")
+	var src := PlayerSource.text()
 	assert_contains(src, "if _capstone(\"shadow_slipped_leash\"):\n\t\t\t_add_third_hound()")
 	assert_contains(src, "if _hound_bite_at.size() > Balance.HOUND_COUNT and not status.has(OFF_THE_CHAIN_FX):\n\t\t_third_hound_gone()")
 	assert_contains(src, "for i in _hound_bite_at.size():\n\t\t_hound_hit(foe, Balance.HOUND_LUNGE, HOUND_LUNGE_ID)", "every Hound out lunges")
@@ -647,7 +647,7 @@ func test_bring_it_down() -> void:
 	assert_eq(p.bring_down_error(true, false), p.BRING_DOWN_NO_PREY)
 	assert_eq(p.bring_down_error(true, true), "")
 	# The Drag Down is the one they deal when their time is up.
-	var src := FileAccess.get_file_as_string("res://scripts/player.gd")
+	var src := PlayerSource.text()
 	var from := src.find("func _bring_it_down()")
 	var body := src.substr(from, src.find("\nfunc ", from + 10) - from)
 	assert_contains(body, "status.remove(HOUNDS_FX)")
@@ -743,7 +743,7 @@ func test_talent_rules() -> void:
 	assert_contains(str(_file("offthechain").description), "{chain_time}")
 	assert_contains(str(_file("openup").description), "{fx_time}")
 	# Where each one is wired in.
-	var src := FileAccess.get_file_as_string("res://scripts/player.gd")
+	var src := PlayerSource.text()
 	for line in ["_gain(\"rage\", _talent(\"shadow_fed\"))",
 			"_decay_feed(foe, hole_feed(dealt, hole))",
 			"float(stand_over_heal(max_health, stand)), STAND_OVER_ID, true)",
@@ -761,7 +761,7 @@ func test_talent_rules() -> void:
 		assert_contains(src, line)
 
 func test_it_is_wired_in() -> void:
-	var src := FileAccess.get_file_as_string("res://scripts/player.gd")
+	var src := PlayerSource.text()
 	assert_contains(src, "\t_tick_hounds()\n")
 	assert_contains(src, "\t_hounds_on_ability(id)")
 	assert_contains(src, "\t_hounds_on_hit(info)")

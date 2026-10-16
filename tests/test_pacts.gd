@@ -287,7 +287,7 @@ func test_the_player_applies_it() -> void:
 			"_pact_purist_blocks", "_pact_on_ability", "_pact_on_heal", "_pact_acted", "_pact_watch_party", "_pact_enemy_on_ally",
 			"_pact_bleed_tick", "_pact_show", "_pact_outgoing", "_pact_incoming"]:
 		assert_true(_has_method(player, m), "player.gd has %s" % m)
-	var src := FileAccess.get_file_as_string("res://scripts/player.gd")
+	var src := PlayerSource.text()
 	for piece in ["v += _pact_stat(key)", "_pact_incoming(info)", "_pact_outgoing(info)", "- step * pact_rate",
 			"return cost * _pact_cost_mult(Abilities.resource_of(id))", "cost *= mana_unit() * _pact_cost_mult(\"mana\")",
 			"amount *= PACTS.resource_gain_mult(pact_id(), pact_broken())", "or PACTS.bleed_pct(pact_id()) > 0.0",

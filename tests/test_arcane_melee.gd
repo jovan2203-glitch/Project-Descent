@@ -321,7 +321,7 @@ func test_encores_ghosts() -> void:
 	assert_true(TraceGhost.MAX_GHOSTS >= _player().trace_cap(true, true), "a ghost for every Trace you can hold")
 	# The party sees them too.
 	assert_contains(FileAccess.get_file_as_string("res://scripts/net/net.gd"), "\"ghosts\":")
-	assert_contains(FileAccess.get_file_as_string("res://scripts/player.gd"), "_net_fx(\"ghosts\"")
+	assert_contains(PlayerSource.text(), "_net_fx(\"ghosts\"")
 
 # --- Talents ----------------------------------------------------------------------------
 

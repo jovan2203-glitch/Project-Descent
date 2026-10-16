@@ -198,7 +198,7 @@ func test_how_they_are_used() -> void:
 		assert_true(_has_method(m), "player.gd has %s" % m)
 
 func test_it_is_wired_in() -> void:
-	var src := FileAccess.get_file_as_string("res://scripts/player.gd")
+	var src := PlayerSource.text()
 	for piece in ["_bus().heal_done.connect(_on_heal_done_strings)", "\t_tick_strings()\n", "amount = _still_standing_limit(amount)",
 			"_crossed_incoming(info)", "_crossed_taken(info)", "return _string_precheck(id)", "_string_use(id, res)",
 			"_string_cast_heal(spell, tgt, kind)", "gcd_total = string_gcd(gcd_total)", "return str(string_charges())",
@@ -410,7 +410,7 @@ func test_talents_of_the_strings_themselves() -> void:
 	assert_eq(p.steady_heal(0.07, 0.0), 0.07)
 	assert_true(_near(p.steady_heal(0.07, 15.0), 0.0805))
 	assert_true(_near(p.steady_heal(p.string_tick_heal(3, true), 15.0), 0.28 * 1.15), "loose Strings too")
-	var src := FileAccess.get_file_as_string("res://scripts/player.gd")
+	var src := PlayerSource.text()
 	for piece in ["_steady(string_tick_heal(int(e[\"n\"]), loose))", "_steady(pull_taut_coef(", "_steady(first_stitch_coef(stitch))",
 			"string_recharge(_talent(\"shadow_spare_spool\"))", "data[\"cross\"] = _cross_pct()", "data[\"dr\"] = full_harness_pct(",
 			"info.add_bonus(-float(s[\"dr\"]), FULL_HARNESS_LABEL)", "cross_range_with(_capstone(\"shadow_taking_the_weight\"))"]:
@@ -443,7 +443,7 @@ func test_talents_of_one_ability_each() -> void:
 	assert_true(Details.spell_color(p.LONG_DROP_ID) != Color(0.7, 0.7, 0.75))
 	for m in ["_tick_long_drops", "_lean_on_me", "_others_heal_mult", "string_time", "_cross_pct", "_steady"]:
 		assert_true(_has_method(m), "player.gd has %s" % m)
-	var src := FileAccess.get_file_as_string("res://scripts/player.gd")
+	var src := PlayerSource.text()
 	for piece in ["coef *= heave_mult(strings_on(who), _talent(\"shadow_heave\"))", "heave_cast(duration, strings_on(_cast_target), _capstone(\"shadow_heave\"))",
 			"snaps_back(_talent(\"shadow_snap_back\"), randf() * 100.0)", "slack_time(_talent(\"shadow_give_and_take\"))",
 			"_long_drops.append(", "deal_damage(foe, coef, LONG_DROP_ID, true, \"shadow\"", "\t_tick_long_drops()"]:
@@ -474,7 +474,7 @@ func test_the_open_talents_of_the_healer() -> void:
 	for id in ["chilled", "burning", "laid_open"]:
 		assert_eq(Abilities.effect_time_bonus(Effects.get_effect(id), with_talent), 0.0, "%s is neither" % id)
 	assert_eq(Abilities.effect_time_bonus(Effects.get_effect("strung_up"), func(_k: String, _f: String) -> float: return 0.0), 0.0)
-	var src := FileAccess.get_file_as_string("res://scripts/player.gd")
+	var src := PlayerSource.text()
 	for piece in ["_lean_on_me()   # Lean On Me", "else _others_heal_mult(tgt)), id)", "coef *= _others_heal_mult(tgt)   # Many Hands",
 			"Balance.STRING_UP_TIME + effect_duration_bonus(fx)"]:
 		assert_contains(src, piece)
