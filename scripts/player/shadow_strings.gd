@@ -191,7 +191,7 @@ func _cross_pct() -> float:
 func _others_heal_mult(tgt: Variant) -> float:
 	var other: bool = tgt != null and is_instance_valid(tgt) and not is_same(tgt, player)
 	var grace := 1.0 + player._talent("holy_grace") / 100.0 if other else 1.0   # Grace (an open Holy talent)
-	return many_hands_mult(other, player._talent("shadow_many_hands")) * (player._pact_heal_mult() if other else 1.0) * grace
+	return many_hands_mult(other, player._talent("shadow_many_hands")) * (player.pacts_kit._pact_heal_mult() if other else 1.0) * grace
 
 func _steady(coef: float) -> float:
 	return steady_heal(coef, player._talent("shadow_steady_hands"))
@@ -722,7 +722,7 @@ func _tick_strings() -> void:
 			if other != 0:
 				var a: Variant = _strings.get(other)
 				if a == null or not is_instance_valid(a["node"]) or (e["node"] as Node3D).global_position.distance_to(
-						(a["node"] as Node3D).global_position) > cross_range_with(player._capstone("shadow_taking_the_weight")):
+						(a["node"] as Node3D).global_position) > cross_range_with(player.frost_melee._capstone("shadow_taking_the_weight")):
 					_string_gone(int(key))
 			continue
 		if now >= float(e["next"]):
@@ -788,7 +788,7 @@ func _heal_coef(tgt: Variant, coef: float, id: String) -> int:
 	coef *= player.holy_talents._holy_heal_mult(id)   # Radiance
 	if not is_same(tgt, player) and player.holy_talents.hit_recently(tgt, Balance.WATCHFUL_EYE_WINDOW):
 		coef *= 1.0 + player._talent("holy_watchful_eye") / 100.0   # Watchful Eye (both Holy healers)
-	var amount: int = player._combat().heal_amount(player, coef * (player._pact_heal_mult() if is_same(tgt, player) else _others_heal_mult(tgt)), id)
+	var amount: int = player._combat().heal_amount(player, coef * (player.pacts_kit._pact_heal_mult() if is_same(tgt, player) else _others_heal_mult(tgt)), id)
 	_heal_exact(tgt, amount, id)
 	return amount
 
@@ -798,7 +798,7 @@ func _heal_coef(tgt: Variant, coef: float, id: String) -> int:
 func _on_heal_done_strings(source: Node, healed: Node, amount: int, _effective: int, id: String, _crit: bool) -> void:
 	if amount <= 0 or not is_same(source, player):
 		return
-	player._pact_on_heal(healed, id)   # my Pact: the Fast (a heal on myself), the Relentless (one on an ally)
+	player.pacts_kit._pact_on_heal(healed, id)   # my Pact: the Fast (a heal on myself), the Relentless (one on an ally)
 	if healed != null and not is_same(healed, player):
 		_lean_on_me()   # Lean On Me (an open talent: any heal of mine on someone else)
 	if _strings.is_empty():

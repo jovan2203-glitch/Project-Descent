@@ -23,6 +23,14 @@ const BLIZZARD_RADIUS = 2.5
 # --- Components ----------------------------------------------------------------------------
 # Each spec's own code lives in a component (scripts/player/*.gd, see player_kit.gd),
 # made here as a child node; tools/split_section.pl adds the line for each one.
+var frostfire_kit: FrostfireKit = _kit(FrostfireKit) as FrostfireKit
+var ice_shards_kit: IceShardsKit = _kit(IceShardsKit) as IceShardsKit
+var frost_melee: FrostMeleeKit = _kit(FrostMeleeKit) as FrostMeleeKit
+var pacts_kit: PactsKit = _kit(PactsKit) as PactsKit
+var dusk_till_dawn: DuskTillDawnKit = _kit(DuskTillDawnKit) as DuskTillDawnKit
+var frost_runes: FrostRunesKit = _kit(FrostRunesKit) as FrostRunesKit
+var frost_more: FrostMoreKit = _kit(FrostMoreKit) as FrostMoreKit
+var frost_bow: FrostBowKit = _kit(FrostBowKit) as FrostBowKit
 var fire_runes: FireRunesKit = _kit(FireRunesKit) as FireRunesKit
 var fire_caster: FireCasterKit = _kit(FireCasterKit) as FireCasterKit
 var fire_tank: FireTankKit = _kit(FireTankKit) as FireTankKit
@@ -340,6 +348,65 @@ func charges_text(id: String) -> String:
 func stacks_kept_on_use(res: Resource, stacks: int) -> int:
 	return fire_caster.stacks_kept_on_use(res, stacks)
 
+
+# Forwards to FrostBowKit (called from other scripts).
+func glacial_draw_instant(tgt: Variant) -> bool:
+	return frost_bow.glacial_draw_instant(tgt)
+
+func frozen_instinct_ready() -> bool:
+	return frost_bow.frozen_instinct_ready()
+
+
+# Forwards to FrostMoreKit (called from other scripts).
+func effect_override(eff: Resource) -> Resource:
+	return frost_more.effect_override(eff)
+
+func receive_snow_ward(caster: Node, amount: int, armor_pct: float = 0.0) -> void:
+	frost_more.receive_snow_ward(caster, amount, armor_pct)
+
+
+# Forwards to FrostRunesKit (called from other scripts).
+func receive_frozen_aegis(caster: Node, amount: int, cap: int, armor_pct: float = 0.0) -> void:
+	frost_runes.receive_frozen_aegis(caster, amount, cap, armor_pct)
+
+
+# Forwards to PactsKit (called from other scripts).
+func pact_id() -> String:
+	return pacts_kit.pact_id()
+
+func pact_broken() -> bool:
+	return pacts_kit.pact_broken()
+
+func heal_taken_mult(source: Node, _ability_id: String = "") -> float:
+	return pacts_kit.heal_taken_mult(source, _ability_id)
+
+
+# Forwards to FrostMeleeKit (called from other scripts).
+func slow_taken_mult() -> float:
+	return frost_melee.slow_taken_mult()
+
+
+# Forwards to IceShardsKit (called from other scripts).
+var ice_shard_charges: int:
+	get:
+		return ice_shards_kit.ice_shard_charges
+	set(v):
+		ice_shards_kit.ice_shard_charges = v
+
+func shards_firing() -> bool:
+	return ice_shards_kit.shards_firing()
+
+func shard_recharge_left() -> float:
+	return ice_shards_kit.shard_recharge_left()
+
+func gain_ice_shard() -> void:
+	ice_shards_kit.gain_ice_shard()
+
+
+# Forwards to FrostfireKit (called from other scripts).
+func proc_cast(ability_id: String, enemy: Node) -> void:
+	frostfire_kit.proc_cast(ability_id, enemy)
+
 # --- End of components ---
 
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
@@ -382,7 +449,7 @@ func take_damage(amount: int) -> void:
 	if amount <= 0:
 		return
 	health = max(health - amount, 0)
-	_pact_on_damage(amount)      # my Pact: one big hit (Sidestep), too little health left (Thin Line)
+	pacts_kit._pact_on_damage(amount)      # my Pact: one big hit (Sidestep), too little health left (Thin Line)
 	arcane_tank._note_damage_taken(amount)   # Trade Places looks back on it
 	health_changed.emit(health, max_health)
 	_bus().player_damaged.emit(amount)
@@ -443,7 +510,7 @@ func change_state(new_state: int) -> bool:
 	return true
 
 func _die() -> void:
-	_pact_on_down()   # Pact of the Unbowed
+	pacts_kit._pact_on_down()   # Pact of the Unbowed
 	casting = false
 	cancel_placement()
 	change_state(PState.DEAD)
@@ -490,7 +557,7 @@ func _can_go_down() -> bool:
 	return net != null and net.with_others() and net.any_party_alive()
 
 func _go_down() -> void:
-	_pact_on_down()   # Pact of the Unbowed
+	pacts_kit._pact_on_down()   # Pact of the Unbowed
 	casting = false
 	cancel_placement()
 	clear_queue()
@@ -642,11 +709,11 @@ func _ready() -> void:
 	_bus().cast_finished.connect(func(_id):
 		if _acting:
 			_acted = true)
-	_bus().cast_finished.connect(_on_spell_cast_for_shards)
-	_bus().cast_finished.connect(_cold_precision_on_cast)
+	_bus().cast_finished.connect(ice_shards_kit._on_spell_cast_for_shards)
+	_bus().cast_finished.connect(frost_runes._cold_precision_on_cast)
 	_bus().cast_finished.connect(holy_talents._zeal_on_cast)   # Zeal (an open Holy talent)
-	_bus().ability_used.connect(_cold_precision_on_use)
-	_bus().damage_dealt.connect(_on_damage_dealt_frost)
+	_bus().ability_used.connect(frost_runes._cold_precision_on_use)
+	_bus().damage_dealt.connect(frost_runes._on_damage_dealt_frost)
 	_bus().damage_dealt.connect(fire_runes._on_damage_dealt_fire)
 	_bus().damage_dealt.connect(bottled_kit._on_damage_dealt_lightning)
 	_bus().damage_dealt.connect(arcane_caster._on_damage_dealt_arcane)
@@ -655,8 +722,8 @@ func _ready() -> void:
 	_bus().heal_done.connect(strings._on_heal_done_strings)    # the Strings share my heals
 	_bus().heal_done.connect(hymns._on_heal_done_hymns)      # the Hymns: Chorus, Vigil, Mercy's Ear
 	_bus().damage_dealt.connect(hymns._on_damage_dealt_holy)  # High Note's heal
-	_bus().cast_finished.connect(_pact_on_ability)     # Pact of the Purist: an ability of mine went off
-	_bus().dungeon_cleared.connect(func(_summary): _pact_cleared = true)   # Pact of the Restless: nothing left to fight
+	_bus().cast_finished.connect(pacts_kit._pact_on_ability)     # Pact of the Purist: an ability of mine went off
+	_bus().dungeon_cleared.connect(func(_summary): pacts_kit._pact_cleared = true)   # Pact of the Restless: nothing left to fight
 	_bus().cast_finished.connect(arcane_caster._on_cast_for_arcane)
 	_bus().cast_finished.connect(fire_lightning_talents._change_of_pace)
 	_bus().cast_started.connect(overload_kit._on_cast_for_static)
@@ -890,7 +957,7 @@ func use_ability(id: String) -> void:
 	if is_stunned():
 		_error("You are stunned")
 		return
-	if _pact_purist_blocks(id):   # Pact of the Purist: the first press only warns
+	if pacts_kit._pact_purist_blocks(id):   # Pact of the Purist: the first press only warns
 		return
 	var cancelling_placement := placing and id == placing_id
 	# Busy (casting, or on the global cooldown): pressed within the last
@@ -956,7 +1023,7 @@ const SUPPORT_CASTS := ["rimeshell", "flashfreeze", "hoist", "patchup", "psalm",
 const BASE_INSTANTS := ["stoneguard", "taunt"]
 
 func _use_ability_now(id: String) -> void:
-	if id == DecayKit.BLIGHT_ID and (_has_rune(DecayKit.OPEN_WOUND_RUNE) or decay.interest_ready()):
+	if id == DecayKit.BLIGHT_ID and (frost_melee._has_rune(DecayKit.OPEN_WOUND_RUNE) or decay.interest_ready()):
 		cancel_placement()
 		decay._blight_now()   # Rune of the Open Wound: instant, on a cooldown. Interest's capstone: instant, once
 		return
@@ -1001,7 +1068,7 @@ func _use_ability_now(id: String) -> void:
 			_start_steady_shot()
 		"glacialdraw":
 			cancel_placement()
-			_start_glacial_draw()
+			frost_bow._start_glacial_draw()
 		"embervolley":
 			cancel_placement()
 			fire_caster._start_ember_volley()
@@ -1092,7 +1159,7 @@ func _setup_status() -> void:
 	status.name = "Status"
 	status.set_script(StatusContainer)
 	add_child(status)
-	status.shield_broken.connect(_on_my_shield_broken)
+	status.shield_broken.connect(frost_runes._on_my_shield_broken)
 	status.changed.connect(func():
 		fire_cooldowns._cool_head_check()
 		fire_cooldowns._heat_sink_check()
@@ -1123,7 +1190,7 @@ func get_stat(stat: String) -> float:
 ## Dull Edge, Spell Power with the Rune of the Dull Mind, "" with neither.
 ## (Only one of the two can be equipped at a time: Runes.FAMILIES.)
 func dull_rune_power() -> String:
-	return dull_power_stat(_has_rune("dull_edge"), _has_rune("dull_mind"))
+	return dull_power_stat(frost_melee._has_rune("dull_edge"), frost_melee._has_rune("dull_mind"))
 
 static func dull_power_stat(has_edge: bool, has_mind: bool) -> String:
 	if has_edge:
@@ -1142,9 +1209,9 @@ func _raw_stat(key: String) -> float:
 	var v: float = float(pd.total_stats().get(key, 0.0)) if pd else 0.0
 	if status:
 		v += status.stat_mod(key)
-	v += _pact_stat(key)                         # my Pact (Haste, crit, movement, max health and mana)
+	v += pacts_kit._pact_stat(key)                         # my Pact (Haste, crit, movement, max health and mana)
 	if key == Stats.HASTE:
-		v += _glacial_haste                      # Glacial Heart capstone
+		v += frost_melee._glacial_haste                      # Glacial Heart capstone
 	return v
 
 ## Haste as a speed multiplier (casts, channels, auto-attacks, DoT ticks).
@@ -1195,7 +1262,7 @@ func heal(amount: float, ability_id: String = "") -> void:
 	if is_dead():
 		return
 	amount *= holy_talents._holy_heal_mult(ability_id)   # Radiance
-	_combat().heal(self, self, amount * _pact_heal_mult(), ability_id)   # (my Pact: Shepherd)
+	_combat().heal(self, self, amount * pacts_kit._pact_heal_mult(), ability_id)   # (my Pact: Shepherd)
 
 ## Real damage of a 1.0 coefficient for me: my level's standard hit (CombatSystem).
 func damage_unit() -> float:
@@ -1229,8 +1296,8 @@ func deal_damage(enemy: Node, base: float, ability_id: String, is_proc: bool = f
 	if VenomstringKit.POISON_ARROWS.has(ability_id):
 		venomstring._poison_landed(enemy, ability_id, base)   # Nature archer: the arrow carries a poison, not a hit
 		return 0
-	if ability_id == FROSTFIRE and damage_type == "":
-		return _frostfire_hit(enemy, base, is_proc)
+	if ability_id == FrostfireKit.FROSTFIRE and damage_type == "":
+		return frostfire_kit._frostfire_hit(enemy, base, is_proc)
 	if ability_id == LightstringKit.REFRACTION_ID or ability_id == LightstringKit.VOLLEY_ARROW_ID:
 		# Holy archer: arrows from a gold prism (not abilities of their own) are Holy procs.
 		damage_type = "holy"
@@ -1239,117 +1306,8 @@ func deal_damage(enemy: Node, base: float, ability_id: String, is_proc: bool = f
 	var at: Vector3 = enemy.global_position
 	var info = _combat().ability_hit(self, enemy, base, ability_id, is_proc, damage_type, tags)
 	if not is_proc and not info.avoided():
-		_on_hit_extra(enemy, at, ability_id)
+		frostfire_kit._on_hit_extra(enemy, at, ability_id)
 	return int(info.amount)
-
-# --- Frostfire Bolt (taught by the Rune of Frostfire Bolt) ----------------------------
-# A Frost Bolt's damage as two hits that land together: half Frost, half Fire.
-# Each half is a hit of its own school (its own crit roll, its school's talents,
-# runes and procs), and both carry the spell's id, which counts as a Frost Bolt
-# AND a Firebolt (Abilities.is_a) for anything that names either.
-
-const FROSTFIRE := "frostfirebolt"
-
-## The two hits of a Frostfire Bolt of coefficient `base`: [[coefficient, damage type, tags], ...].
-static func frostfire_halves(base: float) -> Array:
-	var frost := base * Balance.FROSTFIRE_FROST_SHARE
-	return [[frost, "frost", PackedStringArray(["Frost", "Spell", "Projectile"])],
-		[base - frost, "fire", PackedStringArray(["Fire", "Spell", "Projectile"])]]
-
-func _frostfire_hit(enemy: Node, base: float, is_proc: bool) -> int:
-	var total := 0
-	var halves := frostfire_halves(base)
-	for i in halves.size():
-		if not is_instance_valid(enemy) or not enemy.is_alive():
-			break
-		var info := DamageInfo.make(self, enemy, float(halves[i][0]), FROSTFIRE)
-		info.damage_type = str(halves[i][1])
-		info.tags = halves[i][2]
-		info.is_proc = is_proc
-		info.part = i + 1
-		_combat().deal(info)
-		total += int(info.amount)
-	return total
-
-## Extra effects some abilities have when they land. Not for procs, so chain /
-## splash hits (dealt as procs) never chain again.
-func _on_hit_extra(enemy: Node, at: Vector3, id: String) -> void:
-	match id:
-		VenomstringKit.FANG_ARROW_ID:
-			venomstring._fang_landed(enemy)   # Nature archer: my poisons on it last longer
-		WeaverKit.THORNSHOT_ID:
-			weaver._thornshot_landed(enemy, at)   # Nature caster: Thornburst, and every few a patch of mulch
-		"chainlightning":
-			# Leaping Arc: it leaps to the nearest other enemies. A leap with no new
-			# enemy to reach comes back to the target instead, weaker.
-			var others := _enemies_near(at, float(Abilities.get_resource(id).radius), enemy)
-			var leaps := mini(others.size(), Balance.LEAPING_ARC_JUMPS)
-			var jump := float(Abilities.EXTRA_HITS[id])
-			for i in leaps:
-				FROST_BOLT.spawn(get_tree().current_scene, at + Vector3(0, 0.3, 0), others[i], self, true, id, jump)
-			for i in LightningCasterKit.arc_returns(others.size()):
-				deal_damage(enemy, LightningCasterKit.arc_return_coef(jump), id, true)
-		"stormshield":
-			var jumps := 0
-			for e in _enemies_near(at, float(Abilities.get_resource(id).radius), enemy):
-				FROST_BOLT.spawn(get_tree().current_scene, at + Vector3(0, 0.3, 0), e, self, true, id,
-					float(Abilities.EXTRA_HITS[id]))
-				jumps += 1
-				if jumps >= Balance.CHAIN_JUMPS:
-					break
-		"returnstroke":
-			# Counter-Charge's capstone: the answer arcs on to nearby enemies.
-			if _capstone("lightning_counter_charge"):
-				var arcs := 0
-				for e in _enemies_near(at, Balance.COUNTER_CHARGE_REACH, enemy):
-					if arcs >= Balance.COUNTER_CHARGE_JUMPS:
-						break
-					FROST_BOLT.spawn(get_tree().current_scene, at + Vector3(0, 0.3, 0), e, self, true, id,
-						Balance.COUNTER_CHARGE_ARC)
-					arcs += 1
-		"stormarrow":
-			# Lightning Rod: the arrow stays stuck in the target (the effect goes
-			# through the combat pipeline, so in a party it reaches the host).
-			if _talent("lightning_rod") > 0.0:
-				fire_caster._apply_effect_hit(enemy, preload("res://scripts/core/effects.gd").get_effect(LightningCasterKit.ROD_FX), LightningCasterKit.ROD_FX,
-					PackedStringArray(["Lightning"]), "lightning")
-			var r := float(Abilities.get_resource(id).radius)
-			for e in _enemies_near(at, r, enemy):
-				deal_damage(e, float(Abilities.EXTRA_HITS[id]), id, true)
-			_ring_effect(r, Abilities.color_of(id), at)
-		"shattershot":
-			_shatter_shot_landed(enemy, at)   # on a target I had Frozen: it thaws and the ice bursts
-		"shadowstrike":
-			# Share the Kill: Leeching Strike heals for more while my Hounds are out.
-			heal(float(Abilities.HEALS[id]) * HoundsKit.leech_heal_mult(hounds.hounds_out(), _talent("shadow_share_the_kill")), id)
-
-# Instant, free cast triggered by an rune (e.g. Rune of Frost).
-func proc_cast(ability_id: String, enemy: Node) -> void:
-	if enemy == null or not is_instance_valid(enemy) or not enemy.is_alive():
-		return
-	match ability_id:
-		"frostbolt":
-			FROST_BOLT.spawn(get_tree().current_scene, _muzzle(), enemy, self, true)
-		_:
-			var base := float(Abilities.get_resource(ability_id).damage) if Abilities.get_resource(ability_id) else 1.0
-			deal_damage(enemy, base, ability_id, true)
-
-func _float_text(at: Node3D, text: String, color: Color, big: bool) -> void:
-	var l := Label3D.new()
-	l.text = text
-	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	l.no_depth_test = true
-	l.font_size = 64 if big else 44
-	l.pixel_size = 0.006
-	l.outline_size = 12
-	l.modulate = color
-	get_tree().current_scene.add_child(l)
-	l.global_position = at.global_position + Vector3(randf_range(-0.3, 0.3), 1.5, 0)
-	var t := l.create_tween()
-	t.set_parallel(true)
-	t.tween_property(l, "global_position:y", l.global_position.y + 0.9, 0.8)
-	t.tween_property(l, "modulate:a", 0.0, 0.8).set_delay(0.3)
-	t.chain().tween_callback(l.queue_free)
 
 # --- Resources: mana, Energy and Rage (Energy / Rage are bars of RESOURCE_MAX = 100) ----
 
@@ -1366,7 +1324,7 @@ func resource_points(res: String) -> int:
 	return int(floor(float(resources.get(res, 0.0)) + 0.0001))
 
 func can_afford(id: String, report: bool = false) -> bool:
-	if id == "iceshards" and ice_shard_charges <= 0:
+	if id == "iceshards" and ice_shards_kit.ice_shard_charges <= 0:
 		if report:
 			_error("No Ice Shard charges")
 		return false
@@ -1424,7 +1382,7 @@ func can_afford(id: String, report: bool = false) -> bool:
 ## base mana each) and get Cold Discipline's discount for spells; Energy / Rage
 ## costs are that many Energy / Rage of their 100 (Grounding Surge halves Energy costs).
 func resource_cost(id: String, with_storm_cycle: bool = true) -> float:
-	if Abilities.is_a(id, "frostbolt") and (_instinct_cast or (not casting and frozen_instinct_ready())):
+	if Abilities.is_a(id, "frostbolt") and (frost_bow._instinct_cast or (not casting and frost_bow.frozen_instinct_ready())):
 		return 0.0   # Frozen Instinct: free
 	if id == FireCooldownsKit.CRUCIBLE_ID and fire_cooldowns._crucible_standing():
 		return 0.0   # moving a Crucible that still stands is free
@@ -1432,7 +1390,7 @@ func resource_cost(id: String, with_storm_cycle: bool = true) -> float:
 	if id == "cinderguard":
 		cost = FireCooldownsKit.furnace_heart_cost(cost, _talent("fire_furnace_heart"))   # Furnace Heart
 	if id == LightningTankKit.RETURN_STROKE_ID:   # Rune of Resonance: dearer without a parry behind it
-		cost = LightningTankKit.return_stroke_cost(cost, status != null and status.has(LightningTankKit.RETURN_STROKE_FX), _has_rune(LightningTankKit.RESONANCE_RUNE))
+		cost = LightningTankKit.return_stroke_cost(cost, status != null and status.has(LightningTankKit.RETURN_STROKE_FX), frost_melee._has_rune(LightningTankKit.RESONANCE_RUNE))
 	if id == LightningMeleeKit.STATIC_STEP_ID and status != null and status.has(BottledLightningKit.WHIP_CRACK_FX):
 		cost = BottledLightningKit.whip_crack_cost(cost, _talent("lightning_whip_crack"))    # Whip Crack
 	if id == LightningCasterKit.STORM_ARROW_ID and status != null:                         # Loaded Quiver, Snap Shot
@@ -1443,8 +1401,8 @@ func resource_cost(id: String, with_storm_cycle: bool = true) -> float:
 		if with_storm_cycle and bottled_kit.storm_cycle_ready():
 			cost = 0.0                                                   # Storm Cycle: this one is free
 	if cost <= 0.0 or Abilities.resource_of(id) != "mana":
-		return cost * _pact_cost_mult(Abilities.resource_of(id))   # (my Pact: Sidestep)
-	cost *= mana_unit() * _pact_cost_mult("mana")                  # (my Pact: Sidestep, Reservoir)
+		return cost * pacts_kit._pact_cost_mult(Abilities.resource_of(id))   # (my Pact: Sidestep)
+	cost *= mana_unit() * pacts_kit._pact_cost_mult("mana")                  # (my Pact: Sidestep, Reservoir)
 	var tags := Abilities.tags_of(id)
 	if tags.has("Spell"):
 		var pd := get_node_or_null("/root/PlayerData")
@@ -1480,7 +1438,7 @@ func _pay(id: String) -> bool:
 
 func _gain(res: String, amount: float) -> void:
 	if amount > 0.0:
-		amount *= PACTS.resource_gain_mult(pact_id(), pact_broken())   # Pact of the Restless
+		amount *= PactsKit.PACTS.resource_gain_mult(pacts_kit.pact_id(), pacts_kit.pact_broken())   # Pact of the Restless
 	resources[res] = clampf(float(resources[res]) + amount, 0.0, resource_max(res))
 
 ## Max of a resource. Mana grows with Max Mana (Intellect); Energy / Rage stay at 100.
@@ -1506,7 +1464,7 @@ var _regen_carry := 0.0          # fractional health not applied yet
 var _out_of_combat_since := 0.0  # when combat last ended
 
 func _tick_health_regen(delta: float) -> void:
-	if is_dead() or health >= max_health or PACTS.bleed_pct(pact_id()) > 0.0:   # (Pact of the Restless: none at all)
+	if is_dead() or health >= max_health or PactsKit.PACTS.bleed_pct(pacts_kit.pact_id()) > 0.0:   # (Pact of the Restless: none at all)
 		_regen_carry = 0.0
 		return
 	var now := Time.get_ticks_msec() / 1000.0
@@ -1552,9 +1510,9 @@ const INTERRUPT_LOCKOUT := Balance.INTERRUPT_LOCKOUT
 
 func _start_gcd() -> void:
 	gcd_total = gcd_duration()
-	if _cold_snap > 0.0:   # Cold Snap: a freeze shortened this GCD
-		gcd_total = maxf(gcd_total - _cold_snap, Balance.COLD_SNAP_MIN_GCD)
-		_cold_snap = 0.0
+	if frost_melee._cold_snap > 0.0:   # Cold Snap: a freeze shortened this GCD
+		gcd_total = maxf(gcd_total - frost_melee._cold_snap, Balance.COLD_SNAP_MIN_GCD)
+		frost_melee._cold_snap = 0.0
 	if status != null and status.has(LightningMeleeKit.SPLIT_SECOND_FX):   # Split Second: every GCD is shorter
 		gcd_total = LightningMeleeKit.split_second_gcd(gcd_total)
 	gcd_left = gcd_total
@@ -1646,7 +1604,7 @@ func _tick_cooldowns(delta: float) -> void:
 	var arcane_rate := arcane_caster._arcane_rate()   # Lapse, Interval Ward: my Arcane spells recover faster
 	var clock := _talent("arcane_running_clock") if not cooldowns.is_empty() else 0.0   # Running Clock: so does everything Arcane
 	var plain := arcane_rate == 1.0 and clock <= 0.0
-	var pact_rate := PACTS.cooldown_rate(pact_id(), pact_broken())   # Pact of the Sidestep: every cooldown
+	var pact_rate := PactsKit.PACTS.cooldown_rate(pacts_kit.pact_id(), pacts_kit.pact_broken())   # Pact of the Sidestep: every cooldown
 	for id in cooldowns.keys():
 		var step := delta if plain else delta * ArcaneCasterKit.arcane_cooldown_rate(arcane_rate, arcane_caster._is_arcane_spell(str(id)),
 			arcane_caster._in_arcane_book(str(id)), clock)
@@ -1654,77 +1612,8 @@ func _tick_cooldowns(delta: float) -> void:
 		if cooldowns[id] <= 0.0:
 			cooldowns.erase(id)
 	arcane_open._tick_borrowed_time()   # Borrowed Time: a long cooldown just came back?
-	_tick_ice_shards(delta)
+	ice_shards_kit._tick_ice_shards(delta)
 	fire_caster._tick_vent_charges(delta)
-
-# --- Ice Shards: charges, and firing one shard per charge ---------------------------
-# Up to ICE_SHARDS_MAX_CHARGES charges: one every ICE_SHARDS_RECHARGE seconds, one
-# for every Frost spell you cast, and (Splintering Cold talent) a chance on any
-# spell. While shards are firing no charges are gained (the recharge waits too).
-
-var ice_shard_charges: int = Balance.ICE_SHARDS_MAX_CHARGES
-var _shard_recharge := 0.0
-var _shards_left := 0   # shards still to fire from the current volley
-
-func shards_firing() -> bool:
-	return _shards_left > 0
-
-## Seconds until the next natural charge (0 when full).
-func shard_recharge_left() -> float:
-	if ice_shard_charges >= Balance.ICE_SHARDS_MAX_CHARGES:
-		return 0.0
-	return maxf(Balance.ICE_SHARDS_RECHARGE - _shard_recharge, 0.0)
-
-func _tick_ice_shards(delta: float) -> void:
-	if ice_shard_charges >= Balance.ICE_SHARDS_MAX_CHARGES:
-		_shard_recharge = 0.0
-		return
-	if shards_firing():
-		return
-	_shard_recharge += delta
-	if _shard_recharge >= Balance.ICE_SHARDS_RECHARGE:
-		_shard_recharge = 0.0
-		gain_ice_shard()
-
-## +1 charge (no-op while firing or full).
-func gain_ice_shard() -> void:
-	if shards_firing() or ice_shard_charges >= Balance.ICE_SHARDS_MAX_CHARGES:
-		return
-	ice_shard_charges += 1
-
-func _on_spell_cast_for_shards(id: String) -> void:
-	if id == "iceshards" or is_dead():
-		return
-	var pd := get_node_or_null("/root/PlayerData")
-	if pd == null or not pd.has_ability("iceshards"):
-		return
-	var tags := Abilities.tags_of(id)
-	if not tags.has("Spell"):
-		return
-	if tags.has("Frost"):
-		gain_ice_shard()
-	var chance: float = pd.talent_value("frost_shard_proc")
-	if chance > 0.0 and randf() * 100.0 < chance:
-		gain_ice_shard()
-
-## Fire every charge at the target, one shard per ICE_SHARDS_INTERVAL. If the
-## target dies mid-volley the rest go to your current target (or fizzle).
-func _fire_ice_shards(dmg: float) -> void:
-	var n := ice_shard_charges
-	ice_shard_charges = 0
-	_shards_left = n
-	var tgt := target
-	for i in n:
-		get_tree().create_timer(Balance.ICE_SHARDS_INTERVAL * i).timeout.connect(func():
-			_shards_left = maxi(_shards_left - 1, 0)
-			if not is_alive():
-				return
-			var aim: Node3D = tgt
-			if aim == null or not is_instance_valid(aim) or not aim.is_alive():
-				aim = target if _has_valid_target() else null
-			if aim:
-				FROST_BOLT.spawn(get_tree().current_scene, _muzzle(), aim, self, false, "iceshards", dmg)
-				_on_shard_fired(aim))
 
 # --- Talent hooks ---------------------------------------------------------------------
 
@@ -1756,10 +1645,10 @@ func effect_duration_bonus(res: Resource) -> float:
 ## SignalBus.damage_modify): talent damage bonuses and threat changes.
 func _on_damage_modify(info: RefCounted) -> void:
 	if is_same(info.target, self):
-		_last_hit_by = info.source   # Ice Floe: who broke my shield
+		frost_runes._last_hit_by = info.source   # Ice Floe: who broke my shield
 		# Numbing Cold: less damage from enemies I slowed recently.
 		var dr := _talent("frost_slow_dr")
-		if dr > 0.0 and _slowed_recently(info.source):
+		if dr > 0.0 and frost_melee._slowed_recently(info.source):
 			info.add_bonus(-dr, "Numbing Cold")
 		# Cool Under Fire: tougher while Cool Head is up.
 		var cuf := _talent("fire_cool_under_fire")
@@ -1780,11 +1669,11 @@ func _on_damage_modify(info: RefCounted) -> void:
 		arcane_tank._reflection_talents_incoming(info)   # Empty Room, Bent Light
 		lightning_melee._guard_incoming(info)   # Reflex Arc, Faraday Guard
 		strings._crossed_incoming(info) # Crossed Strings: part of it goes to an enemy
-		_pact_incoming(info)    # my Pact: more or less damage taken
+		pacts_kit._pact_incoming(info)    # my Pact: more or less damage taken
 		return
 	if info.source != self:
 		return
-	_pact_outgoing(info)        # my Pact: more or less damage dealt
+	pacts_kit._pact_outgoing(info)        # my Pact: more or less damage dealt
 	holy_talents._holy_talents_outgoing(info)   # Burnished, Censer's Weight, Sunsteel
 	# Scatter: the darts of the Sigil Darts it split hit harder.
 	if arcane_caster._bolt_tag == ArcaneCasterKit.SCATTER_FX and str(info.ability_id) == ArcaneCasterKit.SIGIL_DARTS_ID:
@@ -1875,7 +1764,7 @@ func _on_damage_modify(info: RefCounted) -> void:
 			info.add_bonus(sp, "Shatterpoint")
 	# Chilling Presence: more threat on enemies I slowed recently.
 	var tp := _talent("frost_slow_threat")
-	if tp > 0.0 and _slowed_recently(info.target):
+	if tp > 0.0 and frost_melee._slowed_recently(info.target):
 		info.threat_multiplier *= 1.0 + tp / 100.0
 	# Menace runes: more threat from damage of their type.
 	var rl := get_node_or_null("RuneListener")
@@ -1889,32 +1778,32 @@ func _on_damage_modify(info: RefCounted) -> void:
 			and info.target and is_instance_valid(info.target):
 		var sst: Node = info.target.get_node_or_null("Status")
 		if sst and (sst.has_from("frozen", self) or sst.has_from("rime_shell_foe", self)):   # mine only (a shell counts for its whole time)
-			_splinter.call_deferred((info.target as Node3D).global_position, info.target.get_instance_id())
+			frost_runes._splinter.call_deferred((info.target as Node3D).global_position, info.target.get_instance_id())
 	# Kiln Blast: more damage to a target carrying my Immolate.
 	if id == "kilnblast" and info.target and is_instance_valid(info.target):
 		var kst: Node = info.target.get_node_or_null("Status")
 		if kst and kst.has_from("immolate", self):
 			info.add_bonus(Balance.KILN_BLAST_IMMOLATE_PCT + _talent("fire_stoked_kiln"), "Kiln Blast")   # + Stoked Kiln
 	# Third Bite: the Winter's Bite that Freezes hits harder.
-	if id == "froststrike" and _bite_freezing:
+	if id == "froststrike" and frost_runes._bite_freezing:
 		var third := _talent("frost_third_bite")
 		if third > 0.0:
 			info.add_bonus(third, "Third Bite")
 	# Pinning Frost: Frost Arrow hits a target rooted by my Icepin harder (own only).
 	if id == "frostarrow" and info.target and is_instance_valid(info.target):
 		var pin := _talent("frost_pinning_frost")
-		if pin > 0.0 and _icepin_root_on(info.target):
+		if pin > 0.0 and frost_runes._icepin_root_on(info.target):
 			info.add_bonus(pin, "Pinning Frost")
 	# Shatter Shot: more damage to a target I have Frozen (own only).
-	if id == SHATTER_SHOT_ID:
-		_shatter_shot_modify(info)
-	_cold_draw_mark(info, id)   # Cold Draw: arrows into a target I already Chilled or Froze
+	if id == FrostBowKit.SHATTER_SHOT_ID:
+		frost_bow._shatter_shot_modify(info)
+	frost_bow._cold_draw_mark(info, id)   # Cold Draw: arrows into a target I already Chilled or Froze
 	# Marked Prey: my Ice Shards hit the target carrying MY Coldmark harder.
 	if id == "iceshards" and info.target and is_instance_valid(info.target):
 		var prey := _talent("frost_marked_prey")
 		if prey > 0.0:
 			var mark_st: Node = info.target.get_node_or_null("Status")
-			if mark_st and mark_st.has_from(COLDMARK_FX, self):
+			if mark_st and mark_st.has_from(FrostBowKit.COLDMARK_FX, self):
 				info.add_bonus(prey, "Marked Prey")
 	# Coldspike: more damage to a target I have Frozen (own only).
 	if id == "coldspike" and info.target and is_instance_valid(info.target):
@@ -1959,7 +1848,7 @@ func _on_hit_talents(ability_id: String, tgt: Node, amount: int, _crit: bool, is
 	if df > 0.0 and not is_proc and not periodic and randf() * 100.0 < df and tgt.is_alive():
 		var ftags := Abilities.tags_of(ability_id)
 		if ftags.has("Frost") and (ftags.has("Spell") or ftags.has("Ability")):
-			_apply_freeze(tgt, ftags)
+			frost_runes._apply_freeze(tgt, ftags)
 
 # --- Slam (instant melee, weapon damage) -------------------------------------------
 
@@ -2430,32 +2319,32 @@ func _begin_spell(spell: String, display_name: String, duration: float, channel:
 		duration = maxf(duration - _talent("holy_steady_aim"), 0.2)   # Steady Aim
 	elif spell == PrismsKit.BRIGHT_LANCE_ID:
 		duration = maxf(duration - _talent("holy_quick_lance"), 0.2)   # Quick Lance
-	elif spell == GLACIAL_DRAW_ID:
-		duration = thin_ice_cast(duration, _talent("frost_thin_ice"), _chilled_by_me(target))   # Thin Ice
+	elif spell == FrostBowKit.GLACIAL_DRAW_ID:
+		duration = FrostBowKit.thin_ice_cast(duration, _talent("frost_thin_ice"), frost_bow._chilled_by_me(target))   # Thin Ice
 	elif spell == StringsKit.HOIST_ID:
-		duration = StringsKit.heave_cast(duration, strings.strings_on(_cast_target), _capstone("shadow_heave"))   # Heave's capstone
+		duration = StringsKit.heave_cast(duration, strings.strings_on(_cast_target), frost_melee._capstone("shadow_heave"))   # Heave's capstone
 	elif spell == DecayKit.ERODE_ID:
 		duration = StringsKit.deep_call_cast(duration, _talent("shadow_deep_call"), decay.decay_open_on(target))   # Deep Call
 	duration /= haste_mult()
-	if Abilities.is_a(spell, "frostbolt") and frozen_instinct_ready():
+	if Abilities.is_a(spell, "frostbolt") and frost_bow.frozen_instinct_ready():
 		duration = 0.05   # Frozen Instinct: instant (released next frame)
-		_instinct_cast = true
-	fire_cooldowns._conc_cast = not _instinct_cast and fire_cooldowns.concentrated_fire_ready(spell)
+		frost_bow._instinct_cast = true
+	fire_cooldowns._conc_cast = not frost_bow._instinct_cast and fire_cooldowns.concentrated_fire_ready(spell)
 	if fire_cooldowns._conc_cast:
 		duration = 0.05   # Concentrated Fire: instant (released next frame)
-	storm_arrow_kit._flicker_cast = not _instinct_cast and not fire_cooldowns._conc_cast and bottled_kit.flicker_ready(spell)
+	storm_arrow_kit._flicker_cast = not frost_bow._instinct_cast and not fire_cooldowns._conc_cast and bottled_kit.flicker_ready(spell)
 	if storm_arrow_kit._flicker_cast:
 		duration = 0.05   # Flicker: this Lightning Bolt is instant (released next frame)
-	bottled_kit._bottled_cast = not _instinct_cast and not fire_cooldowns._conc_cast and not storm_arrow_kit._flicker_cast and bottled_kit.bottled_ready(spell)
+	bottled_kit._bottled_cast = not frost_bow._instinct_cast and not fire_cooldowns._conc_cast and not storm_arrow_kit._flicker_cast and bottled_kit.bottled_ready(spell)
 	if bottled_kit._bottled_cast:
 		duration = 0.05   # Rune of Bottled Lightning: this Discharge is instant (released next frame)
-	storm_arrow_kit._overture_cast = not channel and not _instinct_cast and not fire_cooldowns._conc_cast and not storm_arrow_kit._flicker_cast and not bottled_kit._bottled_cast and hymns.overture_ready(spell)
+	storm_arrow_kit._overture_cast = not channel and not frost_bow._instinct_cast and not fire_cooldowns._conc_cast and not storm_arrow_kit._flicker_cast and not bottled_kit._bottled_cast and hymns.overture_ready(spell)
 	if storm_arrow_kit._overture_cast:
 		duration = 0.05   # Rune of the Overture: the first cast after a boom is instant (used up when it lands)
 	# Cinder Step: this cast can be finished on the move (instant ones don't need it).
-	fire_cooldowns._cinder_cast = not channel and not fire_cooldowns._conc_cast and not _instinct_cast and fire_cooldowns.cinder_step_ready(spell)
+	fire_cooldowns._cinder_cast = not channel and not fire_cooldowns._conc_cast and not frost_bow._instinct_cast and fire_cooldowns.cinder_step_ready(spell)
 	# Glint: this cast or channel can go on while I move (instant ones don't need it).
-	arcane_caster._glint_cast = not fire_cooldowns._conc_cast and not _instinct_cast and not storm_arrow_kit._flicker_cast and not bottled_kit._bottled_cast \
+	arcane_caster._glint_cast = not fire_cooldowns._conc_cast and not frost_bow._instinct_cast and not storm_arrow_kit._flicker_cast and not bottled_kit._bottled_cast \
 		and not fire_cooldowns._cinder_cast and not storm_arrow_kit._overture_cast and arcane_caster.glint_ready(spell)
 	if arcane_caster._glint_cast and channel and status:
 		status.spend_stacks(ArcaneCasterKit.GLINT_FX, 1)   # a channel is paid for when it starts, and uses Glint up then too (Keep Moving: one of its casts)
@@ -2475,7 +2364,7 @@ func _begin_spell(spell: String, display_name: String, duration: float, channel:
 	_bus().cast_started.emit(spell, duration)
 
 func _cancel_cast() -> void:
-	_instinct_cast = false   # Frozen Instinct stays for the next Frost Bolt
+	frost_bow._instinct_cast = false   # Frozen Instinct stays for the next Frost Bolt
 	fire_cooldowns._conc_cast = false       # so does the Concentrated Fire stack
 	fire_cooldowns._cinder_cast = false     # and Cinder Step's cast on the move
 	storm_arrow_kit._flicker_cast = false    # and Flicker's instant Lightning Bolt
@@ -2526,7 +2415,7 @@ func _release_cast() -> void:
 	var bottled := bottled_kit._bottled_cast
 	bottled_kit._bottled_cast = false
 	if not _pay(spell):
-		_instinct_cast = false
+		frost_bow._instinct_cast = false
 		return
 	if flick and status:
 		status.remove(LightningCasterKit.FLICKER_FX)      # Flicker: that was its instant Lightning Bolt
@@ -2540,9 +2429,9 @@ func _release_cast() -> void:
 		status.remove(FireCooldownsKit.CINDER_ID)       # Cinder Step: that was the cast on the move
 	if glint and status:
 		status.spend_stacks(ArcaneCasterKit.GLINT_FX, 1)   # Glint: so was this (Keep Moving: one of its casts)
-	if Abilities.is_a(spell, "frostbolt") and (_instinct_cast or frozen_instinct_ready()):
-		status.remove(INSTINCT_ID)   # Frozen Instinct used up (this bolt was free)
-	_instinct_cast = false
+	if Abilities.is_a(spell, "frostbolt") and (frost_bow._instinct_cast or frost_bow.frozen_instinct_ready()):
+		status.remove(FrostBowKit.INSTINCT_ID)   # Frozen Instinct used up (this bolt was free)
+	frost_bow._instinct_cast = false
 	if spell == "steadyshot":
 		_release_steady_shot()
 		return
@@ -2552,8 +2441,8 @@ func _release_cast() -> void:
 	if spell == VenomstringKit.ADDER_ARROW_ID:
 		venomstring._loose_adder_arrow()   # Nature archer
 		return
-	if spell == GLACIAL_DRAW_ID:
-		_loose_glacial_draw()
+	if spell == FrostBowKit.GLACIAL_DRAW_ID:
+		frost_bow._loose_glacial_draw()
 		return
 	if spell == "walloffire":
 		fire_caster._raise_fire_wall()
@@ -2693,17 +2582,17 @@ func _process(_delta: float) -> void:
 	_fire_queued()
 	_tick_resources(_delta)
 	_tick_health_regen(_delta)
-	_scan_my_slows()
-	_tick_permafrost()
+	frost_melee._scan_my_slows()
+	frost_runes._tick_permafrost()
 	fire_caster._tick_fuses()
 	arcane_caster._tick_countdowns()
 	decay._tick_decay()
 	overload_kit._tick_grounded()
-	_tick_dusk()
+	dusk_till_dawn._tick_dusk()
 	hounds._tick_hounds()
 	strings._tick_strings()
 	hymns._tick_hymns()
-	_tick_pact(_delta)
+	pacts_kit._tick_pact(_delta)
 	bottled_kit._tick_live_wire()
 	lightning_melee._tick_overdrive()
 	bottled_kit._tick_standing_charge(_delta)
@@ -2775,7 +2664,7 @@ func _physics_process(delta: float) -> void:
 		or arcane_caster._glint_cast or storm_arrow_kit._overture_cast)
 	if steady:
 		var aimed: bool = current_spell == "steadyshot" or current_spell in ENEMY_BOLTS or current_spell == "embervolley" \
-			or current_spell == GLACIAL_DRAW_ID or current_spell == ArcaneCasterKit.SIGIL_DARTS_ID or current_spell == LightstringKit.REFRACTING_SHOT_ID \
+			or current_spell == FrostBowKit.GLACIAL_DRAW_ID or current_spell == ArcaneCasterKit.SIGIL_DARTS_ID or current_spell == LightstringKit.REFRACTING_SHOT_ID \
 			or current_spell == VenomstringKit.ADDER_ARROW_ID
 		if (aimed and not _has_valid_target()) or (current_spell in SUPPORT_CASTS and not _support_target_ok()):
 			_cancel_cast()
@@ -2795,7 +2684,7 @@ func _physics_process(delta: float) -> void:
 				steady = false
 
 	if casting and not steady:
-		var targeted: bool = current_spell in ENEMY_BOLTS or current_spell == "embervolley" or current_spell == GLACIAL_DRAW_ID \
+		var targeted: bool = current_spell in ENEMY_BOLTS or current_spell == "embervolley" or current_spell == FrostBowKit.GLACIAL_DRAW_ID \
 			or current_spell == LightstringKit.REFRACTING_SHOT_ID or current_spell == VenomstringKit.ADDER_ARROW_ID \
 			or current_spell == ArcaneCasterKit.SIGIL_DARTS_ID
 		var lost_target := targeted and not _has_valid_target()
@@ -2980,11 +2869,11 @@ func _use_drafted(id: String) -> void:
 		"hoarfrost":
 			FROST_BOLT.spawn(get_tree().current_scene, muzzle, target, self, false, id, 0.0)   # Hoarfrost is its on-hit effect
 		"iceshards":
-			_fire_ice_shards(float(res.damage))
+			ice_shards_kit._fire_ice_shards(float(res.damage))
 		"shatteringslam":
-			_shattering_slam(target, w, res)
+			frost_melee._shattering_slam(target, w, res)
 		"rimeslash":
-			_rime_slash(w, res)
+			frost_melee._rime_slash(w, res)
 		"frostnova":
 			for e in _enemies_within(float(res.radius)):
 				deal_damage(e, float(res.damage), "frostnova")   # Frozen comes from the ability's on-hit effect
@@ -3027,31 +2916,31 @@ func _use_drafted(id: String) -> void:
 			arcane_caster._glint(res)
 		# Bow abilities
 		"rimefletch":
-			_start_rimefletch()
+			frost_bow._start_rimefletch()
 		"coldmark":
-			_coldmark(target)
+			frost_bow._coldmark(target)
 		"icyretreat":
-			_icy_retreat(res)
+			frost_bow._icy_retreat(res)
 		"flamingarrow", "stormarrow", "arcaneshot", "shadowarrow", "frostarrow", "pitcharrow", "icepin", "shattershot":
 			ARROW.spawn(get_tree().current_scene, muzzle, target, self, _weapon_hit(w, res), id)   # (Pitch / Icepin's root are the ability's on-hit effect)
 		# --- Frost, second batch ---
 		"sleetwave":
-			_sleet_wave(res)
+			frost_more._sleet_wave(res)
 		"deepwinter":
-			_start_deepwinter()
+			frost_more._start_deepwinter()
 		"snowward":
-			_snow_ward(res)
+			frost_more._snow_ward(res)
 		"winterhide":
-			_start_winter_hide()
+			frost_more._start_winter_hide()
 		"rimeedge":
-			_start_rime_edge()
+			frost_more._start_rime_edge()
 		"icebreaker":
-			_icebreaker(w, res)
+			frost_more._icebreaker(w, res)
 		"cinderwing":
 			fire_cooldowns._summon_phoenix()
 		# Melee abilities
 		"froststrike":
-			_winters_bite(target, _weapon_hit(w, res))
+			frost_runes._winters_bite(target, _weapon_hit(w, res))
 			_slash_effect(Abilities.color_of(id))
 			_slash_effect(Abilities.color_of(id))
 		"searingstrike", "thunderstrike", "arcanestrike", "shadowstrike", \
@@ -3233,7 +3122,7 @@ func _use_drafted(id: String) -> void:
 				_slash_effect(Abilities.color_of(id))
 			_ring_effect(0.6, Color(0.95, 0.9, 1.0), target.global_position)
 			# On the Beat's capstone: with none left, it makes one.
-			if arcane_tank.reflections() <= 0 and _capstone("arcane_on_the_beat"):
+			if arcane_tank.reflections() <= 0 and frost_melee._capstone("arcane_on_the_beat"):
 				arcane_tank._gain_reflections(1)
 		"standin":
 			arcane_tank._start_stand_in()
@@ -3286,7 +3175,7 @@ func _use_drafted(id: String) -> void:
 			elif target.has_method("interrupt"):
 				target.interrupt(self, lockout)
 			if id == "rimelock":
-				_chill(target, id)   # Rimelock also Chills
+				frost_more._chill(target, id)   # Rimelock also Chills
 				_ring_effect(0.5, Color(0.95, 0.97, 1.0), target.global_position)
 			if id == DecayKit.HUSH_ID:
 				decay._hush(hush_foe, float(res.damage), hush_stops)   # its own hit, and what it adds to an open Decay
@@ -3375,7 +3264,7 @@ func _drafted_precheck(id: String, _res: Resource, w: Dictionary) -> String:
 			if lightning_caster.surge_active():
 				return "You can't move during %s" % Abilities.ability_name(LightningCasterKit.SURGE_ID)
 		"returnstroke":
-			if not LightningTankKit.return_stroke_usable(status.has(LightningTankKit.RETURN_STROKE_FX), _has_rune(LightningTankKit.RESONANCE_RUNE)):
+			if not LightningTankKit.return_stroke_usable(status.has(LightningTankKit.RETURN_STROKE_FX), frost_melee._has_rune(LightningTankKit.RESONANCE_RUNE)):
 				return "You have not parried an attack"
 		"recharge":
 			if health >= max_health:
@@ -3402,7 +3291,7 @@ func _drafted_precheck(id: String, _res: Resource, w: Dictionary) -> String:
 			if health >= max_health:
 				return "Already at full health"
 		"iceshards":
-			if shards_firing():
+			if ice_shards_kit.shards_firing():
 				return "Ice Shards are already firing"
 		"stoke":
 			var burn_st: Node = target.get_node_or_null("Status") if _has_valid_target() else null
@@ -3623,7 +3512,7 @@ func _pick_support_target(id: String) -> Array:
 	if id == "flashfreeze" or id == "canticle" or id == "exultation":
 		return [null, ""]   # (around me: whoever my friendly target is does not matter)
 	# Everlasting Rime: Rime Shell can't go on enemies (it goes on your friendly target / you).
-	if id == "rimeshell" and _has_valid_target() and not _has_rune("everlasting_rime"):
+	if id == "rimeshell" and _has_valid_target() and not frost_melee._has_rune("everlasting_rime"):
 		if global_position.distance_to(target.global_position) > float(res.cast_range):
 			return [null, "Target out of range"]
 		var err := _target_error(target)
@@ -3690,7 +3579,7 @@ func _release_support(spell: String) -> void:
 	var kind := _cast_kind
 	_cast_target = null
 	_cast_kind = ""
-	var everlasting := spell == "rimeshell" and _has_rune("everlasting_rime")
+	var everlasting := spell == "rimeshell" and frost_melee._has_rune("everlasting_rime")
 	if res and float(res.cooldown) > 0.0 and not everlasting:   # Everlasting Rime: no cooldown
 		cooldowns[spell] = float(res.cooldown)
 	match spell:
@@ -3737,7 +3626,7 @@ func _release_support(spell: String) -> void:
 func receive_rime_shell(caster: Node, amount: int, armor_pct: float = 0.0, shatters: bool = true) -> void:
 	if is_dead():
 		return
-	SHIELDS.put_rime_shell(status, caster, amount, false, armor_pct, func():
+	PlayerKit.SHIELDS.put_rime_shell(status, caster, amount, false, armor_pct, func():
 		if not shatters:
 			return
 		if _net():
@@ -3766,10 +3655,10 @@ func shatter_at(pos: Vector3, id: String = "rimeshell", mult: float = 1.0, only:
 	var hit: Array = [only] if only != null else _enemies_near(pos, r)
 	var coef := shatter_coef(id, hit.size(), mult)
 	for e in hit:
-		_hit_with_threat(e, coef, id, threat, "frost", PackedStringArray(SHATTER_TAGS))
+		frost_melee._hit_with_threat(e, coef, id, threat, "frost", PackedStringArray(SHATTER_TAGS))
 	_ring_effect(1.2 if only != null else r, Color(0.7, 0.95, 1.0), pos)
 	_ring_effect(0.6 if only != null else r * 0.5, Color(1, 1, 1), pos)
-	_shatterpoint_charge()
+	frost_runes._shatterpoint_charge()
 
 ## Coefficient each enemy takes from one shatter that damages `targets` enemies.
 ## Beyond 5 enemies the damage is shared out; a Rime Shell ("rimeshell") that
@@ -3800,7 +3689,7 @@ func _strip_ice(enemy: Node) -> Array[String]:
 		if net:
 			net.drop_enemy_shield(enemy)
 		else:
-			SHIELDS.drop_rime_shield(st, true)
+			PlayerKit.SHIELDS.drop_rime_shield(st, true)
 		out.append("rime_shell_foe")
 	if st.has_from("frozen", self):   # own only
 		if net:
@@ -3827,7 +3716,7 @@ func _shattering_wave(radius: float) -> void:
 			else:
 				shatters.append(e.global_position)
 	if status.has_from("rime_shell", self):   # a party member's shell on me is theirs to shatter
-		SHIELDS.drop_rime_shield(status, false)
+		PlayerKit.SHIELDS.drop_rime_shield(status, false)
 		shatters.append(global_position)
 	var my_member: int = int(net.my_id()) if net else 0
 	for p in get_tree().get_nodes_in_group("remote_player"):
@@ -3842,7 +3731,7 @@ func _shattering_wave(radius: float) -> void:
 	for f in get_tree().get_nodes_in_group("friendly"):
 		var fst: Node = f.get_node_or_null("Status")
 		if fst and fst.has_from("rime_shell", self) and _flat_dist_to(f.global_position) <= radius:
-			SHIELDS.drop_rime_shield(fst, false)
+			PlayerKit.SHIELDS.drop_rime_shield(fst, false)
 			shatters.append(f.global_position)
 	for pos in shatters:
 		shatter_at(pos, "rimeshell")
@@ -3949,537 +3838,6 @@ func _sync_support_state() -> void:
 	net.send_support_state(shell, locks, shell_by)
 
 
-# --- Frost weapon abilities ----------------------------------------------------------
-
-## Shattering Slam: weapon hit. On a Rime Shelled or Frozen target the ice
-## shatters on it alone (no splash): bonus damage + the shatter's damage, 3x threat.
-const SHATTER_SLAM_THREAT := Balance.SHATTER_SLAM_THREAT
-
-func _shattering_slam(tgt: Node3D, w: Dictionary, res: Resource) -> void:
-	if tgt == null or not is_instance_valid(tgt) or not tgt.is_alive():
-		return
-	# Taken off first, so the hits below don't break the shell again.
-	var iced := _strip_ice(tgt)   # own only: my whole shell, my freeze
-	var at := tgt.global_position
-	_hit_with_threat(tgt, _weapon_hit(w, res), "shatteringslam", SHATTER_SLAM_THREAT if not iced.is_empty() else 1.0)
-	_slash_effect(Abilities.color_of("shatteringslam"))
-	if iced.is_empty():
-		return
-	_hit_with_threat(tgt, float(Abilities.EXTRA_HITS["shatteringslam"]), "shatteringslam", SHATTER_SLAM_THREAT,
-		"frost", PackedStringArray(["Ability", "Frost", "Melee"]))
-	# The shatter itself, on the target alone: the same routine as every other
-	# shatter (under the slam's name, with the slam's threat).
-	for i in iced.size():
-		shatter_at(at, "shatteringslam", 1.0, tgt, SHATTER_SLAM_THREAT)
-
-## A hit with its own threat multiplier (for bonus threat on top of the ability's data).
-func _hit_with_threat(enemy: Node, coef: float, id: String, threat_mult: float,
-		damage_type: String = "", tags: PackedStringArray = PackedStringArray()) -> void:
-	if enemy == null or not is_instance_valid(enemy) or not enemy.is_alive():
-		return
-	var info := DamageInfo.make(self, enemy, coef, id)
-	var r := Abilities.get_resource(id)
-	info.tags = tags if not tags.is_empty() else (r.tags if r else PackedStringArray())
-	info.damage_type = damage_type if damage_type != "" else (str(r.damage_type) if r else "physical")
-	info.threat_multiplier = threat_mult
-	_combat().deal(info)
-
-## Rime Slash: weapon frost damage in a small cone (3x threat). Rime Shell goes
-## on you; if Weakened Soul stops that, on one enemy it hit.
-func _rime_slash(w: Dictionary, res: Resource) -> void:
-	var reach := float(res.radius) + float(w.get("attack_range", 1.0)) * 0.5
-	var fwd := _flat_forward()
-	var cos_limit := cos(deg_to_rad(RIME_SLASH_HALF_ANGLE))
-	var hit: Array = []
-	for e in get_tree().get_nodes_in_group("enemies"):
-		if not (e is Node3D) or not e.is_alive():
-			continue
-		var to: Vector3 = e.global_position - global_position
-		to.y = 0.0
-		var d := to.length()
-		if d - Combat.hitbox_radius(e) > reach:
-			continue
-		if d > 0.6 and fwd.dot(to / d) < cos_limit:
-			continue
-		if not can_see(e):
-			continue
-		hit.append(e)
-	var coef := _weapon_hit(w, res)
-	for e in hit:
-		deal_damage(e, coef, "rimeslash")
-	for i in 2:
-		_slash_effect(Abilities.color_of("rimeslash"))
-	_cone_effect(reach, RIME_SLASH_HALF_ANGLE, Color(0.6, 0.9, 1.0))
-	var everlasting := _has_rune("everlasting_rime")
-	var absorb: int = int(round(_combat().heal_amount(self, float(Abilities.HEALS["rimeslash"]), "rimeslash") \
-		* absorb_mult() * (Balance.EVERLASTING_RIME_MULT if everlasting else 1.0)))   # Rime Ward counts here too
-	if not status.has("weakened_soul"):
-		receive_rime_shell(self, absorb, _talent("frost_shield_armor"), not everlasting)
-		return
-	if everlasting:
-		return   # Everlasting Rime: shells never go on enemies
-	# Weakened Soul: the shell goes on an enemy we hit (the target if it was hit).
-	var pick: Node = null
-	for e in hit:
-		if e.is_alive():
-			pick = e
-			if e == target:
-				break
-	if pick and _net():
-		_net().shell_enemy(pick, self, absorb)
-		_ring_effect(1.0, Color(0.6, 0.9, 1.0), pick.global_position)
-
-const RIME_SLASH_HALF_ANGLE := 50.0
-
-# --- Frost talents & runes: slows / freezes I apply ------------------------------------
-# Scanned once per frame from the enemies' status effects whose source is me.
-# Works the same solo, as the host and as a party member (whose enemies mirror
-# the host's effects with me as the source). A slow counts as (re)applied when
-# it's new or its time left jumped up (a refresh).
-
-const SHIELDS = preload("res://scripts/core/shields.gd")
-const FROZEN_FX = preload("res://data/effects/frozen.tres")
-
-var _my_slows := {}         # "enemy id|effect key" -> expires
-var _slowed_at := {}        # enemy instance id -> when I last slowed it
-var _glacial_haste := 0.0   # Glacial Heart capstone: Haste from my slows on enemies
-var _cold_snap := 0.0       # Cold Snap: seconds off the next GCD
-
-func _scan_my_slows() -> void:
-	# Nothing reacts to my slows: skip the scan.
-	if _talent("frost_cold_snap") <= 0.0 and _talent("frost_slow_threat") <= 0.0 \
-			and _talent("frost_slow_dr") <= 0.0 and not _capstone("frost_glacial_heart") \
-			and _talent("frost_instinct") <= 0.0 and not _has_rune("frozen_aegis"):
-		_my_slows.clear()
-		_slowed_at.clear()
-		_glacial_haste = 0.0
-		return
-	var now := Time.get_ticks_msec() / 1000.0
-	var seen := {}
-	var count := 0
-	for e in get_tree().get_nodes_in_group("enemies"):
-		if not e.is_alive():
-			continue
-		var st: Node = e.get_node_or_null("Status")
-		if st == null or st.effects.is_empty():
-			continue
-		var eid: int = e.get_instance_id()
-		for k in st.effects:
-			var fx: Dictionary = st.effects[k]
-			# My own application's clock: an ally refreshing the same slow neither
-			# takes it from me nor counts as me slowing the enemy again.
-			var expires: float = st.own_expires(fx, self)
-			if expires <= 0.0:
-				continue
-			var res: Resource = fx["res"]
-			if float(res.stat_modifiers.get("move_speed", 0.0)) >= 0.0:
-				continue
-			count += 1
-			var key := "%d|%s" % [eid, str(k)]
-			seen[key] = expires
-			var before: Variant = _my_slows.get(key)
-			if before == null or expires > float(before) + 0.25:
-				_on_slow_applied(e, str(res.id))
-	_my_slows = seen
-	_glacial_haste = count * Balance.GLACIAL_HEART_HASTE if _capstone("frost_glacial_heart") else 0.0
-	for id in _slowed_at.keys():
-		if now - float(_slowed_at[id]) > Balance.SLOW_MEMORY:
-			_slowed_at.erase(id)
-
-func _on_slow_applied(enemy: Node, effect_id: String) -> void:
-	_slowed_at[enemy.get_instance_id()] = Time.get_ticks_msec() / 1000.0
-	if effect_id != "frozen":
-		return
-	var cs := _talent("frost_cold_snap")
-	if cs > 0.0:
-		_cold_snap = maxf(_cold_snap, cs)
-	var fi := _talent("frost_instinct")
-	if fi > 0.0 and randf() * 100.0 < fi:
-		_grant_frozen_instinct()
-	if _has_rune("frozen_aegis"):
-		var amount := _aegis_amount(Balance.FROZEN_AEGIS_ON_FREEZE)
-		for a in _aegis_allies():
-			_give_aegis(a, amount)
-
-## Did I slow `enemy` in the last SLOW_MEMORY seconds? (Chilling Presence, Numbing Cold)
-func _slowed_recently(enemy: Variant) -> bool:   # untyped: may be a freed enemy
-	if enemy == null or not is_instance_valid(enemy):
-		return false
-	var at: Variant = _slowed_at.get(enemy.get_instance_id())
-	return at != null and Time.get_ticks_msec() / 1000.0 - float(at) <= Balance.SLOW_MEMORY
-
-## Glacial Heart: slows on me are this much as strong (StatusContainer asks).
-func slow_taken_mult() -> float:
-	return maxf(1.0 - _talent("frost_glacial_heart") / 100.0, 0.0)
-
-func _capstone(key: String) -> bool:
-	var pd := get_node_or_null("/root/PlayerData")
-	return pd != null and pd.talent_capstone(key)
-
-func _has_rune(id: String) -> bool:
-	var rl := get_node_or_null("RuneListener")
-	return rl != null and rl.has_rune(id)
-
-# --- Pacts -----------------------------------------------------------------------------------
-# One Pact for the dungeon (scripts/pacts.gd says what each is and changes; the
-# choice is PlayerData.pact). Here its bonus and drawback are applied and its
-# vow is watched. All of it is this machine's own player: nothing is sent.
-#   stats           _raw_stat adds Pacts.stat_mod (Haste, crit, movement, max health and mana)
-#   damage          _on_damage_modify -> _pact_outgoing / _pact_incoming (labelled: the meter shows it)
-#   cooldowns       _tick_cooldowns x Pacts.cooldown_rate
-#   costs           resource_cost x _pact_cost_mult
-#   resources       _gain x Pacts.resource_gain_mult
-#   healing         heal_taken_mult (CombatSystem.heal asks whoever is healed), _pact_heal_mult on what I cast
-#   out of combat   _tick_pact drains the Restless; _tick_health_regen stops for them
-# The vows: _go_down and _die (Unbowed), take_damage -> _pact_on_damage (Thin
-# Line, Sidestep), use_ability -> _pact_purist_blocks and cast_finished ->
-# _pact_on_ability (Purist), heal_done -> _pact_on_heal (Fast), my hits and heals
-# -> _pact_acted (Relentless), _tick_pact (Relentless, Restless, Reservoir, and
-# every PACT_POLL seconds the party: Shepherd, Vanguard).
-# _break_pact ends it for the run (PlayerData.pact_broken): the bonus turns round.
-
-const PACTS = preload("res://scripts/pacts.gd")
-const PACT_FX := "pact"       # the buff that shows it (it changes nothing itself)
-const PACT_POLL := 0.25       # seconds between looks at the party and at who the enemies are on
-
-var _pact_now := ""           # the Pact that counts right now ("" = none), worked out once a frame
-var _pact_now_broken := false
-var _pact_frame := -1
-var _pact_idle := 0.0         # Relentless: seconds in combat since I last hit an enemy or healed an ally
-var _pact_rest := 0.0         # Restless: seconds out of combat
-var _pact_fought := false     # ... which only count once I have been in a fight
-var _pact_cleared := false    # ... and stop when the dungeon is cleared
-var _pact_bleed := 0.0        # ... health lost out of combat that is not a whole point yet
-var _pact_poll_at := 0.0
-var _pact_downed := {}        # Shepherd: party member instance id -> were they down at the last look
-var _pact_on_me := {}         # Vanguard: enemy instance id -> it was attacking me at the last look
-var _pact_warned := ""        # Purist: the ability I was warned about ...
-var _pact_warned_at := 0.0    # ... and when
-var _pact_shown := ""         # what the buff shows ("" = nothing)
-
-func _pact_sync() -> void:
-	var frame := Engine.get_process_frames()
-	if frame == _pact_frame:
-		return
-	_pact_frame = frame
-	var pd := get_node_or_null("/root/PlayerData")
-	var id := str(pd.pact) if pd else ""
-	if id != "" and PACTS.party_only(id):
-		var net := _net()
-		if net == null or not net.with_others():
-			id = ""   # a party Pact does nothing alone: no bonus, no drawback, no vow
-	_pact_now = id if PACTS.exists(id) else ""
-	_pact_now_broken = _pact_now != "" and bool(pd.pact_broken)
-
-## The Pact I hold that counts right now ("" = none).
-func pact_id() -> String:
-	_pact_sync()
-	return _pact_now
-
-func pact_broken() -> bool:
-	_pact_sync()
-	return _pact_now_broken
-
-func _pact_book() -> String:
-	var pd := get_node_or_null("/root/PlayerData")
-	return str(pd.pact_book) if pd else ""
-
-func _pact_stat(key: String) -> float:
-	var id := pact_id()
-	return PACTS.stat_mod(id, _pact_now_broken, key) if id != "" else 0.0
-
-## A hit I deal (_on_damage_modify).
-func _pact_outgoing(info: RefCounted) -> void:
-	var id := pact_id()
-	if id == "":
-		return
-	var pct := PACTS.damage_dealt_pct(id, _pact_now_broken)
-	if pct != 0.0:
-		info.add_bonus(pct, PACTS.pact_name(id))
-
-## A hit I take (_on_damage_modify).
-func _pact_incoming(info: RefCounted) -> void:
-	var id := pact_id()
-	if id == "":
-		return
-	var pct := PACTS.damage_taken_pct(id, _pact_now_broken)
-	if pct != 0.0:
-		info.add_bonus(pct, PACTS.pact_name(id))
-
-func _pact_cost_mult(res: String) -> float:
-	var id := pact_id()
-	return PACTS.cost_mult(id, _pact_now_broken, res) if id != "" else 1.0
-
-## What the heals I cast are multiplied by.
-func _pact_heal_mult() -> float:
-	var id := pact_id()
-	return PACTS.heal_done_mult(id, _pact_now_broken) if id != "" else 1.0
-
-## What a heal landing on me is multiplied by (CombatSystem.heal asks).
-func heal_taken_mult(source: Node, _ability_id: String = "") -> float:
-	var id := pact_id()
-	var mult := PACTS.heal_taken_mult(id, _pact_now_broken, is_same(source, self)) if id != "" else 1.0
-	# Penitent (an open Holy talent): my next heal on myself after a big hit is stronger (and that uses it up).
-	if is_same(source, self) and status != null and status.has(HolyTalentsKit.PENITENT_FX):
-		status.remove(HolyTalentsKit.PENITENT_FX)
-		mult *= 1.0 + _talent("holy_penitent") / 100.0
-	return mult
-
-## The vow was broken: the Pact works against me until the dungeon ends.
-func _break_pact(why: String) -> void:
-	var id := pact_id()
-	if id == "" or _pact_now_broken:
-		return
-	_pact_frame = -1
-	_pact_shown = ""   # (the buff is drawn again, as broken)
-	get_node("/root/PlayerData").break_pact()   # (its `changed` re-derives my stats: _on_stats_changed)
-	_combat().float_text(self, "%s is broken!" % PACTS.pact_name(id), PACTS.COLOR, true)
-	_error("%s is broken" % PACTS.pact_name(id))
-	var gl := get_node_or_null("/root/GameLog")
-	if gl:
-		gl.event("%s is broken: %s. Until the dungeon ends: %s" % [PACTS.pact_name(id), why, PACTS.text(id, "broken")],
-			Color(1.0, 0.45, 0.5))
-
-## Unbowed: I went down, or died.
-func _pact_on_down() -> void:
-	if PACTS.breaks_on_down(pact_id()):
-		_break_pact("you went down")
-
-## A hit of `amount` just landed on me (take_damage; my health is already lower).
-func _pact_on_damage(amount: int) -> void:
-	var id := pact_id()
-	if id == "" or _pact_now_broken or not PACTS.breaks_on_hit(id, amount, health, max_health):
-		return
-	_break_pact("you dropped below %s%% health" % Stats.num(Balance.PACT_THIN_LINE_FLOOR) if id == PACTS.THIN_LINE
-		else "one hit took more than %s%% of your health" % Stats.num(Balance.PACT_SIDESTEP_HIT))
-
-## Purist: would using ability `id` break the Pact? The first press only warns;
-## pressing it again within PACT_PURIST_CONFIRM seconds goes through.
-func _pact_purist_blocks(id: String) -> bool:
-	var pact := pact_id()
-	if pact == "" or _pact_now_broken or not Abilities.PATHS.has(id):
-		return false
-	if not PACTS.breaks_on_ability(pact, Abilities.category_of(id), _pact_book(), Abilities.is_trinket_slot(id)):
-		return false
-	var now := Time.get_ticks_msec() / 1000.0
-	if _pact_warned == id and now - _pact_warned_at <= Balance.PACT_PURIST_CONFIRM:
-		return false
-	_pact_warned = id
-	_pact_warned_at = now
-	_error("%s would break %s. Use it again to do it anyway." % [Abilities.ability_name(id), PACTS.pact_name(pact)])
-	return true
-
-## Purist: an ability of mine went off (SignalBus.cast_finished: instants, and casts as they finish).
-func _pact_on_ability(id: String) -> void:
-	var pact := pact_id()
-	if pact == "" or _pact_now_broken or not Abilities.PATHS.has(id):
-		return
-	if PACTS.breaks_on_ability(pact, Abilities.category_of(id), _pact_book(), Abilities.is_trinket_slot(id)):
-		_break_pact("you used %s" % Abilities.ability_name(id))
-
-## A heal of mine landed (_on_heal_done_strings). Fast: on me, from a spell or an
-## ability. Relentless: on someone else counts as doing something.
-func _pact_on_heal(healed: Node, id: String) -> void:
-	if healed != null and not is_same(healed, self):
-		_pact_idle = 0.0
-		return
-	var pact := pact_id()
-	if pact != "" and not _pact_now_broken and PACTS.breaks_on_self_heal(pact, Abilities.PATHS.has(id)):
-		_break_pact("you healed yourself with %s" % Abilities.ability_name(id))
-
-## Relentless: a hit of mine landed on an enemy (_on_damage_dealt_shadow, which
-## sees every one; damage over time does not count).
-func _pact_acted(info: RefCounted) -> void:
-	if not bool(info.is_dot):
-		_pact_idle = 0.0
-
-## Every frame: the buff that shows the Pact, the vows that are about time, the
-## Restless losing health out of combat, and a look at the party now and then.
-func _tick_pact(delta: float) -> void:
-	var id := pact_id()
-	if id == "":
-		_pact_show("")
-		return
-	_pact_show(id + ("!" if _pact_now_broken else ""))
-	if is_dead():
-		_pact_on_me.clear()   # (dead or down: nothing is counted, and enemies may go where they like)
-		return
-	if in_combat:
-		_pact_fought = true
-		_pact_rest = 0.0
-		_pact_idle += delta
-	else:
-		_pact_idle = 0.0
-		if _pact_fought and not _pact_cleared:
-			_pact_rest += delta
-			_pact_bleed_tick(id, delta)
-	if _pact_now_broken:
-		return
-	if PACTS.breaks_on_idle(id, _pact_idle):
-		_break_pact("%s sec in combat without hitting an enemy or healing an ally" % Stats.num(Balance.PACT_RELENTLESS_IDLE))
-	elif PACTS.breaks_on_rest(id, _pact_rest):
-		_break_pact("%s sec out of combat" % Stats.num(Balance.PACT_RESTLESS_IDLE))
-	elif PACTS.breaks_on_mana(id, float(resources.get("mana", 0.0)), resource_max("mana")):
-		_break_pact("you dropped below %s%% mana" % Stats.num(Balance.PACT_RESERVOIR_FLOOR))
-	var now := Time.get_ticks_msec() / 1000.0
-	if now >= _pact_poll_at:
-		_pact_poll_at = now + PACT_POLL
-		_pact_watch_party(id)
-
-## The Restless: health drains out of combat (never the last point), kept or broken.
-func _pact_bleed_tick(id: String, delta: float) -> void:
-	var pct := PACTS.bleed_pct(id)
-	if pct <= 0.0 or health <= 1:
-		_pact_bleed = 0.0
-		return
-	_pact_bleed += float(max_health) * pct / 100.0 * delta
-	if _pact_bleed < 1.0:
-		return
-	var lost := mini(int(_pact_bleed), health - 1)
-	_pact_bleed -= int(_pact_bleed)
-	if lost > 0:
-		health -= lost
-		health_changed.emit(health, max_health)
-		_bus().player_health_changed.emit(health, max_health)
-
-## Shepherd: did a party member just go down near me? Vanguard: did an enemy
-## that was on me turn on one of them?
-func _pact_watch_party(id: String) -> void:
-	if id == PACTS.SHEPHERD:
-		for p in get_tree().get_nodes_in_group("remote_player"):
-			if not (p is Node3D):
-				continue
-			var key: int = p.get_instance_id()
-			var down: bool = not p.is_alive()
-			var was: Variant = _pact_downed.get(key)
-			_pact_downed[key] = down
-			if was != null and down and not bool(was) and PACTS.breaks_on_ally_down(id, _flat_dist_to(p.global_position)):
-				_break_pact("a party member went down near you")
-				return
-	elif id == PACTS.VANGUARD:
-		var mine := {}
-		for e in get_tree().get_nodes_in_group("enemies"):
-			if not e.has_method("threat_state_for") or not e.is_alive():
-				continue
-			var key: int = e.get_instance_id()
-			if int(e.threat_state_for(self)) == 2:
-				mine[key] = true
-			elif _pact_on_me.has(key) and _pact_enemy_on_ally(e) and PACTS.breaks_on_lost_enemy(id):
-				_break_pact("an enemy left you for a party member")
-				return
-		_pact_on_me = mine
-
-## Is enemy `e` attacking another player of my party right now? (On a party
-## member's machine the host says who it is on; a decoy or a dummy is nobody.)
-func _pact_enemy_on_ally(e: Node) -> bool:
-	var net := _net()
-	if net == null:
-		return false
-	if net.is_client():
-		var on: Variant = e.get("_net_threat")
-		var member := int(on) if on != null else 0
-		return member != 0 and member != int(net.my_id()) and net.members.has(member)
-	var top: Variant = e.top_threat() if e.has_method("top_threat") else null
-	return top != null and is_instance_valid(top) and (top as Node).is_in_group("remote_player")
-
-## Keep the buff that shows the Pact (`key`: the Pact id, with "!" once broken;
-## "" = none). Death clears every buff: it is put back when I am up again.
-func _pact_show(key: String) -> void:
-	if status == null:
-		return
-	if key == "":
-		if _pact_shown != "":
-			status.remove(PACT_FX)
-			_pact_shown = ""
-		return
-	if (key == _pact_shown and status.has(PACT_FX)) or is_dead():
-		return
-	var id := pact_id()
-	status.remove(PACT_FX)
-	var fx := StatusContainer.make_buff(PACT_FX, PACTS.title(id, _pact_book()) + (" (broken)" if _pact_now_broken else ""), PACT_FX,
-		0.0, 1.0e7, 1, PACTS.BROKEN_COLOR if _pact_now_broken else PACTS.COLOR)
-	fx.stat_modifiers = {}
-	fx.is_debuff = _pact_now_broken
-	fx.show_time = false   # (it lasts for the whole dungeon)
-	fx.description = PACTS.status_text(id, _pact_now_broken)
-	status.apply(fx, self)
-	_pact_shown = key
-
-# --- Dusk till Dawn (Legendary rune): Dusk, then Dawn ------------------------------------
-# With the rune on my gear, dealing Shadow damage of any kind (damage over time
-# and procs too) gives me Dusk: more Shadow damage for DUSK_TIME. Nothing
-# refreshes Dusk. When it runs out Dawn starts: more Holy damage for DAWN_TIME.
-# Shadow damage starts the next Dusk only once Dawn is over, so the two take
-# turns and are never up together. Both are my own buffs. The numbers are in
-# balance.gd.
-
-const DUSK_RUNE := "dusk_till_dawn"
-const DUSK_ID := "dusk"
-const DAWN_ID := "dawn"
-const DUSK_COLOR := Color(0.55, 0.4, 0.85)
-const DAWN_COLOR := Color(1.0, 0.85, 0.45)
-var _dusk_fx: Resource
-var _dawn_fx: Resource
-var _dusk_until := 0.0   # seconds: when the Dusk I have runs out on its own (0 = I have none)
-
-## Does a hit of mine start Dusk? Any Shadow damage that lands, while I have
-## neither Dusk nor Dawn.
-static func starts_dusk(damage_type: String, amount: int, has_dusk: bool, has_dawn: bool) -> bool:
-	return damage_type == "shadow" and amount > 0 and not has_dusk and not has_dawn
-
-## My Dusk is gone: does Dawn follow? Only when it ran its whole time (not when
-## dying or leaving cleared it) and the rune is still on my gear.
-static func dawn_follows(now: float, dusk_until: float, has_rune: bool) -> bool:
-	return has_rune and dusk_until > 0.0 and now >= dusk_until - 0.25
-
-## Dusk: more Shadow damage of every kind. It runs its time; nothing refreshes it.
-static func make_dusk_fx() -> Resource:
-	var fx := StatusContainer.make_buff(DUSK_ID, "Dusk", DUSK_ID, 0.0, Balance.DUSK_TIME, 1, DUSK_COLOR)
-	fx.stat_modifiers = {}
-	fx.stack_mode = 2   # IGNORE
-	fx.tags = PackedStringArray(["Shadow"])
-	fx.damage_mod_pct = Balance.DUSK_DAMAGE_PCT
-	fx.mod_damage_types = PackedStringArray(["shadow"])
-	fx.mod_affects_dots = true
-	fx.description = "You deal %s%% more Shadow damage. When Dusk ends you gain Dawn." % Stats.num(Balance.DUSK_DAMAGE_PCT)
-	return fx
-
-## Dawn: more Holy damage of every kind. No Dusk can start while it lasts.
-static func make_dawn_fx() -> Resource:
-	var fx := StatusContainer.make_buff(DAWN_ID, "Dawn", DAWN_ID, 0.0, Balance.DAWN_TIME, 1, DAWN_COLOR)
-	fx.stat_modifiers = {}
-	fx.stack_mode = 2   # IGNORE
-	fx.tags = PackedStringArray(["Holy"])
-	fx.damage_mod_pct = Balance.DAWN_DAMAGE_PCT
-	fx.mod_damage_types = PackedStringArray(["holy"])
-	fx.mod_affects_dots = true
-	fx.description = "You deal %s%% more Holy damage. Dusk cannot start until Dawn ends." % Stats.num(Balance.DAWN_DAMAGE_PCT)
-	return fx
-
-## A hit of mine landed (called for every one, from _on_damage_dealt_shadow).
-func _dusk_on_hit(info: RefCounted) -> void:
-	if status == null or not _has_rune(DUSK_RUNE):
-		return
-	var has_dusk: bool = _dusk_until > 0.0 or status.has(DUSK_ID)
-	if not starts_dusk(str(info.damage_type), int(info.amount), has_dusk, status.has(DAWN_ID)):
-		return
-	if _dusk_fx == null:
-		_dusk_fx = make_dusk_fx()
-	if status.apply(_dusk_fx, self):
-		_dusk_until = Time.get_ticks_msec() / 1000.0 + float(status.remaining_of(DUSK_ID))
-
-## Every frame: the moment my Dusk runs out, Dawn starts.
-func _tick_dusk() -> void:
-	if _dusk_until <= 0.0 or status == null or status.has(DUSK_ID):
-		return
-	var until := _dusk_until
-	_dusk_until = 0.0
-	if not dawn_follows(Time.get_ticks_msec() / 1000.0, until, _has_rune(DUSK_RUNE)):
-		return
-	if _dawn_fx == null:
-		_dawn_fx = make_dawn_fx()
-	status.apply(_dawn_fx, self)
-
 # --- Auto-target -----------------------------------------------------------------------
 # Using something that needs an enemy target while you have none picks the
 # closest enemy it could legally be used on: alive, in range and in line of sight
@@ -4559,7 +3917,7 @@ func adjust_crit(info: RefCounted, chance: float) -> float:
 	var frost_spell := tags.has("Frost") and tags.has("Spell")
 	if not info.is_dot and float(_empowered.get(id, 0.0)) > Time.get_ticks_msec() / 1000.0:
 		chance += 100.0                          # Cold Precision
-	if frost_spell and _has_rune("permafrost"):
+	if frost_spell and frost_melee._has_rune("permafrost"):
 		# Permafrost: no crits; the crit chance becomes extra damage over time.
 		info.set_meta("permafrost_pct", clampf(chance, 0.0, 100.0) * Balance.PERMAFROST_CRIT_FACTOR)
 		return 0.0
@@ -4577,316 +3935,6 @@ func adjust_crit(info: RefCounted, chance: float) -> float:
 		chance = Balance.DULL_EDGE_CRIT_CAP
 	return chance
 
-# --- Cold Precision rune: every 6th Frost spell / ability crits ------------------------
-# Counted when a cast finishes. After 5, the next one is empowered: an instant
-# one as it's used (its hits land before it "finishes"), a cast one when it
-# finishes (its projectile lands after). Its hits for a few seconds crit.
-
-var _cp_count := 0
-var _cp_armed := false
-var _cp_pending := ""   # instant empowered on use, confirmed when it actually goes off
-
-static func _is_frost_action(id: String) -> bool:
-	var t := Abilities.tags_of(id)
-	return t.has("Frost") and (t.has("Spell") or t.has("Ability"))
-
-func _cold_precision_on_use(id: String) -> void:
-	if not _cp_armed or not _has_rune("cold_precision") or not _is_frost_action(id):
-		return
-	var res := Abilities.get_resource(id)
-	if res == null or float(res.cast_time) > 0.0 or id == "blizzard":
-		return   # cast-time spells are empowered when the cast finishes
-	# Empower now (its hits land right away); if it fails (cooldown, range...)
-	# it never "finishes" and the empowerment is taken back.
-	_empowered[id] = Time.get_ticks_msec() / 1000.0 + Balance.COLD_PRECISION_WINDOW
-	_cp_pending = id
-	_cold_precision_undo.call_deferred(id)
-
-func _cold_precision_undo(id: String) -> void:
-	if _cp_pending == id:
-		_cp_pending = ""
-		_empowered.erase(id)
-
-func _cold_precision_on_cast(id: String) -> void:
-	if id != "" and id == _cp_pending:
-		_cp_pending = ""
-		_cold_precision_fire(id)   # the empowered instant went off
-		return
-	if not _has_rune("cold_precision") or not _is_frost_action(id):
-		return
-	_empowered.erase(id)   # a new cast of this ability: the old empowerment is over
-	if _cp_armed:
-		_cold_precision_fire(id)
-		return
-	_cp_count += 1
-	if _cp_count >= Balance.COLD_PRECISION_EVERY - 1:
-		_cp_armed = true
-
-func _cold_precision_fire(id: String) -> void:
-	_cp_armed = false
-	_cp_count = 0
-	_empowered[id] = Time.get_ticks_msec() / 1000.0 + Balance.COLD_PRECISION_WINDOW
-	_combat().float_text(self, "Cold Precision", Color(0.7, 0.92, 1.0), false)
-
-# --- Permafrost rune: rolling Frost damage from crit chance -----------------------------
-
-var _perma := {}   # enemy instance id -> {"target", "left" (damage), "ticks", "next"}
-
-func _on_damage_dealt_frost(info: RefCounted) -> void:
-	if not is_same(info.source, self) or info.avoided() or int(info.amount) <= 0:
-		return
-	if not is_instance_valid(info.target):
-		return
-	var tgt: Node = info.target
-	if str(info.ability_id) == "icepin":
-		_note_icepin(tgt)   # Pinning Frost
-	_coldmark_arrow(info)     # Coldmark: my arrows on the marked target give Ice Shard charges
-	if info.has_meta("cold_draw"):
-		_gain("energy", _talent("frost_cold_draw"))   # Cold Draw: the target was already Chilled or Frozen
-	_rimefletch_shot(info)    # Rimefletch: my auto-shots carry an extra Frost hit
-	_rime_edge_on_hit(info)   # Rime Edge: my melee hits carry an extra Frost hit
-	if not is_instance_valid(tgt) or not tgt.is_alive():
-		return   # (that extra hit can be the killing blow)
-	if info.has_meta("permafrost_pct"):
-		var pct := float(info.get_meta("permafrost_pct"))
-		if pct > 0.0:
-			_add_permafrost(tgt, float(info.amount) * pct / 100.0)
-	# Frozen Aegis: damaging an enemy I Froze shields the lowest-health ally near me.
-	if tgt.is_in_group("enemies") and _has_rune("frozen_aegis"):
-		var st: Node = tgt.get_node_or_null("Status")
-		if st and st.has_from("frozen", self):
-			var pick := _lowest_health_ally()
-			if pick:
-				_give_aegis(pick, _aegis_amount(Balance.FROZEN_AEGIS_ON_HIT))
-
-func _add_permafrost(tgt: Node, dmg: float) -> void:
-	var key := tgt.get_instance_id()
-	var now := Time.get_ticks_msec() / 1000.0
-	var e: Dictionary = _perma.get(key, {"target": tgt, "left": 0.0, "next": now + 1.0})
-	e["left"] = float(e["left"]) + dmg
-	e["ticks"] = int(round(Balance.PERMAFROST_TIME))   # rolling: the pool restarts its 6 s
-	_perma[key] = e
-
-func _tick_permafrost() -> void:
-	if _perma.is_empty():
-		return
-	var now := Time.get_ticks_msec() / 1000.0
-	for key in _perma.keys():
-		var e: Dictionary = _perma[key]
-		if not is_instance_valid(e["target"]) or not e["target"].is_alive() or int(e["ticks"]) <= 0:
-			_perma.erase(key)
-			continue
-		var tgt: Node = e["target"]
-		if now < float(e["next"]):
-			continue
-		var amt := float(e["left"]) / int(e["ticks"])
-		e["left"] = float(e["left"]) - amt
-		e["ticks"] = int(e["ticks"]) - 1
-		e["next"] = float(e["next"]) + 1.0
-		if amt > 0.0:
-			var info := DamageInfo.make(self, tgt, 1.0, "permafrost")
-			info.unit = amt
-			info.exact = true
-			info.add_power = false
-			info.can_crit = false
-			info.can_block = false
-			info.is_dot = true
-			info.damage_type = "frost"
-			info.tags = PackedStringArray(["Frost", "Spell", "DoT"])
-			_combat().deal(info)
-
-# --- Frozen Aegis rune: shields for you and allies ------------------------------------
-
-## Shield size: `share` x a Heal spell, with Rime Ward.
-func _aegis_amount(share: float) -> int:
-	return int(round(_combat().heal_amount(self, Balance.REFERENCE_HEAL * share) * absorb_mult()))
-
-## Me + party members + friendly dummies within FROZEN_AEGIS_RADIUS.
-func _aegis_allies() -> Array:
-	return fire_cooldowns._allies_within(Balance.FROZEN_AEGIS_RADIUS)
-
-## The ally (me included) within `radius` with the smallest share of their health left.
-func _lowest_health_ally(radius: float = Balance.FROZEN_AEGIS_RADIUS) -> Node:
-	var allies := fire_cooldowns._allies_within(radius)
-	var shares: Array = []
-	for a in allies:
-		var h: Variant = a.get("health")
-		var mh: Variant = a.get("max_health")
-		shares.append(float(h) / maxf(float(mh), 1.0) if h != null and mh != null else 1.0)
-	var i := FireCooldownsKit.lowest_share(shares)
-	return allies[i] if i >= 0 else null
-
-func _give_aegis(who: Node, amount: int) -> void:
-	if who == null or not is_instance_valid(who) or amount <= 0:
-		return
-	var cap := _aegis_amount(Balance.FROZEN_AEGIS_CAP)
-	var armor := _talent("frost_shield_armor")
-	if who == self:
-		receive_frozen_aegis(self, amount, cap, armor)
-	elif who.is_in_group("remote_player"):
-		if _net():
-			_net().aegis_ally(who, self, amount, cap, armor)
-	elif who.has_method("receive_frozen_aegis"):
-		who.receive_frozen_aegis(self, amount, cap, armor)
-
-## A Frozen Aegis shield lands on me (adds up to `cap`).
-func receive_frozen_aegis(caster: Node, amount: int, cap: int, armor_pct: float = 0.0) -> void:
-	if is_dead():
-		return
-	SHIELDS.add_aegis(status, caster, amount, cap, armor_pct)
-
-# --- Ice Shards talents: Splintering, Shardstorm, Deep Freeze capstone ------------------
-
-var _shardstorm_count := 0
-var _blizzard_shards := 0
-
-## Every Ice Shard fired at `aim`.
-func _on_shard_fired(aim: Node3D) -> void:
-	var ss := _talent("frost_shardstorm")
-	if ss > 0.0:
-		_shardstorm_count += 1
-		if _shardstorm_count >= Balance.SHARDSTORM_EVERY:
-			_shardstorm_count = 0
-			add_buff("shardstorm", Stats.HASTE, ss, Balance.SHARDSTORM_TIME, 1, "Shardstorm")
-	if _capstone("frost_deep_freeze"):
-		_blizzard_shards += 1
-		if _blizzard_shards >= Balance.DEEP_FREEZE_BLIZZARD_EVERY:
-			_blizzard_shards = 0
-			_free_blizzard(aim)
-
-## Deep Freeze capstone: a Blizzard at the target at reduced strength.
-func _free_blizzard(aim: Node3D) -> void:
-	if aim == null or not is_instance_valid(aim):
-		return
-	var p := aim.global_position
-	var at := Vector3(p.x, Combat.feet_y(aim), p.z)
-	var bliz := Node3D.new()
-	bliz.set_script(BLIZZARD)
-	bliz.radius = blizzard_radius()
-	bliz.source = self
-	bliz.damage = float(Abilities.get_resource("blizzard").damage) * Balance.DEEP_FREEZE_BLIZZARD_MULT
-	get_tree().current_scene.add_child(bliz)
-	bliz.global_position = at
-	var net := _net()
-	if net:
-		net.send_fx("blizzard", at, null, "", {"r": bliz.radius})
-
-## Splintering: a shard that hit a Frozen / Rime Shelled enemy hits another one nearby.
-func _splinter(at: Vector3, from_id: int) -> void:
-	var others := _enemies_near(at, Balance.SPLINTER_RANGE).filter(func(e): return e.get_instance_id() != from_id)
-	if others.is_empty():
-		return
-	deal_damage(others.pick_random(), _talent("frost_splinter"), "splintering", true, "frost",
-		PackedStringArray(["Frost", "Spell"]))
-
-## Deep Freeze: Freeze the target (a 0-damage hit carrying Frozen, so it works in a party too).
-func _apply_freeze(tgt: Node, tags: PackedStringArray) -> void:
-	var info := DamageInfo.make(self, tgt, 0.0, "deepfreeze")
-	info.tags = tags
-	info.damage_type = "frost"
-	info.can_block = false
-	info.can_crit = false
-	info.add_power = false
-	info.is_proc = true
-	info.effects.append(FROZEN_FX)
-	_combat().deal(info)
-
-# --- Winter's Bite: every third one Freezes ---------------------------------------------
-# Each cast adds a stack of a counter buff on me (WINTERS_BITE_TIME seconds,
-# restarted by each stack). The cast that would bring it to WINTERS_BITE_STACKS
-# uses the stacks up and Freezes the target instead of Chilling it.
-
-const WINTERS_BITE_ID := "winters_bite"
-var _bite_fx: Resource
-var _bite_freezing := false   # the Winter's Bite being dealt right now is the one that Freezes
-
-# --- Pinning Frost: which enemies my Icepin has rooted ------------------------------------
-# Rooted is one effect for everything that roots, so the Icepin that caused it
-# is remembered here: enemy instance id -> when that root runs out.
-var _icepin_roots := {}
-
-func _note_icepin(tgt: Node) -> void:
-	var res := Abilities.get_resource("icepin")
-	var fx: Resource = res.on_hit_effect if res else null
-	if fx == null:
-		return
-	var now := Time.get_ticks_msec() / 1000.0
-	for key in _icepin_roots.keys():
-		if float(_icepin_roots[key]) <= now:
-			_icepin_roots.erase(key)
-	_icepin_roots[tgt.get_instance_id()] = now + float(fx.duration) + effect_duration_bonus(fx)
-
-## Is `tgt` rooted by my Icepin right now?
-func _icepin_root_on(tgt: Node) -> bool:
-	var until := float(_icepin_roots.get(tgt.get_instance_id(), 0.0))
-	if until <= Time.get_ticks_msec() / 1000.0:
-		return false
-	var st: Node = tgt.get_node_or_null("Status")
-	return st != null and st.has_from(str(Abilities.get_resource("icepin").on_hit_effect.id), self)
-
-func _winters_bite_fx() -> Resource:
-	if _bite_fx == null:
-		_bite_fx = StatusContainer.make_buff(WINTERS_BITE_ID, Abilities.ability_name("froststrike"), WINTERS_BITE_ID, 0.0,
-			Balance.WINTERS_BITE_TIME, Balance.WINTERS_BITE_STACKS, Abilities.color_of("froststrike"))
-		_bite_fx.stat_modifiers = {}
-		_bite_fx.description = "At %d stacks your %s Freezes its target instead of Chilling it, and the stacks are used up." % [
-			Balance.WINTERS_BITE_STACKS, Abilities.ability_name("froststrike")]
-	return _bite_fx
-
-## Does the cast that follows `stacks` earlier ones Freeze?
-static func winters_bite_freezes(stacks: int) -> bool:
-	return stacks + 1 >= Balance.WINTERS_BITE_STACKS
-
-func _winters_bite(tgt: Node, coef: float) -> void:
-	if tgt == null or not is_instance_valid(tgt) or not tgt.is_alive():
-		return
-	var freeze := winters_bite_freezes(int(status.stacks_of(WINTERS_BITE_ID)))
-	if freeze:
-		status.remove(WINTERS_BITE_ID)
-	else:
-		status.apply(_winters_bite_fx(), self)
-	var at: Vector3 = tgt.global_position
-	var info = _combat().ability_hit_info(self, tgt, coef, "froststrike")
-	if freeze:
-		info.effects = [FROZEN_FX]   # instead of its Chill
-	_bite_freezing = freeze   # Third Bite reads this while the hit is worked out
-	_combat().deal(info)
-	_bite_freezing = false
-	if not info.avoided():
-		_on_hit_extra(tgt, at, "froststrike")
-
-# --- Ice Floe & Shatterpoint -----------------------------------------------------------
-
-const CHILLED_FX = preload("res://data/effects/chilled.tres")
-var _last_hit_by: Variant = null   # whoever hit me last (the shield breaker)
-
-## Ice Floe: an absorb shield I put on myself was used up by damage (own only:
-## a party member's shield on me breaking does nothing for my talents).
-func _on_my_shield_broken(id: String) -> void:
-	if id == ArcaneCasterKit.WARD_FX and is_same(status.last_shield_source, self):
-		arcane_caster._ward_broke()   # Interval Ward: the time it had left comes off its cooldown
-	var v := _talent("frost_ice_floe")
-	if v <= 0.0 or is_dead() or not is_same(status.last_shield_source, self):
-		return
-	add_buff("icefloe", Stats.MOVE_SPEED, v, Balance.ICE_FLOE_TIME, 1, "Ice Floe")
-	var foe: Variant = _last_hit_by
-	if foe != null and is_instance_valid(foe) and foe.is_in_group("enemies") and foe.is_alive():
-		# A 0-damage hit carrying Chilled (works in a party too, like Deep Freeze).
-		var info := DamageInfo.make(self, foe, 0.0, "icefloe")
-		info.tags = PackedStringArray(["Frost", "Spell"])
-		info.damage_type = "frost"
-		info.can_block = false
-		info.can_crit = false
-		info.add_power = false
-		info.is_proc = true
-		info.effects.append(CHILLED_FX)
-		_combat().deal(info)
-
-## Shatterpoint capstone: every shatter gives an Ice Shard charge.
-func _shatterpoint_charge() -> void:
-	if _capstone("frost_shatterpoint"):
-		gain_ice_shard()
-
 # --- Interrupts: one shared cooldown ----------------------------------------------------
 # Every interrupt (Balance.INTERRUPT_LOCKOUT lists them, whatever their book) has a
 # cooldown of at least INTERRUPT_SHARED_COOLDOWN, and using any of them puts all
@@ -4900,439 +3948,6 @@ static func interrupt_cooldowns(used: String, own_cd: float, current: Dictionary
 		var left := own_cd if other == used else float(current.get(other, 0.0))
 		out[other] = maxf(left, Balance.INTERRUPT_SHARED_COOLDOWN)
 	return out
-
-# --- Frost, second batch ------------------------------------------------------------------
-# Coldspike, Sleetwave, Deepwinter, Rimelock, Snow Ward, Winter Hide, Rime Edge,
-# Icebreaker and Icepin. Everything that asks about a Freeze asks about MINE
-# (has_from); Snow Ward is the one that works for the whole party, by design.
-
-const DEEPWINTER_ID := "deepwinter"
-const WINTER_HIDE_ID := "winterhide"
-const RIME_EDGE_ID := "rimeedge"
-const SLEET_WAVE = preload("res://scripts/sleet_wave.gd")
-
-## Chill `foe` without damage: a 0-damage hit carrying Chilled, so it works in a
-## party too (and Deepwinter turns it into a Freeze like any other Chill).
-func _chill(foe: Variant, id: String, tags: PackedStringArray = PackedStringArray(["Frost", "Spell"]),
-		freeze: bool = false) -> void:
-	if foe == null or not is_instance_valid(foe) or not (foe is Node) or not foe.is_in_group("enemies") or not foe.is_alive():
-		return
-	var info := DamageInfo.make(self, foe, 0.0, id)
-	info.tags = tags
-	info.damage_type = "frost"
-	info.can_block = false
-	info.can_crit = false
-	info.add_power = false
-	info.is_proc = true
-	info.effects.append(FROZEN_FX if freeze else CHILLED_FX)   # (freeze: Black Ice)
-	_combat().deal(info)
-
-## Deepwinter: the effect one of my hits really applies. While it is up a Chill
-## is a Freeze instead; everything else is left alone.
-static func winter_swap(eff: Resource, deepwinter: bool) -> Resource:
-	if deepwinter and eff != null and str(eff.id) == "chilled":
-		return FROZEN_FX
-	return eff
-
-## CombatSystem asks this for every effect my hits (and my hit-less applications) carry.
-func effect_override(eff: Resource) -> Resource:
-	return winter_swap(eff, status != null and status.has(DEEPWINTER_ID))
-
-func _start_deepwinter() -> void:
-	var fx := StatusContainer.make_buff(DEEPWINTER_ID, "Deepwinter", DEEPWINTER_ID, 0.0,
-		Balance.DEEPWINTER_TIME, 1, Abilities.color_of(DEEPWINTER_ID))
-	fx.stat_modifiers = {}
-	fx.description = "Every Chill you apply is a Freeze instead."
-	status.apply(fx, self)
-	_ring_effect(2.2, Abilities.color_of(DEEPWINTER_ID))
-	_ring_effect(1.2, Color(0.95, 0.97, 1.0))
-
-## Sleetwave: a wave that crosses a strip in front of me (turned to my target if I
-## have one). The enemies standing in the strip now set the AoE cap's share; the
-## wave (scripts/sleet_wave.gd) hits each enemy as it reaches it.
-func _sleet_wave(res: Resource) -> void:
-	if _has_valid_target():
-		var to_target := target.global_position - global_position
-		rotation.y = atan2(-to_target.x, -to_target.z)
-	var dir := _flat_forward()
-	var origin := Vector3(global_position.x, Combat.feet_y(self), global_position.z)
-	var reach := float(res.radius)
-	var count := 0
-	for e in get_tree().get_nodes_in_group("enemies"):
-		if e is Node3D and e.is_alive() and SLEET_WAVE.in_path(origin, dir, e.global_position, reach,
-				Balance.SLEETWAVE_WIDTH, Combat.hitbox_radius(e)):
-			count += 1
-	SLEET_WAVE.spawn(get_tree().current_scene, origin, dir, self, float(res.damage) * Balance.aoe_share(count),
-		reach, Balance.SLEETWAVE_WIDTH, Balance.SLEETWAVE_SPEED)
-	_net_fx("sleetwave", origin, null, {"yaw": rotation.y, "len": reach, "w": Balance.SLEETWAVE_WIDTH})   # the party sees it; the hits come from here
-
-## Snow Ward: a shield on every ally within the ability's radius, me included
-## (this one is for the whole party by design). Each is SNOW_WARD_SHARE x a Heal
-## spell, with Rime Ward and Hardened Frost like my other shields.
-func _snow_ward(res: Resource) -> void:
-	var amount := _aegis_amount(Balance.SNOW_WARD_SHARE)
-	var armor := _talent("frost_shield_armor")
-	for who in fire_cooldowns._allies_within(float(res.radius)):
-		if who == self:
-			receive_snow_ward(self, amount, armor)
-		elif who.is_in_group("remote_player"):
-			if _net():
-				_net().ward_ally(who, self, amount, armor)   # their machine puts it on them
-		elif who.has_method("receive_snow_ward"):
-			who.receive_snow_ward(self, amount, armor)
-	_ring_effect(float(res.radius), Color(0.85, 0.95, 1.0))
-	_ring_effect(2.0, Color(0.95, 0.97, 1.0))
-
-## A Snow Ward lands on me (mine or a party member's).
-func receive_snow_ward(caster: Node, amount: int, armor_pct: float = 0.0) -> void:
-	if is_dead():
-		return
-	SHIELDS.set_ward(status, caster, amount, armor_pct)
-	_ring_effect(1.0, Color(0.85, 0.95, 1.0))
-	_combat().float_text(self, "Snow Ward (%d)" % amount, Color(0.7, 0.92, 1.0), false)
-
-## Winter Hide's buff: less damage taken, of every kind.
-static func make_winter_hide_fx() -> Resource:
-	var fx := StatusContainer.make_buff(WINTER_HIDE_ID, "Winter Hide", WINTER_HIDE_ID, 0.0,
-		Balance.WINTER_HIDE_TIME, 1, Color(0.6, 0.9, 1.0))
-	fx.stat_modifiers = {}
-	fx.damage_mod_pct = -Balance.WINTER_HIDE_PCT
-	fx.modifies_incoming = true
-	fx.mod_affects_dots = true
-	fx.description = "You take %s%% less damage. Enemies that hit you in melee are Chilled." % Stats.num(Balance.WINTER_HIDE_PCT)
-	return fx
-
-## Winter Hide: does a hit on me Chill whoever dealt it? A melee attack that
-## reached me (hit or blocked), never damage over time.
-static func winter_hide_chills(tags: PackedStringArray, is_dot: bool) -> bool:
-	return not is_dot and tags.has("Melee")
-
-func _start_winter_hide() -> void:
-	status.apply(make_winter_hide_fx(), self)
-	_ring_effect(1.4, Abilities.color_of(WINTER_HIDE_ID))
-	_ring_effect(0.9, Color(0.95, 0.97, 1.0))
-
-func _start_rime_edge() -> void:
-	var fx := StatusContainer.make_buff(RIME_EDGE_ID, "Rime Edge", RIME_EDGE_ID, 0.0,
-		Balance.RIME_EDGE_TIME, 1, Abilities.color_of(RIME_EDGE_ID))
-	fx.stat_modifiers = {}
-	fx.description = "Your melee hits Chill the target and deal extra Frost damage."
-	status.apply(fx, self)
-	_slash_effect(Abilities.color_of(RIME_EDGE_ID))
-	_ring_effect(1.0, Abilities.color_of(RIME_EDGE_ID))
-
-## Rime Edge: does this hit of mine carry the extra Frost hit? Melee hits that
-## landed - not procs (so never its own hit) and not damage over time.
-static func rime_edge_applies(tags: PackedStringArray, is_proc: bool, is_dot: bool, amount: int) -> bool:
-	return not is_proc and not is_dot and amount > 0 and tags.has("Melee")
-
-## One of my melee hits landed with Rime Edge up: the extra Frost hit. It is the
-## Rime Edge ability's own hit (its damage, its Chilled), dealt as a proc.
-func _rime_edge_on_hit(info: RefCounted) -> void:
-	if status == null or not status.has(RIME_EDGE_ID):
-		return
-	var tags: PackedStringArray = info.tags if not info.tags.is_empty() else Abilities.tags_of(str(info.ability_id))
-	if not rime_edge_applies(tags, info.is_proc, info.is_dot, int(info.amount)):
-		return
-	if info.target == null or not is_instance_valid(info.target) or not info.target.is_alive():
-		return
-	deal_damage(info.target, float(Abilities.get_resource(RIME_EDGE_ID).damage) + _talent("frost_honed_rime"),
-		RIME_EDGE_ID, true)   # + Honed Rime
-
-## Icebreaker's coefficient: weapon damage x the ability's multiplier, or x
-## ICEBREAKER_FROZEN_MULT on a target I have Frozen (+ the ability's flat part).
-static func icebreaker_coef(weapon_damage: float, mult: float, flat: float, frozen: bool) -> float:
-	return weapon_damage * (Balance.ICEBREAKER_FROZEN_MULT if frozen else mult) + flat
-
-## Icebreaker: a heavy blow. If MY Freeze is on the target it is ended first (the
-## blow breaks it) and the hit is the big one.
-func _icebreaker(w: Dictionary, res: Resource) -> void:
-	var st: Node = target.get_node_or_null("Status")
-	var frozen: bool = st != null and st.has_from("frozen", self)
-	var at: Vector3 = target.global_position
-	if frozen:
-		_end_freeze(target)
-	deal_damage(target, icebreaker_coef(float(w.get("damage", 0.0)), float(res.weapon_damage_multiplier),
-		float(res.damage), frozen), "icebreaker")
-	_slash_effect(Abilities.color_of("icebreaker"))
-	_slash_effect(Color(0.95, 0.97, 1.0))
-	if frozen:
-		var back := _talent("frost_clean_break")
-		if back > 0.0:
-			_gain("rage", back)   # Clean Break: part of its Rage comes back
-		_ring_effect(1.1, Color(0.85, 0.95, 1.0), at)
-		_ring_effect(0.6, Color(0.95, 0.97, 1.0), at)
-
-## End the Freeze on `tgt`. The host owns enemy effects in a party; my copy of it
-## goes at once so nothing here still sees it.
-func _end_freeze(tgt: Node) -> void:
-	var net := _net()
-	if net:
-		net.remove_status(tgt, "frozen")
-	var st: Node = tgt.get_node_or_null("Status")
-	if st:
-		st.remove("frozen")
-		st.suppress("frozen")
-
-# --- Frost, the bow ---------------------------------------------------------------------
-# Shatter Shot, Glacial Draw, Rimefletch, Coldmark and Icy Retreat. Everything
-# that asks about a Freeze, a Chill, a root or a mark asks about MINE (has_from).
-
-const SHATTER_SHOT_ID := "shattershot"
-const GLACIAL_DRAW_ID := "glacialdraw"
-const RIMEFLETCH_ID := "rimefletch"
-const COLDMARK_ID := "coldmark"
-## The mark Coldmark leaves on its target (data/effects).
-const COLDMARK_FX := "coldmarked"
-const ICY_RETREAT_ID := "icyretreat"
-const ICE_PATCH = preload("res://scripts/ice_patch.gd")
-var _shatter_shot_frozen := false   # the Shatter Shot being worked out hit a target I had Frozen
-var _ice_patch_seen := {}           # enemies (instance ids) my current ice has Chilled already (Black Ice rolls once each)
-
-## Have I Frozen `tgt` (own only: a party member's Freeze is not mine)?
-func _frozen_by_me(tgt: Variant) -> bool:
-	if tgt == null or not is_instance_valid(tgt) or not (tgt is Node):
-		return false
-	var st: Node = tgt.get_node_or_null("Status")
-	return st != null and st.has_from("frozen", self)
-
-## Shatter Shot's hit is being worked out (_on_damage_modify): it hits a target I
-## have Frozen harder, and remembers that for when it lands (_shatter_shot_landed).
-func _shatter_shot_modify(info: RefCounted) -> void:
-	_shatter_shot_frozen = not bool(info.is_proc) and _frozen_by_me(info.target)
-	if _shatter_shot_frozen:
-		info.add_bonus(Balance.SHATTER_SHOT_FROZEN_PCT, "Shatter Shot")
-
-## Damage (coefficient) the burst deals to each of `count` other enemies: more
-## than AOE_TARGET_CAP of them share that many hits.
-static func shatter_shot_burst(count: int) -> float:
-	return float(Abilities.EXTRA_HITS[SHATTER_SHOT_ID]) * Balance.aoe_share(count)
-
-## Shatter Shot landed on `enemy` (which stood at `at`). If it broke my Freeze,
-## the target thaws and the ice bursts over the other enemies around it (procs:
-## the burst feeds nothing else).
-func _shatter_shot_landed(enemy: Node, at: Vector3) -> void:
-	if not _shatter_shot_frozen:
-		return
-	_shatter_shot_frozen = false
-	if is_instance_valid(enemy):
-		_end_freeze(enemy)
-	# Clean Shatter: breaking my Freeze gives Energy back and shortens the cooldown.
-	var refund := _talent("frost_clean_shatter")
-	if refund > 0.0:
-		_gain("energy", refund)
-		cooldowns[SHATTER_SHOT_ID] = clean_shatter_cooldown(float(cooldowns.get(SHATTER_SHOT_ID, 0.0)),
-			_talent("frost_clean_shatter", "values2"))
-	var r := float(Abilities.get_resource(SHATTER_SHOT_ID).radius)
-	var others := _enemies_near(at, r, enemy)
-	var coef := shatter_shot_burst(others.size())
-	for e in others:
-		deal_damage(e, coef, SHATTER_SHOT_ID, true)
-	_ring_effect(r, Abilities.color_of(SHATTER_SHOT_ID), at)
-	_ring_effect(r * 0.5, Color(0.95, 0.97, 1.0), at)
-
-## Is Glacial Draw instant on `tgt`: rooted by MY Icepin, or Frozen by me?
-func glacial_draw_instant(tgt: Variant) -> bool:
-	if tgt == null or not is_instance_valid(tgt) or not (tgt is Node):
-		return false
-	return _icepin_root_on(tgt) or _frozen_by_me(tgt)
-
-## Glacial Draw: a cast with the bow, or no cast at all on a target that can't
-## get away (glacial_draw_instant). Paid for, and on cooldown, when the arrow leaves.
-func _start_glacial_draw() -> void:
-	var id := GLACIAL_DRAW_ID
-	if casting:
-		return
-	if cooldown_left(id) > 0.0:
-		_error("%s is not ready yet" % Abilities.ability_name(id))
-		return
-	var w := _weapon()
-	if w.get("weapon", "") != "ranged":
-		_error("Requires a bow")
-		return
-	if not _has_valid_target():
-		_error("No target")
-		return
-	if not _in_weapon_range(target, float(w["attack_range"])):
-		_error("Target out of range")
-		return
-	var sight_err := _target_error(target)
-	if sight_err != "":
-		_error(sight_err)
-		return
-	if glacial_draw_instant(target):
-		if not _pay(id):
-			return
-		_loose_glacial_draw()
-		_bus().cast_finished.emit(id)   # an instant: starts the global cooldown like one
-		return
-	_begin_spell(id, Abilities.ability_name(id), float(Abilities.get_resource(id).cast_time))
-
-## Glacial Draw's arrow leaves the bow (its cast finished, or it was instant).
-func _loose_glacial_draw() -> void:
-	var id := GLACIAL_DRAW_ID
-	var res := Abilities.get_resource(id)
-	var w := _weapon()
-	if w.get("weapon", "") != "ranged":
-		_error("Requires a bow")
-		return
-	if not _has_valid_target():
-		return
-	var sight_err := _target_error(target)
-	if sight_err != "":
-		_error(sight_err)
-		return
-	cooldowns[id] = Abilities.cooldown_of(res)
-	var dir := target.global_position - global_position
-	rotation.y = atan2(-dir.x, -dir.z)
-	ARROW.spawn(get_tree().current_scene, _muzzle(), target, self, _weapon_hit(w, res), id)
-
-## Rimefletch: a fresh set of charges (never more than RIMEFLETCH_SHOTS).
-func _start_rimefletch() -> void:
-	var col := Abilities.color_of(RIMEFLETCH_ID)
-	var fx := StatusContainer.make_buff(RIMEFLETCH_ID, Abilities.ability_name(RIMEFLETCH_ID), RIMEFLETCH_ID, 0.0,
-		Balance.RIMEFLETCH_TIME, Balance.RIMEFLETCH_SHOTS, col)
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Frost"])
-	fx.description = "Your next auto-shots deal %s%% more damage, as Frost damage, and Chill the target, one stack each." % Stats.num(Balance.RIMEFLETCH_PCT)
-	status.remove(RIMEFLETCH_ID)
-	if status.apply(fx, self):
-		status.set_stacks(RIMEFLETCH_ID, Balance.RIMEFLETCH_SHOTS)
-	_ring_effect(1.0, col)
-
-## Frost damage Rimefletch adds to an auto-shot that dealt `amount`.
-static func rimefletch_damage(amount: int) -> float:
-	return maxf(float(amount) * Balance.RIMEFLETCH_PCT / 100.0, 0.0)
-
-## Does a Rimefletch shot Freeze (true) or Chill (false) its target? It Freezes
-## a target that already carries MY Chill (or my Freeze, which is a Chill and more).
-static func rimefletch_freezes(chilled_by_me: bool, frozen_by_me: bool) -> bool:
-	return chilled_by_me or frozen_by_me
-
-## One of my hits landed (_on_damage_dealt_frost). An auto-shot with Rimefletch
-## up uses a charge: an exact share of the shot again as Frost damage (its crit is
-## already in it), dealt as a proc so it feeds nothing else, carrying the Chill
-## or the Freeze.
-func _rimefletch_shot(info: RefCounted) -> void:
-	if status == null or str(info.ability_id) != "auto_ranged" or not status.has(RIMEFLETCH_ID):
-		return
-	status.spend_stacks(RIMEFLETCH_ID, 1)
-	var foe: Node = info.target
-	if not is_instance_valid(foe) or not foe.is_alive():
-		return
-	var st: Node = foe.get_node_or_null("Status")
-	var freeze: bool = st != null and rimefletch_freezes(st.has_from("chilled", self), st.has_from("frozen", self))
-	var extra := DamageInfo.make(self, foe, 1.0, RIMEFLETCH_ID)
-	extra.unit = rimefletch_damage(int(info.amount))
-	extra.exact = true
-	extra.add_power = false
-	extra.can_crit = false
-	extra.can_block = false
-	extra.is_proc = true
-	extra.damage_type = "frost"
-	extra.tags = PackedStringArray(["Ability", "Frost", "Ranged"])
-	var fx: Resource = FROZEN_FX if freeze else CHILLED_FX
-	extra.effects.append(fx)
-	_combat().deal(extra)
-	# Cold Harvest: a shot that Freezes (also a Chill that Deepwinter turns into one) gives Energy.
-	if str(effect_override(fx).id) == "frozen":
-		var harvest := _talent("frost_cold_harvest")
-		if harvest > 0.0:
-			_gain("energy", harvest)
-
-## Coldmark: my mark goes on the target (a hit with no damage carrying the mark,
-## its on-hit effect, so in a party it reaches the host).
-func _coldmark(tgt: Node) -> void:
-	if tgt == null or not is_instance_valid(tgt):
-		return
-	deal_damage(tgt, 0.0, COLDMARK_ID, true)
-	if tgt is Node3D:
-		_ring_effect(0.9, Abilities.color_of(COLDMARK_ID), (tgt as Node3D).global_position)
-
-## Is `id` an arrow ability: a bow ability that looses an arrow (not an auto-shot)?
-static func is_arrow_ability(id: String) -> bool:
-	if id.begins_with("auto_"):
-		return false   # auto-shots are arrows, but not abilities
-	var r := Abilities.get_resource(id)
-	return r != null and int(r.weapon_requirement) == 2 and r.tags.has("Projectile")
-
-## One of my hits landed (_on_damage_dealt_frost). An arrow ability hitting a
-## target that carries MY Coldmark gives an Ice Shard charge. Procs and periodic
-## damage are not arrows.
-func _coldmark_arrow(info: RefCounted) -> void:
-	if bool(info.is_proc) or bool(info.is_dot) or not is_arrow_ability(str(info.ability_id)):
-		return
-	var st: Node = info.target.get_node_or_null("Status")
-	if st != null and st.has_from(COLDMARK_FX, self):
-		gain_ice_shard()
-
-## Icy Retreat: a leap backward (it stops short of walls). The ground I left is
-## ice for a while, and Frost Arrow is ready again.
-func _icy_retreat(res: Resource) -> void:
-	var col := Abilities.color_of(ICY_RETREAT_ID)
-	var from := global_position
-	var back := -_flat_forward()
-	global_position += back * _dash_distance(Balance.ICY_RETREAT_DISTANCE, back)
-	var r := float(res.radius)
-	_ice_patch_seen.clear()   # a new sheet of ice: Black Ice rolls again for everyone
-	ICE_PATCH.spawn(get_tree().current_scene, from, r, Balance.ICY_RETREAT_TIME, Balance.ICY_RETREAT_TICK, _ice_patch_chill)
-	_net_fx("icepatch", from, null, {"r": r, "time": Balance.ICY_RETREAT_TIME})   # the party sees the ice
-	cooldowns.erase("frostarrow")
-	_ring_effect(0.8, col, from)
-	_ring_effect(0.8, col)
-
-## An enemy is standing on my ice: it is Chilled (a Freeze during Deepwinter).
-## Black Ice: the first Chill the ice puts on each enemy may be a Freeze instead.
-func _ice_patch_chill(e: Node) -> void:
-	var key := e.get_instance_id()
-	var first := not _ice_patch_seen.has(key)
-	_ice_patch_seen[key] = true
-	var freeze := first and randf() * 100.0 < _talent("frost_black_ice")
-	_chill(e, ICY_RETREAT_ID, PackedStringArray(["Ability", "Frost"]), freeze)
-
-## Have I Chilled `tgt` (own only)?
-func _chilled_by_me(tgt: Variant) -> bool:
-	if tgt == null or not is_instance_valid(tgt) or not (tgt is Node):
-		return false
-	var st: Node = tgt.get_node_or_null("Status")
-	return st != null and st.has_from("chilled", self)
-
-## Thin Ice: Glacial Draw's cast time on a target I have Chilled, `less` seconds
-## shorter (never under 0.2 s). Unchanged on anything else.
-static func thin_ice_cast(cast: float, less: float, chilled: bool) -> float:
-	return maxf(cast - maxf(less, 0.0), 0.2) if chilled else cast
-
-## Clean Shatter: what is left of Shatter Shot's cooldown with `off` seconds taken away.
-static func clean_shatter_cooldown(left: float, off: float) -> float:
-	return maxf(left - maxf(off, 0.0), 0.0)
-
-## Cold Draw: one of my arrow abilities is about to hit (_on_damage_modify). If
-## the target already carries MY Chill or Freeze - before this arrow adds its
-## own - the hit is marked, and gives Energy back when it lands.
-func _cold_draw_mark(info: RefCounted, id: String) -> void:
-	if bool(info.is_proc) or bool(info.is_dot) or not is_arrow_ability(id) or _talent("frost_cold_draw") <= 0.0:
-		return
-	if _chilled_by_me(info.target) or _frozen_by_me(info.target):
-		info.set_meta("cold_draw", true)
-
-# --- Frozen Instinct: freezes can make the next Frost Bolt instant and free ------------
-
-const INSTINCT_ID := "frozen_instinct"
-var _instinct_cast := false   # the current Frost Bolt cast is the instant Frozen Instinct one
-
-func _grant_frozen_instinct() -> void:
-	if status == null or is_dead():
-		return
-	var fx := StatusContainer.make_buff(INSTINCT_ID, "Frozen Instinct", INSTINCT_ID, 0.0,
-		Balance.FROZEN_INSTINCT_TIME, 1, Color(0.6, 0.9, 1.0))
-	fx.stat_modifiers = {}
-	fx.description = "Your next %s is instant and free." % Abilities.ability_name("frostbolt")
-	status.apply(fx, self)
-
-## Is the next Frost Bolt instant and free?
-func frozen_instinct_ready() -> bool:
-	return status != null and status.has(INSTINCT_ID)
-
 
 # --- Mouseover casting ------------------------------------------------------------------------
 # A setting (Settings > Interface), like WoW's: pressing an ability while the

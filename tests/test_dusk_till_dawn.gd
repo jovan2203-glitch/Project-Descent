@@ -25,7 +25,7 @@ func test_it_is_a_legendary_rune() -> void:
 	assert_ne(Runes.check_limits(["dusk_till_dawn", "dusk_till_dawn"]), "", "only one Legendary rune at a time")
 	assert_eq(Runes.check_limits(["dusk_till_dawn", "overload", "long_fall", "frost"]), "", "fine next to Epic and lower runes")
 	assert_true(Runes.any_of_rarity(Runes.LEGENDARY), "chests can roll a Legendary Mysterious Rune again")
-	assert_eq(_player().DUSK_RUNE, "dusk_till_dawn")
+	assert_eq(DuskTillDawnKit.DUSK_RUNE, "dusk_till_dawn")
 
 func test_its_text_has_every_number_filled_in() -> void:
 	var text := Runes.description("dusk_till_dawn")
@@ -49,20 +49,20 @@ func test_numbers() -> void:
 
 func test_what_starts_dusk() -> void:
 	var p := _player()
-	assert_true(p.starts_dusk("shadow", 10, false, false), "Shadow damage")
-	assert_false(p.starts_dusk("shadow", 0, false, false), "a hit that did nothing doesn't")
-	assert_false(p.starts_dusk("holy", 10, false, false), "Holy damage doesn't")
-	assert_false(p.starts_dusk("fire", 10, false, false), "other schools don't")
-	assert_false(p.starts_dusk("shadow", 10, true, false), "Dusk is not refreshed")
-	assert_false(p.starts_dusk("shadow", 10, false, true), "no Dusk while Dawn lasts")
+	assert_true(DuskTillDawnKit.starts_dusk("shadow", 10, false, false), "Shadow damage")
+	assert_false(DuskTillDawnKit.starts_dusk("shadow", 0, false, false), "a hit that did nothing doesn't")
+	assert_false(DuskTillDawnKit.starts_dusk("holy", 10, false, false), "Holy damage doesn't")
+	assert_false(DuskTillDawnKit.starts_dusk("fire", 10, false, false), "other schools don't")
+	assert_false(DuskTillDawnKit.starts_dusk("shadow", 10, true, false), "Dusk is not refreshed")
+	assert_false(DuskTillDawnKit.starts_dusk("shadow", 10, false, true), "no Dusk while Dawn lasts")
 
 func test_dawn_follows_a_dusk_that_ran_out() -> void:
 	var p := _player()
-	assert_true(p.dawn_follows(112.0, 112.0, true), "it ran its whole time")
-	assert_true(p.dawn_follows(112.1, 112.0, true))
-	assert_false(p.dawn_follows(105.0, 112.0, true), "cleared early (death, leaving): no Dawn")
-	assert_false(p.dawn_follows(112.0, 112.0, false), "the rune came off")
-	assert_false(p.dawn_follows(112.0, 0.0, true), "there was no Dusk")
+	assert_true(DuskTillDawnKit.dawn_follows(112.0, 112.0, true), "it ran its whole time")
+	assert_true(DuskTillDawnKit.dawn_follows(112.1, 112.0, true))
+	assert_false(DuskTillDawnKit.dawn_follows(105.0, 112.0, true), "cleared early (death, leaving): no Dawn")
+	assert_false(DuskTillDawnKit.dawn_follows(112.0, 112.0, false), "the rune came off")
+	assert_false(DuskTillDawnKit.dawn_follows(112.0, 0.0, true), "there was no Dusk")
 
 func _hit(type: String, tags: Array, dot: bool = false) -> RefCounted:
 	var info := DamageInfo.make(null, null, 3, "test")
@@ -80,7 +80,7 @@ func _status() -> Node:
 
 func test_dusk_boosts_shadow_damage_only() -> void:
 	var st := _status()
-	var fx: Resource = _player().make_dusk_fx()
+	var fx: Resource = DuskTillDawnKit.make_dusk_fx()
 	assert_eq(float(fx.duration), Balance.DUSK_TIME)
 	assert_eq(int(fx.max_stacks), 1)
 	assert_false(bool(fx.is_debuff))
@@ -104,7 +104,7 @@ func test_dusk_boosts_shadow_damage_only() -> void:
 
 func test_dusk_is_not_refreshed() -> void:
 	var st := _status()
-	var fx: Resource = _player().make_dusk_fx()
+	var fx: Resource = DuskTillDawnKit.make_dusk_fx()
 	assert_true(st.apply(fx))
 	st.set_remaining("dusk", 3.0)
 	assert_false(st.apply(fx), "applying it again changes nothing")
@@ -113,7 +113,7 @@ func test_dusk_is_not_refreshed() -> void:
 
 func test_dawn_boosts_holy_damage_only() -> void:
 	var st := _status()
-	var fx: Resource = _player().make_dawn_fx()
+	var fx: Resource = DuskTillDawnKit.make_dawn_fx()
 	assert_eq(float(fx.duration), Balance.DAWN_TIME)
 	assert_eq(int(fx.max_stacks), 1)
 	assert_false(bool(fx.is_debuff))

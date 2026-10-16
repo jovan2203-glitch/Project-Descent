@@ -146,11 +146,11 @@ static func decoy_time(longer: float) -> float:
 	return Balance.DECOY_TIME + maxf(longer, 0.0)
 
 func shatter_radius() -> float:
-	return shatter_radius_for(player._capstone("arcane_sharp_edges"))
+	return shatter_radius_for(player.frost_melee._capstone("arcane_sharp_edges"))
 
 ## Does Decoy need (and use up) one of my Reflections? Not with Good Likeness' capstone.
 func decoy_needs_reflection() -> bool:
-	return not player._capstone("arcane_good_likeness")
+	return not player.frost_melee._capstone("arcane_good_likeness")
 
 ## What I take (_on_damage_modify): Empty Room and Bent Light.
 func _reflection_talents_incoming(info: RefCounted) -> void:
@@ -290,7 +290,7 @@ func _ripple(res: Resource) -> void:
 	for e in hit:
 		if is_instance_valid(e) and e.is_alive():
 			player.deal_damage(e, coef, RIPPLE_ID)
-	if ripple_makes_reflection(hit.size(), player._capstone("arcane_wide_rings")):
+	if ripple_makes_reflection(hit.size(), player.frost_melee._capstone("arcane_wide_rings")):
 		_gain_reflections(1)
 	player._ring_effect(reach, col)
 	player._ring_effect(reach * 0.7, Color(0.95, 0.9, 1.0))

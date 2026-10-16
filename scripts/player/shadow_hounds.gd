@@ -309,7 +309,7 @@ func _call_hounds(at_prey: Node3D) -> void:
 		_hounds_roused_next = false
 		_rouse_hounds()
 	# Slipped Leash's capstone: called while Off the Chain is still up, the third comes with them.
-	if player.status.has(OFF_THE_CHAIN_FX) and player._capstone("shadow_slipped_leash"):
+	if player.status.has(OFF_THE_CHAIN_FX) and player.frost_melee._capstone("shadow_slipped_leash"):
 		_add_third_hound()
 	_tell_hounds()
 
@@ -393,7 +393,7 @@ func _hound_bite(i: int) -> void:
 	var roused: bool = player.status.has(ROUSED_FX)
 	var dealt := _hound_hit(foe, Balance.HOUND_BITE, HOUND_BITE_ID,
 		hound_bite_bonuses(roused, st != null and st.has_from(LAID_OPEN_FX, player)),
-		worked_up_crit(roused, player._capstone("shadow_worked_up")))
+		worked_up_crit(roused, player.frost_melee._capstone("shadow_worked_up")))
 	if i < _hound_nodes.size() and is_instance_valid(_hound_nodes[i]):
 		_hound_nodes[i].bite()
 	if dealt <= 0:
@@ -453,7 +453,7 @@ func _hounds_lunge(foe: Variant) -> void:
 	if not hounds_out() or not _prey_ok(foe):
 		return
 	_set_hound_prey(foe)
-	var refund := Balance.PINCER_RAGE if player._capstone("shadow_pincer") else 0.0
+	var refund := Balance.PINCER_RAGE if player.frost_melee._capstone("shadow_pincer") else 0.0
 	for i in _hound_bite_at.size():
 		_hound_hit(foe, Balance.HOUND_LUNGE, HOUND_LUNGE_ID)
 		if _hound_crit:
@@ -492,7 +492,7 @@ func _start_off_the_chain() -> void:
 		var now := _hound_now()
 		_hounds_until = hounds_until_unchained(_hounds_until, now, off_the_chain_time(player._talent("shadow_slipped_leash")))
 		player.status.set_remaining(HOUNDS_FX, _hounds_until - now)
-		if player._capstone("shadow_slipped_leash"):
+		if player.frost_melee._capstone("shadow_slipped_leash"):
 			_add_third_hound()
 		_tell_hounds()
 	player._ring_effect(1.6, HOUND_COLOR)

@@ -264,7 +264,7 @@ func _heartsap() -> void:
 	var n := sap()
 	player.status.remove(SAP_FX)
 	player.heal(float(player.max_health) * heartsap_pct(n, player._talent("nature_thick_sap")) / 100.0, HEARTSAP_ID)   # + Thick Sap
-	if player._capstone("nature_thick_sap"):
+	if player.frost_melee._capstone("nature_thick_sap"):
 		_gain_sap(Balance.THICK_SAP_KEEP)   # Thick Sap's capstone: some stays
 	var feet := player.weaver._ground_under(player)
 	player.weaver._creature("chest", feet + player.global_transform.basis.z * 1.4, feet)

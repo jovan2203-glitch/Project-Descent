@@ -301,7 +301,7 @@ func _cadence(w: Dictionary, res: Resource) -> void:
 		if is_instance_valid(e) and e.is_alive():
 			player.deal_damage(e, coef * share, CADENCE_ID)
 	_cadence_third = false
-	if player._capstone("lightning_third_beat"):
+	if player.frost_melee._capstone("lightning_third_beat"):
 		player._gain("energy", Balance.THIRD_BEAT_ENERGY)
 	for i in 2:
 		player._slash_effect(col)

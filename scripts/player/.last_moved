@@ -1,4 +1,6 @@
-_afterburn_fx var
-_on_damage_dealt_fire func
-_smolder_fx var
-_stack_scaled_fx func
+FROSTFIRE const
+_float_text func
+_frostfire_hit func
+_on_hit_extra func
+frostfire_halves static
+proc_cast func

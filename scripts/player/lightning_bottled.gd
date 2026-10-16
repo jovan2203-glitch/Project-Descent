@@ -20,7 +20,7 @@ func bottled_ready(spell: String) -> bool:
 
 ## I took my Energy back out of the Capacitor: with the rune, my next Discharge is instant.
 func _bottle_lightning() -> void:
-	if not player._has_rune(BOTTLED_RUNE):
+	if not player.frost_melee._has_rune(BOTTLED_RUNE):
 		return
 	var fx := StatusContainer.make_buff(BOTTLED_FX, "Bottled Lightning", BOTTLED_FX, 0.0,
 		Balance.BOTTLED_LIGHTNING_TIME, 1, Abilities.color_of(LightningCasterKit.DISCHARGE_ID))

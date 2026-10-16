@@ -237,7 +237,7 @@ func test_their_hits() -> void:
 	assert_contains(src, "info.no_empower = true")
 	# Dusk till Dawn's Dusk is a Shadow damage bonus of mine: their bites get it.
 	var st := _status()
-	st.apply(p.make_dusk_fx())
+	st.apply(DuskTillDawnKit.make_dusk_fx())
 	var bite := _hit("shadow", HoundsKit.HOUND_TAGS)
 	bite.is_proc = true
 	bite.no_empower = true

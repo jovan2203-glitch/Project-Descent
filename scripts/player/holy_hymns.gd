@@ -204,7 +204,7 @@ func _boom(h: String, spent: Array) -> void:
 	if full:
 		_add_verses(h, Balance.FULL_CHOIR_REFUND)
 		player._combat().float_text(player, "Full Choir", Abilities.HYMN_COLORS[h], false)
-	if player._has_rune(OVERTURE_RUNE) and player.status != null:
+	if player.frost_melee._has_rune(OVERTURE_RUNE) and player.status != null:
 		player.status.apply(make_overture_fx(), player)
 
 ## A boom of Hymn `h` (`scale` < 1: Reprise's repeat of it).
@@ -226,7 +226,7 @@ func _do_boom(h: String, matches: int, full: bool, scale: float) -> void:
 			for a in player.fire_cooldowns._allies_within(Balance.BULWARK_SONG_RADIUS):
 				_hymn_dr(a, BULWARK_SONG_FX, Balance.BULWARK_SONG_PCT * scale, t)
 	# Rune of Resounding: the boom strikes the enemies around it as well.
-	if player._has_rune(RESOUNDING_RUNE):
+	if player.frost_melee._has_rune(RESOUNDING_RUNE):
 		var foes := player._enemies_near(at, Balance.RESOUNDING_RADIUS)
 		var share := Balance.aoe_share(foes.size())
 		for e in foes:

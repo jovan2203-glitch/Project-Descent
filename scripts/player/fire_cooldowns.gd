@@ -29,7 +29,7 @@ func _summon_phoenix() -> void:
 func phoenix_cast() -> void:
 	if player.is_dead():
 		return
-	var tgt := player._lowest_health_ally(Balance.PHOENIX_RANGE)
+	var tgt := player.frost_runes._lowest_health_ally(Balance.PHOENIX_RANGE)
 	if tgt == null:
 		return
 	_heal_someone(tgt, float(Abilities.HEALS[PHOENIX_ID]), PHOENIX_ID)
@@ -100,8 +100,8 @@ func _on_hit_taken(info: RefCounted) -> void:
 	if _heat_on and player.status.has(HEAT_SINK_ID) and not info.blocked and int(info.amount) > 0:
 		_heat_stored += heat_sink_stored(float(info.amount), float(info.bonus_pct), Balance.HEAT_SINK_PCT)
 	# Winter Hide: an enemy whose melee attack reaches me (hit or blocked) is Chilled.
-	if player.status.has(Player.WINTER_HIDE_ID) and Player.winter_hide_chills(info.tags, info.is_dot):
-		player._chill(info.source, Player.WINTER_HIDE_ID)
+	if player.status.has(FrostMoreKit.WINTER_HIDE_ID) and FrostMoreKit.winter_hide_chills(info.tags, info.is_dot):
+		player.frost_more._chill(info.source, FrostMoreKit.WINTER_HIDE_ID)
 	# Cinder Guard: a blocked attack burns the attacker and keeps Slag Skin going.
 	if info.blocked and not info.is_dot and player.status.has(FireTankKit.CINDER_GUARD_ID):
 		var foe: Variant = info.source
@@ -312,7 +312,7 @@ func concentrated_fire_ready(id: String) -> bool:
 		return false
 	var res := Abilities.get_resource(id)
 	# (Ember Volley counts too: its whole volley goes out at once, see _start_ember_volley.)
-	return res != null and concentrated_applies(res.tags, float(res.cast_time), player._has_rune("level_head"))
+	return res != null and concentrated_applies(res.tags, float(res.cast_time), player.frost_melee._has_rune("level_head"))
 
 ## Can Concentrated Fire make this instant? Fire spells and abilities with a
 ## cast time; with the Rune of the Level Head (`any_school`), spells of any school.

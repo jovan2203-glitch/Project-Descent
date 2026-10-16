@@ -74,7 +74,7 @@ func _shadow_talents_modify(info: RefCounted, id: String) -> void:
 			info.add_bonus(inevitable, "Inevitable")
 		# Still Wet's capstone: my own direct hits also hit an enemy I Laid Open
 		# harder (the Hounds' bites have Open Up's own bonus).
-		if not bool(info.is_proc) and not bool(info.is_dot) and player._capstone("shadow_still_wet"):
+		if not bool(info.is_proc) and not bool(info.is_dot) and player.frost_melee._capstone("shadow_still_wet"):
 			var wet: Node = (foe as Node).get_node_or_null("Status")
 			if HoundsKit.still_wet_applies(true, wet != null and wet.has_from(HoundsKit.LAID_OPEN_FX, player), false, false):
 				info.add_bonus(Balance.STILL_WET_PCT, HoundsKit.STILL_WET_LABEL)
@@ -132,7 +132,7 @@ func _on_enemy_died_shadow(enemy: Node) -> void:
 	if player.is_dead():
 		return
 	# Take It With You's capstone: Drag Down killed it, so my next pair arrives Roused.
-	if HoundsKit.drag_kill_counts(player.hounds._hound_now(), dragged, by_me) and player._capstone("shadow_take_it_with_you"):
+	if HoundsKit.drag_kill_counts(player.hounds._hound_now(), dragged, by_me) and player.frost_melee._capstone("shadow_take_it_with_you"):
 		player.hounds._hounds_roused_next = true
 	# Feeding Frenzy: an enemy I damaged died.
 	var frenzy := player._talent("shadow_feeding_frenzy")

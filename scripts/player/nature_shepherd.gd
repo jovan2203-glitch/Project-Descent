@@ -205,7 +205,7 @@ func _woven_heal(who: Node3D, coef: float, id: String) -> void:
 
 func _fawn(first: Node3D, id: String, from_pos: Vector3) -> void:
 	_fawns += 1
-	var hops := fawn_bounces(_fawns, player._capstone("nature_running_herd"))   # Running Herd's capstone
+	var hops := fawn_bounces(_fawns, player.frost_melee._capstone("nature_running_herd"))   # Running Herd's capstone
 	var coef := float(Abilities.HEALS[FAWN_ID]) * (1.0 + player._talent("nature_running_herd") / 100.0)   # Running Herd
 	_fawn_hop(first, from_pos, coef, hops, [], id)
 

@@ -87,11 +87,11 @@ func test_deepwinter() -> void:
 	var chilled: Resource = load("res://data/effects/chilled.tres")
 	var frozen: Resource = load("res://data/effects/frozen.tres")
 	var rooted: Resource = load("res://data/effects/rooted.tres")
-	assert_eq(str(p.winter_swap(chilled, true).id), "frozen", "a Chill is a Freeze instead")
-	assert_eq(str(p.winter_swap(chilled, false).id), "chilled", "not without Deepwinter")
-	assert_eq(str(p.winter_swap(frozen, true).id), "frozen")
-	assert_eq(str(p.winter_swap(rooted, true).id), "rooted", "other effects are left alone")
-	assert_true(p.winter_swap(null, true) == null)
+	assert_eq(str(FrostMoreKit.winter_swap(chilled, true).id), "frozen", "a Chill is a Freeze instead")
+	assert_eq(str(FrostMoreKit.winter_swap(chilled, false).id), "chilled", "not without Deepwinter")
+	assert_eq(str(FrostMoreKit.winter_swap(frozen, true).id), "frozen")
+	assert_eq(str(FrostMoreKit.winter_swap(rooted, true).id), "rooted", "other effects are left alone")
+	assert_true(FrostMoreKit.winter_swap(null, true) == null)
 
 func test_snow_ward() -> void:
 	var r := Abilities.get_resource("snowward")
@@ -118,13 +118,13 @@ func test_winter_hide() -> void:
 	var r := Abilities.get_resource("winterhide")
 	assert_eq(float(r.cooldown), 60.0, "1 min cooldown")
 	var p := _player()
-	var fx: Resource = p.make_winter_hide_fx()
+	var fx: Resource = FrostMoreKit.make_winter_hide_fx()
 	assert_eq(float(fx.duration), 8.0)
 	assert_eq(float(fx.damage_mod_pct), -30.0, "30% less damage")
 	assert_true(bool(fx.modifies_incoming), "on damage taken")
-	assert_true(p.winter_hide_chills(PackedStringArray(["Physical", "Melee"]), false), "a melee hit")
-	assert_false(p.winter_hide_chills(PackedStringArray(["Physical", "Melee"]), true), "not damage over time")
-	assert_false(p.winter_hide_chills(PackedStringArray(["Fire", "Spell", "Projectile"]), false), "not a spell or an arrow")
+	assert_true(FrostMoreKit.winter_hide_chills(PackedStringArray(["Physical", "Melee"]), false), "a melee hit")
+	assert_false(FrostMoreKit.winter_hide_chills(PackedStringArray(["Physical", "Melee"]), true), "not damage over time")
+	assert_false(FrostMoreKit.winter_hide_chills(PackedStringArray(["Fire", "Spell", "Projectile"]), false), "not a spell or an arrow")
 
 func test_rime_edge() -> void:
 	var r := Abilities.get_resource("rimeedge")
@@ -135,11 +135,11 @@ func test_rime_edge() -> void:
 	assert_true(r.on_hit_effect != null and str(r.on_hit_effect.id) == "chilled", "its hit Chills")
 	var p := _player()
 	var melee := PackedStringArray(["Ability", "Frost", "Melee"])
-	assert_true(p.rime_edge_applies(melee, false, false, 10))
-	assert_false(p.rime_edge_applies(melee, true, false, 10), "never on a proc (so never on its own hit)")
-	assert_false(p.rime_edge_applies(melee, false, true, 10), "not on ticks")
-	assert_false(p.rime_edge_applies(melee, false, false, 0), "the hit has to land")
-	assert_false(p.rime_edge_applies(PackedStringArray(["Ability", "Frost", "Ranged"]), false, false, 10), "melee only")
+	assert_true(FrostMoreKit.rime_edge_applies(melee, false, false, 10))
+	assert_false(FrostMoreKit.rime_edge_applies(melee, true, false, 10), "never on a proc (so never on its own hit)")
+	assert_false(FrostMoreKit.rime_edge_applies(melee, false, true, 10), "not on ticks")
+	assert_false(FrostMoreKit.rime_edge_applies(melee, false, false, 0), "the hit has to land")
+	assert_false(FrostMoreKit.rime_edge_applies(PackedStringArray(["Ability", "Frost", "Ranged"]), false, false, 10), "melee only")
 	assert_true(Abilities.tags_of("auto_melee").has("Melee"), "auto-attacks count")
 
 func test_icebreaker() -> void:
@@ -149,8 +149,8 @@ func test_icebreaker() -> void:
 	assert_eq(Balance.ICEBREAKER_FROZEN_MULT, 3.5)
 	assert_eq(int(r.weapon_requirement), 1)
 	var p := _player()
-	assert_eq(p.icebreaker_coef(10.0, 2.0, 0.0, false), 20.0, "2x weapon damage")
-	assert_eq(p.icebreaker_coef(10.0, 2.0, 0.0, true), 35.0, "3.5x on a target I have Frozen")
+	assert_eq(FrostMoreKit.icebreaker_coef(10.0, 2.0, 0.0, false), 20.0, "2x weapon damage")
+	assert_eq(FrostMoreKit.icebreaker_coef(10.0, 2.0, 0.0, true), 35.0, "3.5x on a target I have Frozen")
 
 func test_icepin() -> void:
 	var r := Abilities.get_resource("icepin")

@@ -129,7 +129,7 @@ func _prism_time() -> float:
 
 ## How many prisms I can have (Rune of the Fourth Facet: one more).
 func _prism_max() -> int:
-	return Balance.PRISM_MAX + (1 if player._has_rune(FOURTH_FACET_RUNE) else 0)
+	return Balance.PRISM_MAX + (1 if player.frost_melee._has_rune(FOURTH_FACET_RUNE) else 0)
 
 ## Was `who` hit in the last `window` seconds? Me: what I took; a party member's
 ## puppet: when its health last dropped (RemotePlayer.hurt_at). (Watchful Eye.)

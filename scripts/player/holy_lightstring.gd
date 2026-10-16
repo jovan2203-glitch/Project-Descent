@@ -98,7 +98,7 @@ func _arrow_line(tgt: Node3D, coef: float, refract: float, charge: float, drain:
 			out["mult"] = float(out["mult"]) + Balance.REFRACT_FOCUS_PCT / 100.0
 		if drain:
 			drained.append(float(p["light"]))
-			p["light"] = float(p["light"]) * (Balance.DEEP_BURN_KEEP_PCT / 100.0 if player._capstone("holy_deep_burn") else 0.0)
+			p["light"] = float(p["light"]) * (Balance.DEEP_BURN_KEEP_PCT / 100.0 if player.frost_melee._capstone("holy_deep_burn") else 0.0)
 		else:
 			p["light"] = gold_charged(float(p["light"]), coef, charge, cap)
 	if drain:

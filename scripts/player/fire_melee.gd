@@ -140,7 +140,7 @@ func _feed_immolate(tgt: Node) -> void:
 	var fx: Resource = Abilities.get_resource("immolate").on_hit_effect
 	if fx == null:
 		return
-	var add := Balance.FRESH_TINDER_CAPSTONE_SECONDS if player._capstone("fire_fresh_tinder") else Balance.FRESH_TINDER_SECONDS
+	var add := Balance.FRESH_TINDER_CAPSTONE_SECONDS if player.frost_melee._capstone("fire_fresh_tinder") else Balance.FRESH_TINDER_SECONDS
 	var left: float = st.remaining_from("immolate", player)
 	var fed := tinder_time(left, add, float(fx.duration) + player.effect_duration_bonus(fx))   # base duration incl. Long Burn
 	if fed <= left + 0.001:

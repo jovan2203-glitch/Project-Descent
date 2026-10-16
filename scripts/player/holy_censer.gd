@@ -201,7 +201,7 @@ func _pick_up_mote(i: int) -> void:
 	_gain_incense(int(m.get("value", Balance.MOTE_VALUE)))
 	if player.health < player.max_health:
 		player.heal(Balance.MOTE_HEAL_SHARE * Balance.REFERENCE_HEAL * (1.0 + player._talent("holy_bright_motes") / 100.0), LIGHT_MOTE_ID)   # + Bright Motes
-	if player._has_rune(BRIGHT_BURST_RUNE):
+	if player.frost_melee._has_rune(BRIGHT_BURST_RUNE):
 		_bright_burst()
 
 ## Rune of the Bright Burst: a burst of light around me (a proc with its own line).
@@ -401,7 +401,7 @@ func _censer_use(id: String, res: Resource) -> void:
 ## AOE_TARGET_CAP enemies share that many hits' damage.
 func _pour_out(res: Resource) -> void:
 	var have := incense()
-	var pct := Balance.DEEP_POUR_MOTE_PCT if player._capstone("holy_deep_pour") else Balance.MOTE_SPEND_PCT   # Deep Pour's capstone
+	var pct := Balance.DEEP_POUR_MOTE_PCT if player.frost_melee._capstone("holy_deep_pour") else Balance.MOTE_SPEND_PCT   # Deep Pour's capstone
 	var reach := float(res.radius)
 	var hit := player._enemies_within(reach)
 	var per := Balance.POUR_OUT_PER_STACK * (1.0 + player._talent("holy_deep_pour") / 100.0)   # Deep Pour

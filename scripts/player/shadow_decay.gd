@@ -294,8 +294,8 @@ func _decay_feed(foe: Variant, amount: float) -> bool:
 func _on_damage_dealt_shadow(info: RefCounted) -> void:
 	if not is_same(info.source, player) or info.avoided() or int(info.amount) <= 0:
 		return
-	player._pact_acted(info)    # Pact of the Relentless: I hit something
-	player._dusk_on_hit(info)   # Dusk till Dawn: any Shadow damage of mine starts Dusk
+	player.pacts_kit._pact_acted(info)    # Pact of the Relentless: I hit something
+	player.dusk_till_dawn._dusk_on_hit(info)   # Dusk till Dawn: any Shadow damage of mine starts Dusk
 	player.hounds._hounds_on_hit(info)   # Shadow melee: my Hounds go for the enemy I last struck
 	var foe: Variant = info.target
 	if not _decay_usable(foe):
@@ -303,7 +303,7 @@ func _on_damage_dealt_shadow(info: RefCounted) -> void:
 	player.shadow_talents._note_first_hit(foe)   # Inevitable counts from my first damage to it
 	var id := str(info.ability_id)
 	if id == BLIGHT_ID and not bool(info.is_proc):
-		_open_decay(foe, blight_open_time(player._has_rune(OPEN_WOUND_RUNE)))
+		_open_decay(foe, blight_open_time(player.frost_melee._has_rune(OPEN_WOUND_RUNE)))
 	if CLAW_HITS.has(id) and not bool(info.is_proc) and not bool(info.is_dot):
 		_claws_at(foe, int(CLAW_HITS[id][0]), float(CLAW_HITS[id][1]))   # what the spell looks like as it lands
 	if _decay.is_empty():
@@ -416,11 +416,11 @@ func _tick_decay() -> void:
 	var now := _decay_now()
 	var haste := player.haste_mult()
 	var endless: bool = player.status != null and player.status.has(BOTTOMLESS_FX)   # Bottomless: ticks take nothing out
-	var hold := _bottomless_until if endless and player._capstone("shadow_no_floor") else 0.0   # No Floor: it can't close either
+	var hold := _bottomless_until if endless and player.frost_melee._capstone("shadow_no_floor") else 0.0   # No Floor: it can't close either
 	var wasting := player._talent("shadow_wasting")
 	var slow_death := player._talent("shadow_slow_death")
 	var rot_through := player._talent("shadow_rot_through")
-	var long_fall := player._has_rune(LONG_FALL_RUNE)
+	var long_fall := player.frost_melee._has_rune(LONG_FALL_RUNE)
 	var unit := -1.0
 	for key in _decay.keys():
 		if not _decay.has(key):
@@ -491,7 +491,7 @@ func _decay_jump(d: Dictionary) -> void:
 		return
 	var at: Vector3 = d["pos"]
 	var kin := player._talent("shadow_next_of_kin")   # Next of Kin: more than what was left moves on
-	var heirs := 2 if player._capstone("shadow_next_of_kin") else 1   # ... and a second enemy gets part of it
+	var heirs := 2 if player.frost_melee._capstone("shadow_next_of_kin") else 1   # ... and a second enemy gets part of it
 	var given := 0
 	for e in player._enemies_near(at, Balance.DECAY_JUMP_RADIUS):   # (nearest first)
 		if not _decay_usable(e):
@@ -557,7 +557,7 @@ func _call_due() -> void:
 	_claws_at(foe, 8, 1.15)   # every hand at once, over its head
 	_decay_hit(foe, call_due_damage(amount, player._talent("shadow_interest")), CALL_DUE_ID, false)   # Interest: more on top
 	# Interest's capstone: taking out an open Decay makes my next Blight instant.
-	if was_open and player._capstone("shadow_interest"):
+	if was_open and player.frost_melee._capstone("shadow_interest"):
 		var fx := StatusContainer.make_buff(INTEREST_FX, "Interest", INTEREST_FX, 0.0, Balance.INTEREST_TIME, 1,
 			Abilities.color_of(BLIGHT_ID))
 		fx.stat_modifiers = {}
@@ -593,7 +593,7 @@ func _spill() -> void:
 	if d.is_empty():
 		return
 	var share := spill_amount(float(d["amount"]), player._talent("shadow_running_over"))   # Running Over: bigger copies
-	var open_until := spill_open_until(float(d["open"]), _decay_now(), player._capstone("shadow_running_over"))
+	var open_until := spill_open_until(float(d["open"]), _decay_now(), player.frost_melee._capstone("shadow_running_over"))
 	var col := Abilities.color_of(SPILL_ID)
 	player._ring_effect(1.2, col, foe.global_position)
 	_claws_at(foe, 4, 0.5)
@@ -635,7 +635,7 @@ func _start_bottomless() -> void:
 	fx.stat_modifiers = {}
 	fx.tags = PackedStringArray(["Shadow"])
 	fx.description = "Your Breach does not shrink when it deals its damage."
-	if player._capstone("shadow_no_floor"):
+	if player.frost_melee._capstone("shadow_no_floor"):
 		fx.description += " It cannot close."
 	player.status.apply(fx, player)
 	_bottomless_until = _decay_now() + seconds

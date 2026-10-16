@@ -28,3 +28,11 @@ fire_melee FireMeleeKit fire_melee.gd
 fire_tank FireTankKit fire_tank.gd
 fire_caster FireCasterKit fire_caster.gd
 fire_runes FireRunesKit fire_runes.gd
+frost_bow FrostBowKit frost_bow.gd
+frost_more FrostMoreKit frost_more.gd
+frost_runes FrostRunesKit frost_runes_talents.gd
+dusk_till_dawn DuskTillDawnKit rune_dusk_till_dawn.gd
+pacts_kit PactsKit pacts.gd
+frost_melee FrostMeleeKit frost_melee.gd
+ice_shards_kit IceShardsKit frost_ice_shards.gd
+frostfire_kit FrostfireKit rune_frostfire.gd

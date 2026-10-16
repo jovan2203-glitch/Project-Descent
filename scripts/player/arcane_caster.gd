@@ -425,7 +425,7 @@ func _place_mirror_sigil() -> void:
 	var res := Abilities.get_resource(MIRROR_ID)
 	player.cooldowns[MIRROR_ID] = Abilities.cooldown_of(res)
 	_sigil_at = Vector3(player.global_position.x, Combat.feet_y(player), player.global_position.z)
-	_sigil_carried = player._has_rune(CARRIED_RUNE)   # Rune of the Carried Sigil: it moves with me
+	_sigil_carried = player.frost_melee._has_rune(CARRIED_RUNE)   # Rune of the Carried Sigil: it moves with me
 	_arcane_buff(MIRROR_FX, MIRROR_ID, Balance.MIRROR_SIGIL_TIME,
 		"Your sigil follows you and repeats the Arcane spells you cast." if _sigil_carried \
 		else "Your sigil repeats the Arcane spells you cast.")
@@ -554,7 +554,7 @@ static func afterimage_window(channel_left: float, shards_left: int) -> float:
 	return Balance.AFTERIMAGE_BURST
 
 func _leave_afterimage(from: Vector3) -> void:
-	if player.status == null or not player._has_rune(AFTERIMAGE_RUNE):
+	if player.status == null or not player.frost_melee._has_rune(AFTERIMAGE_RUNE):
 		return
 	_image_at = Vector3(from.x, from.y - (player.global_position.y - Combat.feet_y(player)), from.z)
 	_image_spell = ""
@@ -581,7 +581,7 @@ func _on_damage_dealt_arcane(info: RefCounted) -> void:
 	if bool(info.is_dot) or player.status == null or not (info.target is Node3D):
 		return
 	if player.status.has(MIRROR_FX) and mirror_echoes(info.tags, bool(info.is_proc), id,
-			id == ArcaneTankKit.REFLECTION_SHATTER_ID and player._has_rune(TWO_WAY_MIRROR_RUNE)):
+			id == ArcaneTankKit.REFLECTION_SHATTER_ID and player.frost_melee._has_rune(TWO_WAY_MIRROR_RUNE)):
 		_echo_hit(info, mirror_pct(player._talent("arcane_polished_glass"), _sigil_carried), MIRROR_ID, _sigil_origin())
 	if bool(info.is_proc) or not info.tags.has("Spell") or not Abilities.PATHS.has(id):
 		return
@@ -593,7 +593,7 @@ func _on_damage_dealt_arcane(info: RefCounted) -> void:
 		player.status.remove(AFTERIMAGE_FX)
 		_image_spell = id
 		var channel_left := player.cast_timer if player.casting and player.cast_is_channel and player.current_spell == id else 0.0
-		var window := afterimage_window(channel_left, player._shards_left if id == "iceshards" else 0)
+		var window := afterimage_window(channel_left, player.ice_shards_kit._shards_left if id == "iceshards" else 0)
 		_image_until = now + window
 		_arcane_mark("image", _image_at, 0.6, window + 0.3)   # it stays for as long as it is casting
 	if id == _image_spell and now <= _image_until:
@@ -615,16 +615,16 @@ func glint_ready(id: String) -> bool:
 	if player.status == null or not player.status.has(GLINT_FX):
 		return false
 	var res := Abilities.get_resource(id)
-	return res != null and glint_applies(id, res.tags, float(res.cast_time), player._has_rune(MOMENTUM_RUNE))
+	return res != null and glint_applies(id, res.tags, float(res.cast_time), player.frost_melee._has_rune(MOMENTUM_RUNE))
 
 func _glint(res: Resource) -> void:
 	Player.FROST_BOLT.spawn(player.get_tree().current_scene, player._muzzle(), player.target, player, false, GLINT_ID, float(res.damage))
 	var text := "Your next spell with a cast time can be cast while moving."
-	if not player._has_rune(MOMENTUM_RUNE):
+	if not player.frost_melee._has_rune(MOMENTUM_RUNE):
 		text = "Your next %s or %s can be cast while moving." % [Abilities.ability_name(UNRAVEL_ID),
 			Abilities.ability_name(SIGIL_DARTS_ID)]
 	# Keep Moving: the window lasts longer; its capstone: it covers more than one cast.
-	var casts := Balance.KEEP_MOVING_CASTS if player._capstone("arcane_keep_moving") else 1
+	var casts := Balance.KEEP_MOVING_CASTS if player.frost_melee._capstone("arcane_keep_moving") else 1
 	var fx := StatusContainer.make_buff(GLINT_FX, Abilities.ability_name(GLINT_ID), GLINT_FX, 0.0,
 		ArcaneOpenTalentsKit.glint_time(player._talent("arcane_keep_moving")), casts, Abilities.color_of(GLINT_ID))
 	fx.stat_modifiers = {}

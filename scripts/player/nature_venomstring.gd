@@ -324,7 +324,7 @@ func _venom_burst(foe: Node3D) -> void:
 	var kinds := poisons_on(foe)
 	var steeped := kinds.size() >= 3
 	var left := 0.0
-	var keep := player._capstone("nature_lingering_venom")
+	var keep := player.frost_melee._capstone("nature_lingering_venom")
 	for i in range(_poisons.size() - 1, -1, -1):
 		var p: Dictionary = _poisons[i]
 		if not is_same(p["target"], foe):

@@ -246,7 +246,7 @@ func _leave_trace(id: String, amount: int) -> void:
 	# (Long Memory makes them last longer; so does Overtime, like the buff they are shown as.)
 	_traces = traces_after(traces_alive(_traces, now), id, amount, now,
 		now + trace_time(player._talent("arcane_long_memory")) * player.arcane_open.self_buff_time_mult(),
-		Balance.DOUBLE_TIME_TRACES if double else 1, trace_cap(player._capstone("arcane_standing_ovation"), double), _trace_serial)
+		Balance.DOUBLE_TIME_TRACES if double else 1, trace_cap(player.frost_melee._capstone("arcane_standing_ovation"), double), _trace_serial)
 	_sync_traces()
 
 ## Late Cut: the cut lands, and lands again LATE_CUT_DELAY seconds later for the
@@ -268,7 +268,7 @@ func _late_cut(w: Dictionary, res: Resource) -> void:
 		if key >= 0 and has_trace_key(_traces, key):
 			_traces = traces_added(_traces, key, first)
 			_sync_traces()
-		elif player._capstone("arcane_no_loose_ends"):
+		elif player.frost_melee._capstone("arcane_no_loose_ends"):
 			_leave_trace(LATE_CUT_ID, first))   # its Trace is gone: this hit leaves one of its own
 
 ## Wide Cut: everything around me is hit with both weapons; more than
@@ -356,7 +356,7 @@ func _start_double_time() -> void:
 	var time := double_time_time(player._talent("arcane_dress_rehearsal"))   # + Dress Rehearsal
 	player.arcane_caster._arcane_buff(DOUBLE_TIME_FX, DOUBLE_TIME_ID, time,
 		"Each of your strikes leaves more Traces, and you can hold more of them.")
-	if player._capstone("arcane_dress_rehearsal"):
+	if player.frost_melee._capstone("arcane_dress_rehearsal"):
 		player.status.apply(make_dress_rehearsal_fx(time), player)   # its capstone: the first Encore while it lasts keeps the Traces
 	player._ring_effect(1.5, Abilities.color_of(DOUBLE_TIME_ID))
 	player._ring_effect(0.9, Color(0.95, 0.9, 1.0))

@@ -238,7 +238,7 @@ var _vent_recharge := 0.0   # seconds until the next charge (0 = all charges rea
 var _vent_cd := 10.0
 
 func _vent_max() -> int:
-	return Balance.HAIR_TRIGGER_CHARGES if player._has_rune("hair_trigger") else 1
+	return Balance.HAIR_TRIGGER_CHARGES if player.frost_melee._has_rune("hair_trigger") else 1
 
 func _vent_charge_used(cd: float) -> void:
 	if _vent_max() <= 1:
@@ -338,7 +338,7 @@ func charges_text(id: String) -> String:
 	if id == LightstringKit.PRISM_ARROW_ID:
 		return str(player.lightstring._prism_arrows)   # Holy archer: Prism Arrow's charges
 	if id == "iceshards":
-		return str(int(player.ice_shard_charges))
+		return str(int(player.ice_shards_kit.ice_shard_charges))
 	if id == VENT_ID and _vent_max() > 1:
 		return str(clampi(_vent_charges, 0, _vent_max()))
 	if FireMeleeKit.heat_needed(id) > 0:

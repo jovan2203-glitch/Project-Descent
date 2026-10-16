@@ -48,7 +48,7 @@ func test_frostfire_bolt_uses_frost_bolts_numbers() -> void:
 
 func test_frostfire_bolt_is_half_frost_half_fire() -> void:
 	var player_script: GDScript = load("res://scripts/player.gd")
-	var halves: Array = player_script.frostfire_halves(1.0)
+	var halves: Array = FrostfireKit.frostfire_halves(1.0)
 	assert_eq(halves.size(), 2)
 	assert_eq(float(halves[0][0]), 0.5)
 	assert_eq(float(halves[1][0]), 0.5)
@@ -58,7 +58,7 @@ func test_frostfire_bolt_is_half_frost_half_fire() -> void:
 		"the Frost half is only a Frost hit")
 	assert_true((halves[1][2] as PackedStringArray).has("Fire") and not (halves[1][2] as PackedStringArray).has("Frost"),
 		"the Fire half is only a Fire hit")
-	var odd: Array = player_script.frostfire_halves(1.3)
+	var odd: Array = FrostfireKit.frostfire_halves(1.3)
 	assert_true(absf(float(odd[0][0]) + float(odd[1][0]) - 1.3) < 0.0001, "nothing is lost in the split")
 	assert_eq(DamageInfo.make(null, null, 1.0, SPELL).part, 0, "ordinary hits are whole")
 

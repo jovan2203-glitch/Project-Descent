@@ -197,7 +197,7 @@ func _briar_tiger(enemy: Node3D) -> void:
 	var coef := float(Abilities.get_resource(BRIAR_TIGER_ID).damage) * (1.0 + player._talent("nature_hunting_party") / 100.0)   # Hunting Party
 	_tigers += 1
 	_woven_strike("tiger", enemy, coef, BRIAR_TIGER_ID)
-	if player._capstone("nature_hunting_party") and hunting_party_turn(_tigers):
+	if player.frost_melee._capstone("nature_hunting_party") and hunting_party_turn(_tigers):
 		# Hunting Party's capstone: more tigers, at other enemies near the target.
 		var others := player._enemies_near(enemy.global_position, Balance.HUNTING_PARTY_RADIUS, enemy)
 		for i in mini(others.size(), Balance.HUNTING_PARTY_EXTRA):

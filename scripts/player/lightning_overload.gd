@@ -51,7 +51,7 @@ func _on_cast_for_static(id: String, _duration: float = 0.0) -> void:
 	if not Abilities.tags_of(id).has("Lightning"):
 		return
 	var now := Time.get_ticks_msec() / 1000.0
-	if player.status and player._has_rune(OVERLOAD_RUNE) and grounds(now - _lightning_cast_at):
+	if player.status and player.frost_melee._has_rune(OVERLOAD_RUNE) and grounds(now - _lightning_cast_at):
 		_ground()
 	_lightning_cast_at = now
 
@@ -61,7 +61,7 @@ func _tick_grounded() -> void:
 	if now < _ground_check_at:
 		return
 	_ground_check_at = now + 0.5
-	if player.status == null or not player._has_rune(OVERLOAD_RUNE):
+	if player.status == null or not player.frost_melee._has_rune(OVERLOAD_RUNE):
 		return
 	if player.casting and Abilities.tags_of(player.current_spell).has("Lightning"):
 		_lightning_cast_at = now   # a long Lightning cast or channel is not a break
@@ -111,7 +111,7 @@ static func make_overloaded_fx() -> Resource:
 ## (an AoE hitting five enemies is still one). Ending up at the cap Overloads,
 ## unless I am Grounded (then the stacks just stay at the cap).
 func _static_on_hit(info: RefCounted, tags: PackedStringArray) -> void:
-	if not player._has_rune(OVERLOAD_RUNE) or player.status.has(OVERLOADED_ID):
+	if not player.frost_melee._has_rune(OVERLOAD_RUNE) or player.status.has(OVERLOADED_ID):
 		return
 	if not builds_static(str(info.damage_type), tags, bool(info.is_proc), bool(info.is_dot), int(info.amount)):
 		return
