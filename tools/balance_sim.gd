@@ -7,7 +7,7 @@ extends Node
 # x (1 + crit chance); haste shortens casts, the GCD and DoT ticks. A 3-minute
 # fight on a fake clock: each GCD it presses the button that does the most per
 # second of casting among those ready and affordable (a DoT only when it isn't
-# already up), plus weapon auto-attacks for weapon specs.
+# already up), plus weapon auto-attacks for weapon specs. Rage decays as in game.
 # NOT counted: talents, runes, items' equip effects, procs, buffs between
 # abilities, movement, AoE. Spec-specific payoffs: tools/balance_sim_specs.gd.
 #   godot --headless --path . res://tools/balance_sim.tscn
@@ -53,19 +53,27 @@ func _ready() -> void:
 # --- One spec ------------------------------------------------------------------------------
 
 ## Simulate `spec` (its ability ids) as `role` with the `profile` ("no gear" / "geared").
-## Returns {"dps", "hps", "self_hps", "avg_hit", "sources": {name: total}, "idle"}.
-static func simulate(ids: Array, role: String, profile: String) -> Dictionary:
-	var kind := spec_kind(ids)
+## `spec_name` picks up its overrides in balance_sim_specs.gd FIGHTS.
+## Returns {"dps", "hps", "self_hps", "avg_hit", "sources": {name: total}, "idle", "starved",
+## "unsimulated": [ability names the sim can't value]}. "idle" = time with nothing to press,
+## "starved" = the part of it where a button was off cooldown but unaffordable.
+static func simulate(ids: Array, role: String, profile: String, spec_name := "") -> Dictionary:
+	var fights: Dictionary = SPECS_INFO.FIGHTS.get(spec_name, {})
+	var kind: String = fights.get("kind", spec_kind(ids))
+	var weapon: String = fights.get("weapon", spec_weapon(ids))
 	var totals: Dictionary = PROFILES[profile][kind]
 	var stat_of := func(s: String) -> float: return Stats.from_totals(s, totals)
 	var haste := Stats.haste_mult(float(stat_of.call(Stats.HASTE)))
-	var w := Items.get_item(WEAPONS.get(spec_weapon(ids), ""))
+	var w := Items.get_item(WEAPONS.get(weapon, ""))
 	var max_hp := Stats.player_base_health(LEVEL) + float(stat_of.call(Stats.MAX_HEALTH))
 	var buttons := []
+	var unsimulated := PackedStringArray()
 	for id in ids:
 		var b := button(str(id), w, stat_of, haste, max_hp)
 		if not b.is_empty():
 			buttons.append(b)
+		elif Abilities.get_resource(str(id)) != null:
+			unsimulated.append(Abilities.ability_name(str(id)))
 	var sources := {}
 	var dmg_total := 0.0
 	var heal_total := 0.0
@@ -79,7 +87,7 @@ static func simulate(ids: Array, role: String, profile: String) -> Dictionary:
 	# Weapon auto-attacks (weapon specs): damage, and the Rage each swing gives.
 	var swing_every := 0.0
 	var swing_dmg := 0.0
-	if not w.is_empty() and spec_weapon(ids) != "":
+	if not w.is_empty() and weapon != "":
 		swing_every = float(w.get("attack_interval", 1.0)) / haste
 		var auto_tags := PackedStringArray(["AutoAttack"])
 		swing_dmg = float(w.get("damage", 0.0)) * Balance.AUTO_ATTACK_MULT * (Stats.level_hit(LEVEL) + Stats.power_bonus(auto_tags, stat_of)) \
@@ -87,6 +95,7 @@ static func simulate(ids: Array, role: String, profile: String) -> Dictionary:
 	var next_swing := 0.0
 	var t := 0.0
 	var idle := 0.0
+	var starved := 0.0
 	var venom_spec := ids.has("venomburst")
 	while t < FIGHT:
 		# Auto-attacks up to now.
@@ -99,6 +108,8 @@ static func simulate(ids: Array, role: String, profile: String) -> Dictionary:
 		var step := 0.1
 		if pick.is_empty():
 			idle += step
+			if _any_unaffordable(buttons, t, res, ready_at, dot_until):
+				starved += step
 		else:
 			var id: String = pick["id"]
 			_pay(pick, res)
@@ -119,11 +130,13 @@ static func simulate(ids: Array, role: String, profile: String) -> Dictionary:
 		# Resources come back over the step.
 		res["mana"] = minf(float(res["mana"]) + Balance.MANA_REGEN * step, mana_max)
 		res["energy"] = minf(float(res["energy"]) + Balance.ENERGY_REGEN * step, Balance.RESOURCE_MAX)
+		res["rage"] = maxf(float(res["rage"]) - Balance.RAGE_DECAY * step, 0.0)
 		if venom_spec and _all_poisons_up(dot_until, t):
 			res["venom"] = minf(float(res["venom"]) + Balance.VENOM_PER_TICK * 3.0 * haste * step, Balance.VENOM_MAX)
 		t += step
 	return {"dps": dmg_total / FIGHT, "hps": heal_total / FIGHT, "self_hps": self_heal / FIGHT,
-		"avg_hit": dmg_uses_total / maxf(uses, 1), "sources": sources, "idle": idle / FIGHT}
+		"avg_hit": dmg_uses_total / maxf(uses, 1), "sources": sources, "idle": idle / FIGHT, "starved": starved / FIGHT,
+		"unsimulated": unsimulated}
 
 ## What one press of `id` is worth, or {} if it does no damage and no healing.
 static func button(id: String, w: Dictionary, stat_of: Callable, haste: float, max_hp: float) -> Dictionary:
@@ -189,6 +202,17 @@ static func _best(buttons: Array, role: String, t: float, res: Dictionary, ready
 			best = b
 	return best
 
+## A button that is off cooldown (and usable now) but costs more than you have.
+static func _any_unaffordable(buttons: Array, t: float, res: Dictionary, ready_at: Dictionary, dot_until: Dictionary) -> bool:
+	for b in buttons:
+		if float(ready_at.get(b["id"], 0.0)) > t + 0.001 or t < FIGHT * (1.0 - float(b.get("last", 1.0))):
+			continue
+		if float(b["dot_time"]) > 0.0 and float(dot_until.get(b["id"], 0.0)) > t:
+			continue
+		if b["res"] != "" and float(b["cost"]) > float(res.get(b["res"], 0.0)) + 0.0001:
+			return true
+	return false
+
 static func _pay(b: Dictionary, res: Dictionary) -> void:
 	var r: String = b["res"]
 	if r != "":
@@ -237,17 +261,20 @@ static func report() -> String:
 	lines.append("Level %d, a %d-second single-target fight. Generated by tools/balance_sim.gd. Not counted: talents, runes, items' equip effects, procs, AoE, movement. Geared = a full level 50 epic set. Targets (CLAUDE.md): about %d per ability use with no gear, about %d DPS geared." \
 		% [LEVEL, int(FIGHT), int(TARGET_HIT), int(TARGET_DPS_GEARED)])
 	lines.append("")
-	lines.append("| Book | Spec | Role | Avg use (no gear) | No gear | Geared | Top sources (geared) | Flags |")
-	lines.append("|---|---|---|---|---|---|---|---|")
+	lines.append("Idle = time with nothing to press: \"waiting on cooldowns\" when every button was on cooldown, \"resource-starved\" when one was ready but unaffordable. Not simulated = buttons with no damage or healing the sim can value (shields, mitigation, utility).")
+	lines.append("")
+	lines.append("| Book | Spec | Role | Avg use (no gear) | No gear | Geared | Top sources (geared) | Flags | Not simulated |")
+	lines.append("|---|---|---|---|---|---|---|---|---|")
 	for book in Abilities.SPECS:
 		for spec in Abilities.SPECS[book]:
 			var name: String = spec[0]
 			var ids: Array = spec[1]
 			var role: String = SPECS_INFO.ROLES.get(name, "dps")
-			var bare := simulate(ids, role, "no gear")
-			var full := simulate(ids, role, "geared")
-			lines.append("| %s | %s | %s | %d | %s | %s | %s | %s |" % [book.capitalize(), name, role, int(bare["avg_hit"]),
-				_rate(bare, role), _rate(full, role), _top(full["sources"]), ", ".join(_flags(bare, full, role))])
+			var bare := simulate(ids, role, "no gear", name)
+			var full := simulate(ids, role, "geared", name)
+			lines.append("| %s | %s | %s | %d | %s | %s | %s | %s | %s |" % [book.capitalize(), name, role, int(bare["avg_hit"]),
+				_rate(bare, role), _rate(full, role), _top(full["sources"]), ", ".join(_flags(bare, full, role)),
+				", ".join(full["unsimulated"])])
 	return "\n".join(lines) + "\n"
 
 static func _rate(r: Dictionary, role: String) -> String:
@@ -281,6 +308,9 @@ static func _flags(bare: Dictionary, full: Dictionary, role: String) -> PackedSt
 			out.append("hits big")
 		elif float(bare["avg_hit"]) < TARGET_HIT * 0.5:
 			out.append("hits small")
-	if float(full["idle"]) > 0.25:
-		out.append("idle %d%% (resource-starved)" % int(float(full["idle"]) * 100.0))
+	var idle := float(full["idle"])
+	if idle > 0.25:
+		var starved := float(full["starved"])
+		var why := "resource-starved" if starved >= idle * 0.5 else "waiting on cooldowns"
+		out.append("idle %d%% (%s)" % [int(idle * 100.0), why])
 	return out

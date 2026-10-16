@@ -17,6 +17,13 @@ const ROLES := {
 	"Warpath": "dps", "Iron Line": "tank", "Knife Work": "dps", "Huntsman": "dps",
 }
 
+## Spec name -> how it fights, where its abilities' tags say otherwise:
+##   "kind": "caster" / "physical" (which gear profile), "weapon": "melee" / "ranged" / "" (auto-attacks).
+const FIGHTS := {
+	# Stoneguard and Taunt are tagged Spell, but Iron Line is a sword-and-board martial tank.
+	"Iron Line": {"kind": "physical", "weapon": "melee"},
+}
+
 ## Ability id -> what one use is really worth, where its data doesn't say it:
 ##   "coef": direct damage (coefficient), "dot": damage over time in all, "dot_time": its seconds,
 ##   "heal": heal (old Heal x REFERENCE_HEAL units, like Balance.HEALS),
