@@ -243,8 +243,8 @@ func test_sap() -> void:
 	_near(p.heartsap_pct(5, 0.0), Balance.HEARTSAP_BASE_PCT + 5.0 * Balance.HEARTSAP_PER_SAP)
 	_near(p.heartsap_pct(5, 10.0), (Balance.HEARTSAP_BASE_PCT + 5.0 * Balance.HEARTSAP_PER_SAP) * 1.1, "Thick Sap")
 	assert_eq(p.stomp_sap(0), 0)
-	assert_eq(p.stomp_sap(1), 1)
-	assert_eq(p.stomp_sap(Balance.STOMP_SAP_HITS), 2)
+	assert_eq(p.stomp_sap(1), Balance.STOMP_SAP)
+	assert_eq(p.stomp_sap(Balance.STOMP_SAP_HITS), Balance.STOMP_SAP_MANY)
 	assert_eq(p.hands_amount(1000, false), int(round(1000.0 * Balance.GIANTS_HANDS_PCT / 100.0)))
 	assert_eq(p.hands_amount(1000, true), int(round(1000.0 * Balance.GIANTS_HANDS_PCT / 100.0 * (1.0 + Balance.AWAKEN_HANDS_PCT / 100.0))), "Awaken: bigger hands")
 

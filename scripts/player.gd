@@ -14762,7 +14762,7 @@ static func heartsap_pct(n: int, more_pct: float) -> float:
 
 ## Sap a Stomp that hit `hits` enemies gives.
 static func stomp_sap(hits: int) -> int:
-	return 2 if hits >= Balance.STOMP_SAP_HITS else (1 if hits > 0 else 0)
+	return Balance.STOMP_SAP_MANY if hits >= Balance.STOMP_SAP_HITS else (Balance.STOMP_SAP if hits > 0 else 0)
 
 ## Giant's Hands' shield on a character with `max_hp` (`awake`: during Awaken; `absorb`: Rime Ward).
 static func hands_amount(max_hp: int, awake: bool, absorb: float = 1.0) -> int:
@@ -14861,7 +14861,7 @@ func _vine_fist(res: Resource) -> void:
 			for e in near:
 				deal_damage(e, Balance.AWAKEN_SLAM * share, GIANTS_SLAM_ID, true, "nature", PackedStringArray(COLOSSUS_TAGS))
 			_ring_effect(Balance.AWAKEN_SLAM_RADIUS, SAP_COLOR)
-		_gain_sap(1))
+		_gain_sap(Balance.VINE_FIST_SAP))
 
 ## Grasp: a hand rises under my target and drops it at my feet; it must attack me and is held.
 func _grasp() -> void:
@@ -14961,7 +14961,7 @@ func _hands_burst() -> void:
 ## Something hit me (_on_hit_taken): a hit Giant's Hands soaked gives Sap.
 func _colossus_hit_taken(info: RefCounted) -> void:
 	if _hands_on and int(info.absorbed) > 0 and not bool(info.is_dot):
-		_gain_sap(1)
+		_gain_sap(Balance.HANDS_SAP)
 
 ## Heartsap: all my Sap at once as a heal.
 func _heartsap() -> void:

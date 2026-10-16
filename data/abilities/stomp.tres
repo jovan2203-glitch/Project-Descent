@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"stomp"
 display_name = "Stomp"
-description = "A giant foot slams down, dealing {hit} Nature damage to every enemy within {radius} m and making them attack you for {b:STOMP_TAUNT} sec. Deals double damage to an enemy held by {n:grasp}. Thorny roots stay in the cracks for {b:STOMP_ROOTS_TIME} sec, dealing {d:STOMP_ROOTS_DAMAGE} Nature damage over that time to each enemy inside. Gives 1 Sap, or 2 if it hits {b:STOMP_SAP_HITS} or more enemies. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, it is split evenly between all of them."
+description = "A giant foot slams down, dealing {hit} Nature damage to every enemy within {radius} m and making them attack you for {b:STOMP_TAUNT} sec. Deals double damage to an enemy held by {n:grasp}. Thorny roots stay in the cracks for {b:STOMP_ROOTS_TIME} sec, dealing {d:STOMP_ROOTS_DAMAGE} Nature damage over that time to each enemy inside. Gives {b:STOMP_SAP} Sap, or {b:STOMP_SAP_MANY} if it hits {b:STOMP_SAP_HITS} or more enemies. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, it is split evenly between all of them."
 tags = PackedStringArray("Ability", "Nature", "Melee", "AoE")
 cast_type = 0
 cast_time = 0.0

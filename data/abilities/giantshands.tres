@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"giantshands"
 display_name = "Giant's Hands"
-description = "The giant's hands close around you, absorbing damage up to {b:GIANTS_HANDS_PCT}% of your maximum health for {b:GIANTS_HANDS_TIME} sec. Each hit they take gives 1 Sap. When the shield breaks or runs out, the hands burst open, dealing {hit} Nature damage to every enemy within {radius} m with {threat}x threat. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, it is split evenly between all of them."
+description = "The giant's hands close around you, absorbing damage up to {b:GIANTS_HANDS_PCT}% of your maximum health for {b:GIANTS_HANDS_TIME} sec. Each hit they take gives {b:HANDS_SAP} Sap. When the shield breaks or runs out, the hands burst open, dealing {hit} Nature damage to every enemy within {radius} m with {threat}x threat. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, it is split evenly between all of them."
 tags = PackedStringArray("Ability", "Nature", "Defensive")
 cast_type = 0
 cast_time = 0.0
