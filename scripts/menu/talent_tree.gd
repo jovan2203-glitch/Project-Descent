@@ -29,7 +29,7 @@ func _build_talent_tree() -> void:
 	_talent_canvas.draw.connect(_draw_talent_canvas.bind(canvas))
 	_book_tree.add_child(_talent_canvas)
 	for r in Talents.ROWS:
-		for id in Talents.in_row(menu._book_cat, r):
+		for id in Talents.in_row(menu.open_book._book_cat, r):
 			var b := Button.new()
 			b.focus_mode = Control.FOCUS_NONE
 			b.pressed.connect(func(): menu._toast_if(pd.invest_talent(id)))
@@ -91,7 +91,7 @@ func _talent_center(id: String) -> Vector2:
 # Row separators + link lines between talents of the open book (under the buttons).
 func _draw_talent_canvas(canvas: Control) -> void:
 	# An old canvas (book just switched, not freed yet) draws nothing.
-	if menu._book_cat == "" or canvas != _talent_canvas:
+	if menu.open_book._book_cat == "" or canvas != _talent_canvas:
 		return
 	var w := T_LABEL_W + Talents.COLUMNS * T_CELL.x
 	for r in range(1, Talents.ROWS):
@@ -99,7 +99,7 @@ func _draw_talent_canvas(canvas: Control) -> void:
 		canvas.draw_line(Vector2(0, y), Vector2(w, y), Color(MainMenu.PAGE_BORDER, 0.45), 1.0)
 	var pd := menu.get_node("/root/PlayerData")
 	var half := T_BTN / 2.0
-	for l in Talents.links_in_tree(menu._book_cat):
+	for l in Talents.links_in_tree(menu.open_book._book_cat):
 		var a: Vector2 = _talent_center(l[0])
 		var b: Vector2 = _talent_center(l[1])
 		var dir := (b - a).normalized()
@@ -137,11 +137,11 @@ func _refresh_talents() -> void:
 		menu._shelf_info[cat].text = "  •  ".join(parts)
 		if cat == Categories.RUNE:
 			menu._shelf_info[cat].text = "%d of %d known" % [have, ids.size()] if have > 0 else "None on your gear"
-	if menu._book_cat == "":
+	if menu.open_book._book_cat == "":
 		return
-	var pts: int = pd.tree_points(menu._book_cat)
-	menu._book_sub.text = Categories.desc(menu._book_cat) + ("   •   %d talent %s in this book" % [pts, "point" if pts == 1 else "points"] if pts > 0 else "")
-	var col := Categories.color(menu._book_cat)
+	var pts: int = pd.tree_points(menu.open_book._book_cat)
+	menu.open_book._book_sub.text = Categories.desc(menu.open_book._book_cat) + ("   •   %d talent %s in this book" % [pts, "point" if pts == 1 else "points"] if pts > 0 else "")
+	var col := Categories.color(menu.open_book._book_cat)
 	for r in _row_status.size():
 		var status: Label = _row_status[r]
 		if pd.tier_unlocked(r):

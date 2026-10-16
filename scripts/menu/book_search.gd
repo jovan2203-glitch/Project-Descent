@@ -24,7 +24,7 @@ func _clear_search() -> void:
 
 ## Shelf: list what matches. Open book: highlight what matches.
 func _refresh_search() -> void:
-	if menu._book_cat != "":
+	if menu.open_book._book_cat != "":
 		_update_marks()
 		return
 	var searching := _search_query != ""
@@ -72,7 +72,7 @@ func _search_result(pd: Node, key: String) -> Button:
 		b.tooltip_text = Talents.tooltip(id, pd.talent_rank(id))
 	b.pressed.connect(func():
 		_search_focus = key
-		menu._open_book(cat))
+		menu.open_book._open_book(cat))
 	var row := HBoxContainer.new()
 	row.set_anchors_preset(Control.PRESET_FULL_RECT)
 	row.offset_left = 6
@@ -138,8 +138,8 @@ func _wire_hover(b: Control, key: String) -> void:
 func _update_marks() -> void:
 	var related: Array = Keywords.related(_hover_key) if _hover_key != "" else []
 	var controls := {}
-	for id in menu._ability_cells:
-		controls["a:" + str(id)] = menu._ability_cells[id]
+	for id in menu.open_book._ability_cells:
+		controls["a:" + str(id)] = menu.open_book._ability_cells[id]
 	for id in menu.talent_tree._talent_buttons:
 		controls["t:" + str(id)] = menu.talent_tree._talent_buttons[id]
 	for key in controls:
