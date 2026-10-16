@@ -3,3 +3,4 @@ bank_page BankPage bank_page.gd
 esc EscMenuPart esc_menu_part.gd
 lobby_page LobbyPage lobby_page.gd
 character_page CharacterPage character_page.gd
+cards_page CardsPage cards_page.gd
