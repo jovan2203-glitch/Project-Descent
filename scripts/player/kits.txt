@@ -11,3 +11,7 @@ strings StringsKit shadow_strings.gd
 hounds HoundsKit shadow_hounds.gd
 shadow_talents ShadowTalentsKit shadow_talents.gd
 decay DecayKit shadow_decay.gd
+arcane_melee ArcaneMeleeKit arcane_melee.gd
+arcane_open ArcaneOpenTalentsKit arcane_talents_open.gd
+arcane_tank ArcaneTankKit arcane_tank.gd
+arcane_caster ArcaneCasterKit arcane_caster.gd

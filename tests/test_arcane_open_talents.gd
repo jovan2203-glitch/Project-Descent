@@ -130,24 +130,24 @@ func test_echo() -> void:
 	assert_eq(Balance.ECHO_ARCANE_PCT, 15.0)
 	assert_eq(Balance.ECHO_ARCANE_CHANCE_MULT, 2)
 	var p := _player()
-	assert_eq(p.echo_chance(6.0, false), 6.0)
-	assert_eq(p.echo_chance(6.0, true), 12.0, "Arcane: twice as often")
-	assert_eq(p.echo_chance(2.0, true), 4.0)
-	assert_eq(p.echo_share(false), 30.0)
-	assert_eq(p.echo_share(true), 15.0, "... for half as much")
-	assert_eq(p.echo_amount(1000, p.echo_share(false)), 300)
-	assert_eq(p.echo_amount(1000, p.echo_share(true)), 150)
+	assert_eq(ArcaneOpenTalentsKit.echo_chance(6.0, false), 6.0)
+	assert_eq(ArcaneOpenTalentsKit.echo_chance(6.0, true), 12.0, "Arcane: twice as often")
+	assert_eq(ArcaneOpenTalentsKit.echo_chance(2.0, true), 4.0)
+	assert_eq(ArcaneOpenTalentsKit.echo_share(false), 30.0)
+	assert_eq(ArcaneOpenTalentsKit.echo_share(true), 15.0, "... for half as much")
+	assert_eq(ArcaneCasterKit.echo_amount(1000, ArcaneOpenTalentsKit.echo_share(false)), 300)
+	assert_eq(ArcaneCasterKit.echo_amount(1000, ArcaneOpenTalentsKit.echo_share(true)), 150)
 	# What it repeats: the hits of spells and abilities, of any book.
-	assert_true(p.echoes(PackedStringArray(["Fire", "Spell"]), false, false, true))
-	assert_true(p.echoes(PackedStringArray(["Ability", "Lightning", "Melee"]), false, false, true))
-	assert_true(p.echoes(PackedStringArray(["Arcane", "Spell"]), false, false, true))
-	assert_false(p.echoes(PackedStringArray(["Fire", "Spell"]), true, false, true), "never a proc: no echo of an echo")
-	assert_false(p.echoes(PackedStringArray(["Fire", "Spell"]), false, true, true), "never damage over time")
-	assert_false(p.echoes(PackedStringArray(["Fire", "Spell"]), false, false, false), "only spells and abilities you know by name")
-	assert_false(p.echoes(PackedStringArray(["AutoAttack"]), false, false, true), "not auto-attacks")
+	assert_true(ArcaneOpenTalentsKit.echoes(PackedStringArray(["Fire", "Spell"]), false, false, true))
+	assert_true(ArcaneOpenTalentsKit.echoes(PackedStringArray(["Ability", "Lightning", "Melee"]), false, false, true))
+	assert_true(ArcaneOpenTalentsKit.echoes(PackedStringArray(["Arcane", "Spell"]), false, false, true))
+	assert_false(ArcaneOpenTalentsKit.echoes(PackedStringArray(["Fire", "Spell"]), true, false, true), "never a proc: no echo of an echo")
+	assert_false(ArcaneOpenTalentsKit.echoes(PackedStringArray(["Fire", "Spell"]), false, true, true), "never damage over time")
+	assert_false(ArcaneOpenTalentsKit.echoes(PackedStringArray(["Fire", "Spell"]), false, false, false), "only spells and abilities you know by name")
+	assert_false(ArcaneOpenTalentsKit.echoes(PackedStringArray(["AutoAttack"]), false, false, true), "not auto-attacks")
 	assert_eq(Details.spell_name("echo"), "Echo", "its own line on the meter")
 	# Mirror Sigil does not repeat an echo.
-	assert_false(p.mirror_echoes(PackedStringArray(["Arcane", "Spell"]), true, "echo"))
+	assert_false(ArcaneCasterKit.mirror_echoes(PackedStringArray(["Arcane", "Spell"]), true, "echo"))
 	var text := _desc("arcane_echo")
 	assert_contains(text, "2 / 4 / 6% chance")
 	assert_contains(text, "30% of the damage")
@@ -171,8 +171,8 @@ func test_mirror_finish() -> void:
 
 func test_overtime() -> void:
 	var p := _player()
-	assert_eq(p.overtime_mult(0.0), 1.0)
-	assert_true(is_equal_approx(p.overtime_mult(15.0), 1.15))
+	assert_eq(ArcaneOpenTalentsKit.overtime_mult(0.0), 1.0)
+	assert_true(is_equal_approx(ArcaneOpenTalentsKit.overtime_mult(15.0), 1.15))
 	assert_true(_has_method("res://scripts/player.gd", "self_buff_time_mult"), "StatusContainer asks the player")
 	assert_contains(_desc("arcane_overtime"), "5 / 10 / 15% longer")
 	# A buff someone puts on themselves lasts longer; one from someone else, or a debuff, does not.
@@ -205,7 +205,7 @@ func test_light_touch() -> void:
 func test_slipstream() -> void:
 	assert_eq(Balance.SLIPSTREAM_TIME, 3.0)
 	var p := _player()
-	var moves: Array = p.SLIPSTREAM_MOVES
+	var moves: Array = ArcaneOpenTalentsKit.SLIPSTREAM_MOVES
 	for id in ["blink", "flicker", "staticstep", "cinderstep", "icyretreat"]:
 		assert_true(moves.has(id), "%s counts" % id)
 		assert_true(Abilities.PATHS.has(id))
@@ -215,16 +215,16 @@ func test_slipstream() -> void:
 func test_borrowed_time() -> void:
 	assert_eq(Balance.BORROWED_TIME_COOLDOWN, 20.0)
 	var p := _player()
-	assert_true(p.borrowed_time_counts(20.0))
-	assert_true(p.borrowed_time_counts(90.0))
-	assert_false(p.borrowed_time_counts(19.9))
-	assert_false(p.borrowed_time_counts(0.0))
+	assert_true(ArcaneOpenTalentsKit.borrowed_time_counts(20.0))
+	assert_true(ArcaneOpenTalentsKit.borrowed_time_counts(90.0))
+	assert_false(ArcaneOpenTalentsKit.borrowed_time_counts(19.9))
+	assert_false(ArcaneOpenTalentsKit.borrowed_time_counts(0.0))
 	# Abilities of every book count, by their cooldown alone.
 	var long := 0
 	var books := {}
 	for id in Abilities.ALL:
 		var r := Abilities.get_resource(id)
-		if r != null and p.borrowed_time_counts(float(r.cooldown)):
+		if r != null and ArcaneOpenTalentsKit.borrowed_time_counts(float(r.cooldown)):
 			long += 1
 			books[Abilities.category_of(id)] = true
 	assert_true(long >= 10, "plenty of abilities have a long cooldown")
@@ -236,8 +236,8 @@ func test_borrowed_time() -> void:
 func test_keep_moving() -> void:
 	assert_eq(Balance.KEEP_MOVING_CASTS, 2)
 	var p := _player()
-	assert_eq(p.glint_time(0.0), Balance.GLINT_TIME)
-	assert_eq(p.glint_time(4.0), Balance.GLINT_TIME + 4.0)
+	assert_eq(ArcaneOpenTalentsKit.glint_time(0.0), Balance.GLINT_TIME)
+	assert_eq(ArcaneOpenTalentsKit.glint_time(4.0), Balance.GLINT_TIME + 4.0)
 	assert_contains(_desc("arcane_keep_moving"), "2 / 4 sec longer")
 	assert_contains(Talents.capstone_text(_id("arcane_keep_moving")), "2 casts on the move")
 	assert_false(str(Abilities.get_resource("glint").description).contains("{b:GLINT_TIME}"), "Glint's tooltip counts the talent")

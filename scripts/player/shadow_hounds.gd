@@ -419,7 +419,7 @@ func _hound_bite(i: int) -> void:
 	for e in player._enemies_near(foe.global_position, Balance.RUN_DOWN_REACH, foe):
 		if others >= most:
 			break
-		player._exact_hit(e, share, RUN_DOWN_ID, "shadow", PackedStringArray(HOUND_TAGS))
+		player.arcane_caster._exact_hit(e, share, RUN_DOWN_ID, "shadow", PackedStringArray(HOUND_TAGS))
 		others += 1
 
 ## One hit of a Hound's on `foe`: mine in everything (my level, power, crit,

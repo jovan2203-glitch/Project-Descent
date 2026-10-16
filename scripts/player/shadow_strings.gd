@@ -682,7 +682,7 @@ func _crossed_damage(ally: Variant, amount: int) -> void:
 	var a: Variant = _strings.get((ally as Node).get_instance_id())
 	if a == null or int(a["cross"]) == 0 or not _strings.has(int(a["cross"])):
 		return
-	player._exact_hit(_strings[int(a["cross"])]["node"], amount, CROSSED_ID, "shadow", PackedStringArray(STRING_TAGS))
+	player.arcane_caster._exact_hit(_strings[int(a["cross"])]["node"], amount, CROSSED_ID, "shadow", PackedStringArray(STRING_TAGS))
 
 ## Every frame: Strings heal, run out and come back; the demon and the party are kept up to date.
 func _tick_strings() -> void:

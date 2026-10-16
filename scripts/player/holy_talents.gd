@@ -137,7 +137,7 @@ func hit_recently(who: Variant, window: float) -> bool:
 	if who == null or not is_instance_valid(who):
 		return false
 	if is_same(who, player):
-		return player.damage_taken_recently(window) > 0
+		return player.arcane_tank.damage_taken_recently(window) > 0
 	var at: Variant = (who as Node).get("hurt_at")
 	return at != null and Time.get_ticks_msec() / 1000.0 - float(at) <= window
 

@@ -126,9 +126,9 @@ func test_double_up() -> void:
 # and Off Hand weapons' damage together.
 func test_strikes_use_both_weapons() -> void:
 	var p := _player()
-	assert_true(is_equal_approx(float(p.dual_hit(0.45, 0.32, 1.0, 0.0)), 0.77))
-	assert_true(is_equal_approx(float(p.dual_hit(0.45, 0.32, 2.0, 0.1)), 1.64), "multiplier on both, then the ability's own")
-	assert_true(is_equal_approx(float(p.dual_hit(0.45, 0.0, 1.0, 0.0)), 0.45), "no Off Hand weapon adds nothing")
+	assert_true(is_equal_approx(float(ArcaneTankKit.dual_hit(0.45, 0.32, 1.0, 0.0)), 0.77))
+	assert_true(is_equal_approx(float(ArcaneTankKit.dual_hit(0.45, 0.32, 2.0, 0.1)), 1.64), "multiplier on both, then the ability's own")
+	assert_true(is_equal_approx(float(ArcaneTankKit.dual_hit(0.45, 0.0, 1.0, 0.0)), 0.45), "no Off Hand weapon adds nothing")
 	assert_true(_has_method("res://scripts/player.gd", "_dual_weapon_hit"))
 	var sword := Items.get_item("sword")
 	var dagger := Items.get_item("dagger")
@@ -154,10 +154,10 @@ func test_ripple() -> void:
 	assert_true(r.tags.has("AoE"))
 	assert_eq(Balance.RIPPLE_REFLECTION_ENEMIES, 3)
 	var p := _player()
-	assert_false(p.ripple_makes_reflection(0))
-	assert_false(p.ripple_makes_reflection(2))
-	assert_true(p.ripple_makes_reflection(3), "three enemies: a Reflection")
-	assert_true(p.ripple_makes_reflection(9))
+	assert_false(ArcaneTankKit.ripple_makes_reflection(0))
+	assert_false(ArcaneTankKit.ripple_makes_reflection(2))
+	assert_true(ArcaneTankKit.ripple_makes_reflection(3), "three enemies: a Reflection")
+	assert_true(ArcaneTankKit.ripple_makes_reflection(9))
 	assert_contains(Abilities.tooltip("ripple"), "if it hits 3 or more enemies")
 	assert_contains(Abilities.tooltip("ripple"), "within 6 m")
 
@@ -168,8 +168,8 @@ func test_full_set() -> void:
 	assert_false(Abilities.has_scaling("fullset"), "nothing to scale")
 	assert_true(_player().on_gcd("fullset"))
 	var p := _player()
-	assert_eq(p.reflections_after(0, Balance.REFLECTION_MAX), 4, "from none to all four")
-	assert_eq(p.reflections_after(3, Balance.REFLECTION_MAX), 4)
+	assert_eq(ArcaneTankKit.reflections_after(0, Balance.REFLECTION_MAX), 4, "from none to all four")
+	assert_eq(ArcaneTankKit.reflections_after(3, Balance.REFLECTION_MAX), 4)
 	assert_contains(Abilities.tooltip("fullset"), "until you have 4")
 
 func test_missed_beat() -> void:
@@ -210,21 +210,21 @@ func test_trade_places() -> void:
 	assert_false(_player().on_gcd("tradeplaces"), "off the global cooldown")
 	assert_false(Abilities.has_scaling("tradeplaces"), "a share of damage taken: nothing to scale")
 	var p := _player()
-	assert_eq(p.trade_places_heal(1000, 1), 200, "20% of it for one Reflection")
-	assert_eq(p.trade_places_heal(1000, 4), 800, "20% for each of four")
-	assert_eq(p.trade_places_heal(1000, 0), 0)
-	assert_eq(p.trade_places_heal(0, 4), 0)
-	assert_eq(p.trade_places_heal(333, 2), 133, "rounded")
+	assert_eq(ArcaneTankKit.trade_places_heal(1000, 1), 200, "20% of it for one Reflection")
+	assert_eq(ArcaneTankKit.trade_places_heal(1000, 4), 800, "20% for each of four")
+	assert_eq(ArcaneTankKit.trade_places_heal(1000, 0), 0)
+	assert_eq(ArcaneTankKit.trade_places_heal(0, 4), 0)
+	assert_eq(ArcaneTankKit.trade_places_heal(333, 2), 133, "rounded")
 	# What counts as damage taken lately: [time, damage] rows inside the window.
 	var rows := [[10.0, 100], [11.5, 50], [12.9, 25]]
-	assert_eq(p.damage_in_window(rows, 13.0, 3.0), 175, "all three in the last 3 sec")
-	assert_eq(p.damage_in_window(rows, 14.0, 3.0), 75, "the first is too old")
-	assert_eq(p.damage_in_window(rows, 20.0, 3.0), 0)
-	assert_eq(p.damage_in_window([], 5.0, 3.0), 0)
-	assert_ne(p.trade_places_error(0, 500, false), "", "no Reflections: nothing to give up")
-	assert_ne(p.trade_places_error(2, 0, false), "", "no damage taken: nothing to heal")
-	assert_ne(p.trade_places_error(2, 500, true), "", "already at full health")
-	assert_eq(p.trade_places_error(1, 1, false), "")
+	assert_eq(ArcaneTankKit.damage_in_window(rows, 13.0, 3.0), 175, "all three in the last 3 sec")
+	assert_eq(ArcaneTankKit.damage_in_window(rows, 14.0, 3.0), 75, "the first is too old")
+	assert_eq(ArcaneTankKit.damage_in_window(rows, 20.0, 3.0), 0)
+	assert_eq(ArcaneTankKit.damage_in_window([], 5.0, 3.0), 0)
+	assert_ne(ArcaneTankKit.trade_places_error(0, 500, false), "", "no Reflections: nothing to give up")
+	assert_ne(ArcaneTankKit.trade_places_error(2, 0, false), "", "no damage taken: nothing to heal")
+	assert_ne(ArcaneTankKit.trade_places_error(2, 500, true), "", "already at full health")
+	assert_eq(ArcaneTankKit.trade_places_error(1, 1, false), "")
 	var text := Abilities.tooltip("tradeplaces")
 	assert_contains(text, "20% of the damage you took in the last 3 sec")
 
@@ -270,11 +270,11 @@ func test_reflection_numbers() -> void:
 	assert_eq(Balance.REFLECTION_SHATTER_THREAT, 4.0, "high threat")
 	assert_eq(Balance.REFLECTION_SHATTER_COOLDOWN, 0.5)
 	var p := _player()
-	assert_eq(p.reflections_after(0, 1), 1)
-	assert_eq(p.reflections_after(3, 1), 4)
-	assert_eq(p.reflections_after(4, 1), 4, "never more than four")
-	assert_eq(p.reflections_after(2, 0), 2)
-	assert_eq(p.reflections_after(2, -3), 2)
+	assert_eq(ArcaneTankKit.reflections_after(0, 1), 1)
+	assert_eq(ArcaneTankKit.reflections_after(3, 1), 4)
+	assert_eq(ArcaneTankKit.reflections_after(4, 1), 4, "never more than four")
+	assert_eq(ArcaneTankKit.reflections_after(2, 0), 2)
+	assert_eq(ArcaneTankKit.reflections_after(2, -3), 2)
 
 ## The Reflections are a stacking buff: Dodge per stack, used up one at a time.
 func test_reflections_are_stacks_of_dodge() -> void:
@@ -301,21 +301,21 @@ func test_reflections_are_stacks_of_dodge() -> void:
 
 func test_dodge_cap() -> void:
 	var p := _player()
-	assert_eq(p.dodge_cap_for(0), Stats.MAX_DODGE, "30% without any")
-	assert_eq(p.dodge_cap_for(1), 35.0)
-	assert_eq(p.dodge_cap_for(4), 50.0, "30% to 50% at four")
-	assert_eq(p.dodge_cap_for(9), 50.0)
+	assert_eq(ArcaneTankKit.dodge_cap_for(0), Stats.MAX_DODGE, "30% without any")
+	assert_eq(ArcaneTankKit.dodge_cap_for(1), 35.0)
+	assert_eq(ArcaneTankKit.dodge_cap_for(4), 50.0, "30% to 50% at four")
+	assert_eq(ArcaneTankKit.dodge_cap_for(9), 50.0)
 	assert_true(_has_method("res://scripts/player.gd", "dodge_cap"), "the combat pipeline asks the player")
 	# 48% Dodge, a roll of 45: over the usual cap of 30, under the cap of four Reflections.
 	var usual: Dictionary = CombatSystem.compute_damage(10.0, 0.0, 0.0, 0.0, 0.0, 99.0, 99.0, true, true, 1.0, 0.5, 48.0, 0.0, 45.0, 99.0)
 	assert_false(usual["dodged"])
 	assert_eq(usual["amount"], 10)
 	var four: Dictionary = CombatSystem.compute_damage(10.0, 0.0, 0.0, 0.0, 0.0, 99.0, 99.0, true, true, 1.0, 0.5, 48.0, 0.0, 45.0, 99.0,
-		-1.0, p.dodge_cap_for(4))
+		-1.0, ArcaneTankKit.dodge_cap_for(4))
 	assert_true(four["dodged"])
 	assert_eq(four["amount"], 0)
 	assert_false(CombatSystem.compute_damage(10.0, 0.0, 0.0, 0.0, 0.0, 99.0, 99.0, true, true, 1.0, 0.5, 80.0, 0.0, 51.0, 99.0,
-		-1.0, p.dodge_cap_for(4))["dodged"], "50 is still a cap")
+		-1.0, ArcaneTankKit.dodge_cap_for(4))["dodged"], "50 is still a cap")
 	# Damage over time cannot be dodged, Reflections or not.
 	assert_false(CombatSystem.compute_damage(10.0, 0.0, 0.0, 0.0, 0.0, 99.0, 99.0, true, false, 1.0, 0.5, 100.0, 0.0, 1.0, 99.0,
 		-1.0, 50.0)["dodged"])
@@ -327,18 +327,18 @@ func test_dodge_cap() -> void:
 ## A shatter takes time off everything in the Arcane book, never off an interrupt.
 func test_a_shatter_cuts_every_arcane_cooldown() -> void:
 	var p := _player()
-	assert_true(p.shatter_cuts("arcane", false))
-	assert_false(p.shatter_cuts("arcane", true), "interrupts keep their shared cooldown")
-	assert_false(p.shatter_cuts("fire", false))
-	assert_false(p.shatter_cuts("", false))
+	assert_true(ArcaneTankKit.shatter_cuts("arcane", false))
+	assert_false(ArcaneTankKit.shatter_cuts("arcane", true), "interrupts keep their shared cooldown")
+	assert_false(ArcaneTankKit.shatter_cuts("fire", false))
+	assert_false(ArcaneTankKit.shatter_cuts("", false))
 	for id in ["doubleup", "ripple", "decoy", "crowdofone", "collapse", "convergence", "mirrorsigil", "blink", "arcanestrike"]:
-		assert_true(p.shatter_cuts(Abilities.category_of(id), Balance.INTERRUPT_LOCKOUT.has(id)), "%s: spells and abilities alike" % id)
-	assert_false(p.shatter_cuts(Abilities.category_of("counterspell"), Balance.INTERRUPT_LOCKOUT.has("counterspell")))
-	assert_false(p.shatter_cuts(Abilities.category_of("stormshield"), false), "another book's ability")
+		assert_true(ArcaneTankKit.shatter_cuts(Abilities.category_of(id), Balance.INTERRUPT_LOCKOUT.has(id)), "%s: spells and abilities alike" % id)
+	assert_false(ArcaneTankKit.shatter_cuts(Abilities.category_of("counterspell"), Balance.INTERRUPT_LOCKOUT.has("counterspell")))
+	assert_false(ArcaneTankKit.shatter_cuts(Abilities.category_of("stormshield"), false), "another book's ability")
 
 ## The shatter has its own line on the meter and a real damage number in the keyword.
 func test_shatter_is_named_and_explained() -> void:
-	assert_eq(_player().REFLECTION_SHATTER_ID, "reflection_shatter")
+	assert_eq(ArcaneTankKit.REFLECTION_SHATTER_ID, "reflection_shatter")
 	assert_eq(Details.spell_name("reflection_shatter"), "Reflection Shatter")
 	assert_eq(Details.spell_color("reflection_shatter"), Abilities.color_of("blink"), "an Arcane line")
 	var want := Abilities.fmt_amount(Abilities.coef_damage(Balance.REFLECTION_SHATTER, PackedStringArray(["Ability"])))

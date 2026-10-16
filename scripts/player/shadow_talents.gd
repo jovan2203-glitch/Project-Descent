@@ -105,7 +105,7 @@ func _spite_on_hit_taken(info: RefCounted) -> void:
 ## (SPITE_HITS seconds: it may hit several enemies). Never an auto-attack, a
 ## proc or damage over time.
 func _spite_hit(info: RefCounted, id: String) -> void:
-	if not Player.echoes(info.tags, bool(info.is_proc), bool(info.is_dot), Abilities.PATHS.has(id)):
+	if not ArcaneOpenTalentsKit.echoes(info.tags, bool(info.is_proc), bool(info.is_dot), Abilities.PATHS.has(id)):
 		return
 	var now := player.decay._decay_now()
 	if player.status != null and player.status.has(SPITE_FX):

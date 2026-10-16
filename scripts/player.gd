@@ -23,6 +23,10 @@ const BLIZZARD_RADIUS = 2.5
 # --- Components ----------------------------------------------------------------------------
 # Each spec's own code lives in a component (scripts/player/*.gd, see player_kit.gd),
 # made here as a child node; tools/split_section.pl adds the line for each one.
+var arcane_caster: ArcaneCasterKit = _kit(ArcaneCasterKit) as ArcaneCasterKit
+var arcane_tank: ArcaneTankKit = _kit(ArcaneTankKit) as ArcaneTankKit
+var arcane_open: ArcaneOpenTalentsKit = _kit(ArcaneOpenTalentsKit) as ArcaneOpenTalentsKit
+var arcane_melee: ArcaneMeleeKit = _kit(ArcaneMeleeKit) as ArcaneMeleeKit
 var decay: DecayKit = _kit(DecayKit) as DecayKit
 var shadow_talents: ShadowTalentsKit = _kit(ShadowTalentsKit) as ShadowTalentsKit
 var hounds: HoundsKit = _kit(HoundsKit) as HoundsKit
@@ -182,6 +186,53 @@ func decay_on(foe: Variant) -> float:
 func decay_open_on(foe: Variant) -> bool:
 	return decay.decay_open_on(foe)
 
+
+# Forwards to ArcaneMeleeKit (called from other scripts).
+func traces() -> int:
+	return arcane_melee.traces()
+
+
+# Forwards to ArcaneOpenTalentsKit (called from other scripts).
+func self_buff_time_mult(_res: Resource = null) -> float:
+	return arcane_open.self_buff_time_mult(_res)
+
+
+# Forwards to ArcaneTankKit (called from other scripts).
+func has_dual_wield() -> bool:
+	return arcane_tank.has_dual_wield()
+
+func reflections() -> int:
+	return arcane_tank.reflections()
+
+func dodge_cap() -> float:
+	return arcane_tank.dodge_cap()
+
+func shatter_radius() -> float:
+	return arcane_tank.shatter_radius()
+
+func decoy_needs_reflection() -> bool:
+	return arcane_tank.decoy_needs_reflection()
+
+func damage_taken_recently(window: float) -> int:
+	return arcane_tank.damage_taken_recently(window)
+
+func stand_in_for(_info: RefCounted) -> bool:
+	return arcane_tank.stand_in_for(_info)
+
+
+# Forwards to ArcaneCasterKit (called from other scripts).
+func arcane_cooldowns(except: String = "") -> int:
+	return arcane_caster.arcane_cooldowns(except)
+
+func sigil_dart_count() -> int:
+	return arcane_caster.sigil_dart_count()
+
+func bolt_tag(t: String) -> void:
+	arcane_caster.bolt_tag(t)
+
+func glint_ready(id: String) -> bool:
+	return arcane_caster.glint_ready(id)
+
 # --- End of components ---
 
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
@@ -225,7 +276,7 @@ func take_damage(amount: int) -> void:
 		return
 	health = max(health - amount, 0)
 	_pact_on_damage(amount)      # my Pact: one big hit (Sidestep), too little health left (Thin Line)
-	_note_damage_taken(amount)   # Trade Places looks back on it
+	arcane_tank._note_damage_taken(amount)   # Trade Places looks back on it
 	health_changed.emit(health, max_health)
 	_bus().player_damaged.emit(amount)
 	_bus().player_health_changed.emit(health, max_health)
@@ -291,7 +342,7 @@ func _die() -> void:
 	change_state(PState.DEAD)
 	current_state = "dead"   # the party's puppet of me stops showing "Downed"
 	_fuses.clear()
-	_clear_arcane()
+	arcane_caster._clear_arcane()
 	_heat_on = false
 	if status:
 		status.clear()
@@ -338,7 +389,7 @@ func _go_down() -> void:
 	clear_queue()
 	change_state(PState.DOWNED)
 	_fuses.clear()   # Slow Fuse charges fizzle with me
-	_clear_arcane()  # (so do Countdown marks; the Mirror Sigil and the Afterimage go)
+	arcane_caster._clear_arcane()  # (so do Countdown marks; the Mirror Sigil and the Afterimage go)
 	_heat_on = false
 	if status:
 		status.clear()
@@ -491,7 +542,7 @@ func _ready() -> void:
 	_bus().damage_dealt.connect(_on_damage_dealt_frost)
 	_bus().damage_dealt.connect(_on_damage_dealt_fire)
 	_bus().damage_dealt.connect(_on_damage_dealt_lightning)
-	_bus().damage_dealt.connect(_on_damage_dealt_arcane)
+	_bus().damage_dealt.connect(arcane_caster._on_damage_dealt_arcane)
 	_bus().damage_dealt.connect(decay._on_damage_dealt_shadow)
 	_bus().enemy_died.connect(shadow_talents._on_enemy_died_shadow)   # Carrion
 	_bus().heal_done.connect(strings._on_heal_done_strings)    # the Strings share my heals
@@ -499,7 +550,7 @@ func _ready() -> void:
 	_bus().damage_dealt.connect(hymns._on_damage_dealt_holy)  # High Note's heal
 	_bus().cast_finished.connect(_pact_on_ability)     # Pact of the Purist: an ability of mine went off
 	_bus().dungeon_cleared.connect(func(_summary): _pact_cleared = true)   # Pact of the Restless: nothing left to fight
-	_bus().cast_finished.connect(_on_cast_for_arcane)
+	_bus().cast_finished.connect(arcane_caster._on_cast_for_arcane)
 	_bus().cast_finished.connect(_change_of_pace)
 	_bus().cast_started.connect(_on_cast_for_static)
 	_bus().cast_finished.connect(_on_cast_for_static)
@@ -649,24 +700,24 @@ func _unhandled_input(event: InputEvent) -> void:
 				_error(prism_kit._prism_place_error(placing_id, cast_point))   # (out of range: keep aiming)
 			elif placing_id == CINDER_RAIN_ID and _cinder_rain_error(cast_point) != "":
 				_error(_cinder_rain_error(cast_point))   # out of range: keep aiming
-			elif placing_id == DECOY_ID and _decoy_error(cast_point) != "":
-				_error(_decoy_error(cast_point))         # (the same for Decoy)
+			elif placing_id == ArcaneTankKit.DECOY_ID and arcane_tank._decoy_error(cast_point) != "":
+				_error(arcane_tank._decoy_error(cast_point))         # (the same for Decoy)
 			elif (placing_id == WeaverKit.MOSSBACK_ID or placing_id == WeaverKit.VIPERS_ID) and weaver._finisher_place_error(placing_id, cast_point) != "":
 				_error(weaver._finisher_place_error(placing_id, cast_point))   # (Nature finishers: keep aiming)
 			else:
 				cancel_placement()
 				if placing_id == CRUCIBLE_ID:
 					_start_crucible(cast_point)
-				elif placing_id == DECOY_ID:
-					_start_decoy(cast_point)
+				elif placing_id == ArcaneTankKit.DECOY_ID:
+					arcane_tank._start_decoy(cast_point)
 				elif placing_id == PrismsKit.SET_PRISM_ID or placing_id == PrismsKit.REALIGN_ID or placing_id == LightstringKit.PRISM_ARROW_ID:
 					prism_kit._start_prism_place(placing_id, cast_point)
 				elif placing_id == CINDER_RAIN_ID:
 					_start_cinder_rain(cast_point)
 				elif placing_id == THUNDERHEAD_ID:
 					_start_thunderhead(cast_point)
-				elif placing_id == COLLAPSE_ID:
-					_start_collapse(cast_point)
+				elif placing_id == ArcaneCasterKit.COLLAPSE_ID:
+					arcane_caster._start_collapse(cast_point)
 				elif placing_id == DecayKit.PALL_ID:
 					decay._start_pall(cast_point)
 				elif placing_id == WeaverKit.MOSSBACK_ID or placing_id == WeaverKit.VIPERS_ID:
@@ -859,16 +910,16 @@ func _use_ability_now(id: String) -> void:
 			_capacitor()         # (the same)
 		"arcanemissiles":
 			cancel_placement()
-			_start_sigil_darts()
+			arcane_caster._start_sigil_darts()
 		"mirrorsigil":
 			cancel_placement()
-			_start_mirror_sigil()
+			arcane_caster._start_mirror_sigil()
 		"rewind":
-			_rewind()            # (instant and off the global cooldown: these three interrupt nothing)
+			arcane_caster._rewind()            # (instant and off the global cooldown: these three interrupt nothing)
 		"lapse":
-			_lapse()
+			arcane_caster._lapse()
 		"scatter":
-			_scatter()
+			arcane_caster._scatter()
 		"thunderhead", "collapse", "pall":
 			# Ground-targeted, like Blizzard: pressing it again puts the circle away.
 			if placing and placing_id == id:
@@ -885,7 +936,7 @@ func _use_ability_now(id: String) -> void:
 				cancel_placement()
 			else:
 				cancel_placement()
-				var decoy_err := _decoy_error()
+				var decoy_err := arcane_tank._decoy_error()
 				if decoy_err != "":
 					_error(decoy_err)
 				else:
@@ -940,7 +991,7 @@ func _setup_status() -> void:
 		_heat_sink_check()
 		_on_stats_changed()
 		_sync_support_state()
-		_sync_reflections()
+		arcane_tank._sync_reflections()
 		censer._sync_censer()
 		_bus().buffs_changed.emit())
 
@@ -1220,16 +1271,16 @@ func can_afford(id: String, report: bool = false) -> bool:
 		return false
 	# Decoy and Trade Places spend Reflections; Missed Beat answers one shattering.
 	# (Good Likeness' capstone: Decoy needs none.)
-	if ((id == DECOY_ID and decoy_needs_reflection()) or id == TRADE_PLACES_ID) and reflections() <= 0:
+	if ((id == ArcaneTankKit.DECOY_ID and arcane_tank.decoy_needs_reflection()) or id == ArcaneTankKit.TRADE_PLACES_ID) and arcane_tank.reflections() <= 0:
 		if report:
 			_error("You have no Reflections")
 		return false
 	# Encore replays Traces.
-	if id == ENCORE_ID and traces() <= 0:
+	if id == ArcaneMeleeKit.ENCORE_ID and arcane_melee.traces() <= 0:
 		if report:
 			_error("You have no Traces")
 		return false
-	if id == MISSED_BEAT_ID and (status == null or not status.has(MISSED_BEAT_FX)):
+	if id == ArcaneTankKit.MISSED_BEAT_ID and (status == null or not status.has(ArcaneTankKit.MISSED_BEAT_FX)):
 		if report:
 			_error("None of your Reflections has shattered")
 		return false
@@ -1485,17 +1536,17 @@ func _use_trinket(id: String) -> void:
 
 func _tick_cooldowns(delta: float) -> void:
 	gcd_left = maxf(gcd_left - delta, 0.0)
-	var arcane_rate := _arcane_rate()   # Lapse, Interval Ward: my Arcane spells recover faster
+	var arcane_rate := arcane_caster._arcane_rate()   # Lapse, Interval Ward: my Arcane spells recover faster
 	var clock := _talent("arcane_running_clock") if not cooldowns.is_empty() else 0.0   # Running Clock: so does everything Arcane
 	var plain := arcane_rate == 1.0 and clock <= 0.0
 	var pact_rate := PACTS.cooldown_rate(pact_id(), pact_broken())   # Pact of the Sidestep: every cooldown
 	for id in cooldowns.keys():
-		var step := delta if plain else delta * arcane_cooldown_rate(arcane_rate, _is_arcane_spell(str(id)),
-			_in_arcane_book(str(id)), clock)
+		var step := delta if plain else delta * ArcaneCasterKit.arcane_cooldown_rate(arcane_rate, arcane_caster._is_arcane_spell(str(id)),
+			arcane_caster._in_arcane_book(str(id)), clock)
 		cooldowns[id] = float(cooldowns[id]) - step * pact_rate
 		if cooldowns[id] <= 0.0:
 			cooldowns.erase(id)
-	_tick_borrowed_time()   # Borrowed Time: a long cooldown just came back?
+	arcane_open._tick_borrowed_time()   # Borrowed Time: a long cooldown just came back?
 	_tick_ice_shards(delta)
 	_tick_vent_charges(delta)
 
@@ -1573,7 +1624,7 @@ func _fire_ice_shards(dmg: float) -> void:
 ## Multiplier for slows you apply with these tags (StatusContainer asks). No
 ## talent strengthens slows right now (Deep Chill was removed).
 func slow_mult(_tags: PackedStringArray) -> float:
-	return _slow_mult_now   # (1 unless Aftershock is being applied: its rank sets the strength)
+	return arcane_caster._slow_mult_now   # (1 unless Aftershock is being applied: its rank sets the strength)
 
 ## Multiplier for shields (absorbs) you apply (Rime Ward).
 func absorb_mult() -> float:
@@ -1619,7 +1670,7 @@ func _on_damage_modify(info: RefCounted) -> void:
 			var brand_st: Node = info.source.get_node_or_null("Status")
 			if brand_st and brand_st.has_from(BRAND_FX_ID, self):
 				info.add_bonus(-(Balance.BRAND_PCT + _talent("fire_deep_brand")), "Brand")   # + Deep Brand
-		_reflection_talents_incoming(info)   # Empty Room, Bent Light
+		arcane_tank._reflection_talents_incoming(info)   # Empty Room, Bent Light
 		_guard_incoming(info)   # Reflex Arc, Faraday Guard
 		strings._crossed_incoming(info) # Crossed Strings: part of it goes to an enemy
 		_pact_incoming(info)    # my Pact: more or less damage taken
@@ -1629,8 +1680,8 @@ func _on_damage_modify(info: RefCounted) -> void:
 	_pact_outgoing(info)        # my Pact: more or less damage dealt
 	holy_talents._holy_talents_outgoing(info)   # Burnished, Censer's Weight, Sunsteel
 	# Scatter: the darts of the Sigil Darts it split hit harder.
-	if _bolt_tag == SCATTER_FX and str(info.ability_id) == SIGIL_DARTS_ID:
-		info.add_bonus(Balance.SCATTER_PCT, SCATTER_LABEL)
+	if arcane_caster._bolt_tag == ArcaneCasterKit.SCATTER_FX and str(info.ability_id) == ArcaneCasterKit.SIGIL_DARTS_ID:
+		info.add_bonus(Balance.SCATTER_PCT, ArcaneCasterKit.SCATTER_LABEL)
 	# Crucible: enemies standing in MINE take more periodic Fire damage from me
 	# (own only: a party member's Crucible does nothing for my burns).
 	if info.is_dot and str(info.damage_type) == "fire" and info.target is Node3D \
@@ -1657,7 +1708,7 @@ func _on_damage_modify(info: RefCounted) -> void:
 		if light_touch > 0.0:
 			info.threat_multiplier *= 1.0 - light_touch / 100.0
 	var id := str(info.ability_id)
-	_borrowed_time_hit(info, id)   # Borrowed Time: the next spell or ability after a long cooldown comes back
+	arcane_open._borrowed_time_hit(info, id)   # Borrowed Time: the next spell or ability after a long cooldown comes back
 	_open_talents_modify(info)   # Feed the Flames, Change of Pace, Dig In
 	shadow_talents._shadow_talents_modify(info, id)   # Slow Death, Finish It, Inevitable, Spite
 	_empower_weapon_ability(info, id)   # Static Step, Polar Strike's charge
@@ -1680,25 +1731,25 @@ func _on_damage_modify(info: RefCounted) -> void:
 		if counter > 0.0:
 			info.add_bonus(counter, COUNTER_CHARGE_LABEL)
 	# Practiced Hand: Swift Cut hits harder for each Trace I hold.
-	if id == SWIFT_CUT_ID and not info.is_proc:
-		var practiced := practiced_hand_pct(_talent("arcane_practiced_hand"), traces())
+	if id == ArcaneMeleeKit.SWIFT_CUT_ID and not info.is_proc:
+		var practiced := ArcaneMeleeKit.practiced_hand_pct(_talent("arcane_practiced_hand"), arcane_melee.traces())
 		if practiced > 0.0:
 			info.add_bonus(practiced, "Practiced Hand")
 	# Fine Edge: with a weapon in each hand, my Arcane abilities hit harder.
 	if info.tags.has("Arcane") and info.tags.has("Ability"):
 		var edge := _talent("arcane_fine_edge")
-		if edge > 0.0 and has_dual_wield():
+		if edge > 0.0 and arcane_tank.has_dual_wield():
 			info.add_bonus(edge, "Fine Edge")
 	# Sharp Edges: my Reflections hit harder when they shatter.
-	if id == REFLECTION_SHATTER_ID:
+	if id == ArcaneTankKit.REFLECTION_SHATTER_ID:
 		var sharp := _talent("arcane_sharp_edges")
 		if sharp > 0.0:
-			info.add_bonus(sharp, SHARP_EDGES_LABEL)
+			info.add_bonus(sharp, ArcaneTankKit.SHARP_EDGES_LABEL)
 	# On the Beat: Missed Beat hits harder.
-	if id == MISSED_BEAT_ID and not info.is_proc:
+	if id == ArcaneTankKit.MISSED_BEAT_ID and not info.is_proc:
 		var on_beat := _talent("arcane_on_the_beat")
 		if on_beat > 0.0:
-			info.add_bonus(on_beat, ON_THE_BEAT_LABEL)
+			info.add_bonus(on_beat, ArcaneTankKit.ON_THE_BEAT_LABEL)
 	# Third Beat: Cadence's third strike hits harder.
 	if id == CADENCE_ID and _cadence_third:
 		var beat := _talent("lightning_third_beat")
@@ -2297,10 +2348,10 @@ func _begin_spell(spell: String, display_name: String, duration: float, channel:
 	# Cinder Step: this cast can be finished on the move (instant ones don't need it).
 	_cinder_cast = not channel and not _conc_cast and not _instinct_cast and cinder_step_ready(spell)
 	# Glint: this cast or channel can go on while I move (instant ones don't need it).
-	_glint_cast = not _conc_cast and not _instinct_cast and not _flicker_cast and not _bottled_cast \
-		and not _cinder_cast and not _overture_cast and glint_ready(spell)
-	if _glint_cast and channel and status:
-		status.spend_stacks(GLINT_FX, 1)   # a channel is paid for when it starts, and uses Glint up then too (Keep Moving: one of its casts)
+	arcane_caster._glint_cast = not _conc_cast and not _instinct_cast and not _flicker_cast and not _bottled_cast \
+		and not _cinder_cast and not _overture_cast and arcane_caster.glint_ready(spell)
+	if arcane_caster._glint_cast and channel and status:
+		status.spend_stacks(ArcaneCasterKit.GLINT_FX, 1)   # a channel is paid for when it starts, and uses Glint up then too (Keep Moving: one of its casts)
 	if on_gcd(spell):
 		_start_gcd()   # the GCD starts when the cast starts (like WoW)
 	cast_is_channel = channel
@@ -2323,9 +2374,9 @@ func _cancel_cast() -> void:
 	_flicker_cast = false    # and Flicker's instant Lightning Bolt
 	_overture_cast = false   # and the Overture's instant cast
 	_bottled_cast = false    # and Bottled Lightning's instant Discharge
-	_glint_cast = false      # and Glint's cast on the move
+	arcane_caster._glint_cast = false      # and Glint's cast on the move
 	_volley_left = 0         # a broken Ember Volley launches no more embers
-	_darts_left = 0          # nor does a broken Sigil Darts launch more darts
+	arcane_caster._darts_left = 0          # nor does a broken Sigil Darts launch more darts
 	_queued = ""             # a cancelled cast drops whatever was queued behind it
 	if casting:
 		_bus().cast_interrupted.emit(current_spell)
@@ -2337,8 +2388,8 @@ func _release_cast() -> void:
 	var spell := current_spell
 	var cinder := _cinder_cast
 	_cinder_cast = false
-	var glint := _glint_cast
-	_glint_cast = false
+	var glint := arcane_caster._glint_cast
+	arcane_caster._glint_cast = false
 	casting = false
 	current_spell = ""
 	current_state = ""
@@ -2353,8 +2404,8 @@ func _release_cast() -> void:
 		prism_kit._mending_ray_tick(true)   # the last ticks (the channel was paid for when it started)
 		_bus().cast_finished.emit(spell)
 		return
-	if spell == SIGIL_DARTS_ID:
-		_sigil_darts_tick(true)    # the last dart (the same)
+	if spell == ArcaneCasterKit.SIGIL_DARTS_ID:
+		arcane_caster._sigil_darts_tick(true)    # the last dart (the same)
 		_bus().cast_finished.emit(spell)
 		return
 	_bus().cast_finished.emit(spell)
@@ -2381,7 +2432,7 @@ func _release_cast() -> void:
 	if cinder and status:
 		status.remove(CINDER_ID)       # Cinder Step: that was the cast on the move
 	if glint and status:
-		status.spend_stacks(GLINT_FX, 1)   # Glint: so was this (Keep Moving: one of its casts)
+		status.spend_stacks(ArcaneCasterKit.GLINT_FX, 1)   # Glint: so was this (Keep Moving: one of its casts)
 	if Abilities.is_a(spell, "frostbolt") and (_instinct_cast or frozen_instinct_ready()):
 		status.remove(INSTINCT_ID)   # Frozen Instinct used up (this bolt was free)
 	_instinct_cast = false
@@ -2406,11 +2457,11 @@ func _release_cast() -> void:
 	if spell == THUNDERHEAD_ID:
 		_raise_thunderhead()
 		return
-	if spell == MIRROR_ID:
-		_place_mirror_sigil()
+	if spell == ArcaneCasterKit.MIRROR_ID:
+		arcane_caster._place_mirror_sigil()
 		return
-	if spell == COLLAPSE_ID:
-		_cast_collapse()
+	if spell == ArcaneCasterKit.COLLAPSE_ID:
+		arcane_caster._cast_collapse()
 		return
 	if spell == DecayKit.PALL_ID:
 		decay._cast_pall()
@@ -2455,15 +2506,15 @@ func _release_cast() -> void:
 	if spell == "rekindle":
 		_rekindle(target)
 		return
-	if spell == COUNTDOWN_ID:
-		_plant_countdown(target)
+	if spell == ArcaneCasterKit.COUNTDOWN_ID:
+		arcane_caster._plant_countdown(target)
 		return
-	if spell == UNRAVEL_ID:
-		_unravel_cooldowns()   # (then its bolt, like any other)
-	if spell == CONVERGENCE_ID:
+	if spell == ArcaneCasterKit.UNRAVEL_ID:
+		arcane_caster._unravel_cooldowns()   # (then its bolt, like any other)
+	if spell == ArcaneCasterKit.CONVERGENCE_ID:
 		# Stronger for each other Arcane spell on cooldown right now.
 		FROST_BOLT.spawn(get_tree().current_scene, _muzzle(), target, self, false, spell,
-			convergence_coef(float(bolt_res.damage), arcane_cooldowns(CONVERGENCE_ID)))
+			ArcaneCasterKit.convergence_coef(float(bolt_res.damage), arcane_caster.arcane_cooldowns(ArcaneCasterKit.CONVERGENCE_ID)))
 		return
 	if spell == "immolate":
 		_immolate_spread(target)   # recast on a target that already has mine: it jumps to others
@@ -2538,7 +2589,7 @@ func _process(_delta: float) -> void:
 	_scan_my_slows()
 	_tick_permafrost()
 	_tick_fuses()
-	_tick_countdowns()
+	arcane_caster._tick_countdowns()
 	decay._tick_decay()
 	_tick_grounded()
 	_tick_dusk()
@@ -2549,7 +2600,7 @@ func _process(_delta: float) -> void:
 	_tick_live_wire()
 	_tick_overdrive()
 	_tick_standing_charge(_delta)
-	_tick_reflections()
+	arcane_tank._tick_reflections()
 	censer._tick_censer()
 	prism_kit._tick_prisms()
 	weaver._tick_weaver()
@@ -2558,7 +2609,7 @@ func _process(_delta: float) -> void:
 	venomstring._tick_venom(_delta)
 	lightstring._tick_lightstring(_delta)
 	_mouseover_tick()
-	_tick_traces()
+	arcane_melee._tick_traces()
 	_tick_dig_in(_delta)
 	_update_target_ring()
 	_update_friendly_ring()
@@ -2614,10 +2665,10 @@ func _physics_process(delta: float) -> void:
 	# (And the one cast Cinder Step lets you finish while moving.)
 	# (And whatever Glint lets you cast or channel on the move.)
 	var steady := casting and (current_spell == "steadyshot" or _conc_cast or _cinder_cast or _flicker_cast or _bottled_cast
-		or _glint_cast or _overture_cast)
+		or arcane_caster._glint_cast or _overture_cast)
 	if steady:
 		var aimed: bool = current_spell == "steadyshot" or current_spell in ENEMY_BOLTS or current_spell == "embervolley" \
-			or current_spell == GLACIAL_DRAW_ID or current_spell == SIGIL_DARTS_ID or current_spell == LightstringKit.REFRACTING_SHOT_ID \
+			or current_spell == GLACIAL_DRAW_ID or current_spell == ArcaneCasterKit.SIGIL_DARTS_ID or current_spell == LightstringKit.REFRACTING_SHOT_ID \
 			or current_spell == VenomstringKit.ADDER_ARROW_ID
 		if (aimed and not _has_valid_target()) or (current_spell in SUPPORT_CASTS and not _support_target_ok()):
 			_cancel_cast()
@@ -2626,8 +2677,8 @@ func _physics_process(delta: float) -> void:
 			cast_timer -= delta
 			if current_spell == "embervolley":
 				_ember_volley_tick()     # a channel on the move launches as it goes, like one standing still
-			elif current_spell == SIGIL_DARTS_ID:
-				_sigil_darts_tick()
+			elif current_spell == ArcaneCasterKit.SIGIL_DARTS_ID:
+				arcane_caster._sigil_darts_tick()
 			elif current_spell == PrismsKit.MENDING_RAY_ID:
 				prism_kit._mending_ray_tick()
 			if not casting:
@@ -2639,7 +2690,7 @@ func _physics_process(delta: float) -> void:
 	if casting and not steady:
 		var targeted: bool = current_spell in ENEMY_BOLTS or current_spell == "embervolley" or current_spell == GLACIAL_DRAW_ID \
 			or current_spell == LightstringKit.REFRACTING_SHOT_ID or current_spell == VenomstringKit.ADDER_ARROW_ID \
-			or current_spell == SIGIL_DARTS_ID
+			or current_spell == ArcaneCasterKit.SIGIL_DARTS_ID
 		var lost_target := targeted and not _has_valid_target()
 		if current_spell in SUPPORT_CASTS and not _support_target_ok():
 			lost_target = true
@@ -2659,8 +2710,8 @@ func _physics_process(delta: float) -> void:
 			cast_timer -= delta
 			if current_spell == "embervolley":
 				_ember_volley_tick()
-			elif current_spell == SIGIL_DARTS_ID:
-				_sigil_darts_tick()
+			elif current_spell == ArcaneCasterKit.SIGIL_DARTS_ID:
+				arcane_caster._sigil_darts_tick()
 			elif current_spell == PrismsKit.MENDING_RAY_ID:
 				prism_kit._mending_ray_tick()
 			if not casting:   # channel ended (broken, or target killed)
@@ -2756,8 +2807,8 @@ func _use_drafted(id: String) -> void:
 	if bool(res.get("requires_two_hand")) and not has_two_hander():
 		_error("Requires a two-handed weapon")
 		return
-	if bool(res.get("requires_dual_wield")) and not has_dual_wield():
-		_error(DUAL_WIELD_ERROR)
+	if bool(res.get("requires_dual_wield")) and not arcane_tank.has_dual_wield():
+		_error(ArcaneTankKit.DUAL_WIELD_ERROR)
 		return
 	if res.requires_target:
 		if not _has_valid_target():
@@ -2840,7 +2891,7 @@ func _use_drafted(id: String) -> void:
 			global_position += _flat_forward() * _blink_distance()
 			_ring_effect(0.8, Color(0.8, 0.6, 1.0), from)
 			_ring_effect(0.8, Color(0.8, 0.6, 1.0))
-			_leave_afterimage(from)   # Rune of the Afterimage
+			arcane_caster._leave_afterimage(from)   # Rune of the Afterimage
 		"whirlwind":
 			for e in _enemies_within(float(res.radius)):
 				deal_damage(e, _weapon_hit(w, res), "whirlwind")
@@ -2864,9 +2915,9 @@ func _use_drafted(id: String) -> void:
 		"corruption":
 			FROST_BOLT.spawn(get_tree().current_scene, muzzle, target, self, false, id, float(res.damage))
 		"intervalward":
-			_interval_ward()
+			arcane_caster._interval_ward()
 		"glint":
-			_glint(res)
+			arcane_caster._glint(res)
 		# Bow abilities
 		"rimefletch":
 			_start_rimefletch()
@@ -3060,42 +3111,42 @@ func _use_drafted(id: String) -> void:
 			_draw_the_storm(res)
 		# --- Arcane tank (a melee weapon in each hand; see "Arcane tank" below) ---
 		"doubleup":
-			deal_damage(target, _dual_weapon_hit(w, res), id)   # both weapons
+			deal_damage(target, arcane_tank._dual_weapon_hit(w, res), id)   # both weapons
 			for i in 2:
 				_slash_effect(Abilities.color_of(id))
-			_gain_reflections(double_up_reflections(_talent("arcane_second_self"), randf() * 100.0))   # Second Self
+			arcane_tank._gain_reflections(ArcaneTankKit.double_up_reflections(_talent("arcane_second_self"), randf() * 100.0))   # Second Self
 		"ripple":
-			_ripple(res)
+			arcane_tank._ripple(res)
 		"fullset":
-			_full_set()
+			arcane_tank._full_set()
 		"missedbeat":
 			# The answer to a Reflection shattering (the window is checked in _drafted_precheck).
-			deal_damage(target, _dual_weapon_hit(w, res), id)   # both weapons
+			deal_damage(target, arcane_tank._dual_weapon_hit(w, res), id)   # both weapons
 			for i in 2:
 				_slash_effect(Abilities.color_of(id))
 			_ring_effect(0.6, Color(0.95, 0.9, 1.0), target.global_position)
 			# On the Beat's capstone: with none left, it makes one.
-			if reflections() <= 0 and _capstone("arcane_on_the_beat"):
-				_gain_reflections(1)
+			if arcane_tank.reflections() <= 0 and _capstone("arcane_on_the_beat"):
+				arcane_tank._gain_reflections(1)
 		"standin":
-			_start_stand_in()
+			arcane_tank._start_stand_in()
 		"tradeplaces":
-			_trade_places()
+			arcane_tank._trade_places()
 		"crowdofone":
-			_start_crowd_of_one()
+			arcane_tank._start_crowd_of_one()
 		# --- Arcane melee (a melee weapon in each hand; see "Arcane melee" below) ---
 		"swiftcut", "deepcut":
-			deal_damage(target, _dual_weapon_hit(w, res), id)   # both weapons; the Trace: _trace_hit
-			for i in (2 if id == DEEP_CUT_ID else 1):
+			deal_damage(target, arcane_tank._dual_weapon_hit(w, res), id)   # both weapons; the Trace: _trace_hit
+			for i in (2 if id == ArcaneMeleeKit.DEEP_CUT_ID else 1):
 				_slash_effect(Abilities.color_of(id))
 		"latecut":
-			_late_cut(w, res)
+			arcane_melee._late_cut(w, res)
 		"widecut":
-			_wide_cut(w, res)
+			arcane_melee._wide_cut(w, res)
 		"encore":
-			_encore()
+			arcane_melee._encore()
 		"doubletime":
-			_start_double_time()
+			arcane_melee._start_double_time()
 		# --- Baseline tank tools ---
 		"stoneguard":
 			var sr := float(res.radius)
@@ -3170,7 +3221,7 @@ func _use_drafted(id: String) -> void:
 		# --- Frost: Rime Shell kit ---
 		"shatteringwave":
 			_shattering_wave(float(res.radius))
-	_slipstream(id)   # Slipstream: faster after a blink or dash
+	arcane_open._slipstream(id)   # Slipstream: faster after a blink or dash
 	# Instant spells / abilities "finish casting" right away (runes, log, audio).
 	_bus().cast_finished.emit(id)
 
@@ -3223,12 +3274,12 @@ func _drafted_precheck(id: String, _res: Resource, w: Dictionary) -> String:
 			if health >= max_health:
 				return "Already at full health"
 		"missedbeat":
-			if not status.has(MISSED_BEAT_FX):
+			if not status.has(ArcaneTankKit.MISSED_BEAT_FX):
 				return "None of your Reflections has shattered"
 		"tradeplaces":
-			return trade_places_error(reflections(), damage_taken_recently(Balance.TRADE_PLACES_WINDOW), health >= max_health)
+			return ArcaneTankKit.trade_places_error(arcane_tank.reflections(), arcane_tank.damage_taken_recently(Balance.TRADE_PLACES_WINDOW), health >= max_health)
 		"encore":
-			if traces() <= 0:
+			if arcane_melee.traces() <= 0:
 				return "You have no Traces"
 		"calldue", "takeitback":
 			if decay.decay_on(target) <= 0.0:
@@ -4477,7 +4528,7 @@ func _flicker() -> void:
 	_ring_effect(0.8, col)
 	_parting_spark(from)   # Parting Spark: a zap around the spot I left
 	_snap_shot()           # Snap Shot: Storm Arrow is ready again, and cheaper
-	_leave_afterimage(from)   # Rune of the Afterimage
+	arcane_caster._leave_afterimage(from)   # Rune of the Afterimage
 	var fx := StatusContainer.make_buff(FLICKER_FX, Abilities.ability_name(FLICKER_ID), FLICKER_FX, 0.0,
 		Balance.FLICKER_TIME, 1, col)
 	fx.stat_modifiers = {}
@@ -4569,1287 +4620,6 @@ func _capacitor() -> void:
 	status.apply(fx, self)
 	_ring_effect(1.0, col)
 	_bus().cast_finished.emit(CAPACITOR_ID)
-
-# --- Arcane caster: the cooldown kit -------------------------------------------------------
-# Sigil Darts is the filler: a channel of darts with no cooldown. Unravel takes
-# time off my other Arcane cooldowns, Lapse and Interval Ward make them recover
-# faster, Rewind resets one, and Convergence hits harder for each one that is
-# running. Countdown, Collapse and Mirror Sigil are the cooldowns worth juggling.
-# "Arcane spell" = tagged Arcane + Spell. Interrupts are left out of every
-# cooldown change (they share a cooldown of their own). Numbers are in balance.gd.
-
-const ARCANE_MARK = preload("res://scripts/arcane_mark.gd")
-const SIGIL_DARTS_ID := "arcanemissiles"
-const UNRAVEL_ID := "unravel"
-const COUNTDOWN_ID := "countdown"
-const COUNTDOWN_FX := "countdown"
-const CONVERGENCE_ID := "convergence"
-const REWIND_ID := "rewind"
-const LAPSE_ID := "lapse"
-const LAPSE_FX := "lapse"
-const MIRROR_ID := "mirrorsigil"
-const MIRROR_FX := "mirror_sigil"
-const COLLAPSE_ID := "collapse"
-const SCATTER_ID := "scatter"
-const SCATTER_FX := "scatter"
-const SCATTER_LABEL := "Scatter"
-const WARD_ID := "intervalward"
-const WARD_FX := "interval_ward"
-const AFTERIMAGE_RUNE := "afterimage"
-const AFTERIMAGE_FX := "afterimage"
-const ARCANE_TAGS := ["Arcane", "Spell"]
-const GLINT_ID := "glint"
-const GLINT_FX := "glint"
-const MOMENTUM_RUNE := "momentum"
-const CARRIED_RUNE := "carried_sigil"
-## Rune of the Two-Way Mirror: Mirror Sigil also repeats my Reflections shattering.
-const TWO_WAY_MIRROR_RUNE := "two_way_mirror"
-const CHAIN_REACTION_ID := "chain_reaction"
-const AFTERSHOCK_FX := "aftershock"
-
-var _darts_total := 0            # darts this Sigil Darts launches in all (Seventh Sigil adds to it)
-var _glint_cast := false         # the current cast / channel may go on while I move (Glint)
-var _sigil_carried := false      # my Mirror Sigil moves with me (Rune of the Carried Sigil)
-var _slow_mult_now := 1.0        # strength of the slow being applied right now (Aftershock's rank)
-
-var _arcane_ids := {}            # ability id -> is it an Arcane spell (looked up once)
-var _rewind_spell := ""          # the last Arcane spell I cast that Rewind can reset
-var _darts_left := 0             # darts still to launch this channel
-var _darts_dmg := 0.0
-var _darts_fired := 0
-var _darts_scattered := false    # this Sigil Darts used up Scatter
-var _darts_targets: Array = []   # ... and deals its darts out between these
-var _bolt_tag := ""              # the tag of the bolt whose hit is being dealt right now
-var _countdowns := {}            # enemy instance id -> {"target": Node3D, "dealt": int, "base": float, "at": detonation time}
-var _sigil_at := Vector3.ZERO    # where my Mirror Sigil stands
-var _ward_until := 0.0           # when my Interval Ward would run out by itself
-var _image_at := Vector3.ZERO    # where my Afterimage stands
-var _image_spell := ""           # the spell the image is casting along with me
-var _image_until := 0.0          # ... until this time
-
-## Does the kit count something with these tags as an Arcane spell?
-static func arcane_spell(tags: PackedStringArray, is_interrupt: bool = false) -> bool:
-	return tags.has("Arcane") and tags.has("Spell") and not is_interrupt
-
-func _is_arcane_spell(id: String) -> bool:
-	if not _arcane_ids.has(id):
-		_arcane_ids[id] = Abilities.PATHS.has(id) and arcane_spell(Abilities.tags_of(id), INTERRUPT_LOCKOUT.has(id))
-	return bool(_arcane_ids[id])
-
-## How fast my Arcane cooldowns recover (1 = normal) with Lapse and / or Interval Ward up.
-static func arcane_recovery_rate(lapse: bool, ward: bool) -> float:
-	return 1.0 + (Balance.LAPSE_RATE_PCT if lapse else 0.0) / 100.0 \
-		+ (Balance.INTERVAL_WARD_RATE_PCT if ward else 0.0) / 100.0
-
-## How fast one cooldown recovers (1 = normal). `spell_rate` (Lapse, Interval
-## Ward) is for my Arcane spells alone; Running Clock's `clock_pct` % is for
-## everything Arcane: those spells and whatever else is in the Arcane book
-## (never an interrupt).
-static func arcane_cooldown_rate(spell_rate: float, is_spell: bool, in_book: bool, clock_pct: float) -> float:
-	var rate := spell_rate if is_spell else 1.0
-	if is_spell or in_book:
-		rate += maxf(clock_pct, 0.0) / 100.0
-	return rate
-
-var _arcane_book_ids := {}      # ability id -> is it in the Arcane book and no interrupt (looked up once)
-
-func _in_arcane_book(id: String) -> bool:
-	if not _arcane_book_ids.has(id):
-		_arcane_book_ids[id] = shatter_cuts(Abilities.category_of(id), INTERRUPT_LOCKOUT.has(id))
-	return bool(_arcane_book_ids[id])
-
-func _arcane_rate() -> float:
-	if status == null:
-		return 1.0
-	return arcane_recovery_rate(status.has(LAPSE_FX), status.has(WARD_FX))
-
-## Arcane spells I have on cooldown (not counting `except`).
-func arcane_cooldowns(except: String = "") -> int:
-	var n := 0
-	for id in cooldowns:
-		if str(id) != except and float(cooldowns[id]) > 0.0 and _is_arcane_spell(str(id)):
-			n += 1
-	return n
-
-## Convergence: % more damage with `count` other Arcane spells on cooldown.
-static func convergence_bonus(count: int) -> float:
-	return Balance.CONVERGENCE_PCT * clampi(count, 0, Balance.CONVERGENCE_MAX)
-
-static func convergence_coef(base: float, count: int) -> float:
-	return base * (1.0 + convergence_bonus(count) / 100.0)
-
-## Unravel: what is left of a cooldown of `left` seconds after one cast.
-static func unravel_cooldown(left: float) -> float:
-	return maxf(left - Balance.UNRAVEL_SECONDS, 0.0)
-
-func _unravel_cooldowns() -> void:
-	for id in cooldowns.keys():
-		if str(id) == UNRAVEL_ID or not _is_arcane_spell(str(id)):
-			continue
-		var left := unravel_cooldown(float(cooldowns[id]))
-		if left <= 0.0:
-			cooldowns.erase(id)
-		else:
-			cooldowns[id] = left
-
-## Can Rewind reset a spell with these tags and this cooldown?
-static func rewind_allows(tags: PackedStringArray, cooldown: float, is_interrupt: bool = false) -> bool:
-	return arcane_spell(tags, is_interrupt) and cooldown > 0.0 and cooldown < Balance.REWIND_MAX_COOLDOWN
-
-## Every spell I finish casting: Rewind remembers the last one it could reset.
-func _on_cast_for_arcane(id: String) -> void:
-	if id == REWIND_ID or not Abilities.PATHS.has(id):
-		return
-	var res := Abilities.get_resource(id)
-	if res and rewind_allows(res.tags, Abilities.cooldown_of(res), INTERRUPT_LOCKOUT.has(id)):
-		_rewind_spell = id
-
-## An instant Arcane button that is off the global cooldown: ready and paid for?
-func _arcane_instant_ok(id: String) -> bool:
-	if float(cooldowns.get(id, 0.0)) > 0.0:
-		_error("%s is not ready yet" % Abilities.ability_name(id))
-		return false
-	return true
-
-func _arcane_buff(fx_id: String, id: String, time: float, text: String) -> void:
-	var fx := StatusContainer.make_buff(fx_id, Abilities.ability_name(id), fx_id, 0.0, time, 1, Abilities.color_of(id))
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Arcane"])
-	fx.description = text
-	status.apply(fx, self)
-
-## Rewind: the last Arcane spell I cast with a short cooldown is ready again.
-func _rewind() -> void:
-	if not _arcane_instant_ok(REWIND_ID):
-		return
-	if _rewind_spell == "" or float(cooldowns.get(_rewind_spell, 0.0)) <= 0.0:
-		_error("Nothing to rewind")
-		return
-	if not _pay(REWIND_ID):
-		return
-	cooldowns.erase(_rewind_spell)
-	cooldowns[REWIND_ID] = Abilities.cooldown_of(Abilities.get_resource(REWIND_ID))
-	_ring_effect(1.0, Abilities.color_of(REWIND_ID))
-	_ring_effect(0.6, Color(0.95, 0.9, 1.0))
-	_bus().cast_finished.emit(REWIND_ID)
-
-## Lapse: my Arcane cooldowns recover faster for a while (see _tick_cooldowns).
-func _lapse() -> void:
-	if not _arcane_instant_ok(LAPSE_ID) or not _pay(LAPSE_ID):
-		return
-	cooldowns[LAPSE_ID] = Abilities.cooldown_of(Abilities.get_resource(LAPSE_ID))
-	_arcane_buff(LAPSE_FX, LAPSE_ID, Balance.LAPSE_TIME, "Your Arcane spells recover their cooldowns faster.")
-	_ring_effect(1.4, Abilities.color_of(LAPSE_ID))
-	_bus().cast_finished.emit(LAPSE_ID)
-
-## Scatter: my next Sigil Darts is dealt out between the enemies around its target.
-func _scatter() -> void:
-	if not _arcane_instant_ok(SCATTER_ID) or not _pay(SCATTER_ID):
-		return
-	cooldowns[SCATTER_ID] = Abilities.cooldown_of(Abilities.get_resource(SCATTER_ID))
-	_arcane_buff(SCATTER_FX, SCATTER_ID, Balance.SCATTER_TIME,
-		"Your next %s splits its darts between nearby enemies, and each dart deals more damage." % Abilities.ability_name(SIGIL_DARTS_ID))
-	_ring_effect(0.9, Abilities.color_of(SCATTER_ID))
-	_bus().cast_finished.emit(SCATTER_ID)
-
-# Sigil Darts: a channel that launches ARCANE_MISSILES_COUNT darts, spread evenly
-# over it (so Haste makes them come faster). Each dart is its own hit with its
-# own crit roll. Paid for when the channel starts.
-
-## Darts one Sigil Darts launches with `extra` more from Seventh Sigil.
-static func dart_count(extra: float) -> int:
-	return Balance.ARCANE_MISSILES_COUNT + maxi(int(round(extra)), 0)
-
-func sigil_dart_count() -> int:
-	return dart_count(_talent("arcane_seventh_sigil"))
-
-## Which of `targets` enemies dart number `fired` (0 = the first) goes to.
-static func dart_target(fired: int, targets: int) -> int:
-	return fired % targets if targets > 0 else 0
-
-## Scatter: my target and the closest other enemies around it that I can see.
-func _scatter_targets(tgt: Node3D) -> Array:
-	var out: Array = [tgt]
-	for e in _enemies_near(tgt.global_position, Balance.SCATTER_RADIUS, tgt):
-		if out.size() >= Balance.SCATTER_TARGETS:
-			break
-		if can_see(e):
-			out.append(e)
-	return out
-
-func _start_sigil_darts() -> void:
-	var id := SIGIL_DARTS_ID
-	if casting or not is_on_floor():
-		return
-	if cooldown_left(id) > 0.0:
-		_error("%s is not ready yet" % Abilities.ability_name(id))
-		return
-	if not _has_valid_target():
-		_error("No target")
-		return
-	var res := Abilities.get_resource(id)
-	if res.cast_range > 0.0 and global_position.distance_to(target.global_position) > res.cast_range:
-		_error("Target out of range")
-		return
-	var sight_err := _target_error(target)
-	if sight_err != "":
-		_error(sight_err)
-		return
-	var instant := concentrated_fire_ready(id)
-	if not _pay(id):
-		return
-	if float(res.cooldown) > 0.0:
-		cooldowns[id] = Abilities.cooldown_of(res)
-	_darts_dmg = float(res.damage)
-	_darts_total = sigil_dart_count()
-	_darts_fired = 0
-	_darts_scattered = status.has(SCATTER_FX)
-	_darts_targets = _scatter_targets(target) if _darts_scattered else []
-	if _darts_scattered:
-		status.remove(SCATTER_FX)   # this is the Sigil Darts it was waiting for
-	if instant:
-		# Concentrated Fire (Rune of the Level Head): no channel, the darts go out in a quick burst.
-		status.spend_stacks(CONC_ID)
-		var tgt := target
-		for i in _darts_total:
-			get_tree().create_timer(Balance.SIGIL_DARTS_BURST_GAP * i).timeout.connect(func():
-				if is_alive() and is_instance_valid(tgt) and tgt.is_alive():
-					_launch_dart(tgt))
-		_bus().cast_finished.emit(id)   # an instant: starts the global cooldown like one
-		return
-	_begin_spell(id, str(res.display_name), float(res.cast_time), true)
-	_darts_left = _darts_total if casting and current_spell == id else 0
-
-## One dart: at `main`, or (Scatter) at whichever enemy's turn it is.
-func _launch_dart(main: Node3D) -> void:
-	var tgt := main
-	if _darts_scattered:
-		var live := _darts_targets.filter(func(e): return is_instance_valid(e) and e.is_alive())
-		if not live.is_empty():
-			tgt = live[dart_target(_darts_fired, live.size())]
-	_darts_fired += 1
-	if not is_instance_valid(tgt) or not tgt.is_alive():
-		return
-	var bolt := FROST_BOLT.spawn(get_tree().current_scene, _muzzle(), tgt, self, false, SIGIL_DARTS_ID, _darts_dmg)
-	if _darts_scattered:
-		bolt.set("tag", SCATTER_FX)   # (its hit gets Scatter's bonus: bolt_tag, _on_damage_modify)
-
-## A bolt of mine tells me its tag right before its hit is dealt ("" right after).
-func bolt_tag(t: String) -> void:
-	_bolt_tag = t
-
-## Launch every dart that is due by now (`final` = all that are left).
-func _sigil_darts_tick(final: bool = false) -> void:
-	if _darts_left <= 0:
-		return
-	var hits := maxi(_darts_total, 1)
-	var due := hits
-	if not final:
-		var every := maxf(cast_duration / hits, 0.01)
-		due = mini(int(floor((cast_duration - maxf(cast_timer, 0.0)) / every + 0.0001)), hits)
-	while hits - _darts_left < due:
-		_darts_left -= 1
-		if _has_valid_target():
-			_launch_dart(target)
-
-# Countdown: a mark on one enemy (own only). It counts the Arcane damage I deal
-# to that enemy, and after COUNTDOWN_TIME seconds it detonates for the ability's
-# damage plus COUNTDOWN_SHARE_PCT % of what it counted. Casting it again on the
-# same enemy sets the old mark off first.
-
-## Countdown: the extra damage for `dealt` Arcane damage counted, at `pct` % of it.
-static func countdown_bonus(dealt: int, pct: float) -> int:
-	return int(round(maxf(float(dealt), 0.0) * maxf(pct, 0.0) / 100.0))
-
-func _plant_countdown(tgt: Node3D) -> void:
-	if tgt == null or not is_instance_valid(tgt) or not tgt.is_alive():
-		return
-	var key := tgt.get_instance_id()
-	if _countdowns.has(key):
-		_detonate_countdown(key)   # the old mark goes off now
-		if not is_instance_valid(tgt) or not tgt.is_alive():
-			return
-	_countdowns[key] = {"target": tgt, "dealt": 0, "base": float(Abilities.get_resource(COUNTDOWN_ID).damage),
-		"at": Time.get_ticks_msec() / 1000.0 + Balance.COUNTDOWN_TIME}
-	# The debuff shows the mark to the whole party (it only ever counts MY damage).
-	_apply_effect_hit(tgt, preload("res://scripts/core/effects.gd").get_effect(COUNTDOWN_FX), COUNTDOWN_ID,
-		PackedStringArray(ARCANE_TAGS), "arcane")
-	_ring_effect(0.8, Abilities.color_of(COUNTDOWN_ID), tgt.global_position)
-
-## A hit of mine landed: Arcane damage on a marked enemy is counted.
-func _countdown_tally(foe: Node, id: String, damage_type: String, amount: int) -> void:
-	if _countdowns.is_empty() or amount <= 0 or id == COUNTDOWN_ID or damage_type != "arcane":
-		return
-	var key := foe.get_instance_id()
-	if _countdowns.has(key):
-		_countdowns[key]["dealt"] = int(_countdowns[key]["dealt"]) + amount
-
-func _tick_countdowns() -> void:
-	if _countdowns.is_empty():
-		return
-	var now := Time.get_ticks_msec() / 1000.0
-	for key in _countdowns.keys():
-		var c: Dictionary = _countdowns[key]
-		if not is_instance_valid(c["target"]) or not c["target"].is_alive():
-			_countdowns.erase(key)
-		elif now >= float(c["at"]):
-			_detonate_countdown(key)
-
-func _detonate_countdown(key: int) -> void:
-	var c: Dictionary = _countdowns[key]
-	_countdowns.erase(key)
-	var tgt: Variant = c["target"]
-	if not is_instance_valid(tgt) or not tgt.is_alive():
-		return
-	var net := _net()
-	if net:
-		net.remove_effect(tgt, self, COUNTDOWN_FX)   # the host owns enemy effects in a party
-	else:
-		var st: Node = tgt.get_node_or_null("Status")
-		if st:
-			st.remove_from(COUNTDOWN_FX, self)
-	_ring_effect(1.5, Abilities.color_of(COUNTDOWN_ID), tgt.global_position)
-	_ring_effect(0.8, Color(0.95, 0.9, 1.0), tgt.global_position)
-	var at: Vector3 = tgt.global_position   # (kept: the target may not survive it)
-	deal_damage(tgt, float(c["base"]), COUNTDOWN_ID, true)
-	# What it counted was already worked out hit by hit: its share is dealt as it is.
-	var extra := countdown_bonus(int(c["dealt"]), Balance.COUNTDOWN_SHARE_PCT)
-	_exact_hit(tgt, extra, COUNTDOWN_ID, "arcane", PackedStringArray(ARCANE_TAGS))
-	_chain_reaction(at, tgt, extra)   # Chain Reaction: part of it hits the enemies around
-
-## Deal exactly `amount` damage to `foe` under ability `id`: a proc that can't
-## crit or be avoided, with nothing added (its source was already worked out)
-## but `bonuses`: [percent, label] rows that come on top, each a line of its own
-## on the damage meter.
-func _exact_hit(foe: Variant, amount: int, id: String, damage_type: String, tags: PackedStringArray, bonuses: Array = []) -> void:
-	if amount <= 0 or foe == null or not is_instance_valid(foe) or not foe.is_alive():
-		return
-	var hit := DamageInfo.make(self, foe, 1.0, id)
-	for b in bonuses:
-		hit.add_bonus(float(b[0]), str(b[1]))
-	hit.unit = float(amount)
-	hit.exact = true
-	hit.add_power = false
-	hit.can_crit = false
-	hit.can_block = false
-	hit.is_proc = true
-	hit.damage_type = damage_type
-	hit.tags = tags
-	_combat().deal(hit)
-
-# Echoes: Mirror Sigil and the Rune of the Afterimage repeat my spells. Each
-# echo is an exact share of the hit it repeats (its crit and every modifier are
-# already in it), flown from where the sigil / image stands, and dealt as a proc
-# under its own name, so it has its own line on the damage meter and feeds nothing.
-
-## Damage of an echo of a hit of `amount` at `pct` % of it.
-static func echo_amount(amount: int, pct: float) -> int:
-	return int(round(maxf(float(amount), 0.0) * maxf(pct, 0.0) / 100.0))
-
-## Does Mirror Sigil repeat this hit? My Arcane spells' own hits (and Countdown
-## going off), not damage over time, procs or another echo.
-## `two_way` = the Rune of the Two-Way Mirror: a Reflection shattering is repeated too.
-static func mirror_echoes(tags: PackedStringArray, is_proc: bool, id: String, two_way: bool = false) -> bool:
-	if id == REFLECTION_SHATTER_ID:
-		return two_way
-	if id == MIRROR_ID or id == AFTERIMAGE_RUNE or not arcane_spell(tags):
-		return false
-	return not is_proc or id == COUNTDOWN_ID
-
-func _echo_hit(info: RefCounted, pct: float, id: String, from: Vector3) -> void:
-	var foe: Node = info.target
-	var amount := echo_amount(int(info.amount), pct)
-	if amount <= 0 or not (foe is Node3D):
-		return
-	# The picture of the spell flies from the sigil / image; the hit lands with it.
-	# (What it repeats is not always an ability, e.g. a Reflection shattering: then it looks like the echo itself.)
-	var look := str(info.ability_id) if Abilities.PATHS.has(str(info.ability_id)) or not Abilities.PATHS.has(id) else id
-	FROST_BOLT.spawn(get_tree().current_scene, from, foe, null, true, look, 0.0)
-	var net := _net()
-	if net:
-		net.send_fx("bolt", from, foe, look)
-	var damage_type := str(info.damage_type)
-	var tags: PackedStringArray = info.tags
-	var wait := from.distance_to(foe.global_position) / maxf(Balance.BOLT_SPEED, 1.0)
-	get_tree().create_timer(maxf(wait, 0.02)).timeout.connect(func():
-		if is_alive():
-			_exact_hit(foe, amount, id, damage_type, tags))
-
-## Mirror Sigil: a cast, then the sigil stands where I stood.
-func _start_mirror_sigil() -> void:
-	if casting or not is_on_floor():
-		return
-	if cooldown_left(MIRROR_ID) > 0.0:
-		_error("%s is not ready yet" % Abilities.ability_name(MIRROR_ID))
-		return
-	if not can_afford(MIRROR_ID, true):
-		return
-	var res := Abilities.get_resource(MIRROR_ID)
-	cast_point = global_position + _flat_forward() * 5.0   # (what I face while casting)
-	_begin_spell(MIRROR_ID, str(res.display_name), float(res.cast_time))
-
-func _place_mirror_sigil() -> void:
-	var res := Abilities.get_resource(MIRROR_ID)
-	cooldowns[MIRROR_ID] = Abilities.cooldown_of(res)
-	_sigil_at = Vector3(global_position.x, Combat.feet_y(self), global_position.z)
-	_sigil_carried = _has_rune(CARRIED_RUNE)   # Rune of the Carried Sigil: it moves with me
-	_arcane_buff(MIRROR_FX, MIRROR_ID, Balance.MIRROR_SIGIL_TIME,
-		"Your sigil follows you and repeats the Arcane spells you cast." if _sigil_carried \
-		else "Your sigil repeats the Arcane spells you cast.")
-	_arcane_mark("sigil", _sigil_at, Balance.MIRROR_SIGIL_RADIUS, Balance.MIRROR_SIGIL_TIME, _sigil_carried)
-	_ring_effect(Balance.MIRROR_SIGIL_RADIUS, Abilities.color_of(MIRROR_ID))
-
-## Show one of the kit's ground pictures, here and to the party (time 0 = take it away).
-## `carried` = it moves with me (Rune of the Carried Sigil).
-func _arcane_mark(kind: String, at: Vector3, r: float, time: float, carried: bool = false) -> void:
-	if not is_inside_tree():
-		return
-	if time > 0.0:
-		var mark := ARCANE_MARK.spawn(get_tree().current_scene, at, r, time, kind, "me")
-		if carried:
-			mark.set("follow", self)
-	else:
-		ARCANE_MARK.clear(get_tree(), kind, "me")
-	_net_fx("arcanemark", at, null, {"kind": kind, "r": r, "time": time, "follow": carried})
-
-# Collapse: ground-targeted. COLLAPSE_DELAY seconds after the cast the circle
-# falls in on its centre: it damages every enemy in it and drags them toward the
-# middle (bosses are too heavy, and nobody is dragged through a wall).
-
-## Where an enemy at `pos` ends up when a Collapse at `centre` drags it `pull`
-## metres (never closer to the centre than `core`). Height is kept.
-static func collapse_point(pos: Vector3, centre: Vector3, pull: float, core: float) -> Vector3:
-	var to := Vector3(centre.x - pos.x, 0.0, centre.z - pos.z)
-	var dist := to.length()
-	var step := minf(maxf(pull, 0.0), maxf(dist - core, 0.0))
-	if step <= 0.0 or dist <= 0.001:
-		return pos
-	return pos + to / dist * step
-
-func _start_collapse(point: Vector3) -> void:
-	if casting or not is_on_floor():
-		return
-	cast_point = point
-	if not can_afford(COLLAPSE_ID, true):
-		return
-	var res := Abilities.get_resource(COLLAPSE_ID)
-	_begin_spell(COLLAPSE_ID, str(res.display_name), float(res.cast_time))
-
-func _cast_collapse() -> void:
-	var res := Abilities.get_resource(COLLAPSE_ID)
-	cooldowns[COLLAPSE_ID] = Abilities.cooldown_of(res)
-	var at := cast_point
-	var r := float(res.radius)
-	var coef := float(res.damage)
-	_arcane_mark("collapse", at, r, Balance.COLLAPSE_DELAY)
-	get_tree().create_timer(Balance.COLLAPSE_DELAY).timeout.connect(func(): _collapse_implode(at, r, coef))
-
-func _collapse_implode(at: Vector3, r: float, coef: float) -> void:
-	if is_dead():
-		return
-	var col := Abilities.color_of(COLLAPSE_ID)
-	_ring_effect(r * 0.4, col, at + Vector3(0, 0.9, 0))
-	_ring_effect(r * 0.15, Color(0.95, 0.9, 1.0), at + Vector3(0, 0.9, 0))
-	var hit := _enemies_near(at, r)
-	var share := coef * Balance.aoe_share(hit.size())
-	var net := _net()
-	for e in hit:
-		if not is_instance_valid(e) or not e.is_alive():
-			continue
-		deal_damage(e, share, COLLAPSE_ID)
-		if not is_instance_valid(e) or not e.is_alive() or str(e.get("rank")) == "boss":
-			continue   # (bosses are too heavy to pull)
-		var from: Vector3 = e.global_position
-		var to := collapse_point(from, at, Balance.COLLAPSE_PULL + _talent("arcane_deep_well"), Balance.COLLAPSE_CORE)   # Deep Well
-		if to.is_equal_approx(from) \
-				or not Combat.line_of_sight(get_world_3d(), from + Vector3(0, 0.3, 0), to + Vector3(0, 0.3, 0)):
-			continue
-		if net:
-			net.drag(e, to, Balance.COLLAPSE_DRAG_TIME)   # the host owns enemies in a party
-		elif e.has_method("drag_to"):
-			e.drag_to(to, Balance.COLLAPSE_DRAG_TIME)
-		_aftershock(e)   # Aftershock: the ones it pulled are slowed
-
-# Interval Ward: a shield on me. While it holds, my Arcane cooldowns recover
-# faster (_arcane_rate). Broken early by damage, the time it had left comes off
-# its own cooldown.
-
-## Interval Ward's cooldown after the shield broke with `left` seconds to go.
-static func ward_cooldown_after_break(cooldown: float, left: float) -> float:
-	return maxf(cooldown - maxf(left, 0.0), 0.0)
-
-func _interval_ward() -> void:
-	var amount := int(round(_combat().heal_amount(self, float(Abilities.HEALS[WARD_ID]), WARD_ID) * absorb_mult()))
-	if amount <= 0:
-		return
-	var col := Abilities.color_of(WARD_ID)
-	var fx := StatusContainer.make_buff(WARD_FX, Abilities.ability_name(WARD_ID), WARD_FX, 0.0,
-		Balance.INTERVAL_WARD_TIME, 1, col)
-	var armor := _talent("frost_shield_armor")   # Hardened Frost: my shields add armor
-	fx.stat_modifiers = {"armor%": armor} if armor > 0.0 else {}
-	fx.tags = PackedStringArray(["Arcane"])
-	fx.description = "A shield absorbs damage. While it holds, your Arcane spells recover their cooldowns faster."
-	if status.apply(fx, self):
-		status.set_absorb(WARD_FX, amount)
-		_ward_until = Time.get_ticks_msec() / 1000.0 + Balance.INTERVAL_WARD_TIME
-	_ring_effect(1.3, col)
-
-## My Interval Ward was used up by damage: what it had left comes off its cooldown.
-func _ward_broke() -> void:
-	var left := _ward_until - Time.get_ticks_msec() / 1000.0
-	_ward_until = 0.0
-	if left <= 0.0 or not cooldowns.has(WARD_ID):
-		return
-	var cd := ward_cooldown_after_break(float(cooldowns[WARD_ID]), left)
-	if cd <= 0.0:
-		cooldowns.erase(WARD_ID)
-	else:
-		cooldowns[WARD_ID] = cd
-
-# Rune of the Afterimage: Phase Step and Flicker leave an image where I stood
-# for AFTERIMAGE_TIME seconds. The first spell I deal damage with in that time is
-# cast by the image too: every hit of that spell is echoed at AFTERIMAGE_PCT %.
-
-## Seconds the image keeps casting once a spell has woken it: a channel for
-## what is left of it, Ice Shards while shards are still to fire, anything else
-## for a moment (so every enemy an area spell hits is echoed).
-static func afterimage_window(channel_left: float, shards_left: int) -> float:
-	if channel_left > 0.0:
-		return channel_left + Balance.AFTERIMAGE_TRAVEL
-	if shards_left > 0:
-		return shards_left * Balance.ICE_SHARDS_INTERVAL + Balance.AFTERIMAGE_TRAVEL
-	return Balance.AFTERIMAGE_BURST
-
-func _leave_afterimage(from: Vector3) -> void:
-	if status == null or not _has_rune(AFTERIMAGE_RUNE):
-		return
-	_image_at = Vector3(from.x, from.y - (global_position.y - Combat.feet_y(self)), from.z)
-	_image_spell = ""
-	_image_until = 0.0
-	var fx := StatusContainer.make_buff(AFTERIMAGE_FX, "Afterimage", AFTERIMAGE_FX, 0.0,
-		Balance.AFTERIMAGE_TIME, 1, Color(0.75, 0.5, 1.0))
-	fx.stat_modifiers = {}
-	fx.description = "The next spell you deal damage with is also cast by your image."
-	status.apply(fx, self)
-	_arcane_mark("image", _image_at, 0.6, Balance.AFTERIMAGE_TIME)
-
-## Every hit I deal: Countdown counts it, Mirror Sigil and the Afterimage repeat it.
-func _on_damage_dealt_arcane(info: RefCounted) -> void:
-	if not is_same(info.source, self) or info.avoided() or not is_instance_valid(info.target):
-		return
-	var amount := int(info.amount)
-	if amount <= 0:
-		return
-	var id := str(info.ability_id)
-	_countdown_tally(info.target, id, str(info.damage_type), amount)
-	_trace_hit(info, id, amount)   # Arcane melee: a strike leaves a Trace
-	_echo_talent(info, id, amount)   # Echo: any spell or ability may be repeated
-	_spillover_talent(info, id, amount)   # Spillover: part of a critical strike jumps on
-	if bool(info.is_dot) or status == null or not (info.target is Node3D):
-		return
-	if status.has(MIRROR_FX) and mirror_echoes(info.tags, bool(info.is_proc), id,
-			id == REFLECTION_SHATTER_ID and _has_rune(TWO_WAY_MIRROR_RUNE)):
-		_echo_hit(info, mirror_pct(_talent("arcane_polished_glass"), _sigil_carried), MIRROR_ID, _sigil_origin())
-	if bool(info.is_proc) or not info.tags.has("Spell") or not Abilities.PATHS.has(id):
-		return
-	if bool(info.crit):
-		_arcane_crit_talents(id)   # Etched Darts, Frayed
-	var now := Time.get_ticks_msec() / 1000.0
-	if status.has(AFTERIMAGE_FX):
-		# This is the spell the image casts along with me.
-		status.remove(AFTERIMAGE_FX)
-		_image_spell = id
-		var channel_left := cast_timer if casting and cast_is_channel and current_spell == id else 0.0
-		var window := afterimage_window(channel_left, _shards_left if id == "iceshards" else 0)
-		_image_until = now + window
-		_arcane_mark("image", _image_at, 0.6, window + 0.3)   # it stays for as long as it is casting
-	if id == _image_spell and now <= _image_until:
-		_echo_hit(info, Balance.AFTERIMAGE_PCT, AFTERIMAGE_RUNE, _image_at + Vector3(0, 1.0, 0))
-
-# Glint: an instant bolt. For GLINT_TIME seconds afterwards my next Unravel or
-# Sigil Darts (with the Rune of Momentum: any spell with a cast time) can be cast
-# or channelled while moving. A cast uses the buff up when it finishes, a
-# channel when it starts.
-
-## Can Glint let this be cast on the move? `any_spell` = the Rune of Momentum.
-static func glint_applies(id: String, tags: PackedStringArray, cast_time: float, any_spell: bool) -> bool:
-	if cast_time <= 0.0:
-		return false
-	return id == UNRAVEL_ID or id == SIGIL_DARTS_ID or (any_spell and tags.has("Spell"))
-
-## Would casting `id` right now be a cast on the move from Glint?
-func glint_ready(id: String) -> bool:
-	if status == null or not status.has(GLINT_FX):
-		return false
-	var res := Abilities.get_resource(id)
-	return res != null and glint_applies(id, res.tags, float(res.cast_time), _has_rune(MOMENTUM_RUNE))
-
-func _glint(res: Resource) -> void:
-	FROST_BOLT.spawn(get_tree().current_scene, _muzzle(), target, self, false, GLINT_ID, float(res.damage))
-	var text := "Your next spell with a cast time can be cast while moving."
-	if not _has_rune(MOMENTUM_RUNE):
-		text = "Your next %s or %s can be cast while moving." % [Abilities.ability_name(UNRAVEL_ID),
-			Abilities.ability_name(SIGIL_DARTS_ID)]
-	# Keep Moving: the window lasts longer; its capstone: it covers more than one cast.
-	var casts := Balance.KEEP_MOVING_CASTS if _capstone("arcane_keep_moving") else 1
-	var fx := StatusContainer.make_buff(GLINT_FX, Abilities.ability_name(GLINT_ID), GLINT_FX, 0.0,
-		glint_time(_talent("arcane_keep_moving")), casts, Abilities.color_of(GLINT_ID))
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Arcane"])
-	fx.description = text
-	status.remove(GLINT_FX)   # (a fresh one: every cast it covers is there again)
-	status.apply(fx, self)
-	if casts > 1:
-		status.set_stacks(GLINT_FX, casts)
-
-# --- Arcane talents ----------------------------------------------------------------------
-
-## Take `seconds` off the cooldown of `id` (nothing happens if it is ready).
-func _cut_cooldown(id: String, seconds: float) -> void:
-	if not cooldowns.has(id):
-		return
-	var left := float(cooldowns[id]) - seconds
-	if left <= 0.0:
-		cooldowns.erase(id)
-	else:
-		cooldowns[id] = left
-
-## One of my spells' own hits critically struck. Etched Darts: a dart may take
-## time off Countdown and Collapse. Frayed: Unravel may take its time off again.
-func _arcane_crit_talents(id: String) -> void:
-	if id == SIGIL_DARTS_ID:
-		var etched := _talent("arcane_etched_darts")
-		if etched > 0.0 and randf() * 100.0 < etched:
-			_cut_cooldown(COUNTDOWN_ID, Balance.ETCHED_DARTS_SECONDS)
-			_cut_cooldown(COLLAPSE_ID, Balance.ETCHED_DARTS_SECONDS)
-	elif id == UNRAVEL_ID:
-		var frayed := _talent("arcane_frayed")
-		if frayed > 0.0 and randf() * 100.0 < frayed:
-			_unravel_cooldowns()
-
-## Chain Reaction: damage each of `count` enemies around a Countdown takes when
-## it counted `bonus` extra damage, at `pct` % of it (more than AOE_TARGET_CAP
-## enemies share that many hits).
-static func chain_reaction_damage(bonus: int, pct: float, count: int) -> int:
-	if count <= 0:
-		return 0
-	return int(round(maxf(float(bonus), 0.0) * maxf(pct, 0.0) / 100.0 * Balance.aoe_share(count)))
-
-## Chain Reaction: my Countdown went off at `at` on `main`. A share of what it
-## counted hits the enemies around it, as its own line on the damage meter.
-func _chain_reaction(at: Vector3, main: Variant, bonus: int) -> void:
-	var pct := _talent("arcane_chain_reaction")
-	if pct <= 0.0 or bonus <= 0:
-		return
-	var skip: Node = main if (main != null and is_instance_valid(main)) else null
-	var near := _enemies_near(at, Balance.CHAIN_REACTION_RADIUS, skip)
-	var each := chain_reaction_damage(bonus, pct, near.size())
-	for e in near:
-		_exact_hit(e, each, CHAIN_REACTION_ID, "arcane", PackedStringArray(ARCANE_TAGS))
-		if is_instance_valid(e):
-			_ring_effect(0.6, Abilities.color_of(COUNTDOWN_ID), e.global_position)
-
-## % of a hit my Mirror Sigil repeats: Polished Glass adds `talent_bonus`; the
-## Rune of the Carried Sigil (`carried`) starts it lower.
-static func mirror_pct(talent_bonus: float, carried: bool) -> float:
-	return (Balance.CARRIED_SIGIL_PCT if carried else Balance.MIRROR_SIGIL_PCT) + maxf(talent_bonus, 0.0)
-
-## Where my Mirror Sigil's echoes fly from: the shard over the sigil, or over
-## my head when I carry it.
-func _sigil_origin() -> Vector3:
-	if _sigil_carried:
-		return Vector3(global_position.x, Combat.feet_y(self) + ARCANE_MARK.CARRIED_HEIGHT, global_position.z)
-	return _sigil_at + Vector3(0, ARCANE_MARK.SHARD_HEIGHT, 0)
-
-## Aftershock: how many times the effect's own slow a talent value of `slow_pct` % is.
-static func aftershock_mult(slow_pct: float) -> float:
-	return maxf(slow_pct, 0.0) / Balance.AFTERSHOCK_SLOW_STEP
-
-## Aftershock: an enemy my Collapse pulled is slowed (as strongly as the rank says).
-func _aftershock(e: Node) -> void:
-	var slow := _talent("arcane_aftershock")
-	if slow <= 0.0:
-		return
-	_slow_mult_now = aftershock_mult(slow)   # (slow_mult() answers with this while the effect is applied)
-	_apply_effect_hit(e, preload("res://scripts/core/effects.gd").get_effect(AFTERSHOCK_FX), COLLAPSE_ID,
-		PackedStringArray(ARCANE_TAGS), "arcane")
-	_slow_mult_now = 1.0
-
-## Dead or downed: marks fizzle, the sigil and the image go.
-func _clear_arcane() -> void:
-	_countdowns.clear()
-	_darts_left = 0
-	_image_spell = ""
-	_image_until = 0.0
-	_arcane_mark("sigil", _sigil_at, 0.0, 0.0)
-	_arcane_mark("image", _image_at, 0.0, 0.0)
-	_clear_traces()
-	decay._clear_decay()   # Shadow: my Decays go with me, and their debuffs
-
-# --- Arcane tank (a dodge tank with a melee weapon in each hand) --------------------------
-# No resource: cooldowns alone. It lives on Reflections, images of me that stand
-# around me (a stacking buff; the picture is scripts/reflections.gd). Each one
-# adds Dodge and raises my Dodge cap. An attack I dodge uses one up, and that
-# Reflection shatters: damage around me, time off the cooldown of everything in
-# the Arcane book, and a window for Missed Beat. Double Up, Ripple and Full Set
-# make Reflections. Stand-In lets them take the attacks that get through, Trade
-# Places turns them into health, Crowd of One stops dodges using them up, and
-# Decoy sends one off for the enemies to attack. Numbers are in balance.gd.
-
-const REFLECTIONS = preload("res://scripts/reflections.gd")
-const DECOY = preload("res://scripts/decoy.gd")
-const TRACE_GHOST = preload("res://scripts/trace_ghost.gd")
-const REFLECTION_FX := "reflection"
-## Meter / log id of a Reflection shattering (its own line: Details.HIT_NAMES).
-const REFLECTION_SHATTER_ID := "reflection_shatter"
-const REFLECTION_TAGS := ["Arcane", "Ability", "AoE"]
-const DOUBLE_UP_ID := "doubleup"
-const RIPPLE_ID := "ripple"
-const FULL_SET_ID := "fullset"
-const MISSED_BEAT_ID := "missedbeat"
-const MISSED_BEAT_FX := "missed_beat"
-const STAND_IN_ID := "standin"
-const STAND_IN_FX := "stand_in"
-const TRADE_PLACES_ID := "tradeplaces"
-const CROWD_ID := "crowdofone"
-const CROWD_FX := "crowd_of_one"
-const DECOY_ID := "decoy"
-const DUAL_WIELD_ERROR := "Requires a melee weapon in each hand"
-## Seconds between telling the party again how many Reflections I have (someone
-## who joined or reloaded since then sees them too).
-const REFLECTION_RETELL := 3.0
-
-var _reflection_fx: Resource
-var _reflections_shown := 0      # how many the picture around me shows (and the party was told)
-var _reflections_told := 0.0     # when the party was last told
-var _hits_taken: Array = []      # [time, damage] of what I took lately (Trade Places)
-
-## Dual wield: is a one-handed melee weapon in my Main Hand and another in my Off Hand?
-func has_dual_wield() -> bool:
-	var pd := get_node_or_null("/root/PlayerData")
-	return pd != null and bool(pd.has_dual_wield())
-
-## Damage coefficient of a strike with both weapons (Double Up, Missed Beat): the
-## two weapons' damage together x the ability's multiplier + the ability's own.
-## One hit, so what triggers on a hit triggers once.
-static func dual_hit(main: float, off: float, mult: float, flat: float) -> float:
-	return (maxf(main, 0.0) + maxf(off, 0.0)) * mult + flat
-
-func _dual_weapon_hit(w: Dictionary, res: Resource) -> float:
-	return dual_hit(float(w.get("damage", 0.0)), float(Abilities.offhand_weapon().get("damage", 0.0)),
-		float(res.weapon_damage_multiplier), float(res.damage))
-
-## How many Reflections I have.
-func reflections() -> int:
-	return status.stacks_of(REFLECTION_FX) if status != null else 0
-
-## Reflections after gaining `more` on top of `have` (never more than REFLECTION_MAX).
-static func reflections_after(have: int, more: int) -> int:
-	return clampi(have + maxi(more, 0), 0, Balance.REFLECTION_MAX)
-
-## The most Dodge chance (%) that counts with `stacks` Reflections.
-static func dodge_cap_for(stacks: int) -> float:
-	return Stats.MAX_DODGE + Balance.REFLECTION_DODGE_CAP * clampi(stacks, 0, Balance.REFLECTION_MAX)
-
-## My Dodge cap right now (CombatSystem and the stat panel ask).
-func dodge_cap() -> float:
-	return dodge_cap_for(reflections())
-
-## Does a Reflection shattering take time off the cooldown of an ability in the
-## book `category`? Everything in the Arcane book, spells and abilities alike;
-## never an interrupt (they share a cooldown of their own).
-static func shatter_cuts(category: String, is_interrupt: bool) -> bool:
-	return category == "arcane" and not is_interrupt
-
-## Does a Ripple that hit `enemies` enemies make a Reflection? (`wide` = Wide
-## Rings' capstone: fewer enemies are enough.)
-static func ripple_makes_reflection(enemies: int, wide: bool = false) -> bool:
-	return enemies >= (Balance.WIDE_RINGS_ENEMIES if wide else Balance.RIPPLE_REFLECTION_ENEMIES)
-
-# The Arcane tank's talents. Down the left edge of the book, what makes and
-# shatters Reflections: Sharp Edges (shatters hit harder; capstone: further),
-# Clockwork (a shatter takes more off cooldowns), Spare Copy (a dodge may not
-# use the Reflection up), Second Self (Double Up may make two), Wide Rings
-# (Ripple reaches further; capstone: fewer enemies make a Reflection), On the
-# Beat (Missed Beat hits harder; capstone: it makes a Reflection when I have
-# none), Head Count (Full Set heals for each Reflection it makes). Down the right
-# edge, staying alive: Light Feet (Dodge with two weapons: PlayerData), Empty
-# Room (less damage taken with no Reflections), Bent Light (less non-Physical
-# damage for each Reflection), Understudy (Stand-In comes back sooner), Loud Exit
-# (Trade Places shatters what it gives up), Good Likeness (Decoy holds longer;
-# capstone: it needs no Reflection).
-
-const SHARP_EDGES_LABEL := "Sharp Edges"
-const ON_THE_BEAT_LABEL := "On the Beat"
-## Meter / log id of Head Count's healing (its own line: Details.HIT_NAMES).
-const HEAD_COUNT_ID := "head_count"
-## ... and of Silvered's.
-const SILVERED_ID := "silvered"
-
-## Health Silvered restores when a Reflection shatters (`pct` % of maximum health).
-static func silvered_heal(max_hp: int, pct: float) -> int:
-	return int(round(maxf(float(max_hp), 0.0) * maxf(pct, 0.0) / 100.0))
-
-## Metres a shatter reaches (Sharp Edges' capstone: further).
-static func shatter_radius_for(sharp_capstone: bool) -> float:
-	return Balance.SHARP_EDGES_RADIUS if sharp_capstone else Balance.REFLECTION_SHATTER_RADIUS
-
-## Seconds one shatter takes off each Arcane cooldown (`clockwork` = that talent's seconds).
-static func shatter_cut(clockwork: float) -> float:
-	return Balance.REFLECTION_SHATTER_COOLDOWN + maxf(clockwork, 0.0)
-
-## Is the Reflection that took a dodged attack used up? Not during Crowd of One,
-## and not when Spare Copy's chance comes up (`spare_pct` %, `roll` 0-100).
-static func dodge_uses_reflection(crowd: bool, spare_pct: float, roll: float) -> bool:
-	return not crowd and not (spare_pct > 0.0 and roll < spare_pct)
-
-## Reflections one Double Up makes (Second Self: a `pct` % chance of more; `roll` 0-100).
-static func double_up_reflections(pct: float, roll: float) -> int:
-	return Balance.SECOND_SELF_REFLECTIONS if pct > 0.0 and roll < pct else 1
-
-## Health Head Count restores when Full Set makes `made` Reflections (`pct` % of
-## maximum health for each).
-static func head_count_heal(max_hp: int, pct: float, made: int) -> int:
-	return int(round(maxf(float(max_hp), 0.0) * maxf(pct, 0.0) / 100.0 * maxi(made, 0)))
-
-## % less damage Empty Room spares me (`pct` = the talent): only with a weapon in
-## each hand and no Reflections left.
-static func empty_room_pct(pct: float, stacks: int, dual: bool) -> float:
-	return pct if pct > 0.0 and stacks <= 0 and dual else 0.0
-
-## % less damage Bent Light spares me from a hit of `damage_type`: `per` % for
-## each Reflection, never from Physical damage.
-static func bent_light_pct(per: float, stacks: int, damage_type: String) -> float:
-	if per <= 0.0 or damage_type == "physical":
-		return 0.0
-	return per * clampi(stacks, 0, Balance.REFLECTION_MAX)
-
-## Seconds a Decoy holds the enemies around it (`longer` = Good Likeness).
-static func decoy_time(longer: float) -> float:
-	return Balance.DECOY_TIME + maxf(longer, 0.0)
-
-func shatter_radius() -> float:
-	return shatter_radius_for(_capstone("arcane_sharp_edges"))
-
-## Does Decoy need (and use up) one of my Reflections? Not with Good Likeness' capstone.
-func decoy_needs_reflection() -> bool:
-	return not _capstone("arcane_good_likeness")
-
-## What I take (_on_damage_modify): Empty Room and Bent Light.
-func _reflection_talents_incoming(info: RefCounted) -> void:
-	var empty := _talent("arcane_empty_room")
-	if empty > 0.0:
-		var spared := empty_room_pct(empty, reflections(), has_dual_wield())
-		if spared > 0.0:
-			info.add_bonus(-spared, "Empty Room")
-	var bent := bent_light_pct(_talent("arcane_bent_light"), reflections(), str(info.damage_type))
-	if bent > 0.0:
-		info.add_bonus(-bent, "Bent Light")
-
-## Damage taken in the `window` seconds before `now`, from rows of [time, damage].
-static func damage_in_window(rows: Array, now: float, window: float) -> int:
-	var total := 0
-	for r in rows:
-		if r is Array and r.size() >= 2 and now - float(r[0]) <= window:
-			total += int(r[1])
-	return total
-
-## Health Trade Places restores for `taken` damage with `stacks` Reflections given up.
-static func trade_places_heal(taken: int, stacks: int) -> int:
-	return int(round(maxf(float(taken), 0.0) * Balance.TRADE_PLACES_PCT / 100.0 * maxi(stacks, 0)))
-
-## Why Trade Places can't be used ("" = it can).
-static func trade_places_error(stacks: int, taken: int, full_health: bool) -> String:
-	if stacks <= 0:
-		return "You have no Reflections"
-	if full_health:
-		return "Already at full health"
-	if taken <= 0:
-		return "You have taken no damage to trade"
-	return ""
-
-func _reflection_buff() -> Resource:
-	if _reflection_fx == null:
-		_reflection_fx = StatusContainer.make_buff(REFLECTION_FX, "Reflection", Stats.DODGE, Balance.REFLECTION_DODGE,
-			Balance.REFLECTION_TIME, Balance.REFLECTION_MAX, Abilities.color_of(DOUBLE_UP_ID))
-		_reflection_fx.tags = PackedStringArray(["Arcane"])
-		_reflection_fx.description = "An image of you. Each one adds {b:REFLECTION_DODGE}% Dodge and raises your Dodge cap by {b:REFLECTION_DODGE_CAP}%. An attack you dodge shatters one."
-	return _reflection_fx
-
-## Gain `more` Reflections (never more than REFLECTION_MAX). All of them last
-## their full time again.
-func _gain_reflections(more: int = 1) -> void:
-	if status == null or more <= 0 or is_dead():
-		return
-	var want := reflections_after(reflections(), more)
-	if not status.apply(_reflection_buff(), self):
-		return
-	if status.stacks_of(REFLECTION_FX) != want:
-		status.set_stacks(REFLECTION_FX, want)
-
-## Remember what I just took (Trade Places looks back TRADE_PLACES_WINDOW seconds).
-func _note_damage_taken(amount: int) -> void:
-	var now := Time.get_ticks_msec() / 1000.0
-	_hits_taken.append([now, amount])
-	while not _hits_taken.is_empty() and now - float(_hits_taken[0][0]) > Balance.TRADE_PLACES_WINDOW:
-		_hits_taken.pop_front()
-
-## Damage I took in the last `window` seconds.
-func damage_taken_recently(window: float) -> int:
-	return damage_in_window(_hits_taken, Time.get_ticks_msec() / 1000.0, window)
-
-## One of my Reflections shatters: damage around me (a proc with its own line on
-## the meter; it feeds nothing), time off my Arcane cooldowns, and Missed Beat
-## may answer. `used_up` = false during Crowd of One: the Reflection stays.
-func _shatter_reflection(used_up: bool = true) -> void:
-	if reflections() <= 0:
-		return
-	if used_up:
-		status.spend_stacks(REFLECTION_FX, 1)
-	_shatter_burst()
-
-## What a shattering Reflection does (also each one Trade Places gives up with
-## Loud Exit): the damage around me, the time off my cooldowns, Missed Beat's window.
-func _shatter_burst() -> void:
-	var reach := shatter_radius()   # Sharp Edges' capstone: further
-	var hit := _enemies_within(reach)
-	var coef := Balance.REFLECTION_SHATTER * Balance.aoe_share(hit.size())
-	for e in hit:
-		if not is_instance_valid(e) or not e.is_alive():
-			continue
-		var burst := DamageInfo.make(self, e, coef, REFLECTION_SHATTER_ID)
-		burst.tags = PackedStringArray(REFLECTION_TAGS)
-		burst.damage_type = "arcane"
-		burst.threat_multiplier = Balance.REFLECTION_SHATTER_THREAT
-		burst.is_proc = true
-		burst.no_empower = true
-		_combat().deal(burst)
-	_ring_effect(reach, Abilities.color_of(DOUBLE_UP_ID))
-	_ring_effect(reach * 0.5, Color(0.95, 0.9, 1.0))
-	_shatter_cooldowns()
-	# Silvered: every shatter heals me a little.
-	var silver := silvered_heal(max_health, _talent("arcane_silvered"))
-	if silver > 0 and health < max_health:
-		_combat().heal(self, self, float(silver), SILVERED_ID, true)
-	var pd := get_node_or_null("/root/PlayerData")
-	if pd and pd.has_ability(MISSED_BEAT_ID):
-		_arcane_buff(MISSED_BEAT_FX, MISSED_BEAT_ID, Balance.MISSED_BEAT_WINDOW,
-			"One of your Reflections shattered: %s can be used." % Abilities.ability_name(MISSED_BEAT_ID))
-
-## A Reflection shattered: everything in the Arcane book that is on cooldown
-## comes back a little sooner (spells and abilities alike; never an interrupt).
-func _shatter_cooldowns() -> void:
-	var cut := shatter_cut(_talent("arcane_clockwork"))   # + Clockwork
-	for id in cooldowns.keys():
-		if shatter_cuts(Abilities.category_of(str(id)), INTERRUPT_LOCKOUT.has(str(id))):
-			_cut_cooldown(str(id), cut)
-
-## Something hit me (_on_hit_taken): an attack I dodged shatters a Reflection,
-## and so does one a Reflection stood in for (Stand-In).
-func _reflection_kit_hit_taken(info: RefCounted) -> void:
-	if reflections() <= 0:
-		return
-	if bool(info.stood_in):
-		_shatter_reflection(true)
-		var understudy := _talent("arcane_understudy")   # Understudy: Stand-In comes back sooner
-		if understudy > 0.0:
-			_cut_cooldown(STAND_IN_ID, understudy)
-	elif bool(info.dodged):
-		# Crowd of One: it is not used up. Spare Copy: it may not be.
-		_shatter_reflection(dodge_uses_reflection(status.has(CROWD_FX), _talent("arcane_spare_copy"), randf() * 100.0))
-
-## CombatSystem asks, for a direct hit that got through to me: does something
-## else take it? During Stand-In a Reflection does (and shatters: see above).
-func stand_in_for(_info: RefCounted) -> bool:
-	return status != null and status.has(STAND_IN_FX) and reflections() > 0
-
-## Ripple: everything around me is hit; more than AOE_TARGET_CAP enemies share
-## that many hits' damage. Hitting enough of them makes a Reflection.
-func _ripple(res: Resource) -> void:
-	var col := Abilities.color_of(RIPPLE_ID)
-	var reach := float(res.radius) + Abilities.radius_bonus(RIPPLE_ID)   # + Wide Rings
-	var hit := _enemies_within(reach)
-	var coef := float(res.damage) * Balance.aoe_share(hit.size())
-	for e in hit:
-		if is_instance_valid(e) and e.is_alive():
-			deal_damage(e, coef, RIPPLE_ID)
-	if ripple_makes_reflection(hit.size(), _capstone("arcane_wide_rings")):
-		_gain_reflections(1)
-	_ring_effect(reach, col)
-	_ring_effect(reach * 0.7, Color(0.95, 0.9, 1.0))
-	_ring_effect(reach * 0.4, col)
-
-## Full Set: Reflections until I have them all. Head Count heals me for each one
-## it makes.
-func _full_set() -> void:
-	var made := Balance.REFLECTION_MAX - reflections()
-	_gain_reflections(Balance.REFLECTION_MAX)
-	var mend := head_count_heal(max_health, _talent("arcane_head_count"), made)
-	if mend > 0 and health < max_health:
-		_combat().heal(self, self, float(mend), HEAD_COUNT_ID, true)
-	_ring_effect(1.4, Abilities.color_of(FULL_SET_ID))
-	_ring_effect(0.9, Color(0.95, 0.9, 1.0))
-
-func _start_stand_in() -> void:
-	_arcane_buff(STAND_IN_FX, STAND_IN_ID, Balance.STAND_IN_TIME,
-		"Each attack that gets through to you destroys one of your Reflections instead of hitting you.")
-	_ring_effect(1.2, Abilities.color_of(STAND_IN_ID))
-	_ring_effect(0.8, Color(0.95, 0.9, 1.0))
-
-func _start_crowd_of_one() -> void:
-	_arcane_buff(CROWD_FX, CROWD_ID, Balance.CROWD_OF_ONE_TIME,
-		"A Reflection that takes an attack you dodge shatters, but is not used up.")
-	var crowd := int(round(_talent("arcane_full_crowd")))   # Full Crowd: it brings some with it
-	if crowd > 0:
-		_gain_reflections(crowd)
-	_ring_effect(1.6, Abilities.color_of(CROWD_ID))
-	_ring_effect(1.0, Color(0.95, 0.9, 1.0))
-
-## Trade Places: every Reflection I have is given up (they do not shatter,
-## unless I have Loud Exit), and each one heals me for a share of what I took in
-## the last moments.
-func _trade_places() -> void:
-	var stacks := reflections()
-	var amount := trade_places_heal(damage_taken_recently(Balance.TRADE_PLACES_WINDOW), stacks)
-	# Loud Exit: each one I give up shatters on its way out.
-	if _talent("arcane_loud_exit") > 0.0:
-		for i in stacks:
-			_shatter_burst()
-	status.remove(REFLECTION_FX)
-	if amount > 0:
-		_combat().heal(self, self, float(amount), TRADE_PLACES_ID, true)
-	_ring_effect(1.2, Color(0.45, 1.0, 0.5))
-	_ring_effect(0.8, Abilities.color_of(TRADE_PLACES_ID))
-
-## My buffs changed: the picture around me shows as many Reflections as I have,
-## and the party is told when that number changes.
-func _sync_reflections() -> void:
-	var n := reflections()
-	if n == _reflections_shown:
-		return
-	_reflections_shown = n
-	REFLECTIONS.show_on(self, n)
-	_tell_reflections()
-
-func _tell_reflections() -> void:
-	_reflections_told = Time.get_ticks_msec() / 1000.0
-	_net_fx("reflections", global_position, null, {"n": _reflections_shown})
-
-func _tick_reflections() -> void:
-	if _reflections_shown > 0 and Time.get_ticks_msec() / 1000.0 - _reflections_told >= REFLECTION_RETELL:
-		_tell_reflections()
-
-# Decoy: ground-targeted and instant. One of my Reflections goes to stand at the
-# spot (scripts/decoy.gd): for DECOY_TIME seconds the enemies around it attack
-# it. Enemies live on the host, so in a party the host makes the real one
-# (Net.decoy). When its time is up it bursts: that damage is mine, dealt here.
-
-## Why Decoy can't be used right now ("" = it can). `point` = where it would stand.
-func _decoy_error(point: Variant = null) -> String:
-	if cooldown_left(DECOY_ID) > 0.0:
-		return "%s is not ready yet" % Abilities.ability_name(DECOY_ID)
-	if not has_dual_wield():
-		return DUAL_WIELD_ERROR
-	if decoy_needs_reflection() and reflections() <= 0:
-		return "You have no Reflections"
-	if point is Vector3:
-		var reach := float(Abilities.get_resource(DECOY_ID).cast_range)
-		if reach > 0.0 and Vector2(point.x - global_position.x, point.z - global_position.z).length() > reach:
-			return "Out of range"
-	return ""
-
-func _start_decoy(point: Vector3) -> void:
-	if casting or not is_on_floor():
-		return
-	var err := _decoy_error(point)
-	if err != "":
-		_error(err)
-		return
-	if not _pay(DECOY_ID):
-		return
-	var res := Abilities.get_resource(DECOY_ID)
-	cooldowns[DECOY_ID] = Abilities.cooldown_of(res)
-	if decoy_needs_reflection():
-		status.spend_stacks(REFLECTION_FX, 1)   # the Reflection that goes (Good Likeness' capstone: none does)
-	var dir := point - global_position
-	if Vector2(dir.x, dir.z).length() > 0.3:
-		rotation.y = atan2(-dir.x, -dir.z)
-	# It stands on the ground there, its centre as high over it as mine is.
-	var at := Vector3(point.x, point.y + (global_position.y - Combat.feet_y(self)), point.z)
-	var time := decoy_time(_talent("arcane_good_likeness"))   # + Good Likeness
-	var net := _net()
-	if net:
-		net.decoy(self, at, rotation.y, float(res.radius), time)
-	else:
-		DECOY.spawn(get_tree().current_scene, self, at, rotation.y, time, float(res.radius))
-	_ring_effect(float(res.radius), Abilities.color_of(DECOY_ID), at)
-	get_tree().create_timer(time).timeout.connect(func(): _decoy_burst(at))
-	if on_gcd(DECOY_ID):
-		_start_gcd()
-	_bus().cast_finished.emit(DECOY_ID)
-
-## My Decoy's time is up: it bursts where it stood (a proc; more than
-## AOE_TARGET_CAP enemies share that many hits' damage).
-func _decoy_burst(at: Vector3) -> void:
-	if is_dead():
-		return
-	var res := Abilities.get_resource(DECOY_ID)
-	var hit := _enemies_near(at, Balance.DECOY_BURST_RADIUS)
-	var coef := float(res.damage) * Balance.aoe_share(hit.size())
-	for e in hit:
-		if is_instance_valid(e) and e.is_alive():
-			deal_damage(e, coef, DECOY_ID, true)
-	_ring_effect(Balance.DECOY_BURST_RADIUS, Abilities.color_of(DECOY_ID), at)
-	_ring_effect(Balance.DECOY_BURST_RADIUS * 0.5, Color(0.95, 0.9, 1.0), at)
-
-# --- Arcane: the open talents -------------------------------------------------------------
-# Talents of the Arcane book that work with every book's spells and abilities:
-# Echo (a hit may be repeated), Borrowed Time (a long cooldown coming back
-# boosts my next spell or ability), Mirror Finish (an attack I dodge, parry or
-# block hurts the attacker), Overtime (buffs I put on myself last longer),
-# Slipstream (faster after a blink or dash), Light Touch (less threat from
-# Arcane). Quick Study and Two Minds are in PlayerData. Numbers: balance.gd and
-# talents.gd.
-
-const ECHO_ID := "echo"
-const MIRROR_FINISH_ID := "mirror_finish"
-const MIRROR_FINISH_TAGS := ["Arcane", "Ability"]
-const BORROWED_FX := "borrowed_time"
-const SLIPSTREAM_FX := "slipstream"
-## The blinks and dashes Slipstream follows.
-const SLIPSTREAM_MOVES := ["blink", "flicker", "staticstep", "cinderstep", "icyretreat"]
-
-var _borrowed_watch := {}      # ability id -> true: the long cooldowns that are running
-var _long_cooldowns := {}      # ability id -> does its cooldown count for Borrowed Time (looked up once)
-var _borrowed_id := ""         # the spell / ability that is using the boost up
-var _borrowed_until := 0.0     # ... and until when its hits still get it
-
-## Can Echo repeat this hit? A hit of a spell or ability I know by name: never a
-## proc (another echo, a replay), damage over time or an auto-attack.
-static func echoes(tags: PackedStringArray, is_proc: bool, is_dot: bool, known: bool) -> bool:
-	return known and not is_proc and not is_dot and (tags.has("Spell") or tags.has("Ability"))
-
-## % chance Echo repeats a hit (`pct` = the talent; Arcane hits: more often).
-static func echo_chance(pct: float, arcane: bool) -> float:
-	return maxf(pct, 0.0) * (Balance.ECHO_ARCANE_CHANCE_MULT if arcane else 1)
-
-## % of a hit's damage Echo's repeat deals (Arcane hits: less of it).
-static func echo_share(arcane: bool) -> float:
-	return Balance.ECHO_ARCANE_PCT if arcane else Balance.ECHO_PCT
-
-## Does a cooldown of `seconds` coming back count for Borrowed Time?
-static func borrowed_time_counts(seconds: float) -> bool:
-	return seconds >= Balance.BORROWED_TIME_COOLDOWN
-
-## How many times as long the buffs I put on myself last (`pct` = Overtime).
-static func overtime_mult(pct: float) -> float:
-	return 1.0 + maxf(pct, 0.0) / 100.0
-
-## Seconds Glint's window lasts (`longer` = Keep Moving).
-static func glint_time(longer: float) -> float:
-	return Balance.GLINT_TIME + maxf(longer, 0.0)
-
-## Buffs I put on myself last this many times as long (StatusContainer asks). Overtime.
-func self_buff_time_mult(_res: Resource = null) -> float:
-	return overtime_mult(_talent("arcane_overtime"))
-
-## Every hit I deal (_on_damage_dealt_arcane). Echo: it may be repeated a moment
-## later (exact: its crit and every modifier are already in it; a proc with its
-## own line on the meter, so it feeds nothing and is never repeated itself).
-func _echo_talent(info: RefCounted, id: String, amount: int) -> void:
-	var pct := _talent("arcane_echo")
-	if pct <= 0.0 or not echoes(info.tags, bool(info.is_proc), bool(info.is_dot), Abilities.PATHS.has(id)):
-		return
-	var arcane: bool = info.tags.has("Arcane")
-	if randf() * 100.0 >= echo_chance(pct, arcane):
-		return
-	var foe: Node = info.target
-	var again := echo_amount(amount, echo_share(arcane))
-	var damage_type := str(info.damage_type)
-	var tags: PackedStringArray = info.tags
-	get_tree().create_timer(Balance.ECHO_DELAY).timeout.connect(func():
-		if not is_alive() or not is_instance_valid(foe) or not foe.is_alive():
-			return
-		_exact_hit(foe, again, ECHO_ID, damage_type, tags)
-		if foe is Node3D:
-			_ring_effect(0.4, Color(0.8, 0.6, 1.0), (foe as Node3D).global_position))
-
-func _counts_for_borrowed_time(id: String) -> bool:
-	if not _long_cooldowns.has(id):
-		var res := Abilities.get_resource(id)
-		_long_cooldowns[id] = res != null and borrowed_time_counts(float(res.cooldown))
-	return bool(_long_cooldowns[id])
-
-## Cooldowns have just ticked (_tick_cooldowns). Borrowed Time: one of my long
-## cooldowns coming back makes my next spell or ability hit harder.
-func _tick_borrowed_time() -> void:
-	if cooldowns.is_empty() and _borrowed_watch.is_empty():
-		return
-	var pct := _talent("arcane_borrowed_time")
-	if pct <= 0.0:
-		_borrowed_watch.clear()
-		return
-	for id in cooldowns:
-		if not _borrowed_watch.has(id) and _counts_for_borrowed_time(str(id)):
-			_borrowed_watch[id] = true
-	var back := false
-	for id in _borrowed_watch.keys():
-		if not cooldowns.has(id):
-			_borrowed_watch.erase(id)
-			back = true
-	if back and status != null and is_alive():
-		var fx := StatusContainer.make_buff(BORROWED_FX, "Borrowed Time", BORROWED_FX, 0.0, Balance.BORROWED_TIME_TIME, 1,
-			Color(0.8, 0.6, 1.0))
-		fx.stat_modifiers = {}
-		fx.description = "Your next spell or ability deals more damage."
-		status.apply(fx, self)
-
-## A hit of mine, before its damage is worked out (_on_damage_modify). Borrowed
-## Time: the first spell or ability I hit with uses the boost, and every hit of
-## that one use gets it (BORROWED_TIME_HITS seconds: it may hit several enemies).
-func _borrowed_time_hit(info: RefCounted, id: String) -> void:
-	if bool(info.is_proc) or bool(info.is_dot) or not Abilities.PATHS.has(id):
-		return
-	var now := Time.get_ticks_msec() / 1000.0
-	if status != null and status.has(BORROWED_FX):
-		status.remove(BORROWED_FX)
-		_borrowed_id = id
-		_borrowed_until = now + Balance.BORROWED_TIME_HITS
-	elif id != _borrowed_id or now > _borrowed_until:
-		return
-	var pct := _talent("arcane_borrowed_time")
-	if pct > 0.0:
-		info.add_bonus(pct, "Borrowed Time")
-
-## Something hit me (_on_hit_taken). Mirror Finish: an attack I dodged, parried
-## or blocked hurts whoever made it (a proc with its own line on the meter).
-func _mirror_finish(info: RefCounted) -> void:
-	if bool(info.is_dot) or not (bool(info.dodged) or bool(info.parried) or bool(info.blocked)):
-		return
-	var coef := _talent("arcane_mirror_finish")
-	if coef <= 0.0:
-		return
-	var foe: Variant = info.source
-	if foe == null or not is_instance_valid(foe) or not (foe is Node) or not foe.is_in_group("enemies") or not foe.is_alive():
-		return
-	var back := DamageInfo.make(self, foe, coef, MIRROR_FINISH_ID)
-	back.tags = PackedStringArray(MIRROR_FINISH_TAGS)
-	back.damage_type = "arcane"
-	back.is_proc = true
-	back.no_empower = true
-	_combat().deal(back)
-
-## I used ability `id` (_use_drafted). Slipstream: after a blink or dash I move faster.
-func _slipstream(id: String) -> void:
-	if not SLIPSTREAM_MOVES.has(id) or status == null:
-		return
-	var faster := _talent("arcane_slipstream")
-	if faster <= 0.0:
-		return
-	var fx := StatusContainer.make_buff(SLIPSTREAM_FX, "Slipstream", "move_speed", faster, Balance.SLIPSTREAM_TIME, 1,
-		Color(0.8, 0.6, 1.0))
-	fx.description = "You move faster."
-	status.apply(fx, self)
 
 # --- Fire and Lightning: the open talents ---------------------------------------------------
 # Talents of those two books that work with every book's spells and abilities.
@@ -5960,7 +4730,7 @@ func _spillover_talent(info: RefCounted, id: String, amount: int) -> void:
 	var wait := from.distance_to(foe.global_position) / maxf(Balance.BOLT_SPEED, 1.0)
 	get_tree().create_timer(maxf(wait, 0.02)).timeout.connect(func():
 		if is_alive():
-			_exact_hit(foe, spill, SPILLOVER_ID, damage_type, tags))
+			arcane_caster._exact_hit(foe, spill, SPILLOVER_ID, damage_type, tags))
 
 ## Something hit me (_on_hit_taken). Tempered: an attack I blocked gives me Armor for a while.
 func _tempered(info: RefCounted) -> void:
@@ -6017,364 +4787,6 @@ func _tick_dig_in(delta: float) -> void:
 	fx.stat_modifiers = {}
 	fx.description = "You deal more damage until you move."
 	status.apply(fx, self)
-
-# --- Arcane melee (a damage dealer with a melee weapon in each hand) --------------------
-# No resource: cooldowns alone. Every strike I land with an Arcane melee ability
-# leaves a Trace on me: a record of the damage it dealt. I hold up to TRACE_MAX
-# (the newest pushes out the oldest), each for TRACE_TIME seconds. Encore replays
-# every Trace on my target for ENCORE_PCT % of what it recorded, and uses them up.
-# Swift Cut, Deep Cut, Late Cut and Wide Cut are its strikes (the tank's strikes
-# and Arcane Strike leave Traces too); Double Time makes each strike leave more
-# Traces and lets me hold more. Traces are only kept while I know Encore.
-# Talents: Long Memory (Traces last longer), Standing Ovation (Encore replays
-# more; capstone: one more Trace), Clean Lines (a Swift Cut crit brings Deep Cut
-# back sooner), Second Showing (Encore may keep the Traces). Numbers: balance.gd.
-
-const TRACE_FX := "trace"
-const SWIFT_CUT_ID := "swiftcut"
-const DEEP_CUT_ID := "deepcut"
-const LATE_CUT_ID := "latecut"
-const WIDE_CUT_ID := "widecut"
-const ENCORE_ID := "encore"
-const DOUBLE_TIME_ID := "doubletime"
-const DOUBLE_TIME_FX := "double_time"
-const FULL_HOUSE_FX := "full_house"            # Full House: my next Encore reaches other enemies too
-## The replays Full House adds on other enemies: their own line on the meter (Details.HIT_NAMES).
-const FULL_HOUSE_HIT_ID := "full_house"
-const DRESS_REHEARSAL_FX := "dress_rehearsal"  # Dress Rehearsal's capstone: my next Encore keeps the Traces
-const CURTAIN_CALL_LABEL := "Curtain Call"
-const TRACE_TAGS := ["Arcane", "Ability", "Melee"]
-
-var _traces: Array = []       # oldest first: {"id": ability, "key": int, "amount": int, "born": float, "until": float}
-var _trace_serial := 0        # the key of the next new Trace (copies of one strike share it)
-var _trace_fx: Resource
-
-## Does this hit leave a Trace? A hit of an Arcane melee ability that landed:
-## never a proc (Encore's replays, Late Cut's second hit, echoes), damage over
-## time or a spell.
-static func leaves_trace(tags: PackedStringArray, is_proc: bool, is_dot: bool, amount: int) -> bool:
-	return amount > 0 and not is_proc and not is_dot \
-		and tags.has("Arcane") and tags.has("Melee") and tags.has("Ability")
-
-## How many Traces I can hold (`extra` = Standing Ovation's capstone, `double` = Double Time).
-static func trace_cap(extra: bool, double: bool) -> int:
-	return (Balance.TRACE_MAX + (Balance.STANDING_OVATION_TRACES if extra else 0)) \
-		* (Balance.DOUBLE_TIME_TRACES if double else 1)
-
-## Seconds a Trace lasts (`longer` = Long Memory).
-static func trace_time(longer: float) -> float:
-	return Balance.TRACE_TIME + maxf(longer, 0.0)
-
-## The Traces of `traces` that have not run out at `now`.
-static func traces_alive(traces: Array, now: float) -> Array:
-	var out := []
-	for t in traces:
-		if float(t["until"]) > now:
-			out.append(t)
-	return out
-
-## `traces` (oldest first) after a hit of ability `id` dealt `amount` at `now`.
-## The hits of one use of an ability share a Trace (a Trace of the same ability
-## born within TRACE_MERGE_WINDOW): it keeps the largest of them, so Wide Cut
-## leaves one Trace however many enemies it hits. Otherwise `copies` new Traces
-## with the key `key` are added, and the oldest are pushed out past `cap`.
-## Holding more than `cap` already (Double Time ended with more than the usual
-## limit), nothing is added and nothing is pushed out: those Traces stay to be
-## replayed or to run out, and new ones come once I am back within the limit.
-static func traces_after(traces: Array, id: String, amount: int, now: float, until: float,
-		copies: int, cap: int, key: int) -> Array:
-	var out := traces.duplicate(true)
-	var merged := false
-	for t in out:
-		if str(t["id"]) == id and now - float(t["born"]) <= Balance.TRACE_MERGE_WINDOW:
-			t["amount"] = maxi(int(t["amount"]), amount)
-			merged = true
-	if out.size() > maxi(cap, 0):
-		return out
-	if not merged:
-		for i in maxi(copies, 1):
-			out.append({"id": id, "key": key, "amount": amount, "born": now, "until": until})
-	while out.size() > maxi(cap, 0):
-		out.pop_front()
-	return out
-
-## `traces` with `amount` added to every Trace with the key `key` (Late Cut's
-## second hit joins the Trace its first one left).
-static func traces_added(traces: Array, key: int, amount: int) -> Array:
-	var out := traces.duplicate(true)
-	for t in out:
-		if int(t["key"]) == key:
-			t["amount"] = int(t["amount"]) + maxi(amount, 0)
-	return out
-
-## The key of the newest Trace of ability `id` (-1 = none).
-static func newest_trace_key(traces: Array, id: String) -> int:
-	for i in range(traces.size() - 1, -1, -1):
-		if str(traces[i]["id"]) == id:
-			return int(traces[i]["key"])
-	return -1
-
-## % of a Trace's recorded damage Encore replays (`more` = Standing Ovation).
-static func encore_pct(more: float) -> float:
-	return Balance.ENCORE_PCT + maxf(more, 0.0)
-
-## Damage of Encore's replay of a Trace that recorded `amount`.
-static func encore_amount(amount: int, pct: float) -> int:
-	return int(round(maxf(float(amount), 0.0) * maxf(pct, 0.0) / 100.0))
-
-## Does Encore use my Traces up? (Second Showing: a `pct` % chance it does not;
-## `roll` 0-100. `free` = Dress Rehearsal's capstone: the first Encore during
-## Double Time never does.)
-static func encore_uses_traces(pct: float, roll: float, free: bool = false) -> bool:
-	return not free and not (pct > 0.0 and roll < pct)
-
-## Damage the Trace of a hit of `amount` by ability `id` records (Heavy Hand:
-## Deep Cut's records `heavy_pct` % more than the strike dealt).
-static func trace_amount(id: String, amount: int, heavy_pct: float) -> int:
-	if id == DEEP_CUT_ID and heavy_pct > 0.0:
-		return int(round(float(amount) * (1.0 + heavy_pct / 100.0)))
-	return amount
-
-## Is a Trace with the key `key` among `traces`?
-static func has_trace_key(traces: Array, key: int) -> bool:
-	for t in traces:
-		if int(t["key"]) == key:
-			return true
-	return false
-
-## Seconds until Late Cut's second hit (`sooner` = No Loose Ends).
-static func late_cut_delay(sooner: float) -> float:
-	return maxf(Balance.LATE_CUT_DELAY - maxf(sooner, 0.0), 0.1)
-
-## % more damage Practiced Hand gives Swift Cut: `per` % for each Trace I hold.
-static func practiced_hand_pct(per: float, held: int) -> float:
-	return maxf(per, 0.0) * maxi(held, 0)
-
-## % more damage Curtain Call gives each replay when Encore replays `replayed` Traces.
-static func curtain_call_pct(pct: float, replayed: int) -> float:
-	return pct if pct > 0.0 and replayed >= Balance.CURTAIN_CALL_TRACES else 0.0
-
-## Seconds Time Signature takes off my other Arcane cooldowns when Encore
-## replays `replayed` Traces (`per` seconds for each).
-static func time_signature_cut(per: float, replayed: int) -> float:
-	return maxf(per, 0.0) * maxi(replayed, 0)
-
-## Full House: does a Wide Cut that hit `enemies` enemies set up my next Encore?
-## (`others` = the talent's number: the other enemies that Encore will reach.)
-static func full_house_ready(others: float, enemies: int) -> bool:
-	return others > 0.0 and enemies >= Balance.FULL_HOUSE_ENEMIES
-
-## Full House: damage each other enemy takes from a replay of `amount`.
-static func full_house_amount(amount: int) -> int:
-	return int(round(maxf(float(amount), 0.0) * Balance.FULL_HOUSE_PCT / 100.0))
-
-## Full House: the buff that says my next Encore reaches the enemies around its target.
-static func make_full_house_fx() -> Resource:
-	var fx := StatusContainer.make_buff(FULL_HOUSE_FX, "Full House", FULL_HOUSE_FX, 0.0, Balance.FULL_HOUSE_TIME, 1,
-		Abilities.color_of(ENCORE_ID))
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Arcane"])
-	fx.description = "Your next %s also replays each Trace on other enemies near its target, for %s%% of its damage." % [
-		Abilities.ability_name(ENCORE_ID), Stats.num(Balance.FULL_HOUSE_PCT)]
-	return fx
-
-## Dress Rehearsal's capstone: the buff that says my next Encore keeps the Traces
-## (`time` = seconds Double Time lasts).
-static func make_dress_rehearsal_fx(time: float) -> Resource:
-	var fx := StatusContainer.make_buff(DRESS_REHEARSAL_FX, "Dress Rehearsal", DRESS_REHEARSAL_FX, 0.0, time, 1,
-		Abilities.color_of(DOUBLE_TIME_ID))
-	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Arcane"])
-	fx.description = "Your next %s does not use up your Traces." % Abilities.ability_name(ENCORE_ID)
-	return fx
-
-## Seconds Double Time lasts (`longer` = Dress Rehearsal).
-static func double_time_time(longer: float) -> float:
-	return Balance.DOUBLE_TIME_TIME + maxf(longer, 0.0)
-
-func _trace_now() -> float:
-	return Time.get_ticks_msec() / 1000.0
-
-## How many Traces I hold.
-func traces() -> int:
-	return _traces.size()
-
-func _trace_buff() -> Resource:
-	if _trace_fx == null:
-		_trace_fx = StatusContainer.make_buff(TRACE_FX, "Trace", TRACE_FX, 0.0, Balance.TRACE_TIME,
-			trace_cap(true, true), Abilities.color_of(ENCORE_ID))
-		_trace_fx.stat_modifiers = {}
-		_trace_fx.tags = PackedStringArray(["Arcane"])
-		_trace_fx.description = "A record of the damage one of your strikes dealt. %s replays it." % Abilities.ability_name(ENCORE_ID)
-	return _trace_fx
-
-## The buff shows how many Traces I hold, and when the oldest of them runs out.
-func _sync_traces() -> void:
-	if status == null:
-		return
-	if _traces.is_empty():
-		if status.has(TRACE_FX):
-			status.remove(TRACE_FX)
-		return
-	if not status.has(TRACE_FX):
-		status.apply(_trace_buff(), self)
-	status.set_stacks(TRACE_FX, _traces.size())
-	# (A moment longer than the Trace itself, so _tick_traces is what ends it.)
-	status.set_remaining(TRACE_FX, maxf(float(_traces[0]["until"]) - _trace_now(), 0.0) + 0.1)
-
-## Traces run out one by one (_process).
-func _tick_traces() -> void:
-	if _traces.is_empty():
-		return
-	var alive := traces_alive(_traces, _trace_now())
-	if alive.size() != _traces.size():
-		_traces = alive
-		_sync_traces()
-
-func _clear_traces() -> void:
-	if _traces.is_empty():
-		return
-	_traces = []
-	_sync_traces()
-
-## Every hit I deal (_on_damage_dealt_arcane): a strike with an Arcane melee
-## ability leaves a Trace of the damage it dealt. Clean Lines: a Swift Cut that
-## critically strikes brings Deep Cut back sooner.
-func _trace_hit(info: RefCounted, id: String, amount: int) -> void:
-	if id == SWIFT_CUT_ID and bool(info.crit) and not bool(info.is_proc):
-		var clean := _talent("arcane_clean_lines")
-		if clean > 0.0:
-			_cut_cooldown(DEEP_CUT_ID, clean)
-	if not Abilities.PATHS.has(id) or not leaves_trace(info.tags, bool(info.is_proc), bool(info.is_dot), amount):
-		return
-	_leave_trace(id, trace_amount(id, amount, _talent("arcane_heavy_hand")))   # Heavy Hand: Deep Cut's records more
-
-## A strike of ability `id` leaves a Trace that records `amount` (or joins the
-## Trace the same use already left: traces_after).
-func _leave_trace(id: String, amount: int) -> void:
-	var pd := get_node_or_null("/root/PlayerData")
-	if pd == null or not pd.has_ability(ENCORE_ID):
-		return   # nothing to replay them with
-	var now := _trace_now()
-	var double: bool = status != null and status.has(DOUBLE_TIME_FX)
-	_trace_serial += 1
-	# (Long Memory makes them last longer; so does Overtime, like the buff they are shown as.)
-	_traces = traces_after(traces_alive(_traces, now), id, amount, now,
-		now + trace_time(_talent("arcane_long_memory")) * self_buff_time_mult(),
-		Balance.DOUBLE_TIME_TRACES if double else 1, trace_cap(_capstone("arcane_standing_ovation"), double), _trace_serial)
-	_sync_traces()
-
-## Late Cut: the cut lands, and lands again LATE_CUT_DELAY seconds later for the
-## same damage (a proc: it can't crit or be avoided, the first hit already was
-## rolled). The second hit joins the Trace the first one left.
-func _late_cut(w: Dictionary, res: Resource) -> void:
-	var foe: Node = target
-	var first := deal_damage(foe, _dual_weapon_hit(w, res), LATE_CUT_ID)
-	_slash_effect(Abilities.color_of(LATE_CUT_ID))
-	if first <= 0:
-		return
-	var key := newest_trace_key(_traces, LATE_CUT_ID)
-	get_tree().create_timer(late_cut_delay(_talent("arcane_no_loose_ends"))).timeout.connect(func():   # No Loose Ends: sooner
-		if is_dead() or not is_instance_valid(foe) or not foe.is_alive():
-			return
-		_exact_hit(foe, first, LATE_CUT_ID, "arcane", PackedStringArray(TRACE_TAGS))
-		if foe is Node3D:
-			_ring_effect(0.5, Abilities.color_of(LATE_CUT_ID), (foe as Node3D).global_position)
-		if key >= 0 and has_trace_key(_traces, key):
-			_traces = traces_added(_traces, key, first)
-			_sync_traces()
-		elif _capstone("arcane_no_loose_ends"):
-			_leave_trace(LATE_CUT_ID, first))   # its Trace is gone: this hit leaves one of its own
-
-## Wide Cut: everything around me is hit with both weapons; more than
-## AOE_TARGET_CAP enemies share that many hits' damage. Its hits leave one
-## Trace between them (the largest: _trace_hit).
-func _wide_cut(w: Dictionary, res: Resource) -> void:
-	var col := Abilities.color_of(WIDE_CUT_ID)
-	var reach := float(res.radius) + Abilities.radius_bonus(WIDE_CUT_ID)
-	var hit := _enemies_within(reach)
-	var coef := _dual_weapon_hit(w, res) * Balance.aoe_share(hit.size())
-	for e in hit:
-		if is_instance_valid(e) and e.is_alive():
-			deal_damage(e, coef, WIDE_CUT_ID)
-	# Full House: a Wide Cut into a crowd, and my next Encore reaches the enemies around its target too.
-	if full_house_ready(_talent("arcane_full_house"), hit.size()):
-		status.apply(make_full_house_fx(), self)
-	for i in 2:
-		_slash_effect(col)
-	_ring_effect(reach, col)
-	_ring_effect(reach * 0.6, Color(0.95, 0.9, 1.0))
-
-## Encore: every Trace I hold is replayed on my target, each for a share of the
-## damage it recorded (exact: its crit and every modifier are already in it; a
-## proc, so it leaves no Trace and feeds nothing). Then they are gone, unless
-## Second Showing keeps them.
-func _encore() -> void:
-	var foe: Node = target
-	var held := traces_alive(_traces, _trace_now())
-	var pct := encore_pct(_talent("arcane_standing_ovation"))   # + Standing Ovation
-	# A ghost of me runs through the target for each Trace (scripts/trace_ghost.gd),
-	# one after the other; each Trace's hit lands as its ghost gets there.
-	var from := global_position
-	var through := from
-	if is_instance_valid(foe) and foe is Node3D:
-		var there: Vector3 = (foe as Node3D).global_position
-		through = Vector3(there.x, from.y + (Combat.feet_y(foe) - Combat.feet_y(self)), there.z)
-	var count := held.size()
-	# Curtain Call: a full replay hits harder (what it adds is its own line on the meter).
-	var curtain := curtain_call_pct(_talent("arcane_curtain_call"), count)
-	var bonuses: Array = [[curtain, CURTAIN_CALL_LABEL]] if curtain > 0.0 else []
-	# Full House: after a Wide Cut into a crowd, each Trace is replayed on the
-	# enemies nearest the target too, for a share of its damage. This Encore uses it up.
-	var others: Array = []
-	if status.has(FULL_HOUSE_FX):
-		status.remove(FULL_HOUSE_FX)
-		var reach := int(round(_talent("arcane_full_house")))
-		if foe is Node3D:
-			for e in _enemies_near((foe as Node3D).global_position, Balance.FULL_HOUSE_RADIUS, foe):
-				if others.size() >= reach:
-					break
-				others.append(e)
-	TRACE_GHOST.run(get_tree().current_scene, self, from, through, count)
-	_net_fx("ghosts", from, null, {"to": through, "n": count})
-	for i in count:
-		var amount := encore_amount(int(held[i]["amount"]), pct)
-		var share := full_house_amount(amount)
-		get_tree().create_timer(maxf(TRACE_GHOST.hit_time(from, through, i, count), 0.02)).timeout.connect(func():
-			if not is_alive():
-				return
-			if is_instance_valid(foe) and foe.is_alive():
-				_exact_hit(foe, amount, ENCORE_ID, "arcane", PackedStringArray(TRACE_TAGS), bonuses)
-				if foe is Node3D:
-					_ring_effect(0.5, Color(0.95, 0.9, 1.0), (foe as Node3D).global_position)
-			for e in others:
-				if is_instance_valid(e) and e.is_alive():
-					_exact_hit(e, share, FULL_HOUSE_HIT_ID, "arcane", PackedStringArray(TRACE_TAGS), bonuses)
-					if e is Node3D:
-						_ring_effect(0.4, Abilities.color_of(ENCORE_ID), (e as Node3D).global_position))
-	# Dress Rehearsal's capstone: the first Encore during Double Time keeps the Traces.
-	var free: bool = status.has(DRESS_REHEARSAL_FX) and status.has(DOUBLE_TIME_FX)
-	if status.has(DRESS_REHEARSAL_FX):
-		status.remove(DRESS_REHEARSAL_FX)
-	_traces = [] if encore_uses_traces(_talent("arcane_second_showing"), randf() * 100.0, free) else held
-	_sync_traces()
-	# Time Signature: each Trace replayed takes time off everything else Arcane
-	# (spells and abilities alike; never an interrupt).
-	var signature := time_signature_cut(_talent("arcane_time_signature"), held.size())
-	if signature > 0.0:
-		for cd in cooldowns.keys():
-			if str(cd) != ENCORE_ID and (_in_arcane_book(str(cd)) or _is_arcane_spell(str(cd))):
-				_cut_cooldown(str(cd), signature)
-	_slash_effect(Abilities.color_of(ENCORE_ID))
-
-func _start_double_time() -> void:
-	var time := double_time_time(_talent("arcane_dress_rehearsal"))   # + Dress Rehearsal
-	_arcane_buff(DOUBLE_TIME_FX, DOUBLE_TIME_ID, time,
-		"Each of your strikes leaves more Traces, and you can hold more of them.")
-	if _capstone("arcane_dress_rehearsal"):
-		status.apply(make_dress_rehearsal_fx(time), self)   # its capstone: the first Encore while it lasts keeps the Traces
-	_ring_effect(1.5, Abilities.color_of(DOUBLE_TIME_ID))
-	_ring_effect(0.9, Color(0.95, 0.9, 1.0))
 
 # --- Lightning melee ------------------------------------------------------------------------
 # The Energy bar with a weapon. Charged Edge and Whiplash give Energy; Arc
@@ -7929,17 +6341,17 @@ func charges_text(id: String) -> String:
 		return str(clampi(_vent_charges, 0, _vent_max()))
 	if heat_needed(id) > 0:
 		return str(heat_stacks())   # Quench / Flare: the Heat you hold
-	if id == FULL_SET_ID or id == TRADE_PLACES_ID or (id == DECOY_ID and decoy_needs_reflection()):
-		return str(reflections())   # the Reflections you have (to fill up, or to spend)
-	if id == ENCORE_ID:
-		return str(traces())   # the Traces it would replay
+	if id == ArcaneTankKit.FULL_SET_ID or id == ArcaneTankKit.TRADE_PLACES_ID or (id == ArcaneTankKit.DECOY_ID and arcane_tank.decoy_needs_reflection()):
+		return str(arcane_tank.reflections())   # the Reflections you have (to fill up, or to spend)
+	if id == ArcaneMeleeKit.ENCORE_ID:
+		return str(arcane_melee.traces())   # the Traces it would replay
 	if id == StringsKit.STRING_ID:
 		return str(strings.string_charges())   # the Strings in your hand
 	if hymns.verses_text(id) != "":
 		return hymns.verses_text(id)   # Holy healer: the Verses you hold
-	if id == CONVERGENCE_ID:
+	if id == ArcaneCasterKit.CONVERGENCE_ID:
 		# Convergence: the Arcane spells on cooldown that would count right now.
-		var running := mini(arcane_cooldowns(CONVERGENCE_ID), Balance.CONVERGENCE_MAX)
+		var running := mini(arcane_caster.arcane_cooldowns(ArcaneCasterKit.CONVERGENCE_ID), Balance.CONVERGENCE_MAX)
 		return str(running) if running > 0 else ""
 	return ""
 
@@ -8541,9 +6953,9 @@ func _on_hit_taken(info: RefCounted) -> void:
 			_sync_slag()
 	_melee_kit_hit_taken(info)   # Reflex Arc, Faraday Guard, Back-Current
 	_parry_kit_hit_taken(info)   # Return Stroke, Humming Blade, Quick Wrists, Draw the Storm
-	_reflection_kit_hit_taken(info)   # a dodge (or Stand-In) shatters a Reflection
+	arcane_tank._reflection_kit_hit_taken(info)   # a dodge (or Stand-In) shatters a Reflection
 	censer._censer_hit_taken(info)   # Incense from hits and blocks; Unfallen counts the damage
-	_mirror_finish(info)   # Mirror Finish: what I dodge, parry or block hurts the attacker
+	arcane_open._mirror_finish(info)   # Mirror Finish: what I dodge, parry or block hurts the attacker
 	_tempered(info)   # Tempered: a block gives Armor for a while
 	shadow_talents._spite_on_hit_taken(info)   # Spite: taking damage boosts my next spell or ability
 	holy_talents._penitent_hit(info)   # Penitent: a big hit makes my next heal on myself stronger
@@ -9086,8 +7498,8 @@ var _last_hit_by: Variant = null   # whoever hit me last (the shield breaker)
 ## Ice Floe: an absorb shield I put on myself was used up by damage (own only:
 ## a party member's shield on me breaking does nothing for my talents).
 func _on_my_shield_broken(id: String) -> void:
-	if id == WARD_FX and is_same(status.last_shield_source, self):
-		_ward_broke()   # Interval Ward: the time it had left comes off its cooldown
+	if id == ArcaneCasterKit.WARD_FX and is_same(status.last_shield_source, self):
+		arcane_caster._ward_broke()   # Interval Ward: the time it had left comes off its cooldown
 	var v := _talent("frost_ice_floe")
 	if v <= 0.0 or is_dead() or not is_same(status.last_shield_source, self):
 		return
