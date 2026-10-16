@@ -456,16 +456,6 @@ func clear_floor(scene_path: String, floor_n: int) -> bool:
 	changed.emit()
 	return true
 
-## Floors you can start this dungeon on: 1 plus every unlocked checkpoint.
-func start_floors(scene_path: String) -> Array[int]:
-	var out: Array[int] = [1]
-	var best := int(checkpoints.get(scene_path, 0))
-	var f := CHECKPOINT_EVERY
-	while f <= best:
-		out.append(f)
-		f += CHECKPOINT_EVERY
-	return out
-
 # --- Roguelike death + level lock -----------------------------------------------
 # Dying: level drops to 1 (or to the level lock), equipped gear and the bag are
 # lost (runes on lost items are learned first), drafted abilities and draft boons
@@ -478,16 +468,6 @@ const LEVEL_LOCK_STEP := 10
 const KEEP_BAG_ON_DEATH := false
 var level_lock := 0            # 0 = no lock
 var last_death := {}           # summary of the most recent death (HUD shows it)
-
-## Valid lock levels right now (multiples of 10 up to your current level).
-func lock_options() -> Array[int]:
-	var out: Array[int] = []
-	var lv := LEVEL_LOCK_STEP
-	while lv <= MAX_LEVEL:
-		if lv <= level:
-			out.append(lv)
-		lv += LEVEL_LOCK_STEP
-	return out
 
 ## Set the level lock (0 clears it). Returns an error message or "".
 func set_level_lock(lv: int) -> String:
@@ -739,7 +719,6 @@ func boon_stats() -> Dictionary:
 		var v := float(draft_boons[s])
 		out[s] = v if Stats.is_percent(str(s)) else v * Stats.unit_for(str(s), level)
 	return out
-
 
 # --- Talents -----------------------------------------------------------------------
 var talents := {}   # talent id -> rank

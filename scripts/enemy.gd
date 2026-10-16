@@ -1,6 +1,5 @@
 extends CharacterBody3D
 
-
 # Base class for ALL enemies.
 #   - State machine: IDLE -> CHASE -> ATTACK, RETURN (leash/evade), DEAD
 #   - Threat table: every damage/heal source builds threat; the enemy fights
@@ -486,13 +485,6 @@ func _vampiric_heal(dmg: float) -> void:
 ## lands on another machine and we never see the real number).
 func _hit_estimate(coef: float) -> float:
 	return coef * damage_unit()
-
-## How much bigger this enemy is for `r` (spawners use it to place it on the floor).
-func rank_scale(r: String) -> float:
-	match r:
-		"elite": return elite_scale
-		"boss": return boss_scale
-	return 1.0
 
 ## Height of this enemy's origin above the floor it stands on, from its own
 ## hitbox (after any rank scaling). Spawners place enemies with this.

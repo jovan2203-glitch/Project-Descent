@@ -105,11 +105,6 @@ static func stat_scale(ilvl: int, stat: String = "") -> float:
 static func real_weapon_damage(coef: float) -> int:
 	return int(round(coef * Stats.level_hit(Stats._player_level())))
 
-## What an auto-attack / auto-shot with that weapon really hits for (before
-## power): auto-attacks deal Balance.AUTO_ATTACK_MULT of the weapon's damage.
-static func real_auto_damage(coef: float) -> int:
-	return real_weapon_damage(coef * preload("res://scripts/balance.gd").AUTO_ATTACK_MULT)
-
 ## Player level needed to equip the item: its item level (1 - 50).
 ## Stats scale with item level, so stronger items need a higher level.
 static func required_level(item: String) -> int:

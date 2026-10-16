@@ -44,10 +44,6 @@ static func spawn(scene: Node, who: Node3D, cast_count: int, cast_interval: floa
 static func life_time(cast_count: int, cast_interval: float) -> float:
 	return maxi(cast_count, 0) * maxf(cast_interval, 0.0)
 
-## Heals still to come.
-func casts_left() -> int:
-	return maxi(casts - _done, 0)
-
 func _mat(c: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = c

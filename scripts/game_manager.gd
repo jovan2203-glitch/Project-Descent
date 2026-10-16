@@ -180,18 +180,6 @@ func _in_party_run() -> bool:
 # Launch into a dungeon. `scene_key` is a queue key ("dungeon:random",
 # "dungeon:<id>", see dungeon_db.gd) or a plain scene path.
 # In a party only the leader can start, and everyone goes in together.
-## `scene_path` may carry a starting floor: "res://scenes/dungeon.tscn@5"
-## (a checkpoint). The same string is the matchmaking queue key, so only players
-## heading to the same floor are grouped together.
-static func instance_key(scene_path: String, start_floor: int = 1) -> String:
-	return scene_path if start_floor <= 1 else "%s@%d" % [scene_path, start_floor]
-
-static func split_key(key: String) -> Array:   # [scene path, start floor]
-	var at := key.rfind("@")
-	if at > 0 and key.substr(at + 1).is_valid_int():
-		return [key.substr(0, at), maxi(int(key.substr(at + 1)), 1)]
-	return [key, 1]
-
 func start_game(scene_key: String = DB.RANDOM_KEY) -> void:
 	var net := _net()
 	if net and net.online:

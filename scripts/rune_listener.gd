@@ -76,9 +76,6 @@ func _entry(res: Resource, scale: float, item_name: String) -> Dictionary:
 	return {"res": res, "counter": 0, "cooldown_until": 0.0, "timer": 0.0, "was_low": false,
 		"scale": scale, "item_name": item_name}
 
-func registered_runes() -> Array:
-	return active.values().map(func(e): return e["res"].id)
-
 ## Is rune `id` equipped and active (within the rune limits)? Rule-changing
 ## PASSIVE runes (Permafrost, Everlasting Rime...) are checked with this.
 func has_rune(id: String) -> bool:

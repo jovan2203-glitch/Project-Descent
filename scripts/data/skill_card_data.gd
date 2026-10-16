@@ -26,6 +26,3 @@ enum UnlockTrigger {
 @export var sort_order: int = 0
 @export var card_art: Texture2D
 
-## True if the card should become unlocked at `player_level`.
-func check_level_unlock(player_level: int) -> bool:
-	return unlock_trigger == UnlockTrigger.PLAYER_LEVEL and player_level >= unlock_level

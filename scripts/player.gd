@@ -1,7 +1,6 @@
 extends CharacterBody3D
 class_name Player
 
-
 const SPEED = 3.6
 const BASE_WALK_SPEED = 3.0  # speed the walk animation was tuned for
 const JUMP_VELOCITY = 4.5
@@ -70,7 +69,6 @@ func _kit(script: Script) -> Node:
 	add_child(k)
 	return k
 
-
 # Forwards to VenomstringKit (called from other scripts).
 func venom() -> float:
 	return venomstring.venom()
@@ -78,66 +76,35 @@ func venom() -> float:
 func venom_flow() -> bool:
 	return venomstring.venom_flow()
 
-func poisons_on(e: Node) -> Array:
-	return venomstring.poisons_on(e)
-
-func venom_cost(id: String) -> float:
-	return venomstring.venom_cost(id)
-
-
 # Forwards to ColossusKit (called from other scripts).
 func sap() -> int:
 	return colossus.sap()
 
-func awakened() -> bool:
-	return colossus.awakened()
-
 func grasped(e: Node) -> bool:
 	return colossus.grasped(e)
-
 
 # Forwards to ShepherdKit (called from other scripts).
 func blossoms_on(who: Variant) -> int:
 	return shepherd.blossoms_on(who)
 
-
 # Forwards to WeaverKit (called from other scripts).
 func mulch() -> Array:
 	return weaver.mulch()
-
 
 # Forwards to HolyTalentsKit (called from other scripts).
 func hit_recently(who: Variant, window: float) -> bool:
 	return holy_talents.hit_recently(who, window)
 
-
 # Forwards to PrismsKit (called from other scripts).
 func prisms() -> Array:
 	return prism_kit.prisms()
-
-func prisms_of(kind: String) -> int:
-	return prism_kit.prisms_of(kind)
-
 
 # Forwards to CenserKit (called from other scripts).
 func incense() -> int:
 	return censer.incense()
 
-func censer_raised() -> bool:
-	return censer.censer_raised()
-
-func censer_out() -> bool:
-	return censer.censer_out()
-
 func motes() -> Array:
 	return censer.motes()
-
-func mote_reach() -> float:
-	return censer.mote_reach()
-
-func mote_time() -> float:
-	return censer.mote_time()
-
 
 # Forwards to HymnsKit (called from other scripts).
 const HYMN_NAMES = HymnsKit.HYMN_NAMES
@@ -154,25 +121,12 @@ var verses: Array:
 	set(v):
 		hymns.verses = v
 
-func receive_hymn_dr(from: Node, fx_id: String, pct: float, time: float) -> void:
-	hymns.receive_hymn_dr(from, fx_id, pct, time)
-
 func overture_ready(spell: String) -> bool:
 	return hymns.overture_ready(spell)
-
-func verses_text(id: String) -> String:
-	return hymns.verses_text(id)
-
 
 # Forwards to StringsKit (called from other scripts).
 func string_time() -> float:
 	return strings.string_time()
-
-func strings_placed() -> int:
-	return strings.strings_placed()
-
-func strings_out() -> int:
-	return strings.strings_out()
 
 func string_charges() -> int:
 	return strings.string_charges()
@@ -186,16 +140,13 @@ func on_my_string(who: Variant) -> bool:
 func receive_support(kind: String, from: Node, data: Dictionary) -> void:
 	strings.receive_support(kind, from, data)
 
-
 # Forwards to HoundsKit (called from other scripts).
 func hounds_out() -> bool:
 	return hounds.hounds_out()
 
-
 # Forwards to ShadowTalentsKit (called from other scripts).
 func crit_hit_bonus(info: RefCounted) -> Array:
 	return shadow_talents.crit_hit_bonus(info)
-
 
 # Forwards to DecayKit (called from other scripts).
 func interest_ready() -> bool:
@@ -207,16 +158,13 @@ func decay_on(foe: Variant) -> float:
 func decay_open_on(foe: Variant) -> bool:
 	return decay.decay_open_on(foe)
 
-
 # Forwards to ArcaneMeleeKit (called from other scripts).
 func traces() -> int:
 	return arcane_melee.traces()
 
-
 # Forwards to ArcaneOpenTalentsKit (called from other scripts).
 func self_buff_time_mult(_res: Resource = null) -> float:
 	return arcane_open.self_buff_time_mult(_res)
-
 
 # Forwards to ArcaneTankKit (called from other scripts).
 func has_dual_wield() -> bool:
@@ -240,26 +188,15 @@ func damage_taken_recently(window: float) -> int:
 func stand_in_for(_info: RefCounted) -> bool:
 	return arcane_tank.stand_in_for(_info)
 
-
 # Forwards to ArcaneCasterKit (called from other scripts).
 func arcane_cooldowns(except: String = "") -> int:
 	return arcane_caster.arcane_cooldowns(except)
-
-func sigil_dart_count() -> int:
-	return arcane_caster.sigil_dart_count()
 
 func bolt_tag(t: String) -> void:
 	arcane_caster.bolt_tag(t)
 
 func glint_ready(id: String) -> bool:
 	return arcane_caster.glint_ready(id)
-
-
-# Forwards to OverloadKit (called from other scripts).
-func static_stacks() -> int:
-	return overload_kit.static_stacks()
-
-
 # Forwards to LightningTankKit (called from other scripts).
 func has_two_hander() -> bool:
 	return lightning_tank.has_two_hander()
@@ -270,16 +207,13 @@ func parry_cap() -> float:
 func attack_speed_bonus() -> float:
 	return lightning_tank.attack_speed_bonus()
 
-
 # Forwards to LightningMeleeKit (called from other scripts).
 func overdrive_active() -> bool:
 	return lightning_melee.overdrive_active()
 
-
 # Forwards to FireLightningTalentsKit (called from other scripts).
 func dot_last_tick_pct(_res: Resource = null) -> float:
 	return fire_lightning_talents.dot_last_tick_pct(_res)
-
 
 # Forwards to BottledLightningKit (called from other scripts).
 func bottled_ready(spell: String) -> bool:
@@ -294,11 +228,9 @@ func storm_cycle_ready() -> bool:
 func flicker_ready(spell: String) -> bool:
 	return bottled_kit.flicker_ready(spell)
 
-
 # Forwards to StormArrowKit (called from other scripts).
 func quiver_loaded() -> bool:
 	return storm_arrow_kit.quiver_loaded()
-
 
 # Forwards to LightningCasterKit (called from other scripts).
 func surge_active() -> bool:
@@ -307,16 +239,12 @@ func surge_active() -> bool:
 func ball_lightning_zapped(zaps: int) -> void:
 	lightning_caster.ball_lightning_zapped(zaps)
 
-
 # Forwards to FireCooldownsKit (called from other scripts).
 func phoenix_cast() -> void:
 	fire_cooldowns.phoenix_cast()
 
 func crucible_radius() -> float:
 	return fire_cooldowns.crucible_radius()
-
-func crucible_duration() -> float:
-	return fire_cooldowns.crucible_duration()
 
 func cinder_step_ready(id: String) -> bool:
 	return fire_cooldowns.cinder_step_ready(id)
@@ -327,19 +255,13 @@ func cool_head_active() -> bool:
 func concentrated_fire_ready(id: String) -> bool:
 	return fire_cooldowns.concentrated_fire_ready(id)
 
-
 # Forwards to FireBowKit (called from other scripts).
 func dot_speed_mult(tgt: Node, res: Resource) -> float:
 	return fire_bow.dot_speed_mult(tgt, res)
 
-
 # Forwards to FireMeleeKit (called from other scripts).
 func heat_stacks() -> int:
 	return fire_melee.heat_stacks()
-
-func gain_heat(n: int) -> void:
-	fire_melee.gain_heat(n)
-
 
 # Forwards to FireCasterKit (called from other scripts).
 func charges_text(id: String) -> String:
@@ -348,14 +270,9 @@ func charges_text(id: String) -> String:
 func stacks_kept_on_use(res: Resource, stacks: int) -> int:
 	return fire_caster.stacks_kept_on_use(res, stacks)
 
-
 # Forwards to FrostBowKit (called from other scripts).
-func glacial_draw_instant(tgt: Variant) -> bool:
-	return frost_bow.glacial_draw_instant(tgt)
-
 func frozen_instinct_ready() -> bool:
 	return frost_bow.frozen_instinct_ready()
-
 
 # Forwards to FrostMoreKit (called from other scripts).
 func effect_override(eff: Resource) -> Resource:
@@ -364,11 +281,9 @@ func effect_override(eff: Resource) -> Resource:
 func receive_snow_ward(caster: Node, amount: int, armor_pct: float = 0.0) -> void:
 	frost_more.receive_snow_ward(caster, amount, armor_pct)
 
-
 # Forwards to FrostRunesKit (called from other scripts).
 func receive_frozen_aegis(caster: Node, amount: int, cap: int, armor_pct: float = 0.0) -> void:
 	frost_runes.receive_frozen_aegis(caster, amount, cap, armor_pct)
-
 
 # Forwards to PactsKit (called from other scripts).
 func pact_id() -> String:
@@ -380,11 +295,9 @@ func pact_broken() -> bool:
 func heal_taken_mult(source: Node, _ability_id: String = "") -> float:
 	return pacts_kit.heal_taken_mult(source, _ability_id)
 
-
 # Forwards to FrostMeleeKit (called from other scripts).
 func slow_taken_mult() -> float:
 	return frost_melee.slow_taken_mult()
-
 
 # Forwards to IceShardsKit (called from other scripts).
 var ice_shard_charges: int:
@@ -398,10 +311,6 @@ func shards_firing() -> bool:
 
 func shard_recharge_left() -> float:
 	return ice_shards_kit.shard_recharge_left()
-
-func gain_ice_shard() -> void:
-	ice_shards_kit.gain_ice_shard()
-
 
 # Forwards to FrostfireKit (called from other scripts).
 func proc_cast(ability_id: String, enemy: Node) -> void:
@@ -422,7 +331,6 @@ var cast_name := "Frost Bolt"
 var cast_duration: float = CAST_TIME
 var current_spell := ""        # "frostbolt" | "blizzard" | "hoist" ... while casting
 var cast_is_channel := false   # channels drain the cast bar instead of filling it
-
 
 # Ground-targeting (Blizzard placement)
 var placement_valid := true
@@ -1852,7 +1760,6 @@ func _on_hit_talents(ability_id: String, tgt: Node, amount: int, _crit: bool, is
 
 # --- Slam (instant melee, weapon damage) -------------------------------------------
 
-
 func _weapon() -> Dictionary:
 	var pd := get_node_or_null("/root/PlayerData")
 	if pd == null:
@@ -1923,7 +1830,6 @@ func _execute() -> void:
 	_slash_effect()
 
 # --- Steady Shot (1 s cast, bow, weapon damage; can move while casting) -------------
-
 
 func _start_steady_shot() -> void:
 	if casting:
@@ -2274,9 +2180,6 @@ func _has_valid_target() -> bool:
 	return is_instance_valid(target) and target.is_alive()
 
 # --- Frost bolt --------------------------------------------------------------
-
-func _start_cast() -> void:
-	_start_bolt("frostbolt")
 
 ## Frost Bolt, Firebolt, Lightning Bolt, Shadow Bolt: cast at the enemy target.
 func _start_bolt(id: String) -> void:
@@ -2718,7 +2621,6 @@ func _physics_process(delta: float) -> void:
 				_fire_queued()   # the queued spell starts on this same frame
 			move_and_slide()
 			return
-
 
 	var move_dir := Vector3.ZERO
 
@@ -3393,7 +3295,6 @@ func _ring_effect(radius: float, color: Color, at: Vector3 = Vector3.INF) -> voi
 	t.tween_property(mat, "albedo_color:a", 0.0, 0.45)
 	t.chain().tween_callback(ring.queue_free)
 
-
 # --- In combat ---------------------------------------------------------------------
 # You're in combat while any enemy is fighting you or a party member (chasing or
 # attacking). It lasts COMBAT_AFTER_KILL after the last such enemy dies and
@@ -3836,7 +3737,6 @@ func _sync_support_state() -> void:
 		return
 	_sent_support = key
 	net.send_support_state(shell, locks, shell_by)
-
 
 # --- Auto-target -----------------------------------------------------------------------
 # Using something that needs an enemy target while you have none picks the

@@ -57,9 +57,6 @@ static func _glyph(id: String, size: float) -> Control:
 # Crafting now lives in Rune Management (rune_manager.gd): every rune is listed
 # there and unknown ones are crafted on their card. Old callers land there.
 
-static func open_runecrafting(host: Node) -> void:
-	preload("res://scripts/ui/rune_manager.gd").open(host)
-
 ## Error / info line via the main menu's toast (if the current scene has one).
 static func _toast(host: Node, msg: String) -> void:
 	var s := host.get_tree().current_scene

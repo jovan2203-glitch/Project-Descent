@@ -130,22 +130,10 @@ static func pick_prism(keys: Array, spots: Array, mouseover: String, clicked: St
 func _my_prism_cap() -> float:
 	return prism_cap(player._talent("holy_deep_crystal"))   # + Deep Crystal
 
-func _prism_index(key: String) -> int:
-	for i in _prisms.size():
-		if str(_prisms[i]["key"]) == key:
-			return i
-	return -1
-
 func _prism_spots() -> Array:
 	var out := []
 	for p in _prisms:
 		out.append(p["pos"])
-	return out
-
-func _prism_keys() -> Array:
-	var out := []
-	for p in _prisms:
-		out.append(str(p["key"]))
 	return out
 
 ## The prism a prism ability goes to (index into _prisms, -1 = none). `kind`:

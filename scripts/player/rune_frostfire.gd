@@ -95,20 +95,3 @@ func proc_cast(ability_id: String, enemy: Node) -> void:
 			var base := float(Abilities.get_resource(ability_id).damage) if Abilities.get_resource(ability_id) else 1.0
 			player.deal_damage(enemy, base, ability_id, true)
 
-func _float_text(at: Node3D, text: String, color: Color, big: bool) -> void:
-	var l := Label3D.new()
-	l.text = text
-	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	l.no_depth_test = true
-	l.font_size = 64 if big else 44
-	l.pixel_size = 0.006
-	l.outline_size = 12
-	l.modulate = color
-	player.get_tree().current_scene.add_child(l)
-	l.global_position = at.global_position + Vector3(randf_range(-0.3, 0.3), 1.5, 0)
-	var t := l.create_tween()
-	t.set_parallel(true)
-	t.tween_property(l, "global_position:y", l.global_position.y + 0.9, 0.8)
-	t.tween_property(l, "modulate:a", 0.0, 0.8).set_delay(0.3)
-	t.chain().tween_callback(l.queue_free)
-

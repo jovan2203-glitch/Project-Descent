@@ -72,15 +72,6 @@ const ENERGY := "energy"
 const RAGE := "rage"
 
 # --- Helpers ------------------------------------------------------------------------
-## "fire" -> "Fire" (the school tag for a damage type).
-static func tag_for_type(damage_type: String) -> String:
-	return damage_type.capitalize()
-
-## "Fire" -> "fire"; "" if the tag isn't a school.
-static func type_for_tag(tag: String) -> String:
-	var t := tag.to_lower()
-	return t if DAMAGE_TYPES.has(t) else ""
-
 ## Display color for a damage type (floating text, tooltips).
 static func type_color(damage_type: String) -> Color:
 	match damage_type:

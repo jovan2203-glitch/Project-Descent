@@ -49,10 +49,6 @@ static func find(id: String) -> Dictionary:
 static func exists(id: String) -> bool:
 	return not find(id).is_empty()
 
-static func macro_name(id: String) -> String:
-	var m := find(id)
-	return str(m.get("name", "")) if not m.is_empty() else ""
-
 ## The ability a macro is linked to ("" = none, or it no longer exists).
 static func link_of(id: String) -> String:
 	var link := str(find(id).get("link", ""))

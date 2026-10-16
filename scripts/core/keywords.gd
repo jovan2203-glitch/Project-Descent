@@ -314,10 +314,6 @@ static func explain(text: String, own: String = "", limit: int = 6) -> Array[Str
 			lines.append("[color=#%s]%s[/color]: %s" % [COLOR.to_html(false), name, what])
 	return lines
 
-## Does `text` hold anything explain() would explain?
-static func has_explanations(text: String, own: String = "") -> bool:
-	return not explain(text, own, 1).is_empty()
-
 # --- Search ------------------------------------------------------------------------------
 
 ## Everything that can be searched for: "a:", "t:" and "r:" keys.

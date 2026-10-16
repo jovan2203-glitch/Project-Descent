@@ -358,16 +358,6 @@ var _et_tgt_btn: Button
 var _et_list: VBoxContainer
 var _et_list_title: Label
 
-func _open_rune_transfer() -> void:
-	if _et_panel == null:
-		_build_rune_transfer()
-	_et_src = {}
-	_et_tgt = {}
-	_et_pick = "src"
-	_et_shade.visible = true
-	_et_panel.visible = true
-	_refresh_rune_transfer()
-
 func _close_rune_transfer() -> void:
 	_et_panel.visible = false
 	_et_shade.visible = false
@@ -2771,14 +2761,6 @@ func _card_button(pd: Node, cid: String) -> Button:
 			state += "  •  learned"
 		info.add_child(_label(state, 11, C_ACCENT if equipped else C_TEXT_DIM))
 		return b
-
-func _ability_drag_from_bar(b: Button, i: int) -> Variant:
-	var id: String = get_node("/root/PlayerData").action_bar[i]
-	if id == "":
-		return null
-	b.set_drag_preview(_ability_preview(id))
-	_bar_drag_from = i
-	return {"type": "ability", "id": id, "from": i}
 
 # Bar slot being dragged (-1 = none). Letting go anywhere that doesn't take the
 # ability (empty space, the nav bar, other panels...) removes it from the bar.
