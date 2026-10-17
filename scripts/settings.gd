@@ -39,7 +39,6 @@ const ACTIONS := [
 	["ability_7", "Action Bar 7", [KEY_7]],
 	["ability_8", "Action Bar 8", [KEY_8]],
 	["target_next", "Target Nearest Enemy", [KEY_TAB]],
-	["interact", "Revive Downed Ally", [KEY_F]],
 	["ping", "Ping (under the mouse)", [KEY_G]],
 	["zoom_in", "Zoom In", [KEY_EQUAL, KEY_KP_ADD]],
 	["zoom_out", "Zoom Out", [KEY_MINUS, KEY_KP_SUBTRACT]],

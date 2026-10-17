@@ -42,7 +42,7 @@ func test_the_kit_is_in_the_holy_book() -> void:
 	for s in Abilities.SPECS["holy"]:
 		if s[0] == "Line of Light":
 			spec = s[1]
-	assert_eq(spec, KIT, "the Line of Light spec holds the kit")
+	assert_eq(spec, KIT + ["relight"], "the Line of Light spec holds the kit and its out-of-combat rez")
 	for id in ["setprism", "moveprism", "shatterall"]:
 		assert_true(Abilities.OFF_GCD.has(id), "%s is off the global cooldown" % id)
 

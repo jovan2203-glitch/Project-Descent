@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"ringbound"
+display_name = "Ringbound"
+description = "Caught by a ring of light: cannot move."
+color = Color(1.0, 0.88, 0.45, 1)
+is_debuff = true
+tags = PackedStringArray("Holy", "Root")
+duration = 3.0
+stack_mode = 0
+max_stacks = 1
+root = true

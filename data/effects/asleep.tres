@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"asleep"
+display_name = "Asleep"
+description = "Asleep in a cloud of spores: cannot move, attack or cast. Any damage wakes it."
+color = Color(0.75, 0.9, 0.55, 1)
+is_debuff = true
+tags = PackedStringArray("Nature", "Stun")
+duration = 3.0
+stack_mode = 0
+max_stacks = 1
+stun = true
+break_on_damage = true

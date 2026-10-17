@@ -20,8 +20,10 @@ func test_every_spec_simulates() -> void:
 	for book in Abilities.SPECS:
 		for spec in Abilities.SPECS[book]:
 			var role: String = SpecsInfo.ROLES.get(spec[0], "dps")
-			var bare: Dictionary = Sim.simulate(spec[1], role, "no gear", spec[0])
-			var full: Dictionary = Sim.simulate(spec[1], role, "geared", spec[0])
+			if role == "utility":
+				continue   # (simulated with every spec of its book)
+			var bare: Dictionary = Sim.simulate(spec[1], role, "no gear", spec[0], Sim.utility_of(book))
+			var full: Dictionary = Sim.simulate(spec[1], role, "geared", spec[0], Sim.utility_of(book))
 			var key := "hps" if role == "healer" else "dps"
 			assert_true(float(bare[key]) > 0.0, "%s does something with no gear" % spec[0])
 			assert_true(float(full[key]) >= float(bare[key]), "%s: gear helps" % spec[0])

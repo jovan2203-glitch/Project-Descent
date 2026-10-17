@@ -100,6 +100,8 @@ func mod_pct_per_stack(stat_of: Callable) -> float:
 @export var root: bool = false
 ## Can't move, attack or cast.
 @export var stun: bool = false
+## Ends as soon as the carrier takes damage (Spore Sleep).
+@export var break_on_damage: bool = false
 
 ## Does this effect's damage modifier apply to a hit?
 ## Pass the hit's damage type, ability tags and whether it is a DoT tick.

@@ -820,6 +820,18 @@ func _sup_revive(t: int, caster: int) -> void:
 	if t == token and p and p.has_method("revive"):
 		p.revive(body_of(caster))
 
+## A healer's out-of-combat rez: a dead (or downed) party member gets back up
+## where they fell (their machine does it: GameManager.raise_local).
+func raise_ally(target: Node, caster: Node) -> void:
+	var member := member_of(target)
+	if member != 0:
+		_send_to_member(member, "_sup_raise", [token, member_of(caster)])
+
+@rpc("any_peer", "call_remote", "reliable")
+func _sup_raise(t: int, caster: int) -> void:
+	if t == token:
+		get_node("/root/GameManager").raise_local(str(member_name(caster)))
+
 ## A support effect for (or an answer to) another player's character: their
 ## machine's player handles it (Player.receive_support). `data` holds plain
 ## values only. Used by the Shadow healer's Strings: "heal", "string", "shield",
@@ -1024,6 +1036,25 @@ func _sup_taunt(t: int, member: int, id: String, duration: float) -> void:
 	var src := body_of(member)
 	if e and src and e.has_method("taunt"):
 		e.taunt(src, duration)
+
+## Leaf Cloak: `source`'s threat on `enemy` drops to nothing (threat lives on the host).
+func drop_threat(enemy: Node, source: Node) -> void:
+	if enemy == null or not is_instance_valid(enemy):
+		return
+	if is_client() and _connected():
+		rpc_id(1, "_sup_drop_threat", token, member_of(source), enemy_id(enemy))
+	elif enemy.has_method("drop_threat"):
+		enemy.drop_threat(source)
+
+@rpc("any_peer", "call_remote", "reliable")
+func _sup_drop_threat(t: int, member: int, id: String) -> void:
+	var w := _world()
+	if t != token or not is_host() or w == null:
+		return
+	var e := _enemy(w, id)
+	var src := body_of(member)
+	if e and src and e.has_method("drop_threat"):
+		e.drop_threat(src)
 
 ## Reel In: drag `enemy` to `to` and make it attack `source` for `taunt_time`
 ## seconds (the host owns enemies). Something that can't be dragged (a training

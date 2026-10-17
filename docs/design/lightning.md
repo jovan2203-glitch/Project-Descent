@@ -14,7 +14,7 @@ Values in Frost Bolts (FB) are conversation shorthand; real numbers live in bala
 - Thunderhead - 2 s cast, 20 s cooldown, 50 energy, 5 m storm cloud for 8 s striking one random enemy per second for 0.5 FB.
 - Forked Bolt - 2 s cast, 25 energy, 0.9 FB to the target and nearest other enemy (1.3 with one target).
 - Jolt - instant off-GCD interrupt, 3 s lockout, shared interrupt cooldown, 30 energy back if it interrupts.
-- Flicker - instant, 15 s cooldown, 30 energy, 10 m blink; next Lightning Bolt within 5 s is instant; blocked during Grounding Surge.
+- Flicker - instant, 15 s cooldown, 30 energy, 10 m blink; next Lightning Bolt within 5 s is instant; blocked during Grounding Surge. Pressed again within 4 s (FLICKER_RETURN_TIME) it snaps you back to where you started, free (the bolt there and back: what sets it apart from Phase Step). Sits in Utility.
 - Capacitor - instant off GCD, 30 s cooldown, stores all energy up to 100; reuse within 20 s to take it back or it is lost.
 
 ## Parry tank (two-handed weapon, energy)
@@ -42,3 +42,8 @@ Values in Frost Bolts (FB) are conversation shorthand; real numbers live in bala
 - Spillover (3): a direct crit sends 5/10/15% of its damage to another enemy within 6 m.
 - Change of Pace (3): using a different spell/ability than the last gives 1/2/3% damage for 6 s, stacking 3 times; repeating resets it.
 - Dig In (3): after standing still 2 s, +2/4/6% damage until you move.
+
+## Utility (the book's "Utility" divider) - BUILT 2026-10-17
+- Static Snare (Lightning's root) - instant, 20 s cooldown, 20 Energy, 30 m. Roots the target 2 s; when it ends, the charge leaps once to the nearest other enemy within 8 m and roots it 2 s. Code: scripts/player/utility.gd.
+- Storm Front - instant, 60 s cooldown, 20 Energy, card level 22. You and allies within 15 m move 30% faster for 6 s; you gain 5 Energy per ally it reaches. Moved from Nature (was Wild Run). Code: scripts/player/utility.gd.
+- Also in Utility (coded with their specs): Jolt, Flicker, Static Step, Thunder Strike, Faraday Guard, Ground Out, Recharge.

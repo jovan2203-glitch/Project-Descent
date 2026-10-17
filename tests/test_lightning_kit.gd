@@ -158,6 +158,11 @@ func test_flicker() -> void:
 	assert_eq(Balance.FLICKER_DISTANCE, 10.0)
 	assert_eq(Balance.FLICKER_TIME, 5.0)
 	assert_true(_player().on_gcd("flicker"))
+	# Pressed again within FLICKER_RETURN_TIME: back where it started, while its cooldown runs.
+	assert_true(Balance.FLICKER_RETURN_TIME > 0.0 and Balance.FLICKER_RETURN_TIME < float(r.cooldown))
+	var src := PlayerSource.text()
+	assert_contains(src, "\tif id == FLICKER_ID and flicker_back_ready():\n\t\t# Flicker pressed again in time: snap back (free, while its cooldown runs).",
+		"checked before the cooldown")
 
 func test_capacitor() -> void:
 	var r := Abilities.get_resource("capacitor")

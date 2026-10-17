@@ -74,3 +74,43 @@ func test_both_spellbooks_draw_the_specs() -> void:
 	var game := FileAccess.get_file_as_string("res://scripts/game_ui.gd")
 	assert_contains(game, "Abilities.specs_in(cat, learned)")
 	assert_contains(game, "UI.spec_divider(spec[0]")
+
+# --- Utility rules (CLAUDE.md) -----------------------------------------------------------
+
+func _spec_of(id: String) -> String:
+	for spec in Abilities.SPECS.get(Abilities.category_of(id), []):
+		if (spec[1] as Array).has(id):
+			return str(spec[0])
+	return ""
+
+func test_every_healer_spec_has_an_out_of_combat_rez() -> void:
+	var roles: Dictionary = preload("res://tools/balance_sim_specs.gd").ROLES
+	for spec_name in roles:
+		assert_eq(Abilities.HEALER_SPECS.has(spec_name), str(roles[spec_name]) == "healer",
+			"%s: HEALER_SPECS and the balance sim agree on who heals" % spec_name)
+	for spec_name in Abilities.HEALER_SPECS:
+		var found := false
+		for cat in Abilities.SPECS:
+			for spec in Abilities.SPECS[cat]:
+				if spec[0] == spec_name:
+					for id in spec[1]:
+						if Abilities.get_resource(id).tags.has("Resurrect"):
+							found = true
+		assert_true(found, "%s has an out-of-combat rez" % spec_name)
+
+func test_only_healers_revive() -> void:
+	for id in Abilities.ALL:
+		var r := Abilities.get_resource(id)
+		if r and (r.tags.has("Revive") or r.tags.has("Resurrect")):
+			assert_true(Abilities.HEALER_SPECS.has(_spec_of(id)), "%s revives but is not in a healer spec" % id)
+
+func test_every_book_has_a_root() -> void:
+	for cat in Categories.ORDER:
+		var ids := Abilities.in_category(cat)
+		if ids.is_empty():
+			continue   # (Martial: wiped, gets its root when it is rebuilt)
+		var found := false
+		for id in ids:
+			if Abilities.get_resource(id).tags.has("Root"):
+				found = true
+		assert_true(found, "%s has a root" % cat)

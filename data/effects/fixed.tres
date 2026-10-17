@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"fixed"
+display_name = "Fixed"
+description = "Fixed to one point in time: cannot move."
+color = Color(0.75, 0.55, 1.0, 1)
+is_debuff = true
+tags = PackedStringArray("Arcane", "Root")
+duration = 3.0
+stack_mode = 0
+max_stacks = 1
+root = true

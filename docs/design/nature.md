@@ -98,3 +98,14 @@ Code: player.gd, "Nature archer: Venomstring". Numbers: balance.gd (VENOM_*, POI
 
 ### Talents
 - Lingering Venom (4, requires Venom Burst; row 2, column 7): Venom Burst deals 5/10/15% more; capstone: each poison Venom Burst would remove has a 40% chance to stay (rolled separately).
+
+## Utility (the book's "Utility" divider) - BUILT 2026-10-17
+Code: scripts/player/utility.gd. Numbers: balance.gd (Utility section). Tests: tests/test_utility.gd. Useful to any spec (a fire mage takes one for the job it does); each has a rider only its Nature spec cashes in. See the utility table in systems.md. Overgrowth (knockback) moved to Fire as Bellows and Wild Run (party speed) to Lightning as Storm Front (2026-10-17), so Nature no longer carries most of the game's utility.
+- Unlock levels (Skill Cards): Rootsnare 14, Deep Roots 18, Spore Sleep 20, Leaf Cloak 24.
+- Rootsnare - instant, 20 s cooldown, 2 mana, 30 m. Roots the target and enemies within 3 m of it for 3 s. Leaves a Mulch patch under the target (Weaver). Nature's root.
+- Deep Roots - instant, 60 s cooldown, 1 mana, 8 s: 15% less damage taken and 1 Sap per second (its heal works for anyone; Colossus feeds Heartsap). Moving ends it.
+- Spore Sleep - 2 s cast, 30 s cooldown, 2 mana, 30 m. A non-boss, non-elite enemy sleeps 20 s (can't move, attack or cast); any damage wakes it (status flag break_on_damage). When it wakes it gets your Asp Venom (counts for Venom Flow).
+- Leaf Cloak - instant, 2 min cooldown. Your threat on every enemy within 30 m drops to nothing; for 4 s your damage makes no threat (DoTs keep ticking quietly).
+
+## Healer: out-of-combat rez
+- Return to Bloom (Shepherd) - 8 s cast, 4 mana, 30 m, out of combat only. Vines raise a dead or downed ally where they fell with 50% health and mana. Code: scripts/player/rez.gd (shared by every healer's rez).

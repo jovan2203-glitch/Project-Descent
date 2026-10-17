@@ -6,6 +6,8 @@ extends McpTestSuite
 
 const EliteTraits = preload("res://scripts/core/elite_traits.gd")
 const Balance = preload("res://scripts/balance.gd")
+const Abilities = preload("res://scripts/abilities.gd")
+const SkillCards = preload("res://scripts/skill_cards.gd")
 
 func suite_name() -> String:
 	return "coop_elites"
@@ -37,7 +39,26 @@ func test_bleed_out_never_below_minimum() -> void:
 		var t := maxf(Balance.DOWNED_BLEED_OUT - Balance.DOWNED_REPEAT_PENALTY * downs, Balance.DOWNED_MIN_BLEED_OUT)
 		assert_true(t >= Balance.DOWNED_MIN_BLEED_OUT)
 
-func test_revive_is_off_the_gcd() -> void:
+func test_only_healer_abilities_revive() -> void:
+	# No F-revive: no Interact keybind, no revive channel in the player.
+	var settings := FileAccess.get_file_as_string("res://scripts/settings.gd")
+	assert_false(settings.contains("\"interact\""), "the Interact (revive) keybind is gone")
+	var src := PlayerSource.text()
+	assert_false(src.contains("_try_revive"), "nobody revives by pressing a key")
+	assert_false(src.contains("\"revive\""), "no revive channel")
 	var player_script: GDScript = load("res://scripts/player.gd")
-	assert_false(player_script.on_gcd("revive"), "reviving doesn't trigger the global cooldown")
 	assert_true(player_script.on_gcd("frostbolt"))
+
+func test_out_of_combat_rez_rules() -> void:
+	assert_eq(RezKit.rez_error(true, true), RezKit.IN_COMBAT_ERROR, "never in combat")
+	assert_eq(RezKit.rez_error(false, false), RezKit.NO_TARGET_ERROR, "needs a fallen ally")
+	assert_eq(RezKit.rez_error(false, true), "")
+	for id in RezKit.IDS:
+		var r := Abilities.get_resource(id)
+		assert_true(r != null, id)
+		assert_true(r.tags.has("Resurrect"), "%s is a rez" % id)
+		assert_eq(int(r.cast_type), 1, "%s has a cast time" % id)
+		assert_true(SkillCards.ALL.has(id) and Abilities.DRAFT_POOL.has(id), "%s is draftable and has a card" % id)
+		var tip := Abilities.tooltip(id)
+		assert_false(tip.contains("{") or tip.contains("}"), "%s: %s" % [id, tip])
+	assert_true(Balance.RAISE_HEALTH_PCT > 0.0 and Balance.RAISE_MANA_PCT > 0.0)

@@ -196,3 +196,11 @@ Code: player.gd, "Holy: the open talents and the bottom row" and "Holy: talents 
 
 ## Open questions
 - None right now.
+
+## Utility (the book's "Utility" divider) - BUILT 2026-10-17
+- Binding Ring (Holy's root) - instant, 30 s cooldown, 2 mana, 40 m, your friendly target (you with none). A ring of light around them for 8 s; the first 3 enemies to come within 3 m are rooted 3 s. Code: scripts/player/utility.gd.
+- Circle of Silence (Holy's interrupt) - instant, off the GCD, 25 s cooldown (shared interrupt cooldown), 2 mana, 30 m, card level 18. A circle within 5 m of the target for 4 s: every enemy casting inside is interrupted, and any enemy that starts a cast inside it is interrupted too (3 s lockout each). Checked every 0.1 s; a client only sends interrupts for enemies whose cast bar shows. Code: scripts/player/utility.gd.
+- Also in Utility (coded with their specs): Steady Voice, Rest, Unfallen.
+
+## Healers: out-of-combat rez
+- Hymn of Waking (Choir of One) and Relight (Line of Light) - 8 s cast, 4 mana, 30 m, out of combat only. A dead or downed ally gets up where they fell with 50% health and mana. Code: scripts/player/rez.gd. Last Verse stays the Hymns' combat revive.

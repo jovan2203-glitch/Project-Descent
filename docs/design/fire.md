@@ -55,3 +55,8 @@ Built around critical strikes, specifically around trying to AVOID crits: non-cr
 - Last Ember (2): a DoT that runs its full time deals a final tick at 50/100%.
 - Tempered (3): each block gives 2/4/6% Armor for 8 s, stacking 3 times.
 - Still open: whether existing talents should be removed to make room.
+
+## Utility (the book's "Utility" divider) - BUILT 2026-10-17
+- Cooling Slag (Fire's root) - 1.5 s cast, 20 s cooldown, 2 mana, 30 m. Molten slag within 5 m of the target: enemies in it 30% slower; after 2 s it hardens and roots enemies still inside for 3 s. Code: scripts/player/utility.gd.
+- Bellows - instant, 25 s cooldown, 2 mana, card level 16. Enemies within 6 m are thrown 8 m away (bosses too heavy); a stack of Heat per enemy thrown, up to 3 (Forge Heat). The game's only knockback. Moved from Nature (was Overgrowth). Code: scripts/player/utility.gd.
+- Also in Utility (coded with their specs): Furnace Breath, Cinder Step, Heat Sink, Cinderwing.

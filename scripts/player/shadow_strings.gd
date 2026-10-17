@@ -842,12 +842,17 @@ func _cats_cradle(res: Resource) -> void:
 	var now := _str_now()
 	for a in player.fire_cooldowns._allies_within(float(res.radius)):
 		_heal_coef(a, float(Abilities.HEALS[CRADLE_ID]), CRADLE_ID)
-		var e := _string_entry(a, false)
-		e["loose"] = now + Balance.LOOSE_STRING_TIME
-		_tell_string((a as Node).get_instance_id(), a)
-		player._ring_effect(0.7, STRING_COLOR, (a as Node3D).global_position)
-	_strings_dirty = true
+		_tie_loose(a, now)
 	player._ring_effect(2.5, STRING_COLOR)
+
+## A loose String on ally `a` (none of my STRING_MAX) for LOOSE_STRING_TIME:
+## Cat's Cradle, and Climb the String (scripts/player/utility.gd) on an ally.
+func _tie_loose(a: Node3D, now: float = _str_now()) -> void:
+	var e := _string_entry(a, false)
+	e["loose"] = now + Balance.LOOSE_STRING_TIME
+	_tell_string(a.get_instance_id(), a)
+	player._ring_effect(0.7, STRING_COLOR, a.global_position)
+	_strings_dirty = true
 
 ## Pull Taut: one String on the ally gives all the healing it had left, and is used up.
 func _pull_taut() -> void:
@@ -1130,6 +1135,9 @@ func receive_support(kind: String, from: Node, data: Dictionary) -> void:
 				player._combat().float_text(player, "%s (%d)" % [Abilities.ability_name(ShepherdKit.ROOTGUARD_ID), int(data.get("amount", 0))], ShepherdKit.BLOSSOM_COLOR, false)
 		"rootguard_broke":
 			player.shepherd._rootguard_broke(from)   # (I am the healer: my shield on that ally was used up)
+		# Utility (scripts/player/utility.gd).
+		"storm_front":
+			player.utility._storm_front_on(player.status, from, float(data.get("t", 0.0)))
 
 ## Where the Strings `from` has on me stand: n = how many (0 = none any more),
 ## t = seconds they have left, cross = % of my damage that is crossed away.

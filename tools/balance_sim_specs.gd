@@ -5,7 +5,8 @@ extends RefCounted
 # real value is worked out in player.gd from stacks / patches / Venom.
 # Keep it short: one line per spec, overrides only where the data is wrong.
 
-## Spec name (Abilities.SPECS) -> "dps", "tank" or "healer".
+## Spec name (Abilities.SPECS) -> "dps", "tank", "healer" or "utility" (every book's
+## "Utility" divider: no damage or healing to simulate, left out of the report).
 const ROLES := {
 	"Steady Flame": "dps", "Slagforged": "tank", "Forge Heat": "dps", "Pitch and Cinder": "dps",
 	"Hard Winter": "dps", "Cold Comfort": "tank", "Frostbitten Steel": "dps", "Winter Hunt": "dps",
@@ -14,6 +15,7 @@ const ROLES := {
 	"The Breach": "dps", "Pack of Two": "dps", "Strings Attached": "healer", "Nightstring": "dps",
 	"Thornweaver": "dps", "Shepherd": "healer", "Colossus": "tank", "Venomstring": "dps",
 	"Choir of One": "healer", "Censer Bearer": "tank", "Line of Light": "healer", "Lightstring": "dps",
+	"Utility": "utility",
 }
 
 ## Spec name -> how it fights, where its abilities' tags say otherwise:

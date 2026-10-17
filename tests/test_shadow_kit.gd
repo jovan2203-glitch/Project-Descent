@@ -72,7 +72,7 @@ func test_new_abilities_are_draftable_shadow_spells() -> void:
 		assert_false(tip.contains("Frost Bolt"), "%s: real damage numbers" % id)
 	# The book shows the caster's spells after Wither, the one spell it already had.
 	var book := Abilities.in_category("shadow")
-	assert_eq(book.size(), 38, "Wither, the caster's nine, Leeching Strike, the seven of the Hounds (test_hounds.gd), Shadow Arrow, the healer's nineteen (test_strings.gd)")
+	assert_eq(book.size(), 40, "Wither, the caster's nine, Leeching Strike, the seven of the Hounds (test_hounds.gd), Shadow Arrow, the healer's nineteen (test_strings.gd), its out-of-combat rez and Climb the String (Utility)")
 	assert_eq(book[0], "corruption")
 	assert_true(book.find("bottomless") < book.find("shadowstrike"), "then the melee abilities")
 	assert_true(book.find("shadowstrike") < book.find("sic") and book.find("offthechain") < book.find("shadowarrow"))

@@ -53,11 +53,12 @@ func _ready() -> void:
 # --- One spec ------------------------------------------------------------------------------
 
 ## Simulate `spec` (its ability ids) as `role` with the `profile` ("no gear" / "geared").
-## `spec_name` picks up its overrides in balance_sim_specs.gd FIGHTS.
+## `spec_name` picks up its overrides in balance_sim_specs.gd FIGHTS. `extra`: more buttons
+## (its book's Utility) that don't decide its gear or weapon.
 ## Returns {"dps", "hps", "self_hps", "avg_hit", "sources": {name: total}, "idle", "starved",
 ## "unsimulated": [ability names the sim can't value]}. "idle" = time with nothing to press,
 ## "starved" = the part of it where a button was off cooldown but unaffordable.
-static func simulate(ids: Array, role: String, profile: String, spec_name := "") -> Dictionary:
+static func simulate(ids: Array, role: String, profile: String, spec_name := "", extra: Array = []) -> Dictionary:
 	var fights: Dictionary = SPECS_INFO.FIGHTS.get(spec_name, {})
 	var kind: String = fights.get("kind", spec_kind(ids))
 	var weapon: String = fights.get("weapon", spec_weapon(ids))
@@ -68,7 +69,7 @@ static func simulate(ids: Array, role: String, profile: String, spec_name := "")
 	var max_hp := Stats.player_base_health(LEVEL) + float(stat_of.call(Stats.MAX_HEALTH))
 	var buttons := []
 	var unsimulated := PackedStringArray()
-	for id in ids:
+	for id in ids + extra:
 		var b := button(str(id), w, stat_of, haste, max_hp)
 		if not b.is_empty():
 			buttons.append(b)
@@ -266,16 +267,26 @@ static func report() -> String:
 	lines.append("| Book | Spec | Role | Avg use (no gear) | No gear | Geared | Top sources (geared) | Flags | Not simulated |")
 	lines.append("|---|---|---|---|---|---|---|---|---|")
 	for book in Abilities.SPECS:
+		var utility := utility_of(book)
 		for spec in Abilities.SPECS[book]:
 			var name: String = spec[0]
-			var ids: Array = spec[1]
 			var role: String = SPECS_INFO.ROLES.get(name, "dps")
-			var bare := simulate(ids, role, "no gear", name)
-			var full := simulate(ids, role, "geared", name)
+			if role == "utility":
+				continue   # (simulated as part of every spec of its book, below)
+			var ids: Array = spec[1]
+			var bare := simulate(ids, role, "no gear", name, utility)
+			var full := simulate(ids, role, "geared", name, utility)
 			lines.append("| %s | %s | %s | %d | %s | %s | %s | %s | %s |" % [book.capitalize(), name, role, int(bare["avg_hit"]),
 				_rate(bare, role), _rate(full, role), _top(full["sources"]), ", ".join(_flags(bare, full, role)),
 				", ".join(full["unsimulated"])])
 	return "\n".join(lines) + "\n"
+
+## A book's "Utility" divider (its ids; [] if it has none).
+static func utility_of(book: String) -> Array:
+	for spec in Abilities.SPECS[book]:
+		if SPECS_INFO.ROLES.get(spec[0], "dps") == "utility":
+			return spec[1]
+	return []
 
 static func _rate(r: Dictionary, role: String) -> String:
 	match role:

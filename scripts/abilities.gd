@@ -209,6 +209,24 @@ const PATHS := {
 	"bloatarrow": "res://data/abilities/bloatarrow.tres",
 	"coilback": "res://data/abilities/coilback.tres",
 	"venomsurge": "res://data/abilities/venomsurge.tres",
+	# Healers' out-of-combat rez (scripts/player/rez.gd)
+	"hymnofwaking": "res://data/abilities/hymnofwaking.tres",
+	"relight": "res://data/abilities/relight.tres",
+	"backonyourfeet": "res://data/abilities/backonyourfeet.tres",
+	"returntobloom": "res://data/abilities/returntobloom.tres",
+	# Utility: each book's "Utility" divider (scripts/player/utility.gd)
+	"rootsnare": "res://data/abilities/rootsnare.tres",
+	"deeproots": "res://data/abilities/deeproots.tres",
+	"sporesleep": "res://data/abilities/sporesleep.tres",
+	"leafcloak": "res://data/abilities/leafcloak.tres",
+	"coolingslag": "res://data/abilities/coolingslag.tres",
+	"staticsnare": "res://data/abilities/staticsnare.tres",
+	"fixedpoint": "res://data/abilities/fixedpoint.tres",
+	"bindingring": "res://data/abilities/bindingring.tres",
+	"bellows": "res://data/abilities/bellows.tres",
+	"stormfront": "res://data/abilities/stormfront.tres",
+	"circleofsilence": "res://data/abilities/circleofsilence.tres",
+	"climbthestring": "res://data/abilities/climbthestring.tres",
 	# Lightning tank: a parry tank with a two-handed weapon (draftable). Stormbreak
 	# ("stormshield") and Humming Blade ("thunderaegis") keep the ids they had as
 	# the shield abilities Stormshield Slam and Aegis of Thunder.
@@ -312,15 +330,16 @@ const DRAFT_POOL := ["frostnova", "icebarrier", "blink",
 	"blight", "erode", "calldue", "gnaw", "spill", "pall", "hush", "takeitback", "bottomless",
 	"sic", "openup", "bothatonce", "runthemdown", "guarddogs", "bringitdown", "offthechain",
 	"puppetstring", "patchup", "hoist", "tug", "catscradle", "wrench", "pulltaut", "cuppedhands", "stringup", "restring",
-	"knot", "tangle", "yank", "doublethread", "behinditsback", "slack", "stillstanding", "cutthestrings", "notfinished",
+	"knot", "tangle", "yank", "doublethread", "behinditsback", "slack", "stillstanding", "cutthestrings", "notfinished", "backonyourfeet",
 	"froststrike", "frostarrow",
 	"outpour", "lift", "refrain", "canticle", "exultation", "antiphon", "shelter", "steadyvoice", "highnote",
-	"reprise", "swell", "rest", "lastverse", "singmercy", "singchorus", "singvigil",
+	"reprise", "swell", "rest", "lastverse", "hymnofwaking", "singmercy", "singchorus", "singvigil",
 	"censerswing", "hallowedarc", "beckon", "pourout", "absolve", "aureole", "gatherthelight", "raisethecenser", "unfallen",
-	"setprism", "moveprism", "mendingray", "brightlance", "gleam", "prismward", "piercinglight", "realign", "shatterprism", "shatterall", "infuse", "kaleidoscope",
+	"setprism", "moveprism", "mendingray", "brightlance", "gleam", "prismward", "piercinglight", "realign", "shatterprism", "shatterall", "infuse", "kaleidoscope", "relight",
 	"prismarrow", "glimmershot", "refractingshot", "sunlitarrow", "prismbreaker", "stepoflight", "spectrumvolley",
 	"thornshot", "briartiger", "mossback", "thornwing", "chokingvipers", "greenwoodstag",
-	"dewfall", "fawn", "rootguard", "owl", "heartwoodelk", "wildherd",
+	"dewfall", "fawn", "rootguard", "owl", "heartwoodelk", "wildherd", "returntobloom",
+	"rootsnare", "deeproots", "sporesleep", "leafcloak", "coolingslag", "bellows", "staticsnare", "stormfront", "fixedpoint", "bindingring", "circleofsilence", "climbthestring",
 	"vinefist", "grasp", "stomp", "giantshands", "heartsap", "awaken",
 	"fangarrow", "adderarrow", "asparrow", "kraitarrow", "venomburst", "spittingvolley", "bloatarrow", "coilback", "venomsurge",
 	"stormshield", "thunderaegis",
@@ -351,15 +370,16 @@ const ALL := ["frostbolt", "blizzard", "frostnova", "icebarrier",
 	"shadowstrike", "sic", "openup", "bothatonce", "runthemdown", "guarddogs", "bringitdown", "offthechain",
 	"shadowarrow",
 	"puppetstring", "patchup", "hoist", "tug", "catscradle", "wrench", "pulltaut", "cuppedhands", "stringup", "restring",
-	"knot", "tangle", "yank", "doublethread", "behinditsback", "slack", "stillstanding", "cutthestrings", "notfinished",
+	"knot", "tangle", "yank", "doublethread", "behinditsback", "slack", "stillstanding", "cutthestrings", "notfinished", "backonyourfeet",
 	"thornshot", "briartiger", "mossback", "thornwing", "chokingvipers", "greenwoodstag",
-	"dewfall", "fawn", "rootguard", "owl", "heartwoodelk", "wildherd",
+	"dewfall", "fawn", "rootguard", "owl", "heartwoodelk", "wildherd", "returntobloom",
+	"rootsnare", "deeproots", "sporesleep", "leafcloak", "coolingslag", "bellows", "staticsnare", "stormfront", "fixedpoint", "bindingring", "circleofsilence", "climbthestring",
 	"vinefist", "grasp", "stomp", "giantshands", "heartsap", "awaken",
 	"fangarrow", "adderarrow", "asparrow", "kraitarrow", "venomburst", "spittingvolley", "bloatarrow", "coilback", "venomsurge",
 	"psalm", "outpour", "lift", "refrain", "canticle", "exultation", "antiphon", "shelter", "steadyvoice", "highnote",
-	"singmercy", "singchorus", "singvigil", "reprise", "swell", "rest", "lastverse",
+	"singmercy", "singchorus", "singvigil", "reprise", "swell", "rest", "lastverse", "hymnofwaking",
 	"censerswing", "hallowedarc", "beckon", "pourout", "absolve", "aureole", "gatherthelight", "raisethecenser", "unfallen",
-	"setprism", "moveprism", "mendingray", "brightlance", "gleam", "prismward", "piercinglight", "realign", "shatterprism", "shatterall", "infuse", "kaleidoscope",
+	"setprism", "moveprism", "mendingray", "brightlance", "gleam", "prismward", "piercinglight", "realign", "shatterprism", "shatterall", "infuse", "kaleidoscope", "relight",
 	"prismarrow", "glimmershot", "refractingshot", "sunlitarrow", "prismbreaker", "stepoflight", "spectrumvolley",
 	"frostfirebolt", "polarstrike",
 	"trinket_1", "trinket_2"]
@@ -402,9 +422,9 @@ const CATEGORY_OF := {
 	"puppetstring": "shadow", "patchup": "shadow", "hoist": "shadow", "tug": "shadow", "catscradle": "shadow",
 	"wrench": "shadow", "pulltaut": "shadow", "cuppedhands": "shadow", "stringup": "shadow", "restring": "shadow",
 	"knot": "shadow", "tangle": "shadow", "yank": "shadow", "doublethread": "shadow", "behinditsback": "shadow",
-	"slack": "shadow", "stillstanding": "shadow", "cutthestrings": "shadow", "notfinished": "shadow",
+	"slack": "shadow", "stillstanding": "shadow", "cutthestrings": "shadow", "notfinished": "shadow", "backonyourfeet": "shadow",
 	"thornshot": "nature", "briartiger": "nature", "mossback": "nature", "thornwing": "nature", "chokingvipers": "nature", "greenwoodstag": "nature",
-	"dewfall": "nature", "fawn": "nature", "rootguard": "nature", "owl": "nature", "heartwoodelk": "nature", "wildherd": "nature",
+	"dewfall": "nature", "fawn": "nature", "rootguard": "nature", "owl": "nature", "heartwoodelk": "nature", "wildherd": "nature", "returntobloom": "nature",
 	"vinefist": "nature", "grasp": "nature", "stomp": "nature", "giantshands": "nature", "heartsap": "nature", "awaken": "nature",
 	"fangarrow": "nature", "adderarrow": "nature", "asparrow": "nature", "kraitarrow": "nature", "venomburst": "nature",
 	"spittingvolley": "nature", "bloatarrow": "nature", "coilback": "nature", "venomsurge": "nature",
@@ -414,13 +434,16 @@ const CATEGORY_OF := {
 	"counterspell": "arcane",
 	"psalm": "holy", "outpour": "holy", "lift": "holy", "refrain": "holy", "canticle": "holy", "exultation": "holy",
 	"antiphon": "holy", "shelter": "holy", "steadyvoice": "holy", "highnote": "holy", "reprise": "holy", "swell": "holy",
-	"rest": "holy", "lastverse": "holy", "singmercy": "holy", "singchorus": "holy", "singvigil": "holy",
+	"rest": "holy", "lastverse": "holy", "hymnofwaking": "holy", "singmercy": "holy", "singchorus": "holy", "singvigil": "holy",
 	"censerswing": "holy", "hallowedarc": "holy", "beckon": "holy", "pourout": "holy", "absolve": "holy", "aureole": "holy",
 	"gatherthelight": "holy", "raisethecenser": "holy", "unfallen": "holy",
 	"setprism": "holy", "moveprism": "holy", "mendingray": "holy", "brightlance": "holy", "gleam": "holy", "prismward": "holy",
-	"piercinglight": "holy", "realign": "holy", "shatterprism": "holy", "shatterall": "holy", "infuse": "holy", "kaleidoscope": "holy",
+	"piercinglight": "holy", "realign": "holy", "shatterprism": "holy", "shatterall": "holy", "infuse": "holy", "kaleidoscope": "holy", "relight": "holy",
 	"prismarrow": "holy", "glimmershot": "holy", "refractingshot": "holy", "sunlitarrow": "holy", "prismbreaker": "holy",
 	"stepoflight": "holy", "spectrumvolley": "holy",
+	"rootsnare": "nature", "deeproots": "nature", "sporesleep": "nature", "leafcloak": "nature",
+	"coolingslag": "fire", "bellows": "fire", "staticsnare": "lightning", "stormfront": "lightning", "fixedpoint": "arcane",
+	"bindingring": "holy", "circleofsilence": "holy", "climbthestring": "shadow",
 	"frostfirebolt": "rune", "polarstrike": "rune",
 }
 
@@ -463,62 +486,79 @@ static func in_category(category: String) -> Array[String]:
 			out.append(id)
 	return out
 
+## The healer specs (SPECS names). Every one has an out-of-combat rez (tag
+## "Resurrect"); abilities that revive (tags "Revive", "Resurrect") sit only in
+## these (CLAUDE.md; tests/test_books.gd).
+const HEALER_SPECS := ["Choir of One", "Line of Light", "Strings Attached", "Shepherd"]
+
 ## Each book's abilities split by playstyle (visual only): book -> [[spec name, [ids]], ...].
 ## Books show their specs in this order, each under a divider. Every ability of a
 ## book sits in exactly one spec (tests/test_books.gd).
+## "Utility": crowd control, roots, interrupts, movement, party buffs and self
+## defensives that work without the rest of a spec's kit (CLAUDE.md). One stays in
+## its spec only if it can't be used without it (needs the spec's resource or
+## objects, or a bow).
 const SPECS := {
 	"fire": [
-		["Steady Flame", ["fireball", "flamenova", "ventflames", "coolhead", "furnacebreath", "stoke", "embervolley",
-			"immolate", "walloffire", "kilnblast", "slowfuse", "rekindle", "crucible", "cinderstep", "heatsink", "cinderwing"]],
+		["Steady Flame", ["fireball", "flamenova", "ventflames", "coolhead", "stoke", "embervolley",
+			"immolate", "walloffire", "kilnblast", "slowfuse", "rekindle", "crucible"]],
 		["Slagforged", ["slagskin", "brand", "cinderguard", "anvil"]],
 		["Forge Heat", ["searingstrike", "quench", "flare"]],
 		["Pitch and Cinder", ["flamingarrow", "pitcharrow", "cinderrain"]],
+		["Utility", ["coolingslag", "furnacebreath", "bellows", "cinderstep", "heatsink", "cinderwing"]],
 	],
 	"frost": [
-		["Hard Winter", ["frostbolt", "blizzard", "frostnova", "iceshards", "coldspike", "sleetwave", "flashfreeze",
-			"hoarfrost", "shatteringwave", "deepwinter", "rimelock"]],
-		["Cold Comfort", ["rimeshell", "snowward", "winterhide", "icebarrier"]],
+		["Hard Winter", ["frostbolt", "blizzard", "frostnova", "iceshards", "coldspike", "sleetwave",
+			"hoarfrost", "shatteringwave", "deepwinter"]],
+		["Cold Comfort", ["rimeshell"]],
 		["Frostbitten Steel", ["froststrike", "shatteringslam", "rimeslash", "rimeedge", "icebreaker"]],
 		["Winter Hunt", ["frostarrow", "icepin", "shattershot", "glacialdraw", "rimefletch", "coldmark", "icyretreat"]],
+		["Utility", ["rimelock", "flashfreeze", "winterhide", "icebarrier", "snowward"]],
 	],
 	"lightning": [
 		["Live Current", ["lightningbolt", "chainlightning", "forkedbolt", "discharge", "balllightning", "arcflash",
-			"livewire", "thunderhead", "groundout", "groundingsurge", "jolt", "flicker", "capacitor"]],
-		["Stormdancer", ["thunderstrike", "chargededge", "whiplash", "arccleave", "cadence", "twincurrent", "staticstep",
-			"overdrive", "splitsecond", "backcurrent", "faradayguard"]],
+			"livewire", "thunderhead", "groundingsurge", "capacitor"]],
+		["Stormdancer", ["chargededge", "whiplash", "arccleave", "cadence", "twincurrent",
+			"overdrive", "splitsecond", "backcurrent"]],
 		["Lightning Rod", ["stormshield", "thunderaegis", "returnstroke", "shockring", "crossguard", "reflexarc",
-			"drawthestorm", "reelin", "recharge"]],
+			"drawthestorm", "reelin"]],
 		["Stormstring", ["stormarrow"]],
+		["Utility", ["staticsnare", "jolt", "stormfront", "flicker", "staticstep", "thunderstrike", "faradayguard",
+			"groundout", "recharge"]],
 	],
 	"arcane": [
 		["Clockwork", ["arcanemissiles", "unravel", "glint", "scatter", "countdown", "collapse", "convergence",
-			"mirrorsigil", "arcaneexplosion", "intervalward", "rewind", "lapse", "counterspell", "blink"]],
+			"mirrorsigil", "arcaneexplosion", "rewind", "lapse"]],
 		["Hall of Mirrors", ["doubleup", "ripple", "missedbeat", "fullset", "standin", "tradeplaces", "decoy", "crowdofone"]],
 		["Second Act", ["arcanestrike", "swiftcut", "deepcut", "latecut", "widecut", "encore", "doubletime"]],
 		["Aetherstring", ["arcaneshot"]],
+		["Utility", ["fixedpoint", "counterspell", "blink", "intervalward"]],
 	],
 	"shadow": [
-		["The Breach", ["blight", "erode", "corruption", "gnaw", "calldue", "spill", "pall", "takeitback", "bottomless", "hush"]],
+		["The Breach", ["blight", "erode", "corruption", "gnaw", "calldue", "spill", "pall", "takeitback", "bottomless"]],
 		["Pack of Two", ["sic", "shadowstrike", "openup", "bothatonce", "runthemdown", "guarddogs", "bringitdown", "offthechain"]],
 		["Strings Attached", ["puppetstring", "patchup", "hoist", "tug", "catscradle", "wrench", "pulltaut", "cuppedhands",
-			"stringup", "restring", "knot", "tangle", "yank", "doublethread", "behinditsback", "slack", "stillstanding",
-			"cutthestrings", "notfinished"]],
+			"restring", "knot", "yank", "doublethread", "behinditsback", "slack", "stillstanding",
+			"cutthestrings", "notfinished", "backonyourfeet"]],
 		["Nightstring", ["shadowarrow"]],
+		["Utility", ["tangle", "hush", "climbthestring", "stringup"]],
 	],
 	"nature": [
 		["Thornweaver", ["thornshot", "briartiger", "mossback", "thornwing", "chokingvipers", "greenwoodstag"]],
-		["Shepherd", ["dewfall", "fawn", "rootguard", "owl", "heartwoodelk", "wildherd"]],
+		["Shepherd", ["dewfall", "fawn", "rootguard", "owl", "heartwoodelk", "wildherd", "returntobloom"]],
 		["Colossus", ["vinefist", "grasp", "stomp", "giantshands", "heartsap", "awaken"]],
 		["Venomstring", ["fangarrow", "adderarrow", "asparrow", "kraitarrow", "venomburst", "spittingvolley", "bloatarrow", "coilback", "venomsurge"]],
+		["Utility", ["rootsnare", "deeproots", "sporesleep", "leafcloak"]],
 	],
 	"holy": [
 		["Choir of One", ["singmercy", "singchorus", "singvigil", "psalm", "outpour", "lift", "refrain", "canticle",
-			"exultation", "antiphon", "shelter", "steadyvoice", "highnote", "reprise", "swell", "rest", "lastverse"]],
+			"exultation", "antiphon", "shelter", "highnote", "reprise", "swell", "lastverse", "hymnofwaking"]],
 		["Censer Bearer", ["censerswing", "hallowedarc", "beckon", "pourout", "absolve", "aureole", "gatherthelight",
-			"raisethecenser", "unfallen"]],
+			"raisethecenser"]],
 		["Line of Light", ["setprism", "moveprism", "mendingray", "brightlance", "gleam", "prismward", "piercinglight",
-			"realign", "shatterprism", "shatterall", "infuse", "kaleidoscope"]],
+			"realign", "shatterprism", "shatterall", "infuse", "kaleidoscope", "relight"]],
 		["Lightstring", ["glimmershot", "prismarrow", "refractingshot", "sunlitarrow", "prismbreaker", "stepoflight", "spectrumvolley"]],
+		["Utility", ["bindingring", "circleofsilence", "steadyvoice", "rest", "unfallen"]],
 	],
 	"martial": [],   # (wiped; to be rebuilt)
 }
@@ -3102,6 +3142,134 @@ static func _draw_unique(c: Control, id: String, col: Color, mid: Vector2, k: fl
 					o + Vector2(8, -2) * k, o + Vector2(4, 3) * k, o + Vector2(-5, 5) * k]), col if i != 1 else light)
 				c.draw_line(o + Vector2(-4, 4) * k, o + Vector2(-7, 9) * k, col, 1.4 * k, true)
 				c.draw_line(o + Vector2(3, 3) * k, o + Vector2(6, 8) * k, col, 1.4 * k, true)
+		"returntobloom":
+			# A figure rising out of a ring of vines that curl up into a bloom.
+			c.draw_line(mid + Vector2(-14, 12) * k, mid + Vector2(14, 12) * k, col, 2.0 * k, true)
+			for s in [-1.0, 1.0]:
+				c.draw_arc(mid + Vector2(s * 9, 12) * k, 7.0 * k, PI, PI * 1.5 if s < 0 else PI * 2.0, 8, light, 2.0 * k, true)
+			c.draw_line(mid + Vector2(0, 11) * k, mid + Vector2(0, -2) * k, white, 3.0 * k, true)
+			c.draw_circle(mid + Vector2(0, -6) * k, 3.5 * k, white)
+			for i in 5:
+				var a := TAU * i / 5.0 - PI / 2.0
+				c.draw_circle(mid + Vector2(0, -6) * k + Vector2(cos(a), sin(a)) * 6.5 * k, 2.4 * k, Color(light, 0.85))
+		"hymnofwaking":
+			# A column of light over a resting figure, music notes rising in it.
+			c.draw_rect(Rect2(mid + Vector2(-5, -16) * k, Vector2(10, 28) * k), Color(light, 0.45))
+			c.draw_line(mid + Vector2(-12, 12) * k, mid + Vector2(12, 12) * k, white, 3.0 * k, true)
+			for p in [Vector2(-2, -10), Vector2(2, -2)]:
+				var o := mid + (p as Vector2) * k
+				c.draw_circle(o, 2.0 * k, col)
+				c.draw_line(o + Vector2(1.8, 0) * k, o + Vector2(1.8, -6) * k, col, 1.2 * k, true)
+		"relight":
+			# A white beam striking down onto a figure made of light shards.
+			c.draw_line(mid + Vector2(-12, -16) * k, mid + Vector2(0, -2) * k, white, 3.0 * k, true)
+			for p in [Vector2(-4, 2), Vector2(4, 2), Vector2(0, 8), Vector2(-3, 13), Vector2(3, 13)]:
+				var o := mid + (p as Vector2) * k
+				c.draw_colored_polygon(PackedVector2Array([o + Vector2(0, -3) * k, o + Vector2(2.5, 0) * k, o + Vector2(0, 3) * k, o + Vector2(-2.5, 0) * k]), light)
+			c.draw_circle(mid + Vector2(0, -3) * k, 3.2 * k, col)
+		"backonyourfeet":
+			# A puppet figure lifted upright by three strings from above.
+			c.draw_line(mid + Vector2(-12, -15) * k, mid + Vector2(12, -15) * k, col, 2.4 * k, true)
+			for x in [-8.0, 0.0, 8.0]:
+				c.draw_line(mid + Vector2(x, -15) * k, mid + Vector2(x * 0.6, -4 if x == 0.0 else 2) * k, light, 1.0 * k, true)
+			c.draw_circle(mid + Vector2(0, -6) * k, 3.2 * k, white)
+			c.draw_line(mid + Vector2(0, -3) * k, mid + Vector2(0, 7) * k, white, 2.6 * k, true)
+			c.draw_line(mid + Vector2(-5, 2) * k, mid + Vector2(5, 2) * k, white, 2.0 * k, true)
+			for s in [-1.0, 1.0]:
+				c.draw_line(mid + Vector2(0, 7) * k, mid + Vector2(s * 4, 14) * k, white, 2.0 * k, true)
+		"rootsnare":
+			# Roots snapping up out of the ground and closing over a foot.
+			c.draw_line(mid + Vector2(-15, 12) * k, mid + Vector2(15, 12) * k, col, 2.0 * k, true)
+			c.draw_rect(Rect2(mid + Vector2(-4, -2) * k, Vector2(8, 12) * k), white)
+			for s in [-1.0, 1.0]:
+				c.draw_arc(mid + Vector2(s * 6, 12) * k, 8.0 * k, PI * 1.5 - s * 0.2, PI * 1.5 - s * 1.6, 10, light, 2.4 * k, true)
+				c.draw_arc(mid + Vector2(s * 11, 12) * k, 6.0 * k, PI * 1.5 - s * 0.1, PI * 1.5 - s * 1.4, 8, col, 1.8 * k, true)
+		"bellows":
+			# A forge bellows on the left, a hot gust blowing out of its nozzle.
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-16, -8), Vector2(-4, -3), Vector2(-4, 3), Vector2(-16, 8)]), Color(0.45, 0.32, 0.22))
+			c.draw_line(mid + Vector2(-16, -8) * k, mid + Vector2(-16, 8) * k, white, 1.6 * k, true)
+			c.draw_rect(Rect2(mid + Vector2(-4, -1.5) * k, Vector2(5, 3) * k), light)
+			for i in 3:
+				var y := -7.0 + i * 7.0
+				c.draw_arc(mid + Vector2(4, y) * k, 6.0 * k, -PI * 0.35, PI * 0.35, 8, col, 2.0 * k, true)
+				c.draw_arc(mid + Vector2(10, y) * k, 6.0 * k, -PI * 0.3, PI * 0.3, 8, light, 1.6 * k, true)
+		"deeproots":
+			# A figure standing still, roots spreading deep beneath its feet.
+			c.draw_circle(mid + Vector2(0, -11) * k, 3.2 * k, white)
+			c.draw_line(mid + Vector2(0, -8) * k, mid + Vector2(0, 2) * k, white, 3.0 * k, true)
+			c.draw_line(mid + Vector2(-12, 3) * k, mid + Vector2(12, 3) * k, col, 2.0 * k, true)
+			for x in [-8.0, -3.0, 3.0, 8.0]:
+				c.draw_line(mid + Vector2(x * 0.4, 3) * k, mid + Vector2(x, 15) * k, light, 1.8 * k, true)
+		"sporesleep":
+			# A cloud of spores with a sleepy "z z" drifting up.
+			for p in [Vector2(-7, 4), Vector2(0, 0), Vector2(7, 4), Vector2(-3, 8), Vector2(4, 9)]:
+				c.draw_circle(mid + (p as Vector2) * k, 5.0 * k, Color(col, 0.75))
+			for p in [Vector2(-9, -2), Vector2(2, -4), Vector2(8, -1), Vector2(-2, 6)]:
+				c.draw_circle(mid + (p as Vector2) * k, 1.2 * k, light)
+			for z in [[Vector2(3, -9), 4.0], [Vector2(9, -15), 3.0]]:
+				var o: Vector2 = mid + (z[0] as Vector2) * k
+				var s := float(z[1]) * k
+				c.draw_polyline(PackedVector2Array([o, o + Vector2(s, 0), o + Vector2(0, s), o + Vector2(s, s)]), white, 1.4 * k, true)
+		"stormfront":
+			# A storm cloud racing right, wind lines streaming behind it.
+			for p in [Vector2(-2, -4), Vector2(5, -6), Vector2(10, -2), Vector2(3, 0)]:
+				c.draw_circle(mid + (p as Vector2) * k, 5.5 * k, Color(0.55, 0.6, 0.75))
+			c.draw_polyline(_pts(mid, k, [Vector2(5, 2), Vector2(2, 9), Vector2(6, 9), Vector2(3, 16)]), light, 2.0 * k, true)
+			for i in 3:
+				var y := -8.0 + i * 6.0
+				c.draw_line(mid + Vector2(-17, y) * k, mid + Vector2(-9, y) * k, col, 1.8 * k, true)
+		"circleofsilence":
+			# A ring of light on the ground around a crossed-out speech mark.
+			c.draw_arc(mid + Vector2(0, 2) * k, 13.0 * k, 0, TAU, 28, col, 2.4 * k, true)
+			c.draw_arc(mid + Vector2(0, 2) * k, 9.0 * k, 0, TAU, 22, Color(light, 0.5), 1.2 * k, true)
+			for i in 3:
+				c.draw_arc(mid + Vector2(-4, 2) * k, (3.0 + i * 3.0) * k, -PI * 0.3, PI * 0.3, 6, white, 1.4 * k, true)
+			c.draw_line(mid + Vector2(-8, 10) * k, mid + Vector2(8, -6) * k, light, 2.4 * k, true)
+		"climbthestring":
+			# A figure hauled up along a taut thread toward a far point.
+			c.draw_line(mid + Vector2(-14, 14) * k, mid + Vector2(14, -14) * k, col, 1.6 * k, true)
+			c.draw_circle(mid + Vector2(14, -14) * k, 2.5 * k, light)
+			c.draw_circle(mid + Vector2(-3, 1) * k, 3.0 * k, white)
+			c.draw_line(mid + Vector2(-5, 4) * k, mid + Vector2(-10, 12) * k, white, 2.6 * k, true)
+			c.draw_line(mid + Vector2(-3, 1) * k, mid + Vector2(2, -2) * k, white, 2.0 * k, true)
+			for i in 2:
+				c.draw_line(mid + Vector2(-12 - i * 3, 6 - i * 4) * k, mid + Vector2(-8 - i * 3, 2 - i * 4) * k, Color(light, 0.6), 1.2 * k, true)
+		"leafcloak":
+			# A hooded shape made of overlapping leaves.
+			for p in [Vector2(-6, 2), Vector2(6, 2), Vector2(0, -6), Vector2(-3, 10), Vector2(3, 10)]:
+				var o := mid + (p as Vector2) * k
+				c.draw_colored_polygon(PackedVector2Array([o + Vector2(0, -6) * k, o + Vector2(4, 0) * k, o + Vector2(0, 6) * k, o + Vector2(-4, 0) * k]),
+					col if p.y > 0 else light)
+				c.draw_line(o + Vector2(0, -5) * k, o + Vector2(0, 5) * k, Color(white, 0.5), 0.8 * k, true)
+			c.draw_circle(mid + Vector2(0, -3) * k, 2.0 * k, Color(0.1, 0.12, 0.08))
+		"coolingslag":
+			# A molten pool: glowing at the middle, gone grey and hard at the rim.
+			c.draw_circle(mid + Vector2(0, 4) * k, 14.0 * k, Color(0.45, 0.4, 0.38))
+			c.draw_circle(mid + Vector2(0, 4) * k, 10.0 * k, col)
+			c.draw_circle(mid + Vector2(0, 4) * k, 5.0 * k, light)
+			for p in [Vector2(-7, -8), Vector2(5, -11)]:
+				c.draw_circle(mid + (p as Vector2) * k, 1.8 * k, light)
+		"staticsnare":
+			# A bolt pinning the ground, with a spark leaping to a second spot.
+			c.draw_polyline(_pts(mid, k, [Vector2(-6, -15), Vector2(-1, -4), Vector2(-5, -3), Vector2(0, 9)]), white, 2.6 * k, true)
+			c.draw_arc(mid + Vector2(0, 11) * k, 6.0 * k, 0, TAU, 14, col, 2.0 * k, true)
+			c.draw_arc(mid + Vector2(6, 4) * k, 8.0 * k, -PI * 0.6, PI * 0.1, 8, Color(light, 0.8), 1.4 * k, true)
+			c.draw_circle(mid + Vector2(13, 6) * k, 2.2 * k, light)
+		"fixedpoint":
+			# A clock face with a pin through its middle.
+			c.draw_arc(mid, 12.0 * k, 0, TAU, 24, col, 2.4 * k, true)
+			for i in 4:
+				var a := TAU * i / 4.0
+				c.draw_line(mid + Vector2(cos(a), sin(a)) * 9.0 * k, mid + Vector2(cos(a), sin(a)) * 11.0 * k, light, 1.6 * k, true)
+			c.draw_line(mid, mid + Vector2(0, -8) * k, white, 1.8 * k, true)
+			c.draw_line(mid, mid + Vector2(6, 0) * k, white, 1.8 * k, true)
+			c.draw_circle(mid, 2.4 * k, light)
+		"bindingring":
+			# A figure inside a golden ring; a small enemy caught at its edge.
+			c.draw_arc(mid + Vector2(0, 4) * k, 13.0 * k, 0, TAU, 28, col, 2.6 * k, true)
+			c.draw_circle(mid + Vector2(0, -2) * k, 3.0 * k, white)
+			c.draw_line(mid + Vector2(0, 1) * k, mid + Vector2(0, 9) * k, white, 2.6 * k, true)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(10, 10), Vector2(16, 10), Vector2(13, 16)]), light)
 		"vinefist":
 			# A big fist of braided vines punching forward, glowing veins on the knuckles.
 			c.draw_rect(Rect2(mid + Vector2(-10, -8) * k, Vector2(18, 16) * k), col)

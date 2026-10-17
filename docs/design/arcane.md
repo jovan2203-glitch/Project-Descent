@@ -44,3 +44,8 @@ Values in Frost Bolts (FB) are conversation shorthand; real numbers live in bala
 - Rare: after Glint, any spell can be cast or channelled on the move once.
 - Rare Two-Way Mirror: Mirror Sigil also repeats shatters at 35%.
 - Rare Afterimage (see Lightning).
+
+## Utility (the book's "Utility" divider) - BUILT 2026-10-17
+- Fixed Point (Arcane's root) - instant, 20 s cooldown, 2 mana, 30 m. Roots the target 3 s, +0.5 s per other Arcane spell of yours on cooldown, up to 6 s. Code: scripts/player/utility.gd.
+- Also in Utility (coded with their specs): Unweave (Counterspell), Phase Step, Interval Ward.
+- No party tool yet. A rewind of allies' positions (Undo) was turned down: easy to troll teammates with.

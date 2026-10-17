@@ -223,6 +223,18 @@ func remove(id: String) -> void:
 	if not keys.is_empty():
 		changed.emit()
 
+## The carrier took damage: effects that end on damage (Spore Sleep's sleep) end.
+func break_on_damage() -> void:
+	var gone: Array = []
+	for k in effects:
+		if effects[k]["res"].break_on_damage:
+			gone.append(k)
+	for k in gone:
+		effects.erase(k)
+		absorbs.erase(k)
+	if not gone.is_empty():
+		changed.emit()
+
 func clear() -> void:
 	absorbs.clear()
 	if not effects.is_empty():

@@ -2,8 +2,7 @@ extends CanvasLayer
 
 # Co-op prompts for the local player (child "CoopPrompts" of the player):
 #   - while you're DOWNED: a red screen edge, "You are down", the bleed-out
-#     countdown bar and how to give up.
-#   - next to a downed ally: "Press F to revive <name>".
+#     countdown bar and how to give up (only a healer can revive you).
 
 const Balance = preload("res://scripts/balance.gd")
 
@@ -14,7 +13,6 @@ var _down_title: Label
 var _down_info: Label
 var _bar_bg: ColorRect
 var _bar_fill: ColorRect
-var _revive_label: Label
 var _max_bleed := Balance.DOWNED_BLEED_OUT
 
 const BAR_W := 360.0
@@ -59,18 +57,6 @@ func _ready() -> void:
 	_down_info = _label(18, Color(1.0, 0.9, 0.85))
 	_down_box.add_child(_down_info)
 
-	_revive_label = _label(20, Color(1.0, 0.9, 0.5))
-	_revive_label.anchor_left = 0.5
-	_revive_label.anchor_right = 0.5
-	_revive_label.anchor_top = 1.0
-	_revive_label.anchor_bottom = 1.0
-	_revive_label.offset_left = -300
-	_revive_label.offset_right = 300
-	_revive_label.offset_top = -200
-	_revive_label.offset_bottom = -172
-	_revive_label.visible = false
-	add_child(_revive_label)
-
 func _label(size: int, col: Color) -> Label:
 	var l := Label.new()
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -96,16 +82,6 @@ func _process(_delta: float) -> void:
 	if downed:
 		var left := float(_player.bleed_out_left())
 		_bar_fill.size.x = BAR_W * clampf(left / _max_bleed, 0.0, 1.0)
-		_down_info.text = "Bleeding out in %d s - an ally can revive you (%s)\nPress %s to give up" \
-			% [int(ceil(left)), _key("interact"), _key("restart")]
+		_down_info.text = "Bleeding out in %d s - a healer can revive you\nPress %s to give up" \
+			% [int(ceil(left)), _key("restart")]
 		_shade.color.a = 0.22 + 0.1 * sin(Time.get_ticks_msec() / 250.0)
-	# Revive prompt next to a downed party member.
-	var show_revive := false
-	if not downed and _player.has_method("downed_ally_nearby") and not _player.is_dead():
-		var ally: Node = _player.downed_ally_nearby()
-		if ally != null and not (_player.casting and str(_player.current_spell) == "revive"):
-			var net := get_node_or_null("/root/Net")
-			var nm := str(net.member_name(net.member_of(ally))) if net else "ally"
-			_revive_label.text = "Press %s to revive %s" % [_key("interact"), nm]
-			show_revive = true
-	_revive_label.visible = show_revive

@@ -246,6 +246,18 @@ func revive_local() -> void:
 	if gl:
 		gl.event("You got back up.", Color(1.0, 0.9, 0.5))
 
+## Raised by a healer's out-of-combat rez (Net._sup_raise): back up where you fell,
+## with part of your health and mana. `who` names the healer for the log.
+func raise_local(who: String = "") -> void:
+	var p := get_tree().get_first_node_in_group("player")
+	if p == null or not p.has_method("respawn") or not p.is_dead():
+		return
+	p.respawn(p.global_position, Balance.RAISE_HEALTH_PCT, Balance.RAISE_MANA_PCT)
+	_set_state(State.PLAYING)
+	var gl := _log()
+	if gl:
+		gl.event("%s brought you back." % who if who != "" and who != "?" else "You were brought back.", Color(1.0, 0.9, 0.5))
+
 # Leaving the game (Esc > Quit): equipped gear stays on, the bag goes to the bank.
 # In a party this leaves the group; if you were the leader the others migrate.
 func go_to_menu() -> void:

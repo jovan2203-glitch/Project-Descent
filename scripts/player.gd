@@ -60,6 +60,8 @@ var weaver: WeaverKit = _kit(WeaverKit) as WeaverKit
 var shepherd: ShepherdKit = _kit(ShepherdKit) as ShepherdKit
 var colossus: ColossusKit = _kit(ColossusKit) as ColossusKit
 var venomstring: VenomstringKit = _kit(VenomstringKit) as VenomstringKit
+var rez_kit: RezKit = _kit(RezKit) as RezKit
+var utility: UtilityKit = _kit(UtilityKit) as UtilityKit
 
 ## A component of `script` working for me (a child node, made before _ready).
 func _kit(script: Script) -> Node:
@@ -440,10 +442,10 @@ func _die() -> void:
 # --- Downed & revive (co-op) ----------------------------------------------------------
 # In a party, reaching 0 health while someone else is still standing knocks you
 # down instead of killing you. Enemies ignore you (you're not alive), you can't
-# act, and you bleed out after a while. An ally standing next to you presses
-# Interact (F) to revive you: a short channel, moving cancels it. If everyone
-# is down (or you press Restart to give up) you die for real - only then does
-# the roguelike death penalty apply. Solo and in the Training Room you just die.
+# act, and you bleed out after a while. Only a healer's revive brings you back
+# (Last Verse, Not Finished With You); once dead, a healer's out-of-combat rez
+# (RezKit) raises you where you fell. If everyone is down (or you press Restart
+# to give up) you die for real. Solo and in the Training Room you just die.
 
 var _downed_until := 0.0
 var _times_downed := 0          # this floor (the player is rebuilt on every floor load)
@@ -487,7 +489,7 @@ func _go_down() -> void:
 	_combat().float_text(self, "Downed!", Color(1.0, 0.55, 0.3), true)
 	var gl := get_node_or_null("/root/GameLog")
 	if gl:
-		gl.event("You are down! An ally can revive you (%s)." % get_node("/root/Settings").key_text("interact"),
+		gl.event("You are down! A healer can revive you.",
 			Color(1.0, 0.55, 0.3))
 
 func _tick_downed() -> void:
@@ -528,16 +530,17 @@ func _remember_start() -> void:
 	start_position = global_position
 
 ## No-drawback death (Balance.ROGUELIKE_DEATH off): get back up at `at` with
-## full health and resources. GameManager.revive_local() calls this.
-func respawn(at: Vector3) -> void:
+## full health and resources (or `health_pct` / `mana_pct` of them: a healer's
+## out-of-combat rez). GameManager.revive_local() / raise_local() call this.
+func respawn(at: Vector3, health_pct: float = 100.0, mana_pct: float = 100.0) -> void:
 	if pstate != PState.DEAD and pstate != PState.DOWNED and health > 0:
 		return
 	pstate = PState.IDLE
 	casting = false
 	if status:
 		status.clear()
-	health = max_health
-	resources["mana"] = resource_max("mana")
+	health = maxi(int(round(max_health * health_pct / 100.0)), 1)
+	resources["mana"] = resource_max("mana") * mana_pct / 100.0
 	_times_downed = 0
 	global_position = at
 	velocity = Vector3.ZERO
@@ -551,48 +554,6 @@ func respawn(at: Vector3) -> void:
 	_bus().player_revived.emit()
 	_ring_effect(1.4, Color(1.0, 0.9, 0.5))
 	_combat().float_text(self, "Revived!", Color(1.0, 0.9, 0.5), true)
-
-# Reviving an ally: a channel through the normal cast bar ("revive" is off the GCD).
-var _revive_target: Node3D = null
-
-## The nearest downed party member within revive range (null if none).
-func downed_ally_nearby() -> Node3D:
-	var best: Node3D = null
-	var best_d := Balance.REVIVE_RANGE
-	for p in get_tree().get_nodes_in_group("remote_player"):
-		if not (p is Node3D) or not bool(p.get("downed")):
-			continue
-		var d := _flat_dist_to(p.global_position)
-		if d <= best_d:
-			best_d = d
-			best = p
-	return best
-
-func _try_revive() -> void:
-	if is_dead() or casting or is_stunned():
-		return
-	var ally := downed_ally_nearby()
-	if ally == null:
-		return
-	_revive_target = ally
-	cancel_placement()
-	var net := _net()
-	var nm: String = str(net.member_name(net.member_of(ally))) if net else "ally"
-	_begin_spell("revive", "Reviving %s" % nm, Balance.REVIVE_TIME)
-
-func _revive_target_ok() -> bool:
-	return is_instance_valid(_revive_target) and bool(_revive_target.get("downed")) \
-		and _flat_dist_to(_revive_target.global_position) <= Balance.REVIVE_RANGE + 0.5
-
-func _finish_revive() -> void:
-	var tgt := _revive_target
-	_revive_target = null
-	if tgt == null or not is_instance_valid(tgt):
-		return
-	var net := _net()
-	if net:
-		net.revive_ally(tgt, self)
-	_ring_effect(1.4, Color(1.0, 0.9, 0.5), tgt.global_position)
 
 func _ready() -> void:
 	add_to_group("player")
@@ -767,10 +728,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			else:
 				get_node("/root/GameManager").restart()
 		return
-	if event.is_action_pressed("interact"):
-		_try_revive()
-		get_viewport().set_input_as_handled()
-		return
 	if placing and event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			_update_placement(event.position)
@@ -902,7 +859,8 @@ func use_ability(id: String) -> void:
 const ENEMY_BOLTS := ["frostbolt", "fireball", "lightningbolt", "immolate",
 	"kilnblast", "slowfuse", "rekindle", "frostfirebolt", "coldspike", "chainlightning", "discharge",
 	"livewire", "forkedbolt", "unravel", "countdown", "convergence",
-	"blight", "erode", "highnote", "piercinglight", "thornshot", "briartiger"]
+	"blight", "erode", "highnote", "piercinglight", "thornshot", "briartiger",
+	"sporesleep", "coolingslag"]
 
 # --- Where projectiles leave from: the right hand ------------------------------------
 var _skel: Skeleton3D
@@ -942,6 +900,9 @@ func _use_ability_now(id: String) -> void:
 	if id in SUPPORT_CASTS:
 		cancel_placement()
 		_start_support_cast(id)
+		return
+	if id in RezKit.IDS:
+		rez_kit.start(id)   # a healer's out-of-combat rez
 		return
 	if id == WeaverKit.MOSSBACK_ID or id == WeaverKit.VIPERS_ID:
 		weaver._use_finisher(id)   # Nature caster: the enemy under the mouse, else a circle on the mulch to use
@@ -1401,7 +1362,7 @@ func gcd_duration() -> float:
 	return maxf(GCD_BASE / Stats.haste_mult(haste), GCD_MIN)
 
 static func on_gcd(id: String) -> bool:
-	return id != "" and id != "revive" and not Abilities.is_trinket_slot(id) and not INTERRUPT_LOCKOUT.has(id) \
+	return id != "" and not Abilities.is_trinket_slot(id) and not INTERRUPT_LOCKOUT.has(id) \
 		and not Abilities.OFF_GCD.has(id)
 
 ## Interrupts (off the global cooldown, like in WoW): seconds the target can't cast afterwards.
@@ -1538,7 +1499,7 @@ func blizzard_radius() -> float:
 func effect_duration_bonus(res: Resource) -> float:
 	# (Deep Hoarfrost, Long Burn, Thick Pitch, Lingering Frost: one list, shared
 	# with the tooltips, so what they say is what happens.)
-	return Abilities.effect_time_bonus(res, _talent)
+	return Abilities.effect_time_bonus(res, _talent) + utility.duration_bonus(res)   # (Fixed Point: per Arcane cooldown)
 
 ## Every hit you deal, before its damage is worked out (CombatSystem ->
 ## SignalBus.damage_modify): talent damage bonuses and threat changes.
@@ -1671,6 +1632,9 @@ func _on_damage_modify(info: RefCounted) -> void:
 		var menace: float = rl.passive_threat_pct(str(info.damage_type))
 		if menace > 0.0:
 			info.threat_multiplier *= 1.0 + menace / 100.0
+	# Leaf Cloak: for a while after it, my damage makes no threat.
+	if utility.no_threat():
+		info.threat_multiplier = 0.0
 	# Splintering: an Ice Shard hitting a Frozen / Rime Shelled enemy splinters
 	# (checked before the hit, since the hit may break the shell).
 	if id == "iceshards" and not info.is_proc and _talent("frost_splinter") > 0.0 \
@@ -2089,6 +2053,10 @@ func _start_bolt(id: String) -> void:
 	if id == "rekindle" and fire_caster._rekindle_targets(target).is_empty():
 		_error("You have nothing burning there")
 		return
+	var util_err := utility.cast_error(id, target)
+	if util_err != "":
+		_error(util_err)
+		return
 	if not target_in_range(id):
 		_error("Target out of range")
 		return
@@ -2187,9 +2155,6 @@ func _release_cast() -> void:
 	casting = false
 	current_spell = ""
 	current_state = ""
-	if spell == "revive":
-		_finish_revive()   # not a spell: no cost, no cast events
-		return
 	if spell == "embervolley":
 		fire_caster._ember_volley_tick(true)   # the last ember (the channel was paid for when it started)
 		_bus().cast_finished.emit(spell)
@@ -2230,6 +2195,9 @@ func _release_cast() -> void:
 	if Abilities.is_a(spell, "frostbolt") and (frost_bow._instinct_cast or frost_bow.frozen_instinct_ready()):
 		status.remove(FrostBowKit.INSTINCT_ID)   # Frozen Instinct used up (this bolt was free)
 	frost_bow._instinct_cast = false
+	if spell in RezKit.IDS:
+		rez_kit.finish(spell)
+		return
 	if spell == LightstringKit.REFRACTING_SHOT_ID:
 		lightstring._loose_refracting_shot()   # Holy archer
 		return
@@ -2293,6 +2261,9 @@ func _release_cast() -> void:
 		return
 	if spell == "slowfuse":
 		fire_caster._plant_fuse(target)
+		return
+	if spell in UtilityKit.CASTS:
+		utility.finish_cast(spell, target)   # each book's Utility
 		return
 	if spell == "rekindle":
 		fire_caster._rekindle(target)
@@ -2398,6 +2369,7 @@ func _process(_delta: float) -> void:
 	shepherd._tick_shepherd()
 	colossus._tick_colossus()
 	venomstring._tick_venom(_delta)
+	utility._tick_utility()
 	lightstring._tick_lightstring(_delta)
 	_mouseover_tick()
 	arcane_melee._tick_traces()
@@ -2484,7 +2456,7 @@ func _physics_process(delta: float) -> void:
 		var lost_target := targeted and not _has_valid_target()
 		if current_spell in SUPPORT_CASTS and not _support_target_ok():
 			lost_target = true
-		if current_spell == "revive" and not _revive_target_ok():
+		if current_spell in RezKit.IDS and not rez_kit.target_ok():
 			lost_target = true
 		if input_dir.length() > 0.1 or lost_target:
 			_cancel_cast()  # moving interrupts the cast / channel
@@ -2494,8 +2466,8 @@ func _physics_process(delta: float) -> void:
 			var face_at: Vector3 = target.global_position if targeted else cast_point
 			if current_spell in SUPPORT_CASTS:
 				face_at = _support_face_point()
-			elif current_spell == "revive":
-				face_at = _revive_target.global_position
+			elif current_spell in RezKit.IDS:
+				face_at = rez_kit.target.global_position
 			_face(face_at, delta)
 			cast_timer -= delta
 			if current_spell == "embervolley":
@@ -2575,6 +2547,14 @@ const BLINK_DISTANCE := Balance.BLINK_DISTANCE
 
 func _use_drafted(id: String) -> void:
 	if casting:
+		return
+	if id == LightningCasterKit.FLICKER_ID and bottled_kit.flicker_back_ready():
+		# Flicker pressed again in time: snap back (free, while its cooldown runs).
+		var back_err := _drafted_precheck(id, Abilities.get_resource(id), {})
+		if back_err != "":
+			_error(back_err)
+			return
+		bottled_kit._flicker_back()
 		return
 	if cooldown_left(id) > 0.0:
 		_error("%s is not ready yet" % Abilities.ability_name(id))
@@ -2659,6 +2639,10 @@ func _use_drafted(id: String) -> void:
 			colossus._colossus_use(id, res)   # Nature tank: the Colossus
 		VenomstringKit.FANG_ARROW_ID, VenomstringKit.ADDER_ARROW_ID, VenomstringKit.ASP_ARROW_ID, VenomstringKit.KRAIT_ARROW_ID, VenomstringKit.VENOM_BURST_ID, VenomstringKit.SPITTING_VOLLEY_ID, VenomstringKit.BLOAT_ARROW_ID, VenomstringKit.COIL_BACK_ID, VenomstringKit.VENOM_SURGE_ID:
 			venomstring._venom_use(id, res, w)   # Nature archer: Venomstring
+		UtilityKit.ROOTSNARE_ID, UtilityKit.BELLOWS_ID, UtilityKit.DEEP_ROOTS_ID, UtilityKit.STORM_FRONT_ID, UtilityKit.LEAF_CLOAK_ID, \
+				UtilityKit.STATIC_SNARE_ID, UtilityKit.FIXED_POINT_ID, UtilityKit.BINDING_RING_ID, UtilityKit.CIRCLE_OF_SILENCE_ID, \
+				UtilityKit.CLIMB_STRING_ID:
+			utility.use(id, res)   # each book's Utility
 		"hoarfrost":
 			FROST_BOLT.spawn(get_tree().current_scene, muzzle, target, self, false, id, 0.0)   # Hoarfrost is its on-hit effect
 		"iceshards":
@@ -3018,6 +3002,8 @@ func _drafted_precheck(id: String, _res: Resource, w: Dictionary) -> String:
 		return colossus._colossus_precheck(id)   # Nature tank
 	if VenomstringKit.VENOM_INSTANTS.has(id) or id == VenomstringKit.ADDER_ARROW_ID:
 		return venomstring._venom_precheck(id)   # Nature archer
+	if UtilityKit.INSTANTS.has(id):
+		return utility.precheck(id)   # each book's Utility
 	match id:
 		"blink", "cinderstep", "flicker", "staticstep", "icyretreat":
 			if lightning_caster.surge_active():

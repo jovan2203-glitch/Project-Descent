@@ -214,10 +214,35 @@ func _forked_bolt(tgt: Node3D) -> void:
 		# anything that counts casts: Static, runes that count hits.)
 		Player.FROST_BOLT.spawn(scene, player._muzzle(), near[0], player, true, LightningCasterKit.FORKED_BOLT_ID, hits[1])
 
+const FLICKER_BACK_FX := "flicker_back"
+var _flicker_from := Vector3.ZERO   # where my last Flicker left from (Flicker again snaps me back there)
+
+## Can Flicker be pressed again right now to snap me back (while its own cooldown runs)?
+func flicker_back_ready() -> bool:
+	return player.status != null and player.status.has(FLICKER_BACK_FX)
+
+## Flicker, pressed again in time: back to the spot I flickered from. Free; no second
+## instant Lightning Bolt, Parting Spark or Snap Shot.
+func _flicker_back() -> void:
+	player.status.remove(FLICKER_BACK_FX)
+	var col := Abilities.color_of(LightningCasterKit.FLICKER_ID)
+	player._ring_effect(0.8, col)
+	player.global_position = _flicker_from
+	player.velocity = Vector3.ZERO
+	player._ring_effect(0.8, col)
+
 ## Flicker: a blink (it stops short of walls) that makes my next Lightning Bolt instant.
+## For a few seconds after, pressing it again snaps me back (_flicker_back).
 func _flicker() -> void:
 	var col := Abilities.color_of(LightningCasterKit.FLICKER_ID)
 	var from := player.global_position
+	_flicker_from = from
+	var back := StatusContainer.make_buff(FLICKER_BACK_FX, "Flicker Back", FLICKER_BACK_FX, 0.0, Balance.FLICKER_RETURN_TIME, 1, col)
+	back.stat_modifiers = {}
+	back.tags = PackedStringArray(["Lightning"])
+	back.description = "Press %s again to snap back to where you flickered from." % Abilities.ability_name(LightningCasterKit.FLICKER_ID)
+	player.status.apply(back, player)
+	player.status.set_remaining(FLICKER_BACK_FX, Balance.FLICKER_RETURN_TIME)
 	player.global_position += player._flat_forward() * player._dash_distance(Balance.FLICKER_DISTANCE + player._talent("arcane_long_step"))   # Long Step
 	player._ring_effect(0.8, col, from)
 	player._ring_effect(0.8, col)

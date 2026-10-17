@@ -22,6 +22,9 @@ Values in Frost Bolts (FB) are conversation shorthand; real numbers live in bala
 - Coldmark - arrows on the marked target give Ice Shard charges.
 - Icy Retreat - backward leap leaving a chilling ice patch.
 
+## Utility (the book's "Utility" divider) - 2026-10-17
+- Rimelock (interrupt), Flash Freeze, Winter Hide, Ice Barrier, Snow Ward. Icepin (Frost's root) and Icy Retreat stay in Winter Hunt: they need a bow. Cold Comfort is left with Rime Shell alone.
+
 ## Talents
 - First talents: haste 1/2/3%; Frost spell slows +5/10/15%; shield absorbs +5/10/15%; spells 10/15/20% chance to generate an Ice Shard (requires Ice Shards).
 - Bow talents, grouped together on the right of rows 1-5: Black Ice, Thin Ice (2, requires Glacial Draw: 0.5/1 s faster on a Chilled target), Clean Shatter, Cold Harvest, Marked Prey (2, requires Coldmark: Ice Shards +15/30% to your Coldmark target), Cold Draw.

@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"flicker"
 display_name = "Flicker"
-description = "You flicker up to {flicker_dist} m forward, stopping short of walls. Your next {n:lightningbolt} within {b:FLICKER_TIME} sec is instant."
+description = "You flicker up to {flicker_dist} m forward, stopping short of walls. Your next {n:lightningbolt} within {b:FLICKER_TIME} sec is instant. Using it again within {b:FLICKER_RETURN_TIME} sec snaps you back to where you started, at no cost."
 tags = PackedStringArray("Lightning", "Spell", "Movement")
 cast_type = 0
 cast_time = 0.0

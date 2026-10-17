@@ -44,11 +44,16 @@ func test_the_kit_is_in_the_holy_book() -> void:
 		var tip := Abilities.tooltip(id)
 		assert_false(tip.contains("{") or tip.contains("}"), "%s: every number in its text is filled in: %s" % [id, tip])
 		assert_contains(tip, "an off hand", id)
+	# The kit sits in the Censer Bearer spec, except Unfallen, which works without
+	# the rest of it and sits in Holy's Utility divider.
 	var spec: Array = []
 	for s in Abilities.SPECS["holy"]:
-		if s[0] == "Censer Bearer":
-			spec = s[1]
-	assert_eq(spec, KIT, "the Censer Bearer spec holds the kit")
+		if s[0] == "Censer Bearer" or (s[0] == "Utility" and (s[1] as Array).has("unfallen")):
+			spec.append_array(s[1].filter(func(id): return KIT.has(id)))
+	spec.sort()
+	var kit: Array = KIT.duplicate()
+	kit.sort()
+	assert_eq(spec, kit, "the Censer Bearer spec (and Holy's Utility) holds the kit")
 	for id in ["aureole", "gatherthelight", "unfallen"]:
 		assert_true(Abilities.OFF_GCD.has(id), "%s is off the global cooldown" % id)
 

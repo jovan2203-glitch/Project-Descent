@@ -120,7 +120,7 @@ const HP_REGEN_OUT_OF_COMBAT_PCT := 5.0
 const HP_REGEN_OOC_DELAY := 1.5
 
 ## Interrupts: seconds the target can't cast afterwards.
-const INTERRUPT_LOCKOUT := {"counterspell": 4.0, "furnacebreath": 3.0, "rimelock": 3.0, "jolt": 3.0, "hush": 3.0}
+const INTERRUPT_LOCKOUT := {"counterspell": 4.0, "furnacebreath": 3.0, "rimelock": 3.0, "jolt": 3.0, "hush": 3.0, "circleofsilence": 3.0}
 ## Interrupts share a cooldown: using one puts every other interrupt (of any
 ## book) on at least this many seconds of cooldown, and no interrupt's own
 ## cooldown may be shorter than this (a test checks it; longer is fine).
@@ -294,6 +294,7 @@ const FORKED_BOLT_SOLO := 1.3            # Forked Bolt: damage (coefficient) of 
 const JOLT_ENERGY := 30.0                # Jolt: Energy it gives when it interrupts a cast
 const FLICKER_DISTANCE := 10.0           # Flicker: metres it moves you
 const FLICKER_TIME := 5.0                # ... seconds its instant Lightning Bolt waits for you
+const FLICKER_RETURN_TIME := 4.0         # ... seconds during which pressing it again snaps you back to where you left
 const CAPACITOR_MAX := 100.0             # Capacitor: most Energy it stores
 const CAPACITOR_TIME := 20.0             # ... seconds you have to take it back
 
@@ -889,13 +890,14 @@ const ROGUELIKE_DEATH := false
 
 # --- Co-op: downed & revive ------------------------------------------------------
 ## In a party, reaching 0 health knocks you DOWN instead of killing you (while
-## someone else is still standing). Allies revive you; otherwise you bleed out.
+## someone else is still standing). Only a healer's revive brings you back; otherwise you bleed out.
 const DOWNED_BLEED_OUT := 30.0     # seconds until a downed player dies
 const DOWNED_REPEAT_PENALTY := 10.0 # each extra time you go down on the same floor: this much less (min below)
 const DOWNED_MIN_BLEED_OUT := 10.0
-const REVIVE_TIME := 3.0           # channel (moving cancels it)
-const REVIVE_RANGE := 3.0          # metres
+const DOWNED_RING_RADIUS := 6.0    # metres: the pulsing circle under a downed ally (easy to find)
 const REVIVE_HEALTH_PCT := 30.0    # revived with this % of max health
+const RAISE_HEALTH_PCT := 50.0     # healers' out-of-combat rez (Hymn of Waking, Relight, Back on Your Feet, Return to Bloom): health back
+const RAISE_MANA_PCT := 50.0       # ... and mana back
 
 # --- Co-op: pings ------------------------------------------------------------------
 const PING_TIME := 6.0             # seconds a ping stays up
@@ -1018,6 +1020,35 @@ const COIL_HOLD := 1.0                    # ... and how long it is held in place
 const SURGE_TIME := 15.0                  # Venom Surge: seconds it lasts ...
 const SURGE_MULT := 2.0                   # ... poisons go on this many times as strong
 const LINGERING_VENOM_KEEP := 40.0        # Lingering Venom (talent) capstone: % chance each poison stays through Venom Burst
+
+# --- Utility (each book's "Utility" divider; scripts/player/utility.gd) ---------------------
+# Roots: every book has its own kind (CLAUDE.md). The other tools: useful to anyone
+# in the book, each with a rider only one of that book's specs cashes in.
+const ROOTSNARE_TIME := 3.0               # Rootsnare (Nature): seconds the target and enemies near it are rooted
+const DEEP_ROOTS_TIME := 8.0              # Deep Roots (Nature): seconds it lasts (moving ends it)
+const DEEP_ROOTS_PCT := 15.0              # ... % less damage taken
+const DEEP_ROOTS_SAP := 1                 # ... Sap gained each second
+const SPORE_SLEEP_TIME := 20.0            # Spore Sleep (Nature): seconds a non-boss, non-elite enemy sleeps (any damage wakes it)
+const LEAF_CLOAK_TIME := 4.0              # Leaf Cloak (Nature): seconds after it during which your damage makes no threat
+const BELLOWS_PUSH := 8.0                 # Bellows (Fire): metres enemies are thrown away from you (bosses: not at all)
+const BELLOWS_DRAG_TIME := 0.3            # ... over this many seconds
+const BELLOWS_HEAT_MAX := 3               # ... 1 Heat per enemy thrown, up to this many
+const STORM_FRONT_PCT := 30.0             # Storm Front (Lightning): % faster movement for you and allies near you
+const STORM_FRONT_TIME := 6.0             # ... for this long
+const STORM_FRONT_ENERGY := 5.0           # ... Energy you gain for each ally it reaches
+const CLIMB_STRING_STOP := 1.5            # Climb the String (Shadow): metres short of the target it sets you down
+const CIRCLE_OF_SILENCE_TIME := 4.0       # Circle of Silence (Holy): seconds the circle stays (lockout: INTERRUPT_LOCKOUT)
+const COOLING_SLAG_SLOW := 30.0          # Cooling Slag (Fire): % slower while standing in the molten pool
+const COOLING_SLAG_HARDEN := 2.0          # ... seconds until it hardens
+const COOLING_SLAG_ROOT := 3.0            # ... then enemies still inside are rooted this long
+const STATIC_SNARE_TIME := 2.0            # Static Snare (Lightning): seconds each enemy is rooted
+const STATIC_SNARE_LEAP := 8.0            # ... when it ends, it leaps once to the nearest other enemy within this many metres
+const FIXED_POINT_TIME := 3.0             # Fixed Point (Arcane): base seconds rooted
+const FIXED_POINT_PER_COOLDOWN := 0.5     # ... + this per other Arcane spell of yours on cooldown
+const FIXED_POINT_MAX := 6.0              # ... up to this many seconds in all
+const BINDING_RING_TIME := 8.0            # Binding Ring (Holy): seconds the ring stays around the ally
+const BINDING_RING_ROOTS := 3             # ... the first this many enemies to come close are rooted
+const BINDING_RING_ROOT := 3.0            # ... for this long each
 
 # --- Abilities -----------------------------------------------------------------
 
@@ -1269,6 +1300,24 @@ const ABILITIES := {
 	"bloatarrow": {"cooldown": 15.0},
 	"coilback": {"cooldown": 20.0},
 	"venomsurge": {"cooldown": 120.0},
+	# Utility (each book's "Utility" divider; the numbers above)
+	"rootsnare": {"cooldown": 20.0, "cost": 2, "radius": 3.0, "range": 30.0},
+	"deeproots": {"cooldown": 60.0, "cost": 1},
+	"sporesleep": {"cooldown": 30.0, "cost": 2, "cast_time": 2.0, "range": 30.0},
+	"leafcloak": {"cooldown": 120.0, "radius": 30.0},
+	"coolingslag": {"cooldown": 20.0, "cost": 2, "cast_time": 1.5, "radius": 5.0, "range": 30.0},
+	"staticsnare": {"cooldown": 20.0, "cost": 20, "range": 30.0},
+	"stormfront": {"cooldown": 60.0, "cost": 20, "radius": 15.0},
+	"bellows": {"cooldown": 25.0, "cost": 2, "radius": 6.0},
+	"climbthestring": {"cooldown": 20.0, "cost": 1, "range": 30.0},
+	"circleofsilence": {"cooldown": 25.0, "cost": 2, "radius": 5.0, "range": 30.0},   # interrupt: see INTERRUPT_LOCKOUT
+	"fixedpoint": {"cooldown": 20.0, "cost": 2, "range": 30.0},
+	"bindingring": {"cooldown": 30.0, "cost": 2, "radius": 3.0, "range": 40.0},
+	# Healers' out-of-combat rez (RAISE_*; RezKit)
+	"hymnofwaking": {"cost": 4, "cast_time": 8.0, "range": 30.0},
+	"relight": {"cost": 4, "cast_time": 8.0, "range": 30.0},
+	"backonyourfeet": {"cost": 4, "cast_time": 8.0, "range": 30.0},
+	"returntobloom": {"cost": 4, "cast_time": 8.0, "range": 30.0},
 }
 
 # --- Status effects ----------------------------------------------------------------
@@ -1300,6 +1349,13 @@ const EFFECTS := {
 	"res://data/effects/laid_open.tres": {"duration": LAID_OPEN_TIME},   # Open Up: the mark the Hounds bite harder
 	"res://data/effects/strung_up.tres": {"duration": STRING_UP_TIME},   # String Up: the enemy hangs, stunned
 	"res://data/effects/tangled.tres": {"duration": TANGLE_TIME},        # Tangle: rooted
+	"res://data/effects/rootsnared.tres": {"duration": ROOTSNARE_TIME},          # Rootsnare: rooted
+	"res://data/effects/asleep.tres": {"duration": SPORE_SLEEP_TIME},           # Spore Sleep: asleep until hit
+	"res://data/effects/molten_slag.tres": {"duration": 0.6, "slow": -COOLING_SLAG_SLOW},   # Cooling Slag: in the pool (renewed while inside)
+	"res://data/effects/slagbound.tres": {"duration": COOLING_SLAG_ROOT},       # Cooling Slag: rooted when it hardens
+	"res://data/effects/static_snared.tres": {"duration": STATIC_SNARE_TIME},   # Static Snare: rooted
+	"res://data/effects/fixed.tres": {"duration": FIXED_POINT_TIME},            # Fixed Point: rooted (+ per Arcane cooldown)
+	"res://data/effects/ringbound.tres": {"duration": BINDING_RING_ROOT},       # Binding Ring: rooted
 }
 
 # --- Applying (nothing to tune below) ---------------------------------------------------

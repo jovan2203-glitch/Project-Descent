@@ -1266,6 +1266,17 @@ func drag_to(to: Vector3, drag_time: float = 0.25) -> bool:
 	drag.tween_property(self, "global_position", to, maxf(drag_time, 0.01))
 	return true
 
+## Leaf Cloak: `source`'s threat on me drops to nothing (a taunt of theirs ends too).
+## Host / solo only.
+func drop_threat(source: Node) -> void:
+	if _replica() or source == null or not is_instance_valid(source):
+		return
+	var key := source.get_instance_id()
+	if threat.has(key):
+		threat[key]["value"] = 0.0
+	if _taunt_target == source:
+		_taunt_target = null
+
 func get_threat_list() -> Array:
 	var out := []
 	for key in threat:
@@ -1532,6 +1543,8 @@ func take_damage(amount: int) -> void:
 		return   # (CombatSystem shows "Evade")
 	health = max(health - amount, 0)
 	_update_health_bar()
+	if amount > 0 and status:
+		status.break_on_damage()   # (Spore Sleep: any damage wakes it)
 	_bus().enemy_damaged.emit(self, amount)
 	if health == 0:
 		_die()

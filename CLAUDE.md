@@ -45,6 +45,9 @@ The code and balance.gd are the source of truth for numbers. Design docs record 
 - No two abilities share an icon.
 - A spell with no target auto-targets the closest legal option.
 - Rune procs (e.g. Swiftness) trigger only on your own kills.
+- Every book has its own kind of root, each working differently. A book's crowd control, roots, interrupts, movement, party buffs and self defensives go in its "Utility" divider whenever they work without the rest of a spec's kit; one stays in its spec only if it needs that spec's resource or objects, or a bow. Check the utility audit in docs/design/systems.md before adding utility, so books don't get near-copies.
+- Nothing that lets a player force-move or rewind teammates without a gate: too easy to troll with.
+- Only healer abilities revive (no F-revive). Every healer spec, now and future, has an out-of-combat rez that brings a dead ally back where they fell. Revive abilities never go in non-healer specs. Healer specs: `Abilities.HEALER_SPECS`.
 - Core goal: heavy interaction between abilities, damage types, resources, buffs and debuffs, all easy to reference.
 
 ## Writing abilities and talents
@@ -56,9 +59,7 @@ The code and balance.gd are the source of truth for numbers. Design docs record 
 - Spellbooks never change position.
 
 ## Death and progression
-- Roguelike death is PAUSED: dying just revives or returns to menu. Don't remove the system; keep new features compatible with it.
-- When active: dying resets to level 1, losing equipped gear and abilities. Bank items stay. A rune on a lost item becomes a known rune. Abilities return via Skill Cards from chests.
-- Level lock every 10 levels: on death you drop to the lock level and keep gear you can still equip.
+- Roguelike death is PAUSED: dying just revives or returns to menu. Act as if it doesn't exist: don't plan around it, don't patch new features for it, don't remove its code. It is revisited much later.
 - XP is permanent; leaving to the menu never loses it. At max level the XP bar is hidden everywhere.
 - Max level 50; a new ability every two levels; 1 attribute point per level (respec free in the Character tab).
 - Talent points: 5 at start, +1 per level, +1 extra every second level, bonus at max level: 80 total. 3 points in a row unlocks the next row in all trees; maxing a linked talent opens its link without skipping rows.

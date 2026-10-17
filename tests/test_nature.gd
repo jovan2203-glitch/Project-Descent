@@ -163,7 +163,7 @@ func test_the_healer_kit_is_a_nature_spec() -> void:
 	for s in Abilities.SPECS["nature"]:
 		if s[0] == "Shepherd":
 			spec = s[1]
-	assert_eq(spec, HEALER, "the Shepherd spec holds the kit")
+	assert_eq(spec, HEALER + ["returntobloom"], "the Shepherd spec holds the kit and its out-of-combat rez")
 	for id in ["dewfall", "fawn", "owl", "rootguard", "heartwoodelk"]:
 		assert_true(float(Balance.HEALS.get(id, 0.0)) > 0.0, "%s has a heal" % id)
 

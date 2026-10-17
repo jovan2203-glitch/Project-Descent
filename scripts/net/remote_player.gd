@@ -125,7 +125,7 @@ func _update_labels() -> void:
 	if _hp_label == null:
 		return
 	if downed:
-		_hp_label.text = "DOWNED - revive (%s)" % get_node("/root/Settings").key_text("interact")
+		_hp_label.text = "DOWNED"
 		_hp_label.modulate = Color(1.0, 0.6, 0.3)
 	else:
 		_hp_label.text = "Dead" if health <= 0 else "%d / %d" % [health, max_health]
@@ -150,7 +150,7 @@ func _update_downed_ring() -> void:
 		_downed_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_downed_ring.position.y = -0.85
 		add_child(_downed_ring)
-		var r: float = preload("res://scripts/balance.gd").REVIVE_RANGE * 2.0   # stand inside to revive
+		var r: float = preload("res://scripts/balance.gd").DOWNED_RING_RADIUS
 		_downed_ring.scale = Vector3(r, 1, r)
 		var t := _downed_ring.create_tween().set_loops()
 		t.tween_property(_downed_ring, "transparency", 0.5, 0.6)
