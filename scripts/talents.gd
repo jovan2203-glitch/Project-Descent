@@ -105,13 +105,21 @@ const DEFAULT_LAYOUT := [
 ##              column below it holds one talent per row: Deep Call (caster),
 ##              Ill Will (open), Hard Pull (healer), Wide Pack (melee).
 ##              One slot is still empty (row 10, column 5).
+##   Nature     the healer (Shepherd) left of the middle, the tank (Colossus)
+##              down the middle, the caster (Weaver) right of it, the bow
+##              (Venomstring) down the right edge, the open talents down the
+##              left edge of rows 1-4. Row 1 holds the healer's and caster's
+##              linked talents, row 2 the tank's and the bow's. Rows hold at
+##              most 4, so one tank talent (Wide Awake) sits on the left edge
+##              of row 9. The bottom row: the 5-rank talents of the healer,
+##              tank and caster (the bow's is in row 9).
 const LAYOUTS := {
 	"fire": [[0, 2, 3, 4, 6], [1, 2, 4, 5], [0, 3, 6], [1, 3, 5], [0, 2, 4, 6], [1, 2, 4, 5], [1, 5], [2, 3, 4], [1, 5], [1, 3, 5]],
 	"frost": [[0, 2, 4, 6], [1, 2, 4, 5], [1, 3, 5], [0, 2, 4, 6], [1, 2, 4, 5], [2, 3, 4], [1, 3, 5], [0, 3, 6], [1, 3, 5], [2, 3, 4]],
 	"lightning": [[1, 2, 3, 4, 5], [0, 2, 4, 6], [0, 2, 3, 4, 6], [2, 3, 4], [1, 3, 5], [0, 3, 6], [2, 3, 4], [1, 2, 4, 5], [1, 3, 5], [2, 3, 4]],
 	"arcane": [[0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 2, 4, 6], [0, 1, 3, 5, 6], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [0, 2, 4, 6], [1, 2, 4, 5], [0, 2, 4, 6], [1, 2, 3, 4, 5]],
 	"shadow": [[0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5]],
-	"nature": [[2, 4], [0, 3, 6], [1, 5], [2, 3, 4], [0, 1, 5, 6], [2, 4], [1, 3, 5], [1, 5], [2, 3, 4], [1, 5]],
+	"nature": [[0, 2, 4, 6], [0, 3, 6], [0, 2, 4, 6], [0, 3, 6], [2, 3, 4], [2, 3, 4], [1, 3, 5], [1, 2, 4, 5], [0, 3, 6], [2, 3, 4]],
 	"holy": [[0, 1, 3, 5, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5]],
 	# (One book where Warrior, Rogue and Ranger used to be three.)
 	"martial": [[1, 3, 5], [0, 2, 4, 6], [1, 5], [2, 3, 4], [0, 3, 6], [1, 2, 4, 5], [2, 4], [1, 3, 5], [0, 2, 4, 6], [2, 3, 4]],
@@ -717,6 +725,77 @@ const TALENTS := {
 		"r2c7": ["Lingering Venom", 4, "{n:venomburst} deals {v}% more damage.",
 			{"key": "nature_lingering_venom", "values": [5.0, 10.0, 15.0, 15.0], "requires": "venomburst",
 			"capstone": "Each poison {n:venomburst} would remove has a {b:LINGERING_VENOM_KEEP}% chance to stay on the target."}],
+		# The rest of the book. Shepherd on the left (columns 2-3), the Colossus down the
+		# middle (and Wide Awake on the left edge of row 9), the Weaver right of the
+		# middle (columns 5-6), Venomstring down the right edge, the open talents
+		# down the left edge of rows 1-4. Each spec's 5-rank talent sits in the
+		# bottom row (Venomstring's in row 9). Code: each spec's component in
+		# scripts/player/ (nature_weaver.gd, nature_shepherd.gd, nature_colossus.gd,
+		# nature_venomstring.gd); the open talents: nature_talents_open.gd.
+		# Open talents (Nature in theme, useful to anyone).
+		"r1c1": ["Rough Bark", 3, "Increases your Armor by {v}%.",
+			{"key": "nature_rough_bark", "values": [3.0, 6.0, 9.0], "stats": {"armor%": 3.0}}],
+		"r2c1": ["Green Thumb", 3, "Your heals over time heal {v}% more.",
+			{"key": "nature_green_thumb", "values": [4.0, 8.0, 12.0]}],
+		"r3c1": ["Undergrowth", 3, "Your damage over time effects deal {v}% more damage to an enemy you have rooted, held in place or slowed.",
+			{"key": "nature_undergrowth", "values": [4.0, 8.0, 12.0]}],
+		"r4c1": ["Clinging Vines", 2, "When a root or hold of yours on an enemy ends, it moves {v}% slower for {b:CLINGING_VINES_TIME} sec.",
+			{"key": "nature_clinging_vines", "values": [20.0, 40.0]}],
+		# Venomstring, down the right edge under Lingering Venom; Soaked Through in row 9.
+		"r1c7": ["Long Fangs", 2, "{n:fangarrow} adds {v+b:FANG_EXTEND} sec to your poisons instead of {b:FANG_EXTEND}.",
+			{"key": "nature_long_fangs", "values": [1.0, 2.0], "requires": "fangarrow"}],
+		"r3c7": ["Hungry Venom", 2, "When a poisoned enemy dies, your poisons on it jump to an enemy up to {v} m away instead of {b:POISON_SPREAD}, and deal {v2}% more damage after jumping.",
+			{"key": "nature_hungry_venom", "values": [15.0, 20.0], "values2": [10.0, 20.0]}],
+		"r4c7": ["Spring Trap", 2, "The thorn trap of {n:coilback} catches up to {v} enemies instead of one.",
+			{"key": "nature_spring_trap", "values": [2.0, 3.0], "requires": "coilback"}],
+		"r9c7": ["Soaked Through", 5, "Your poisons on a Steeped enemy deal {v+b:STEEPED_PCT}% more damage instead of {b:STEEPED_PCT}%.",
+			{"key": "nature_soaked_through", "values": [2.0, 4.0, 6.0, 8.0, 10.0]}],
+		# The Shepherd: Rootguard's and Dewfall's at the top, Wild Herd's and the rez's lower.
+		"r3c3": ["Old Bark", 3, "{n:rootguard}'s shield absorbs {v}% more.",
+			{"key": "nature_old_bark", "values": [10.0, 20.0, 30.0], "requires": "rootguard"}],
+		"r5c3": ["Morning Dew", 2, "{n:dewfall} heals {v}% more for each Blossom on its target, instead of {b:DEWFALL_PER_BLOSSOM}%.",
+			{"key": "nature_morning_dew", "values": [15.0, 20.0], "requires": "dewfall"}],
+		"r6c3": ["Return Flight", 2, "After {n:owl} dives, it keeps watching the ally for the rest of its time and can dive once more, healing and striking for {v}% as much.",
+			{"key": "nature_return_flight", "values": [30.0, 60.0], "requires": "owl"}],
+		"r7c2": ["Deep Bloom", 2, "Full Bloom from {n:heartwoodelk} lasts {v} sec longer.",
+			{"key": "nature_deep_bloom", "values": [2.0, 4.0], "requires": "heartwoodelk"}],
+		"r8c3": ["Big Herd", 2, "{n:wildherd}'s cooldown is {v} sec shorter.",
+			{"key": "nature_big_herd", "values": [15.0, 30.0], "requires": "wildherd"}],
+		"r8c2": ["Quick Return", 2, "{n:returntobloom} takes {v} sec less to cast.",
+			{"key": "nature_quick_return", "values": [2.0, 4.0], "requires": "returntobloom"}],
+		"r10c3": ["Evergreen", 5, "Each of your Blossoms heals its ally for {v}% of their maximum health every second.",
+			{"key": "nature_evergreen", "values": [0.05, 0.1, 0.15, 0.2, 0.25]}],
+		# The Colossus, down the middle under Thick Sap.
+		"r4c4": ["Rising Sap", 3, "Each Sap heals you for {v+b:SAP_HEAL_PCT}% of your maximum health every second, instead of {b:SAP_HEAL_PCT}%.",
+			{"key": "nature_rising_sap", "values": [0.1, 0.2, 0.3]}],
+		"r5c4": ["Crushing Grip", 3, "When {n:giantshands} bursts, it deals {v}% more damage for each hit it soaked, up to {b:CRUSHING_GRIP_HITS} hits.",
+			{"key": "nature_crushing_grip", "values": [5.0, 10.0, 15.0], "requires": "giantshands"}],
+		"r6c4": ["Broad Fist", 2, "{n:vinefist} also hits {v} more enemies near its target.",
+			{"key": "nature_broad_fist", "values": [1.0, 2.0], "requires": "vinefist"}],
+		"r7c4": ["Spreading Roots", 2, "The roots {n:stomp} leaves last {v} sec longer and reach {v2} m further. Their damage per second stays the same.",
+			{"key": "nature_spreading_roots", "values": [2.0, 4.0], "values2": [1.0, 2.0], "requires": "stomp"}],
+		"r9c4": ["Firm Hold", 2, "{n:grasp} holds the enemy {v} sec longer and gives you {v2} Rage back.",
+			{"key": "nature_firm_hold", "values": [0.5, 1.0], "values2": [5.0, 10.0], "requires": "grasp"}],
+		"r9c1": ["Wide Awake", 2, "{n:awaken} lasts {v} sec longer.",
+			{"key": "nature_wide_awake", "values": [3.0, 6.0], "requires": "awaken"}],
+		"r10c4": ["Old Growth", 5, "Each Sap you hold makes you take {v}% less damage.",
+			{"key": "nature_old_growth", "values": [0.4, 0.8, 1.2, 1.6, 2.0]}],
+		# The Weaver, right of the middle. Compost opens Bramble Burst (both Thornshot).
+		"r3c5": ["Rich Soil", 3, "The damage each Mulch patch adds to {n:mossback} and {n:chokingvipers} is {v}% higher.",
+			{"key": "nature_rich_soil", "values": [10.0, 20.0, 30.0]}],
+		"r5c5": ["Compost", 1, "{n:thornshot} leaves a Mulch patch once every {b:COMPOST_PATCH_EVERY} hits that land, instead of every {b:THORNSHOT_PATCH_EVERY}.",
+			{"key": "nature_compost", "values": [1.0], "requires": "thornshot"}],
+		"r6c5": ["Bramble Burst", 3, "The thorns {n:thornshot} bursts from your Mulch deal {v}% more damage.",
+			{"key": "nature_bramble_burst", "values": [10.0, 20.0, 30.0], "requires": "thornshot",
+			"capstone": "They reach {b:BRAMBLE_BURST_RADIUS} m from each patch instead of {b:THORNBURST_RADIUS} m."}],
+		"r7c6": ["Fertile Ground", 2, "An enemy that dies with your {n:chokingvipers} on it has a {v}% chance to leave a Mulch patch where it fell.",
+			{"key": "nature_fertile_ground", "values": [50.0, 100.0], "requires": "chokingvipers"}],
+		"r8c5": ["Second Growth", 2, "{n:mossback} has a {v}% chance to leave a Mulch patch where it strikes.",
+			{"key": "nature_second_growth", "values": [15.0, 30.0], "requires": "mossback"}],
+		"r8c6": ["Circling Hawk", 2, "When {n:mossback} or {n:chokingvipers} uses {b:CIRCLING_HAWK_PATCHES} or more Mulch patches, the cooldown of {n:thornwing} is cut by {v} sec.",
+			{"key": "nature_circling_hawk", "values": [3.0, 6.0], "requires": "thornwing"}],
+		"r10c5": ["Overgrown", 5, "Your Nature spells deal {v}% more damage for each Mulch patch you have.",
+			{"key": "nature_overgrown", "values": [0.4, 0.8, 1.2, 1.6, 2.0]}],
 	},
 	"holy": {
 		# The healer (the Hymns: player.gd, "Holy healer: the Hymns"). Row 1: a way for
@@ -921,6 +1000,9 @@ const LINKS := [
 	["holy_wide_burst", "holy_prismatic_burst"],
 	# The archer: Deep Burn opens Long Volley (straight down).
 	["holy_deep_burn", "holy_long_volley"],
+	# --- Nature ---
+	# The caster: Compost opens Bramble Burst (both Thornshot), straight down.
+	["nature_compost", "nature_bramble_burst"],
 ]
 
 static var _db := {}

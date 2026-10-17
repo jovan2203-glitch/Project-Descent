@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"grasp"
 display_name = "Grasp"
-description = "A giant hand rises under the target, grabs it and drops it at your feet. It must attack you for {b:GRASP_TAUNT} sec and is held in place for {b:GRASP_HOLD} sec (it can still attack)."
+description = "A giant hand rises under the target, grabs it and drops it at your feet. It must attack you for {b:GRASP_TAUNT} sec and is held in place for {grasp_hold} sec (it can still attack)."
 tags = PackedStringArray("Ability", "Nature")
 cast_type = 0
 cast_time = 0.0

@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"fangarrow"
 display_name = "Fang Arrow"
-description = "Shoots the target for {hit} Nature damage. Every poison of yours on it lasts {b:FANG_EXTEND} sec longer, and your next {n:adderarrow} is instant."
+description = "Shoots the target for {hit} Nature damage. Every poison of yours on it lasts {fang_extend} sec longer, and your next {n:adderarrow} is instant."
 tags = PackedStringArray("Ability", "Nature", "Ranged", "Projectile")
 cast_type = 0
 cast_time = 0.0

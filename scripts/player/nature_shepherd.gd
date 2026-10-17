@@ -17,7 +17,10 @@ class_name ShepherdKit
 # shield; they answer "owl_hit" (they were hit: the owl dives) and
 # "rootguard_broke" (the shield was used up). A friendly dummy is handled here.
 # Own only: only my rooted creatures use my Blossoms. Numbers: balance.gd
-# (BLOSSOM_*, FAWN_*, ...; heals in HEALS); the talent: Running Herd.
+# (BLOSSOM_*, FAWN_*, ...; heals in HEALS). Talents: Running Herd (Fawn), Morning
+# Dew (Dewfall), Old Bark (Rootguard), Return Flight (Owl), Deep Bloom (Full
+# Bloom), Evergreen (my Blossoms heal); Big Herd and Quick Return change a
+# cooldown and a cast time (Abilities.cooldown_of, base_cast_time).
 
 const DEWFALL_ID := "dewfall"
 const FAWN_ID := "fawn"
@@ -29,6 +32,8 @@ const WILD_HERD_ID := "wildherd"
 const SHEPHERD_INSTANTS := [ROOTGUARD_ID, OWL_ID, ELK_ID, WILD_HERD_ID]
 ## Meter / log id of the owl's strike (its own line: Details.HIT_NAMES).
 const OWL_STRIKE_ID := "owlstrike"
+## Meter / log id of Evergreen's heals (the talent: my Blossoms heal).
+const EVERGREEN_ID := "evergreen"
 const OWL_STRIKE_TAGS := ["Nature", "Spell"]
 const BLOSSOM_FX := "blossom"       # on an ally: my Blossoms (per caster, stacks = how many)
 const OWL_FX := "owl_watch"         # on an ally: my owl watching over them
@@ -39,6 +44,7 @@ const BLOSSOM_COLOR := Color(1.0, 0.62, 0.82)
 var _blossoms := {}   # ally instance id -> {"who", "n", "until"}
 var _owls := {}       # ally instance id -> {"who", "until"}: my owls watching
 var _fawns := 0       # Fawns sent (Running Herd's capstone: every second one)
+var _evergreen_next := 0.0   # when Evergreen next heals
 var _blossom_fx: Resource = null
 # The other end: owls somebody (I, or a party member) has watching over me.
 var _owl_from := {}   # caster instance id -> {"from", "until"}
@@ -49,9 +55,13 @@ var _owl_from := {}   # caster instance id -> {"from", "until"}
 static func blossom_add(have: int, k: int) -> int:
 	return clampi(have + maxi(k, 0), 0, Balance.BLOSSOM_MAX)
 
-## Dewfall's heal multiplier on an ally with `n` Blossoms.
-static func dewfall_mult(n: int) -> float:
-	return 1.0 + Balance.DEWFALL_PER_BLOSSOM / 100.0 * maxi(n, 0)
+## Dewfall's heal multiplier on an ally with `n` Blossoms (`per` % each: Morning Dew's, or 0 for the base).
+static func dewfall_mult(n: int, per: float = 0.0) -> float:
+	return 1.0 + (per if per > 0.0 else Balance.DEWFALL_PER_BLOSSOM) / 100.0 * maxi(n, 0)
+
+## Evergreen: what `n` of my Blossoms heal an ally of `max_health` in one tick (`pct` % each).
+static func evergreen_heal(max_health: float, n: int, pct: float) -> float:
+	return maxf(max_health, 0.0) * maxf(pct, 0.0) / 100.0 * maxi(n, 0)
 
 ## Is a heal of `amount` more than the `missing` health (the ally gets an extra Blossom)?
 static func overheals(amount: int, missing: int) -> bool:
@@ -151,13 +161,30 @@ func _tick_shepherd() -> void:
 		var e: Dictionary = _blossoms[key]
 		if float(e["until"]) <= now or not is_instance_valid(e["who"]):
 			_blossoms.erase(key)   # (the buff on them runs out by itself)
+	_tick_evergreen(now)
 	for key in _owls.keys():
 		var e: Dictionary = _owls[key]
 		if float(e["until"]) <= now:
 			_owls.erase(key)
 			var who: Variant = e["who"]
-			if who != null and is_instance_valid(who) and who.is_alive() and not player.is_dead():
-				_add_blossom(who, 1)   # nothing hit them: it lands and leaves a Blossom
+			if who != null and is_instance_valid(who) and who.is_alive() and not player.is_dead() and not bool(e.get("again", false)):
+				_add_blossom(who, 1)   # nothing hit them: it lands and leaves a Blossom (not after Return Flight's second watch)
+
+## Evergreen: every EVERGREEN_TICK sec, each of my Blossoms heals its ally.
+func _tick_evergreen(now: float) -> void:
+	var pct := player._talent("nature_evergreen")
+	if pct <= 0.0 or _blossoms.is_empty() or player.is_dead():
+		return
+	if now < _evergreen_next:
+		return
+	_evergreen_next = now + Balance.EVERGREEN_TICK
+	for e in _blossoms.values():
+		var who: Variant = e["who"]
+		if who == null or not is_instance_valid(who) or not who.is_alive():
+			continue
+		var mh: Variant = who.get("max_health")
+		var amount := evergreen_heal(float(mh) if mh != null else 0.0, int(e["n"]), pct) * NatureTalentsOpenKit.green_thumb_mult(EVERGREEN_ID, player._talent("nature_green_thumb"))
+		player.strings._heal_exact(who, int(round(amount)), EVERGREEN_ID)
 
 ## Why a Shepherd instant can't be used right now ("" = it can).
 func _shepherd_precheck(id: String) -> String:
@@ -188,7 +215,7 @@ func _shepherd_cast_heal(spell: String, tgt: Variant, _kind: String) -> void:
 		return
 	var who: Node3D = tgt
 	if spell == DEWFALL_ID:
-		player.strings._heal_coef(who, float(Abilities.HEALS[DEWFALL_ID]) * dewfall_mult(blossoms_on(who)), DEWFALL_ID)
+		player.strings._heal_coef(who, float(Abilities.HEALS[DEWFALL_ID]) * dewfall_mult(blossoms_on(who), player._talent("nature_morning_dew")), DEWFALL_ID)   # + Morning Dew
 		player._ring_effect(0.9, BLOSSOM_COLOR, who.global_position)
 	else:
 		_fawn(who, FAWN_ID, player._muzzle() if player.is_inside_tree() else player.global_position)
@@ -236,17 +263,23 @@ func _wild_herd(radius: float) -> void:
 
 # Owl: watches an ally, dives when they are hit.
 
-func _owl(who: Node3D) -> void:
-	_owls[who.get_instance_id()] = {"who": who, "until": player.strings._str_now() + Balance.OWL_TIME}
+## My owl watches `who` for `time` sec (`again`: Return Flight's second watch, after a dive).
+func _owl(who: Node3D, time: float = Balance.OWL_TIME, again: bool = false) -> void:
+	_owls[who.get_instance_id()] = {"who": who, "until": player.strings._str_now() + time, "again": again}
 	if is_same(who, player):
-		_owl_watched(player, Balance.OWL_TIME)
+		_owl_watched(player, time)
 	elif who.is_in_group("friendly"):
 		var st: Node = who.get_node_or_null("Status")
 		if st:
-			st.apply(make_owl_fx(Balance.OWL_TIME), player)
+			st.apply(make_owl_fx(time), player)
+			st.set_remaining_from(OWL_FX, player, time)
 	elif player._net():
-		player._net().support_ally(who, player, "owl", {"t": Balance.OWL_TIME})
+		player._net().support_ally(who, player, "owl", {"t": time})
 	player._ring_effect(1.0, BLOSSOM_COLOR, who.global_position)
+
+## Return Flight: how strong a dive is (1 = the first; `pct` % for the second).
+static func owl_dive_mult(again: bool, pct: float) -> float:
+	return maxf(pct, 0.0) / 100.0 if again else 1.0
 
 ## An owl of `from`'s watches over me for `time` sec.
 func _owl_watched(from: Node, time: float) -> void:
@@ -279,18 +312,26 @@ func _owl_taken(info: RefCounted) -> void:
 func _owl_dive(who: Node3D, attacker: Variant = null) -> void:
 	if who == null or not is_instance_valid(who) or not _owls.has(who.get_instance_id()):
 		return
+	var watch: Dictionary = _owls[who.get_instance_id()]
 	_owls.erase(who.get_instance_id())
 	if player.is_dead() or not who.is_alive():
 		return
+	# Return Flight: after its first dive it watches again for the time it had left, weaker.
+	var again := bool(watch.get("again", false))
+	var back := player._talent("nature_return_flight")
+	var left := float(watch["until"]) - player.strings._str_now()
+	if not again and back > 0.0 and left > 0.0:
+		_owl(who, left, true)
+	var mult := owl_dive_mult(again, back)
 	player.weaver._creature("owl", who.global_position + Vector3(0, 4.0, 0), who.global_position + Vector3(0, 1.0, 0))
 	player.weaver._after(Balance.WOVEN_STRIKE_DELAY, func():
 		if player.is_dead() or not is_instance_valid(who) or not who.is_alive():
 			return
-		_woven_heal(who, float(Abilities.HEALS[OWL_ID]), OWL_ID)
+		_woven_heal(who, float(Abilities.HEALS[OWL_ID]) * mult, OWL_ID)
 		var foe: Variant = attacker if attacker != null and is_instance_valid(attacker) and (attacker as Node).is_in_group("enemies") \
 			and attacker.is_alive() and _flat_dist(who.global_position, attacker.global_position) <= Balance.OWL_REACH else _nearest_enemy_to(who.global_position, Balance.OWL_REACH)
 		if foe != null:
-			player.deal_damage(foe, float(Abilities.get_resource(OWL_ID).damage), OWL_STRIKE_ID, true, "nature", PackedStringArray(OWL_STRIKE_TAGS)))
+			player.deal_damage(foe, float(Abilities.get_resource(OWL_ID).damage) * mult, OWL_STRIKE_ID, true, "nature", PackedStringArray(OWL_STRIKE_TAGS)))
 
 func _nearest_enemy_to(point: Vector3, radius: float) -> Node3D:
 	var best: Node3D = null
@@ -310,7 +351,8 @@ static func _flat_dist(a: Vector3, b: Vector3) -> float:
 func _rootguard(who: Node3D) -> void:
 	var n := _take_blossoms(who)
 	var coef := WeaverKit.rooted_coef(float(Abilities.HEALS[ROOTGUARD_ID]), Balance.ROOTGUARD_PER_BLOSSOM, n)
-	var amount := int(round(player._combat().heal_amount(player, coef, ROOTGUARD_ID) * player.absorb_mult()))   # (Rime Ward: bigger shields)
+	var amount := int(round(player._combat().heal_amount(player, coef, ROOTGUARD_ID) * player.absorb_mult()
+		* (1.0 + player._talent("nature_old_bark") / 100.0)))   # (Rime Ward: bigger shields; Old Bark)
 	player.weaver._creature("roots", player.weaver._ground_under(who), who.global_position)
 	if is_same(who, player):
 		_rootguard_on(player.status, player, amount, Balance.ROOTGUARD_TIME, func(): _rootguard_broke(player))
@@ -351,6 +393,6 @@ func _heartwood_elk(radius: float) -> void:
 			var n := _take_blossoms(a)
 			player.strings._heal_coef(a, WeaverKit.rooted_coef(float(Abilities.HEALS[ELK_ID]), Balance.ELK_PER_BLOSSOM, n) * share, ELK_ID)
 			if n >= Balance.BLOSSOM_MAX:
-				player.hymns._hymn_dr(a, FULL_BLOOM_FX, Balance.FULL_BLOOM_PCT, Balance.FULL_BLOOM_TIME)   # Full Bloom
+				player.hymns._hymn_dr(a, FULL_BLOOM_FX, Balance.FULL_BLOOM_PCT, Balance.FULL_BLOOM_TIME + player._talent("nature_deep_bloom"))   # Full Bloom (+ Deep Bloom)
 		player._ring_effect(radius, BLOSSOM_COLOR))
 

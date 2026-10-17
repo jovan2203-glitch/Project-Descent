@@ -336,6 +336,15 @@ func has_from(id: String, source: Node) -> bool:
 			return true
 	return false
 
+## Is a root, hold or slow applied by `source` active here? (Own only: Undergrowth.)
+func has_cc_from(source: Node) -> bool:
+	for k in effects:
+		var e: Dictionary = effects[k]
+		var res: Resource = e["res"]
+		if (res.root or float(res.stat_modifiers.get("move_speed", 0.0)) < 0.0) and applied_by(e, source):
+			return true
+	return false
+
 ## Is any damage-over-time effect applied by `source` active here? (Own only:
 ## Feed the Flames.) One that ticks by itself (tick_damage), or one tagged "DoT"
 ## whose damage its caster deals (Decay).
@@ -683,6 +692,7 @@ func _process(_delta: float) -> void:
 			expired.append(id)
 	var bursts: Array = []
 	var last_ticks: Array = []   # [effect entry, % of a tick]: dealt below, once the effects are gone
+	var roots_ended: Array = []  # [caster, effect]: roots and holds that ran out (told below: Clinging Vines)
 	for id in expired:
 		var e: Dictionary = effects[id]
 		var er = e["res"].get("expire_damage")
@@ -699,6 +709,12 @@ func _process(_delta: float) -> void:
 				var last_pct := float(src.dot_last_tick_pct(e["res"]))
 				if last_pct > 0.0:
 					last_ticks.append([e, last_pct])
+		# A root or hold ran out: its caster may want to know (source.root_ended:
+		# Clinging Vines). Their own machine is told, never a mirrored copy's.
+		if e["res"].root and not e["res"].stun and not owned_elsewhere(e):
+			var rsrc: Variant = e.get("source")
+			if rsrc != null and is_instance_valid(rsrc) and (rsrc as Node).has_method("root_ended"):
+				roots_ended.append([rsrc, e["res"]])
 		effects.erase(id)
 		absorbs.erase(id)
 		suppress(str(id))   # ended here: a late snapshot from the host must not restart it
@@ -719,5 +735,8 @@ func _process(_delta: float) -> void:
 			cs.deal_dot(e["source"], get_parent(), float(e["res"].tick_damage) * int(e["stacks"]) * float(t[1]) / 100.0,
 				str(e["res"].damage_type), str(e["res"].id), e.get("tags", PackedStringArray()), e["res"],
 				float(e.get("unit", -1.0)))
+	for r in roots_ended:
+		if is_instance_valid(r[0]):
+			r[0].root_ended(get_parent(), r[1])
 	if not expired.is_empty():
 		changed.emit()

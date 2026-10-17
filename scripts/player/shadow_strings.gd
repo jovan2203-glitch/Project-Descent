@@ -786,6 +786,7 @@ func _heal_exact(tgt: Variant, amount: int, id: String) -> void:   # untyped: ma
 func _heal_coef(tgt: Variant, coef: float, id: String) -> int:
 	# (Many Hands and my Pact on someone else; my Pact alone on myself, since this heal does not go through heal().)
 	coef *= player.holy_talents._holy_heal_mult(id)   # Radiance
+	coef *= NatureTalentsOpenKit.green_thumb_mult(id, player._talent("nature_green_thumb"))   # Green Thumb (heals over time)
 	if not is_same(tgt, player) and player.holy_talents.hit_recently(tgt, Balance.WATCHFUL_EYE_WINDOW):
 		coef *= 1.0 + player._talent("holy_watchful_eye") / 100.0   # Watchful Eye (both Holy healers)
 	var amount: int = player._combat().heal_amount(player, coef * (player.pacts_kit._pact_heal_mult() if is_same(tgt, player) else _others_heal_mult(tgt)), id)

@@ -937,6 +937,9 @@ const WOVEN_STRIKE_DELAY := 0.45          # seconds from the cast to a woven cre
 const ROOTED_STRIKE_DELAY := 0.35         # seconds from the press to a rooted creature's strike
 const HUNTING_PARTY_EXTRA := 2            # Hunting Party (talent) capstone: every second Briar Tiger strikes this many more enemies ...
 const HUNTING_PARTY_RADIUS := 8.0         # ... within this many metres of the target
+const COMPOST_PATCH_EVERY := 2            # Compost (talent): every this-many-th Thornshot that lands leaves a patch instead
+const CIRCLING_HAWK_PATCHES := 4          # Circling Hawk (talent): a finisher that uses this many patches or more cuts Thornwing's cooldown
+const BRAMBLE_BURST_RADIUS := 5.0         # Bramble Burst (talent) capstone: Thornburst reaches this many metres from a patch
 # Nature healer: the Shepherd (player.gd, "Nature healer: the Shepherd"). Heals: HEALS.
 const BLOSSOM_MAX := 3                    # Blossoms one ally can hold
 const BLOSSOM_TIME := 20.0                # seconds they last (a new one starts the time of all of them over)
@@ -954,6 +957,7 @@ const FULL_BLOOM_PCT := 10.0              # Full Bloom: % less damage taken
 const FULL_BLOOM_TIME := 6.0              # ... for this many seconds
 const WILD_HERD_FAWNS := 5                # Wild Herd: Fawns sent (one each at the lowest-health allies)
 const RUNNING_HERD_EXTRA := 2             # Running Herd capstone: every second Fawn bounces this many more times
+const EVERGREEN_TICK := 1.0               # Evergreen (talent): seconds between its heals (each Blossom of mine heals its ally)
 # Nature tank: the Colossus (player.gd, "Nature tank: the Colossus")
 const SAP_MAX := 5                        # Sap stacks you can hold
 const SAP_TIME := 20.0                    # seconds they last (a gain starts the time over)
@@ -988,6 +992,7 @@ const AWAKEN_STOMP_RADIUS := 12.0         # ... Stomp reaches this far
 const AWAKEN_HANDS_PCT := 50.0            # ... Giant's Hands absorbs this % more
 const AWAKEN_SAP_MULT := 2                # ... Sap gains times this
 const THICK_SAP_KEEP := 2                 # Thick Sap (talent) capstone: Sap Heartsap leaves you
+const CRUSHING_GRIP_HITS := 5             # Crushing Grip (talent): hits Giant's Hands soaked that count toward its burst bonus
 # Nature archer: Venomstring (player.gd, "Nature archer: Venomstring")
 const VENOM_MAX := 100.0                  # the Venom bar
 const VENOM_PER_TICK := 3.0               # Venom each tick of my poisons gives during Venom Flow (all three up somewhere)
@@ -1020,6 +1025,9 @@ const COIL_HOLD := 1.0                    # ... and how long it is held in place
 const SURGE_TIME := 15.0                  # Venom Surge: seconds it lasts ...
 const SURGE_MULT := 2.0                   # ... poisons go on this many times as strong
 const LINGERING_VENOM_KEEP := 40.0        # Lingering Venom (talent) capstone: % chance each poison stays through Venom Burst
+# Nature open talents (scripts/player/nature_talents_open.gd)
+const CLINGING_VINES_TIME := 3.0          # Clinging Vines: seconds an enemy stays slowed after a root or hold of mine on it ends
+const CLINGING_VINES_SLOW_STEP := 20.0    # ... it moves this % slower per rank of the talent (one stack of the slow per rank)
 
 # --- Utility (each book's "Utility" divider; scripts/player/utility.gd) ---------------------
 # Roots: every book has its own kind (CLAUDE.md). The other tools: useful to anyone
@@ -1326,6 +1334,7 @@ const EFFECTS := {
 	"res://data/effects/grasped.tres": {"duration": GRASP_HOLD},   # Grasp (Nature tank)
 	"res://data/effects/asp_venom.tres": {"duration": POISON_TIME, "slow": -ASP_SLOW},   # Asp Arrow (Nature archer)
 	"res://data/effects/coiled.tres": {"duration": COIL_HOLD},   # Coil Back
+	"res://data/effects/snagged.tres": {"duration": CLINGING_VINES_TIME, "slow": -CLINGING_VINES_SLOW_STEP},   # Clinging Vines (Nature open talent; one stack per rank)
 	"res://data/effects/burning.tres": {"duration": 4.0, "tick_damage": 0.1, "tick_every": 1.0},
 	"res://data/effects/immolate.tres": {"duration": 12.0, "tick_damage": 0.2, "tick_every": 1.0},
 	"res://data/effects/live_wire.tres": {"duration": 10.0, "tick_damage": 0.2, "tick_every": 1.0},

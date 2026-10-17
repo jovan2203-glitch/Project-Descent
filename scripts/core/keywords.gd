@@ -88,6 +88,8 @@ const KEYWORDS := {
 		"text": "Your Venom bar (up to {b:VENOM_MAX}). While Adder Venom, Asp Venom and Krait Venom of yours are all on enemies (any enemies), you have Venom Flow: every tick of your poisons gives {b:VENOM_PER_TICK} Venom. Out of combat it drains away."},
 	"venom_flow": {"forms": ["Venom Flow"],
 		"text": "All three of your poisons are on enemies somewhere: every tick of your poisons gives {b:VENOM_PER_TICK} Venom."},
+	"heal_over_time": {"forms": ["heals over time", "heal over time"],
+		"text": "Healing that comes a little at a time, every second or so: Sap, Evergreen, the Strings and Refrain."},
 	"steeped": {"forms": ["Steeped"],
 		"text": "An enemy with all three of your poisons on it. Your poisons on it deal {b:STEEPED_PCT}% more damage instead of {b:TWO_POISONS_PCT}% for two."},
 	"prism": {"forms": ["white prisms", "white prism", "gold prisms", "gold prism", "prisms", "prism"],

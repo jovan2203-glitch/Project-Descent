@@ -30,6 +30,13 @@ Code: player.gd, "Nature caster: the Weaver". Numbers: balance.gd (MULCH_*, THOR
 
 ### Talents (Nature tree)
 - Hunting Party (4, requires Briar Tiger; row 1, column 5): Briar Tiger deals 5/10/15% more damage; capstone: every second Briar Tiger also strikes 2 more enemies within 8 m of the target and leaves a patch under each.
+- Rich Soil (3; r3c5): each patch adds 10/20/30% more to Mossback and Choking Vipers (only the per-patch part).
+- Compost (1, Thornshot; r5c5): every 2nd Thornshot that lands leaves a patch, instead of every 3rd. Maxing it opens Bramble Burst.
+- Bramble Burst (3, Thornshot; r6c5): Thornburst deals 10/20/30% more; capstone: it reaches 5 m from each patch instead of 4.
+- Fertile Ground (2, Choking Vipers; r7c6): an enemy that dies with my Vipers on it leaves a patch where it fell: 50/100% chance.
+- Second Growth (2, Mossback; r8c5): 15/30% chance Mossback leaves a patch where it strikes.
+- Circling Hawk (2, Thornwing; r8c6): a finisher that uses 4+ patches cuts Thornwing's cooldown by 3/6 s.
+- Overgrown (5; r10c5): my Nature spells deal 0.4/0.8/1.2/1.6/2% more per patch I have (10% at 5).
 
 ## Healer (the Shepherd) - spec "Shepherd" - BUILT 2026-10-16
 Code: player.gd, "Nature healer: the Shepherd". Numbers: balance.gd (BLOSSOM_*, FAWN_*, ROOTGUARD_*, OWL_*, ELK_*, FULL_BLOOM_*, WILD_HERD_*; heals in HEALS). Pictures: scripts/nature_creature.gd (fawn, owl, roots, elk). Tests: tests/test_nature.gd.
@@ -50,6 +57,13 @@ Code: player.gd, "Nature healer: the Shepherd". Numbers: balance.gd (BLOSSOM_*, 
 
 ### Talents
 - Running Herd (4, requires Fawn; row 1, column 3): Fawn heals 5/10/15% more; capstone: every second Fawn bounces 2 more times.
+- Old Bark (3, Rootguard; r3c3): Rootguard's shield absorbs 10/20/30% more.
+- Morning Dew (2, Dewfall; r5c3): Dewfall heals 15/20% more per Blossom instead of 10%.
+- Return Flight (2, Owl; r6c3): after its dive the Owl keeps watching for the time it had left and can dive once more at 30/60% strength (heal and strike); the second watch leaves no Blossom when it lands.
+- Deep Bloom (2, Heartwood Elk; r7c2): Full Bloom lasts 2/4 s longer.
+- Quick Return (2, Return to Bloom; r8c2): its cast is 2/4 s shorter.
+- Big Herd (2, Wild Herd; r8c3): its cooldown is 15/30 s shorter.
+- Evergreen (5; r10c3): each of my Blossoms heals its ally 0.05/0.1/0.15/0.2/0.25% of their max health every second (own meter line "Evergreen"; a heal over time).
 
 ## Tank (the Colossus) - spec "Colossus" - BUILT 2026-10-16
 Code: player.gd, "Nature tank: the Colossus". Numbers: balance.gd (SAP_*, VINE_FIST_*, GRASP_*, STOMP_*, GIANTS_HANDS_*, HEARTSAP_*, AWAKEN_*). Pictures: scripts/nature_creature.gd (fist, hand, foot, hands, chest, giant). Hold effect: data/effects/grasped.tres. Tests: tests/test_nature.gd.
@@ -70,6 +84,13 @@ Code: player.gd, "Nature tank: the Colossus". Numbers: balance.gd (SAP_*, VINE_F
 
 ### Talents
 - Thick Sap (4, requires Heartsap; row 2, column 4): Heartsap heals 5/10/15% more; capstone: Heartsap leaves you 2 Sap.
+- Rising Sap (3; r4c4): each Sap heals 0.5/0.6/0.7% of max health per second instead of 0.4% (Deep Roots' Sap too).
+- Crushing Grip (3, Giant's Hands; r5c4): the burst deals 5/10/15% more per hit the Hands soaked, up to 5 hits.
+- Broad Fist (2, Vine Fist; r6c4): the splash hits 1/2 more enemies.
+- Spreading Roots (2, Stomp; r7c4): Stomp Roots last 2/4 s longer and reach 1/2 m further; same damage per second.
+- Firm Hold (2, Grasp; r9c4): Grasp holds 0.5/1 s longer and gives 5/10 Rage back.
+- Wide Awake (2, Awaken; r9c1): Awaken lasts 3/6 s longer.
+- Old Growth (5; r10c4): each Sap cuts damage taken by 0.4/0.8/1.2/1.6/2% (10% at 5).
 
 ## Archer (Venomstring) - spec "Venomstring" - BUILT 2026-10-16
 Code: player.gd, "Nature archer: Venomstring". Numbers: balance.gd (VENOM_*, POISON_*, ADDER_*, ASP_*, KRAIT_*, BURST_*, BLOAT_*, COIL_*, SURGE_*). Snakes on the arrows: scripts/arrow.gd. Venom bar: scripts/hud.gd. Effects: data/effects/asp_venom.tres (slow), coiled.tres (hold). Tests: tests/test_nature.gd.
@@ -98,6 +119,20 @@ Code: player.gd, "Nature archer: Venomstring". Numbers: balance.gd (VENOM_*, POI
 
 ### Talents
 - Lingering Venom (4, requires Venom Burst; row 2, column 7): Venom Burst deals 5/10/15% more; capstone: each poison Venom Burst would remove has a 40% chance to stay (rolled separately).
+- Long Fangs (2, Fang Arrow; r1c7): Fang Arrow adds 3/4 s to my poisons instead of 2.
+- Hungry Venom (2; r3c7): poisons jump up to 15/20 m on a death (instead of 10) and deal 10/20% more after jumping (once, however often they jump).
+- Spring Trap (2, Coil Back; r4c7): the trap catches up to 2/3 enemies at once.
+- Soaked Through (5; r9c7): Steeped gives 32/34/36/38/40% instead of 30%.
+
+## Open talents (any spec) - BUILT 2026-10-17
+Code: scripts/player/nature_talents_open.gd. Left edge of rows 1-4.
+- Rough Bark (3): 3/6/9% more Armor.
+- Green Thumb (3): my heals over time heal 4/8/12% more. Heals over time: Sap, Evergreen, the Strings, Refrain (Abilities.HEAL_OVER_TIME_IDS; keyword "heals over time").
+- Undergrowth (3): my damage over time deals 4/8/12% more to an enemy carrying my own root, hold or slow.
+- Clinging Vines (2): when a root or hold of mine ends, the enemy is Snagged: 20/40% slower for 3 s (one stack of data/effects/snagged.tres per rank). Was pitched as "Tangled", a name the Shadow Strings' root already uses.
+
+## Talent layout
+Shepherd left of the middle, Colossus down the middle (Wide Awake on the left edge of row 9: rows hold at most 4), Weaver right of the middle, Venomstring down the right edge, open talents down the left edge of rows 1-4. 5-rank talents in the bottom row (Venomstring's in row 9). One link: Compost -> Bramble Burst. Save version 9 refunded points left in the old empty slots.
 
 ## Utility (the book's "Utility" divider) - BUILT 2026-10-17
 Code: scripts/player/utility.gd. Numbers: balance.gd (Utility section). Tests: tests/test_utility.gd. Useful to any spec (a fire mage takes one for the job it does); each has a rider only its Nature spec cashes in. See the utility table in systems.md. Overgrowth (knockback) moved to Fire as Bellows and Wild Run (party speed) to Lightning as Storm Front (2026-10-17), so Nature no longer carries most of the game's utility.

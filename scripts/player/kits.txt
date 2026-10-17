@@ -1,3 +1,4 @@
+nature_open NatureTalentsOpenKit nature_talents_open.gd
 venomstring VenomstringKit nature_venomstring.gd
 colossus ColossusKit nature_colossus.gd
 shepherd ShepherdKit nature_shepherd.gd

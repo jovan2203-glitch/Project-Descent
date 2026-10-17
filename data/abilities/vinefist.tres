@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"vinefist"
 display_name = "Vine Fist"
-description = "A giant fist of woven vines punches over your shoulder, dealing {hit} Nature damage to the target and {d:VINE_FIST_SPLASH} Nature damage to up to {b:VINE_FIST_EXTRA} more enemies within {b:VINE_FIST_REACH} m of it, with {threat}x threat. Gives {b:VINE_FIST_SAP} Sap."
+description = "A giant fist of woven vines punches over your shoulder, dealing {hit} Nature damage to the target and {d:VINE_FIST_SPLASH} Nature damage to up to {vine_fist_extra} more enemies within {b:VINE_FIST_REACH} m of it, with {threat}x threat. Gives {b:VINE_FIST_SAP} Sap."
 tags = PackedStringArray("Ability", "Nature", "Melee")
 cast_type = 0
 cast_time = 0.0

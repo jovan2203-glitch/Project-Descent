@@ -508,6 +508,7 @@ const HIT_NAMES := {
 	"refraction": "Refraction",
 	"thornburst": "Thornburst",
 	"owlstrike": "Owl's Strike",
+	"evergreen": "Evergreen",
 	"stomproots": "Stomp Roots",
 	"giantsslam": "Giant's Slam",
 	"sap": "Sap",
@@ -578,7 +579,7 @@ static func spell_color(id: String) -> Color:
 			return Abilities.color_of("blink")
 		"thornburst":
 			return Abilities.color_of("thornshot")   # (Nature caster)
-		"owlstrike":
+		"owlstrike", "evergreen":
 			return Abilities.color_of("owl")   # (Nature healer)
 		"venomburst_splash":
 			return Abilities.color_of("venomburst")   # (Nature archer)

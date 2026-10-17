@@ -12,7 +12,10 @@ class_name WeaverKit
 # target. Thornshot is the filler: thorns also burst from my patches near its
 # target (Thornburst), and every few that land leave a patch. Own only: the
 # party sees my patches faint and nothing of theirs touches mine. Numbers:
-# balance.gd (MULCH_* and the rest); the talent: Hunting Party.
+# balance.gd (MULCH_* and the rest). Talents: Hunting Party (Briar Tiger),
+# Compost and Bramble Burst (Thornshot), Rich Soil (both finishers), Second
+# Growth (Mossback), Fertile Ground (Choking Vipers), Circling Hawk (Thornwing)
+# and Overgrown (my Nature spells, per patch: nature_talents_open.gd asks it).
 
 const MULCH = preload("res://scripts/mulch_patch.gd")
 const NATURE_CREATURE = preload("res://scripts/nature_creature.gd")
@@ -91,6 +94,31 @@ static func vipers_ticks(haste: float) -> int:
 ## Is the `n`-th Briar Tiger (from 1) one that Hunting Party's capstone doubles up?
 static func hunting_party_turn(n: int) -> bool:
 	return n > 0 and n % 2 == 0
+
+## Every how many Thornshots that land leave a patch (Compost: fewer).
+static func thornshot_patch_every(compost: bool) -> int:
+	return Balance.COMPOST_PATCH_EVERY if compost else Balance.THORNSHOT_PATCH_EVERY
+
+## What one patch adds to a finisher (`per`) with Rich Soil's `pct` %.
+static func rich_soil_per(per: float, pct: float) -> float:
+	return per * (1.0 + maxf(pct, 0.0) / 100.0)
+
+## Overgrown: % more damage for my Nature spells with `patches` patches out.
+static func overgrown_pct(per_patch: float, patches: int) -> float:
+	return maxf(per_patch, 0.0) * maxi(patches, 0)
+
+## Does a finisher that used `used` patches cut Thornwing's cooldown (Circling Hawk)?
+static func circling_hawk_turn(used: int) -> bool:
+	return used >= Balance.CIRCLING_HAWK_PATCHES
+
+## Thornburst: [damage coefficient, radius] with Bramble Burst's `pct` % and its capstone.
+static func thornburst_with(pct: float, capstone: bool) -> Array:
+	return [Balance.THORNBURST_DAMAGE * (1.0 + maxf(pct, 0.0) / 100.0),
+		Balance.BRAMBLE_BURST_RADIUS if capstone else Balance.THORNBURST_RADIUS]
+
+## A roll of `pct` % (Second Growth, Fertile Ground): `roll` is 0-100.
+static func rolls(pct: float, roll: float) -> bool:
+	return pct > 0.0 and roll < pct
 
 func _mulch_spots() -> Array:
 	var out := []
@@ -210,18 +238,21 @@ func _thornshot_landed(enemy: Node, at: Vector3) -> void:
 		var spots := []
 		for i in near:
 			spots.append(_mulch[int(i)]["pos"])
-		var foes := player._enemies_near(at, Balance.MULCH_REACH + Balance.THORNBURST_RADIUS)
+		# Bramble Burst: harder, and with its capstone further.
+		var burst := thornburst_with(player._talent("nature_bramble_burst"), player.frost_melee._capstone("nature_bramble_burst"))
+		var radius := float(burst[1])
+		var foes := player._enemies_near(at, Balance.MULCH_REACH + radius)
 		var points := []
 		for e in foes:
 			points.append((e as Node3D).global_position)
-		var hit := near_any(points, spots, Balance.THORNBURST_RADIUS)
+		var hit := near_any(points, spots, radius)
 		var share := Balance.aoe_share(hit.size())
 		for i in hit:
-			player.deal_damage(foes[int(i)], Balance.THORNBURST_DAMAGE * share, THORNBURST_ID, true, "nature", PackedStringArray(THORNBURST_TAGS))
+			player.deal_damage(foes[int(i)], float(burst[0]) * share, THORNBURST_ID, true, "nature", PackedStringArray(THORNBURST_TAGS))
 		for s in spots:
-			player._ring_effect(Balance.THORNBURST_RADIUS * 0.5, MULCH.GLOW, s)
+			player._ring_effect(radius * 0.5, MULCH.GLOW, s)
 	_thornshots_landed += 1
-	if _thornshots_landed % Balance.THORNSHOT_PATCH_EVERY == 0 and enemy is Node3D:
+	if _thornshots_landed % thornshot_patch_every(player._talent("nature_compost") > 0.0) == 0 and enemy is Node3D:   # Compost
 		_add_mulch(_ground_under(enemy))
 
 ## One of the kit's instants (paid for and put on cooldown by _use_drafted).
@@ -264,7 +295,7 @@ func _start_vipers(enemy: Node, coef: float) -> void:
 	var base_ticks := maxi(int(round(Balance.VIPERS_TIME / Balance.VIPERS_TICK)), 1)
 	var every := Balance.VIPERS_TICK / player.haste_mult()
 	_vipers.append({"target": enemy, "coef": coef / base_ticks, "ticks": vipers_ticks(player.haste_mult()),
-		"next": Time.get_ticks_msec() / 1000.0 + every, "every": every})
+		"next": Time.get_ticks_msec() / 1000.0 + every, "every": every, "pos": _ground_under(enemy as Node3D)})
 
 func _tick_vipers() -> void:
 	if _vipers.is_empty():
@@ -272,10 +303,17 @@ func _tick_vipers() -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	for i in range(_vipers.size() - 1, -1, -1):
 		var v: Dictionary = _vipers[i]
-		var e: Node = v["target"]
-		if not is_instance_valid(e) or not e.is_alive() or int(v["ticks"]) <= 0:
+		var e: Variant = v["target"]
+		if int(v["ticks"]) <= 0:
 			_vipers.remove_at(i)
 			continue
+		if e == null or not is_instance_valid(e) or not e.is_alive():
+			_vipers.remove_at(i)
+			# Fertile Ground: it died with my vipers on it.
+			if rolls(player._talent("nature_fertile_ground"), randf() * 100.0):
+				_add_mulch(v["pos"])
+			continue
+		v["pos"] = _ground_under(e as Node3D)
 		if now < float(v["next"]):
 			continue
 		v["ticks"] = int(v["ticks"]) - 1
@@ -345,19 +383,31 @@ func _mossback(enemy: Node3D, center: Vector3) -> void:
 	var res := Abilities.get_resource(MOSSBACK_ID)
 	var foot := _ground_under(enemy)
 	var used := _use_mulch(center)
-	var coef := rooted_coef(float(res.damage), Balance.MOSSBACK_PER_PATCH, int(used[0]))
+	var coef := rooted_coef(float(res.damage), rich_soil_per(Balance.MOSSBACK_PER_PATCH, player._talent("nature_rich_soil")), int(used[0]))   # + Rich Soil
+	_circling_hawk(int(used[0]))
 	var start: Vector3 = used[1] if int(used[0]) > 0 else foot + (player.global_position - foot).normalized() * 1.5
 	_creature("bear", start, foot)
 	_after(Balance.ROOTED_STRIKE_DELAY, func():
 		if not player.is_dead() and is_instance_valid(enemy) and enemy.is_alive():
-			player.deal_damage(enemy, coef, MOSSBACK_ID))
+			foot = _ground_under(enemy)
+			player.deal_damage(enemy, coef, MOSSBACK_ID)
+			# Second Growth: the bear may leave a patch where it struck.
+			if rolls(player._talent("nature_second_growth"), randf() * 100.0):
+				_add_mulch(foot))
+
+## Circling Hawk: a finisher that used enough patches takes time off Thornwing.
+func _circling_hawk(used: int) -> void:
+	var cut := player._talent("nature_circling_hawk")
+	if cut > 0.0 and circling_hawk_turn(used):
+		player.arcane_caster._cut_cooldown(THORNWING_ID, cut)
 
 ## Choking Vipers: the patches within MULCH_REACH of `center` feed vipers that
 ## choke every enemy within its radius of `center` (split past the AoE cap).
 func _choking_vipers(center: Vector3) -> void:
 	var res := Abilities.get_resource(VIPERS_ID)
 	var used := _use_mulch(center)
-	var total := rooted_coef(float(res.damage), Balance.VIPERS_PER_PATCH, int(used[0]))
+	var total := rooted_coef(float(res.damage), rich_soil_per(Balance.VIPERS_PER_PATCH, player._talent("nature_rich_soil")), int(used[0]))   # + Rich Soil
+	_circling_hawk(int(used[0]))
 	var foes := player._enemies_near(center, float(res.radius))
 	var coef := total * Balance.aoe_share(foes.size())
 	for e in foes:

@@ -17,7 +17,9 @@ class_name VenomstringKit
 # Coil Back the escape (a thorn trap), Venom Surge the big cooldown.
 # The arrows look like any arrow with a woven snake coiled around the shaft
 # (arrow.gd); nothing of it sits on the enemies. Numbers: balance.gd (VENOM_*,
-# POISON_*, ADDER_*, ...); the talent: Lingering Venom.
+# POISON_*, ADDER_*, ...). Talents: Lingering Venom (Venom Burst), Long Fangs
+# (Fang Arrow), Hungry Venom (poisons jumping on a death), Spring Trap (Coil
+# Back's trap) and Soaked Through (Steeped).
 
 const FANG_ARROW_ID := "fangarrow"
 const ADDER_ARROW_ID := "adderarrow"
@@ -63,9 +65,9 @@ static func poison_total(kind: String) -> float:
 	return 0.0
 
 ## How much more my poisons on an enemy deal, with `kinds` different ones of mine on it.
-static func poison_mult(kinds: int) -> float:
+static func poison_mult(kinds: int, soaked: float = 0.0) -> float:   # (`soaked`: Soaked Through, % more on Steeped)
 	if kinds >= 3:
-		return 1.0 + Balance.STEEPED_PCT / 100.0
+		return 1.0 + (Balance.STEEPED_PCT + maxf(soaked, 0.0)) / 100.0
 	if kinds == 2:
 		return 1.0 + Balance.TWO_POISONS_PCT / 100.0
 	return 1.0
@@ -154,7 +156,7 @@ func _poison_landed(enemy: Node, id: String, strength: float) -> void:
 func _fang_landed(enemy: Node) -> void:
 	for p in _poisons:
 		if is_same(p["target"], enemy):
-			p["until"] = float(p["until"]) + Balance.FANG_EXTEND
+			p["until"] = float(p["until"]) + Balance.FANG_EXTEND + player._talent("nature_long_fangs")   # + Long Fangs
 
 ## Every frame: poison ticks, spreading, Venom Flow, Bloat Arrows, Coil Back's traps.
 func _tick_venom(delta: float) -> void:
@@ -187,7 +189,7 @@ func _tick_poisons(now: float) -> void:
 		if now < float(p["next"]):
 			continue
 		p["next"] = now + _poison_every_for(p)
-		var coef := float(p["coef"]) * poison_mult(poisons_on(e).size())
+		var coef := float(p["coef"]) * poison_mult(poisons_on(e).size(), player._talent("nature_soaked_through"))   # + Soaked Through
 		var id: String = POISON_OF.find_key(p["kind"])
 		var info = player._combat().ability_hit_info(player, e, coef, id, true, "nature", PackedStringArray(POISON_TAGS))
 		info.is_dot = true
@@ -198,12 +200,18 @@ func _tick_poisons(now: float) -> void:
 
 ## A poisoned enemy died: the poison `p` jumps to the nearest enemy near it, with its time left.
 func _spread_poison(p: Dictionary, now: float) -> void:
-	var foes := player._enemies_near(p["pos"], Balance.POISON_SPREAD)
+	var reach := maxf(Balance.POISON_SPREAD, player._talent("nature_hungry_venom"))   # Hungry Venom: further
+	var foes := player._enemies_near(p["pos"], reach)
 	var spots: Array = foes.map(func(f): return (f as Node3D).global_position)
-	var i := nearest_within(p["pos"], spots, Balance.POISON_SPREAD)
+	var i := nearest_within(p["pos"], spots, reach)
 	if i < 0 or float(p["until"]) <= now:
 		return
-	_copy_poison(p, foes[i])
+	_copy_poison(p, foes[i], player._talent("nature_hungry_venom", "values2"))
+
+## Hungry Venom: a jumping poison's damage (coefficient per tick) with `pct` % more,
+## once (`jumped`: it already got it on an earlier jump).
+static func hungry_coef(coef: float, pct: float, jumped: bool) -> float:
+	return coef if jumped or pct <= 0.0 else coef * (1.0 + pct / 100.0)
 
 ## The Venom Flow buff on me while it flows.
 func _sync_venom_flow() -> void:
@@ -330,7 +338,7 @@ func _venom_burst(foe: Node3D) -> void:
 		if not is_same(p["target"], foe):
 			continue
 		var every := _poison_every_for(p)
-		left += float(p["coef"]) * poison_mult(kinds.size()) * maxf(float(p["until"]) - now, 0.0) / every
+		left += float(p["coef"]) * poison_mult(kinds.size(), player._talent("nature_soaked_through")) * maxf(float(p["until"]) - now, 0.0) / every
 		if keep and randf() * 100.0 < Balance.LINGERING_VENOM_KEEP:
 			continue   # Lingering Venom's capstone: this one stays
 		_poisons.remove_at(i)
@@ -382,7 +390,7 @@ func _bloat_burst(e: Variant, at: Vector3, now: float) -> void:
 	player._ring_effect(Balance.BLOAT_RADIUS * 0.4, POISON_COLORS["asp"], at)
 
 ## My poison `p` (its strength and time left) also on `to`, unless it has a longer one of mine of that kind.
-func _copy_poison(p: Dictionary, to: Node) -> void:
+func _copy_poison(p: Dictionary, to: Node, hungry_pct: float = 0.0) -> void:   # (`hungry_pct`: Hungry Venom, on a jump)
 	for q in _poisons:
 		if is_same(q["target"], to) and q["kind"] == p["kind"] and float(q["until"]) >= float(p["until"]):
 			return
@@ -390,6 +398,9 @@ func _copy_poison(p: Dictionary, to: Node) -> void:
 		if is_same(_poisons[j]["target"], to) and _poisons[j]["kind"] == p["kind"]:
 			_poisons.remove_at(j)
 	var c := p.duplicate()
+	if hungry_pct > 0.0:
+		c["coef"] = hungry_coef(float(p["coef"]), hungry_pct, bool(p.get("jumped", false)))
+		c["jumped"] = true
 	c["target"] = to
 	c["pos"] = (to as Node3D).global_position
 	_poisons.append(c)
@@ -416,7 +427,8 @@ func _tick_coil_traps(now: float) -> void:
 		if near.is_empty():
 			continue
 		_coil_traps.remove_at(i)
-		var e: Node3D = near[0]
-		player.weaver._creature("viper", Vector3(e.global_position.x, Combat.feet_y(e), e.global_position.z), e.global_position)
-		player._combat().apply_effect(player, e, COILED_FX, COIL_BACK_ID, PackedStringArray(POISON_TAGS))
-		_apply_poison(e, "asp")
+		# Spring Trap: it catches more than one of the enemies there.
+		for e in near.slice(0, maxi(int(round(player._talent("nature_spring_trap"))), 1)):
+			player.weaver._creature("viper", Vector3(e.global_position.x, Combat.feet_y(e), e.global_position.z), e.global_position)
+			player._combat().apply_effect(player, e, COILED_FX, COIL_BACK_ID, PackedStringArray(POISON_TAGS))
+			_apply_poison(e, "asp")

@@ -60,6 +60,7 @@ var weaver: WeaverKit = _kit(WeaverKit) as WeaverKit
 var shepherd: ShepherdKit = _kit(ShepherdKit) as ShepherdKit
 var colossus: ColossusKit = _kit(ColossusKit) as ColossusKit
 var venomstring: VenomstringKit = _kit(VenomstringKit) as VenomstringKit
+var nature_open: NatureTalentsOpenKit = _kit(NatureTalentsOpenKit) as NatureTalentsOpenKit
 var rez_kit: RezKit = _kit(RezKit) as RezKit
 var utility: UtilityKit = _kit(UtilityKit) as UtilityKit
 
@@ -216,6 +217,10 @@ func overdrive_active() -> bool:
 # Forwards to FireLightningTalentsKit (called from other scripts).
 func dot_last_tick_pct(_res: Resource = null) -> float:
 	return fire_lightning_talents.dot_last_tick_pct(_res)
+
+# Forwards to NatureTalentsOpenKit (StatusContainer: a root or hold of mine ran out: Clinging Vines).
+func root_ended(foe: Node, res: Resource) -> void:
+	nature_open.root_ended(foe, res)
 
 # Forwards to BottledLightningKit (called from other scripts).
 func bottled_ready(spell: String) -> bool:
@@ -1530,6 +1535,7 @@ func _on_damage_modify(info: RefCounted) -> void:
 		lightning_melee._guard_incoming(info)   # Reflex Arc, Faraday Guard
 		strings._crossed_incoming(info) # Crossed Strings: part of it goes to an enemy
 		pacts_kit._pact_incoming(info)    # my Pact: more or less damage taken
+		nature_open._nature_talents_incoming(info)   # Old Growth
 		return
 	if info.source != self:
 		return
@@ -1567,6 +1573,7 @@ func _on_damage_modify(info: RefCounted) -> void:
 	arcane_open._borrowed_time_hit(info, id)   # Borrowed Time: the next spell or ability after a long cooldown comes back
 	fire_lightning_talents._open_talents_modify(info)   # Feed the Flames, Change of Pace, Dig In
 	shadow_talents._shadow_talents_modify(info, id)   # Slow Death, Finish It, Inevitable, Spite
+	nature_open._nature_talents_outgoing(info)   # Undergrowth, Overgrown
 	lightning_melee._empower_weapon_ability(info, id)   # Static Step, Polar Strike's charge
 	# Running on Empty: with little Energy left, my Lightning spells and abilities hit harder.
 	var empty := _talent("lightning_running_on_empty")
@@ -2085,6 +2092,8 @@ func _begin_spell(spell: String, display_name: String, duration: float, channel:
 		duration = maxf(duration - _talent("holy_steady_aim"), 0.2)   # Steady Aim
 	elif spell == PrismsKit.BRIGHT_LANCE_ID:
 		duration = maxf(duration - _talent("holy_quick_lance"), 0.2)   # Quick Lance
+	elif spell == "returntobloom":
+		duration = maxf(duration - _talent("nature_quick_return"), 0.2)   # Quick Return
 	elif spell == FrostBowKit.GLACIAL_DRAW_ID:
 		duration = FrostBowKit.thin_ice_cast(duration, _talent("frost_thin_ice"), frost_bow._chilled_by_me(target))   # Thin Ice
 	elif spell == StringsKit.HOIST_ID:

@@ -85,7 +85,12 @@ const ICONED := ["frost_haste", "frost_cold_draw", "frost_black_ice", "frost_cle
 	"holy_deep_pour", "holy_high_censer", "holy_clear_glass", "holy_deep_crystal", "holy_sharp_facets", "holy_wide_burst",
 	"holy_prismatic_burst", "holy_quick_realign", "holy_wide_fan", "holy_split_light", "holy_bright_quiver", "holy_deep_burn",
 	"holy_swift_light", "holy_long_volley",
-	"nature_running_herd", "nature_hunting_party", "nature_thick_sap", "nature_lingering_venom"]
+	"nature_running_herd", "nature_hunting_party", "nature_thick_sap", "nature_lingering_venom",
+	"nature_rough_bark", "nature_green_thumb", "nature_undergrowth", "nature_clinging_vines", "nature_long_fangs", "nature_hungry_venom",
+	"nature_spring_trap", "nature_soaked_through", "nature_old_bark", "nature_morning_dew", "nature_return_flight", "nature_deep_bloom",
+	"nature_big_herd", "nature_quick_return", "nature_evergreen", "nature_rising_sap", "nature_crushing_grip", "nature_broad_fist",
+	"nature_spreading_roots", "nature_firm_hold", "nature_wide_awake", "nature_old_growth", "nature_rich_soil", "nature_compost",
+	"nature_bramble_burst", "nature_fertile_ground", "nature_second_growth", "nature_circling_hawk", "nature_overgrown"]
 
 static func draw(c: Control, id: String) -> void:
 	if not has_icon(id):
@@ -498,6 +503,184 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 				var d := Vector2(cos(a), sin(a))
 				c.draw_line(mid + Vector2(-4, 4) * k + d * 8.0 * k, mid + Vector2(-4, 4) * k + d * 12.0 * k, light, 1.8 * k, true)
 			_drop(c, mid + Vector2(10, -6) * k, 0.45 * k, Color(0.4, 0.95, 0.3), WHITE, k)
+		# --- Nature: the open talents ---
+		"nature_rough_bark":   # a slab of rough bark, deep furrows across it
+			c.draw_rect(Rect2(mid + Vector2(-13, -15) * k, Vector2(26, 30) * k), WOOD)
+			for y in [-10.0, -3.0, 4.0, 11.0]:
+				c.draw_polyline(_p(mid, k, [Vector2(-13, y), Vector2(-6, y - 2), Vector2(1, y + 1), Vector2(7, y - 1), Vector2(13, y + 1)]), WOOD.darkened(0.5), 2.0 * k, true)
+			c.draw_rect(Rect2(mid + Vector2(-13, -15) * k, Vector2(26, 30) * k), light, false, 1.4 * k)
+		"nature_green_thumb":   # a thumb with a sprout growing from it
+			c.draw_rect(Rect2(mid + Vector2(-6, -2) * k, Vector2(12, 17) * k), Color(0.95, 0.78, 0.62))
+			c.draw_circle(mid + Vector2(0, -2) * k, 6.0 * k, Color(0.95, 0.78, 0.62))
+			c.draw_line(mid + Vector2(0, -8) * k, mid + Vector2(0, -16) * k, HEAL_GREEN, 2.0 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(0, -13), Vector2(-7, -17), Vector2(-3, -11)]), HEAL_GREEN)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(0, -15), Vector2(7, -19), Vector2(4, -12)]), HEAL_GREEN)
+		"nature_undergrowth":   # low ferns, and a drip of poison under them
+			for i in 3:
+				var base := mid + Vector2(-10 + i * 10, 14) * k
+				c.draw_line(base, base + Vector2(-3 + i * 3, -18) * k, light if i == 1 else col.lightened(0.2), 2.0 * k, true)
+				for j in 3:
+					var at := base + Vector2(-3 + i * 3, -18) * k * (0.35 + j * 0.25)
+					c.draw_line(at, at + Vector2(-4, -2) * k, light, 1.3 * k, true)
+					c.draw_line(at, at + Vector2(4, -2) * k, light, 1.3 * k, true)
+			_drop(c, mid + Vector2(12, -10) * k, 0.4 * k, Color(0.4, 0.95, 0.3), WHITE, k)
+		"nature_clinging_vines":   # vines still wrapped round a foot that pulls away
+			c.draw_rect(Rect2(mid + Vector2(-5, -15) * k, Vector2(10, 22) * k), WHITE.darkened(0.3))
+			c.draw_rect(Rect2(mid + Vector2(-5, 5) * k, Vector2(16, 6) * k), WHITE.darkened(0.3))
+			for i in 3:
+				var y := -6.0 + i * 6.0
+				c.draw_arc(mid + Vector2(0, y) * k, 7.0 * k, PI * 0.1, PI * 0.9, 8, light, 2.2 * k, true)
+			c.draw_line(mid + Vector2(-7, 12) * k, mid + Vector2(-15, 15) * k, light, 2.0 * k, true)
+		# --- Nature archer: Venomstring ---
+		"nature_long_fangs":   # two long fangs, a drop on the tip of one
+			for x in [-6.0, 6.0]:
+				c.draw_colored_polygon(_p(mid, k, [Vector2(x - 4, -14), Vector2(x + 4, -14), Vector2(x + 1, 12), Vector2(x, 14)]), WHITE)
+			_drop(c, mid + Vector2(6, 16) * k, 0.3 * k, Color(0.4, 0.95, 0.3), WHITE, k)
+		"nature_hungry_venom":   # a drop leaping in an arc from one skull-pale dot to the next
+			c.draw_circle(mid + Vector2(-12, 10) * k, 4.0 * k, Color(WHITE, 0.4))
+			c.draw_circle(mid + Vector2(12, 10) * k, 4.0 * k, light)
+			c.draw_arc(mid + Vector2(0, 10) * k, 12.0 * k, PI * 1.05, PI * 1.95, 14, Color(0.4, 0.95, 0.3), 2.2 * k, true)
+			_drop(c, mid + Vector2(0, -6) * k, 0.45 * k, Color(0.4, 0.95, 0.3), WHITE, k)
+		"nature_spring_trap":   # thorny jaws snapping shut on three marks
+			c.draw_arc(mid + Vector2(0, 4) * k, 14.0 * k, PI, TAU, 14, WOOD.lightened(0.3), 3.0 * k, true)
+			for i in 5:
+				var x := -12.0 + i * 6.0
+				c.draw_colored_polygon(_p(mid, k, [Vector2(x - 2, 4), Vector2(x + 2, 4), Vector2(x, -3)]), light)
+			for i in 3:
+				c.draw_circle(mid + Vector2(-9 + i * 9, 12) * k, 2.4 * k, Color(1.0, 0.85, 0.25))
+		"nature_soaked_through":   # three drops (green, yellow, white) soaking into one cloth
+			c.draw_rect(Rect2(mid + Vector2(-14, 2) * k, Vector2(28, 12) * k), col.darkened(0.2))
+			var drops := [Color(0.4, 0.95, 0.3), Color(1.0, 0.85, 0.25), Color(0.92, 0.95, 1.0)]
+			for i in 3:
+				_drop(c, mid + Vector2(-9 + i * 9, -8) * k, 0.38 * k, drops[i], WHITE, k)
+				c.draw_circle(mid + Vector2(-9 + i * 9, 8) * k, 3.5 * k, Color(drops[i], 0.6))
+		# --- Nature healer: the Shepherd ---
+		"nature_old_bark":   # a ring of old roots round a shield
+			_shield(c, mid, k, col.darkened(0.2), light)
+			c.draw_arc(mid, 17.0 * k, 0.0, TAU, 20, WOOD.lightened(0.2), 3.0 * k, true)
+			for i in 4:
+				var a := TAU * i / 4.0 + 0.4
+				c.draw_line(mid + Vector2(cos(a), sin(a)) * 15.0 * k, mid + Vector2(cos(a), sin(a)) * 21.0 * k, WOOD.lightened(0.2), 2.0 * k, true)
+		"nature_morning_dew":   # dew drops on a blossom at sunrise
+			c.draw_arc(mid + Vector2(0, 16) * k, 14.0 * k, PI, TAU, 14, HOLY_GOLD, 2.0 * k, true)
+			for i in 5:
+				var a := TAU * i / 5.0
+				c.draw_circle(mid + Vector2(cos(a), sin(a)) * 6.0 * k, 4.5 * k, Color(1.0, 0.62, 0.82))
+			c.draw_circle(mid, 3.0 * k, HOLY_GOLD)
+			_drop(c, mid + Vector2(-12, -12) * k, 0.3 * k, Color(0.6, 0.85, 1.0), WHITE, k)
+			_drop(c, mid + Vector2(12, -9) * k, 0.25 * k, Color(0.6, 0.85, 1.0), WHITE, k)
+		"nature_return_flight":   # an owl's wings, and an arrow curving back up
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-16, 4), Vector2(-4, -2), Vector2(0, 4), Vector2(4, -2), Vector2(16, 4), Vector2(0, 10)]), light)
+			c.draw_circle(mid + Vector2(0, -4) * k, 3.5 * k, light)
+			c.draw_arc(mid + Vector2(0, -6) * k, 12.0 * k, PI * 1.1, PI * 1.9, 12, WHITE, 1.8 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(9, -16), Vector2(13, -10), Vector2(7, -11)]), WHITE)
+		"nature_deep_bloom":   # a full blossom, a second ring of petals round it
+			for i in 8:
+				var a := TAU * i / 8.0
+				c.draw_circle(mid + Vector2(cos(a), sin(a)) * 12.0 * k, 4.0 * k, Color(1.0, 0.62, 0.82, 0.6))
+			for i in 5:
+				var a := TAU * i / 5.0 + 0.3
+				c.draw_circle(mid + Vector2(cos(a), sin(a)) * 6.0 * k, 4.2 * k, Color(1.0, 0.62, 0.82))
+			c.draw_circle(mid, 3.0 * k, HOLY_GOLD)
+		"nature_big_herd":   # three fawn heads in a row, and a clock
+			for i in 3:
+				var o := mid + Vector2(-11 + i * 9, 6) * k
+				c.draw_colored_polygon(_p(o, k, [Vector2(-3, 4), Vector2(3, 4), Vector2(4, -2), Vector2(0, -6), Vector2(-4, -2)]), light if i == 1 else col.lightened(0.2))
+			_clock(c, mid + Vector2(11, -10) * k, 6.0 * k, WHITE, k)
+		"nature_quick_return":   # a sprout rising fast from the ground, motion lines beside it
+			c.draw_line(mid + Vector2(-16, 14) * k, mid + Vector2(16, 14) * k, WOOD.lightened(0.2), 2.4 * k, true)
+			c.draw_line(mid + Vector2(0, 14) * k, mid + Vector2(0, -10) * k, HEAL_GREEN, 2.4 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(0, -8), Vector2(-9, -14), Vector2(-3, -4)]), HEAL_GREEN)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(0, -10), Vector2(9, -16), Vector2(4, -6)]), HEAL_GREEN)
+			for x in [-9.0, 9.0]:
+				c.draw_line(mid + Vector2(x, 10) * k, mid + Vector2(x, 0) * k, Color(WHITE, 0.5), 1.4 * k, true)
+		"nature_evergreen":   # a fir tree with a heal beside it
+			for i in 3:
+				var y := -14.0 + i * 8.0
+				var w := 6.0 + i * 4.0
+				c.draw_colored_polygon(_p(mid, k, [Vector2(0, y), Vector2(w, y + 10), Vector2(-w, y + 10)]), col.lightened(0.15 + 0.1 * i))
+			c.draw_rect(Rect2(mid + Vector2(-2, 12) * k, Vector2(4, 4) * k), WOOD)
+			_plus(c, mid + Vector2(13, -11) * k, 3.5 * k, HEAL_GREEN, 2.2 * k)
+		# --- Nature tank: the Colossus ---
+		"nature_rising_sap":   # amber sap climbing up a trunk, an arrow up
+			c.draw_rect(Rect2(mid + Vector2(-7, -15) * k, Vector2(14, 30) * k), WOOD)
+			c.draw_rect(Rect2(mid + Vector2(-3, -4) * k, Vector2(6, 19) * k), Color(1.0, 0.72, 0.25))
+			c.draw_colored_polygon(_p(mid, k, [Vector2(0, -15), Vector2(6, -7), Vector2(-6, -7)]), Color(1.0, 0.72, 0.25))
+			c.draw_line(mid + Vector2(13, 12) * k, mid + Vector2(13, -10) * k, WHITE, 2.0 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(13, -14), Vector2(17, -8), Vector2(9, -8)]), WHITE)
+		"nature_crushing_grip":   # a closed wooden fist with cracks shooting out
+			c.draw_rect(Rect2(mid + Vector2(-10, -8) * k, Vector2(20, 16) * k), WOOD.lightened(0.15))
+			for i in 4:
+				c.draw_line(mid + Vector2(-10 + i * 5, -8) * k, mid + Vector2(-10 + i * 5, -2) * k, WOOD.darkened(0.4), 1.4 * k, true)
+			for i in 6:
+				var a := TAU * i / 6.0
+				var d := Vector2(cos(a), sin(a))
+				c.draw_line(mid + d * 14.0 * k, mid + d * 19.0 * k, Color(1.0, 0.72, 0.25), 2.0 * k, true)
+		"nature_broad_fist":   # a fist with three impact marks fanning out
+			c.draw_circle(mid + Vector2(-8, 0) * k, 7.0 * k, WOOD.lightened(0.15))
+			for i in 3:
+				var a := -0.6 + i * 0.6
+				var d := Vector2(cos(a), sin(a))
+				c.draw_circle(mid + Vector2(-2, 0) * k + d * 14.0 * k, 3.0 * k, light)
+				c.draw_line(mid + Vector2(-2, 0) * k + d * 4.0 * k, mid + Vector2(-2, 0) * k + d * 10.0 * k, Color(WHITE, 0.6), 1.4 * k, true)
+		"nature_spreading_roots":   # roots spreading wide from a crack
+			c.draw_line(mid + Vector2(-16, -4) * k, mid + Vector2(16, -4) * k, WOOD.darkened(0.3), 2.4 * k, true)
+			for i in 5:
+				var x := -14.0 + i * 7.0
+				c.draw_polyline(_p(mid, k, [Vector2(x * 0.3, -4), Vector2(x * 0.7, 4), Vector2(x, 14)]), light if i == 2 else col.lightened(0.2), 2.0 * k, true)
+		"nature_firm_hold":   # a wooden hand closed round a red mark, Rage beside it
+			c.draw_circle(mid + Vector2(-2, 2) * k, 5.0 * k, HOUND_RED)
+			c.draw_arc(mid + Vector2(-2, 2) * k, 9.0 * k, PI * 0.2, PI * 1.8, 14, WOOD.lightened(0.25), 4.0 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(12, -14), Vector2(16, -4), Vector2(13, -5), Vector2(15, 4), Vector2(9, -7), Vector2(12, -6)]), Color(1.0, 0.45, 0.2))
+		"nature_wide_awake":   # an open glowing eye in bark, with a clock
+			c.draw_rect(Rect2(mid + Vector2(-15, -10) * k, Vector2(30, 20) * k), WOOD)
+			_ellipse(c, mid, Vector2(11, 6) * k, Color(1.0, 0.72, 0.25), WHITE, 1.4 * k)
+			c.draw_circle(mid, 3.5 * k, col.darkened(0.6))
+			_clock(c, mid + Vector2(13, -13) * k, 5.0 * k, WHITE, k)
+		"nature_old_growth":   # an old, thick tree, its rings showing on the stump beside it
+			c.draw_rect(Rect2(mid + Vector2(-14, -4) * k, Vector2(10, 20) * k), WOOD)
+			c.draw_circle(mid + Vector2(-9, -9) * k, 9.0 * k, col.lightened(0.15))
+			for r in [3.0, 6.0, 9.0]:
+				c.draw_arc(mid + Vector2(9, 8) * k, r * k, 0.0, TAU, 14, Color(1.0, 0.72, 0.25), 1.4 * k, true)
+		# --- Nature caster: the Weaver ---
+		"nature_rich_soil":   # dark earth heaped up, gold flecks in it
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-16, 14), Vector2(-8, 0), Vector2(0, -6), Vector2(9, 0), Vector2(16, 14)]), WOOD.darkened(0.2))
+			for v in [Vector2(-6, 6), Vector2(3, 2), Vector2(8, 9), Vector2(-1, 10)]:
+				c.draw_circle(mid + (v as Vector2) * k, 1.8 * k, HOLY_GOLD)
+		"nature_compost":   # fallen leaves turning into earth
+			for i in 3:
+				var o := mid + Vector2(-8 + i * 8, -8 + i * 3) * k
+				c.draw_colored_polygon(_p(o, k, [Vector2(-5, 0), Vector2(0, -4), Vector2(5, 0), Vector2(0, 4)]), light if i == 1 else Color(0.85, 0.6, 0.25))
+			c.draw_rect(Rect2(mid + Vector2(-15, 8) * k, Vector2(30, 7) * k), WOOD.darkened(0.2))
+		"nature_bramble_burst":   # a bramble with thorns bursting out of it
+			c.draw_arc(mid, 7.0 * k, 0.0, TAU, 14, col.lightened(0.2), 3.0 * k, true)
+			for i in 8:
+				var a := TAU * i / 8.0
+				var d := Vector2(cos(a), sin(a))
+				c.draw_colored_polygon(PackedVector2Array([mid + d * 9.0 * k + d.orthogonal() * 2.5 * k,
+					mid + d * 9.0 * k - d.orthogonal() * 2.5 * k, mid + d * 18.0 * k]), light)
+		"nature_fertile_ground":   # a fallen shape, a sprout coming up beside it
+			c.draw_line(mid + Vector2(-16, 12) * k, mid + Vector2(16, 12) * k, WOOD, 3.0 * k, true)
+			_ellipse(c, mid + Vector2(-6, 8) * k, Vector2(9, 3.5) * k, Color(WHITE, 0.3), Color(WHITE, 0.5), 1.0 * k)
+			c.draw_line(mid + Vector2(9, 12) * k, mid + Vector2(9, -6) * k, HEAL_GREEN, 2.0 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(9, -4), Vector2(2, -10), Vector2(6, -1)]), HEAL_GREEN)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(9, -6), Vector2(16, -12), Vector2(13, -3)]), HEAL_GREEN)
+		"nature_second_growth":   # a bear's paw print, a fresh shoot inside it
+			c.draw_circle(mid + Vector2(0, 5) * k, 8.0 * k, WOOD.lightened(0.15))
+			for i in 4:
+				c.draw_circle(mid + Vector2(-9 + i * 6, -8 + absf(i - 1.5) * 2.0) * k, 3.0 * k, WOOD.lightened(0.15))
+			c.draw_line(mid + Vector2(0, 10) * k, mid + Vector2(0, 1) * k, HEAL_GREEN, 1.8 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(0, 2), Vector2(-5, -2), Vector2(-1, 4)]), HEAL_GREEN)
+		"nature_circling_hawk":   # a hawk on a circle round a clock
+			_clock(c, mid, 8.0 * k, WHITE, k)
+			c.draw_arc(mid, 15.0 * k, PI * 1.1, PI * 2.6, 20, light, 1.8 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(10, -16), Vector2(18, -12), Vector2(14, -10), Vector2(16, -6), Vector2(11, -10)]), light)
+		"nature_overgrown":   # several mulch patches, vines climbing over all of them
+			for i in 3:
+				_ellipse(c, mid + Vector2(-10 + i * 10, 12) * k, Vector2(5, 2.5) * k, WOOD.darkened(0.1), WOOD.lightened(0.2), 1.0 * k)
+			c.draw_polyline(_p(mid, k, [Vector2(-14, 10), Vector2(-10, -4), Vector2(-3, -12), Vector2(4, -6), Vector2(10, -14), Vector2(15, 8)]), light, 2.4 * k, true)
+			for v in [Vector2(-10, -4), Vector2(4, -6), Vector2(10, -14)]:
+				c.draw_circle(mid + (v as Vector2) * k, 2.4 * k, col.lightened(0.3))
 		# --- Shadow: the Breach for builds that dip into it ---
 		"shadow_tainted_steel":   # Baited Steel: a blade, and the hand that comes up after what it cut
 			c.draw_line(mid + Vector2(-11, 5) * k, mid + Vector2(14, -18) * k, Color(0.9, 0.9, 0.95), 4.0 * k, true)

@@ -20,7 +20,7 @@ extends Node
 const PATH := "user://profile.cfg"
 const TMP_PATH := "user://profile.cfg.tmp"
 const BAK_PATH := "user://profile.cfg.bak"
-const VERSION := 8
+const VERSION := 9
 const AUTOSAVE_DELAY := 0.5
 
 const Items = preload("res://scripts/items.gd")
@@ -295,6 +295,8 @@ func _migrate(cfg: ConfigFile, from_version: int) -> void:
 				_migrate_6_to_7(cfg)
 			7:
 				_migrate_7_to_8(cfg)
+			8:
+				_migrate_8_to_9(cfg)
 		v += 1
 		cfg.set_value("meta", "version", v)
 
@@ -386,6 +388,18 @@ func _migrate_7_to_8(cfg: ConfigFile) -> void:
 			(ranks as Dictionary).erase(id)
 		cfg.set_value("talents", "ranks", ranks)
 	_log(1, "Migrated profile to v8 (points in old empty Nature talents refunded)")
+
+# v8 -> v9: the rest of the Nature book was designed and its layout changed. Points
+# in any Nature slot other than the four talents built in v8 sat in an empty slot,
+# so they are refunded instead of becoming the new talent there.
+func _migrate_8_to_9(cfg: ConfigFile) -> void:
+	var ranks: Variant = cfg.get_value("talents", "ranks", {})
+	if ranks is Dictionary:
+		for id in (ranks as Dictionary).keys():
+			if str(id).begins_with("nature_") and not NATURE_FILLED_SLOTS.has(str(id)):
+				(ranks as Dictionary).erase(id)
+		cfg.set_value("talents", "ranks", ranks)
+	_log(1, "Migrated profile to v9 (points in old empty Nature talents refunded)")
 
 # --- Validation --------------------------------------------------------------------
 

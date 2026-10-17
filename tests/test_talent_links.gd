@@ -34,6 +34,7 @@ const WANT := [
 	["holy_wide_arc", "holy_deep_pour"],
 	["holy_wide_burst", "holy_prismatic_burst"],
 	["holy_deep_burn", "holy_long_volley"],
+	["nature_compost", "nature_bramble_burst"],
 ]
 
 ## Where every talent that changed slot sits now: key -> id.

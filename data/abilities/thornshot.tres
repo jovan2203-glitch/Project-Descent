@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"thornshot"
 display_name = "Thornshot"
-description = "Shoots a spray of thorns at the target, dealing {hit} Nature damage. Every {bth:THORNSHOT_PATCH_EVERY} Thornshot that lands leaves a patch of Mulch under the target. Thornburst: when it lands, thorns burst from each patch of your Mulch within {b:MULCH_REACH} m of the target, dealing {ds:THORNBURST_DAMAGE} Nature damage to every enemy within {b:THORNBURST_RADIUS} m of one."
+description = "Shoots a spray of thorns at the target, dealing {hit} Nature damage. Every {thornshot_every} Thornshot that lands leaves a patch of Mulch under the target. Thornburst: when it lands, thorns burst from each patch of your Mulch within {b:MULCH_REACH} m of the target, dealing {thornburst_dmg} Nature damage to every enemy within {thornburst_radius} m of one."
 tags = PackedStringArray("Nature", "Spell", "Projectile")
 cast_type = 1
 cast_time = 0.0

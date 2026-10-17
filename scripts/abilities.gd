@@ -900,6 +900,8 @@ static func effect_time_bonus(res: Resource, talent_of: Callable) -> float:
 		bonus += float(talent_of.call("fire_thick_pitch", "values"))   # Thick Pitch
 	if id == "frozen":
 		bonus += float(talent_of.call("frost_hard_freeze", "values"))  # Hard Freeze
+	if id == "grasped":
+		bonus += float(talent_of.call("nature_firm_hold", "values"))   # Firm Hold
 	# Shadow melee (the Hounds): Open Up's mark, Roused and Off the Chain.
 	if id == "laid_open":
 		bonus += float(talent_of.call("shadow_still_wet", "values"))       # Still Wet
@@ -917,10 +919,14 @@ static func effect_time_bonus(res: Resource, talent_of: Callable) -> float:
 		bonus += float(talent_of.call("frost_dot_duration", "values"))
 	return bonus
 
+## Heals over time: heals (by their meter / log id) that come a little at a time,
+## every second or so (Green Thumb heals them more; keyword "heals over time").
+const HEAL_OVER_TIME_IDS := ["sap", "evergreen", "puppetstring", "refrain"]
+
 ## Talents that shorten an ability's cooldown: ability id -> talent key (its
 ## value = seconds taken off).
 const COOLDOWN_TALENTS := {"winterhide": "frost_thick_hide", "raisethecenser": "holy_high_censer", "realign": "holy_quick_realign", "stepoflight": "holy_swift_light",
-	"prismarrow": "holy_full_quiver", "lastverse": "holy_last_rites"}
+	"prismarrow": "holy_full_quiver", "lastverse": "holy_last_rites", "wildherd": "nature_big_herd"}
 
 ## Ability `r`'s cooldown in seconds with your talents (the game and the
 ## tooltips both use this). Thick Hide shortens Winter Hide's.
@@ -946,6 +952,8 @@ static func base_cast_time(r: Resource) -> float:
 		t = maxf(t - talent("holy_steady_aim"), 0.2)   # Steady Aim
 	elif str(r.id) == "brightlance":
 		t = maxf(t - talent("holy_quick_lance"), 0.2)   # Quick Lance
+	elif str(r.id) == "returntobloom":
+		t = maxf(t - talent("nature_quick_return"), 0.2)   # Quick Return
 	return t
 
 ## Real damage of a hit of coefficient `coef` carrying `tags` (before crits,
@@ -1077,6 +1085,9 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		absorb *= 1.0 + talent("holy_sheltering_light") / 100.0                           # Sheltering Light
 	if id == "shelter":
 		absorb *= 1.0 + talent("holy_open_doors") / 100.0                                 # Open Doors
+	if id == "rootguard":
+		absorb *= 1.0 + talent("nature_old_bark") / 100.0                                 # Old Bark
+	var rich := 1.0 + talent("nature_rich_soil") / 100.0                                      # Rich Soil (each patch's share)
 	var shatter_mult := 1.0 + talent("frost_shatterpoint") / 100.0                            # Shatterpoint
 	var hit_coef := base
 	if id == "rimeedge":
@@ -1193,12 +1204,23 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		"absolve_full": fmt_amount(Balance.ABSOLVE_PER_STACK * Balance.ABSOLVE_MAX * Balance.REFERENCE_HEAL * per * (1.0 + talent("holy_absolution") / 100.0)),   # Absolution
 		# Nature caster: the finishers with the mulch I have now, and with a full set.
 		"mulch_now": str(mulch_count()),
-		"mossback_now": fmt_amount((Balance.ABILITIES["mossback"]["damage"] + Balance.MOSSBACK_PER_PATCH * mulch_count()) * per),
-		"mossback_full": fmt_amount((Balance.ABILITIES["mossback"]["damage"] + Balance.MOSSBACK_PER_PATCH * Balance.MULCH_MAX) * per),
-		"vipers_now": fmt_amount((Balance.ABILITIES["chokingvipers"]["damage"] + Balance.VIPERS_PER_PATCH * mulch_count()) * per),
-		"vipers_full": fmt_amount((Balance.ABILITIES["chokingvipers"]["damage"] + Balance.VIPERS_PER_PATCH * Balance.MULCH_MAX) * per),
+		"mossback_now": fmt_amount((Balance.ABILITIES["mossback"]["damage"] + Balance.MOSSBACK_PER_PATCH * rich * mulch_count()) * per),
+		"mossback_full": fmt_amount((Balance.ABILITIES["mossback"]["damage"] + Balance.MOSSBACK_PER_PATCH * rich * Balance.MULCH_MAX) * per),
+		"vipers_now": fmt_amount((Balance.ABILITIES["chokingvipers"]["damage"] + Balance.VIPERS_PER_PATCH * rich * mulch_count()) * per),
+		"vipers_full": fmt_amount((Balance.ABILITIES["chokingvipers"]["damage"] + Balance.VIPERS_PER_PATCH * rich * Balance.MULCH_MAX) * per),
+		"thornshot_every": TextFill.ordinal(Balance.COMPOST_PATCH_EVERY if talent("nature_compost") > 0.0 else Balance.THORNSHOT_PATCH_EVERY),   # Compost
+		"thornburst_dmg": fmt_amount(Balance.THORNBURST_DAMAGE * (1.0 + talent("nature_bramble_burst") / 100.0) * per),   # Bramble Burst
+		"thornburst_radius": TextFill.num(Balance.BRAMBLE_BURST_RADIUS if talent_capstone("nature_bramble_burst") else Balance.THORNBURST_RADIUS),   # its capstone
 		# Nature healer: the Shepherd.
+		"dewfall_per": TextFill.num(talent("nature_morning_dew") if talent("nature_morning_dew") > 0.0 else Balance.DEWFALL_PER_BLOSSOM),   # Morning Dew
 		"fawn_less": TextFill.num((1.0 - Balance.FAWN_FALLOFF) * 100.0),
+		# Nature tank: the Colossus.
+		"vine_fist_extra": str(Balance.VINE_FIST_EXTRA + int(round(talent("nature_broad_fist")))),   # Broad Fist
+		"grasp_hold": TextFill.num(Balance.GRASP_HOLD + talent("nature_firm_hold")),   # Firm Hold
+		"stomp_roots_time": TextFill.num(Balance.STOMP_ROOTS_TIME + talent("nature_spreading_roots")),   # Spreading Roots
+		"awaken_time": TextFill.num(Balance.AWAKEN_TIME + talent("nature_wide_awake")),   # Wide Awake
+		# Nature archer: Venomstring.
+		"fang_extend": TextFill.num(Balance.FANG_EXTEND + talent("nature_long_fangs")),   # Long Fangs
 		"rootguard_per": fmt_amount(Balance.ROOTGUARD_PER_BLOSSOM * per * absorb),
 		"elk_per": fmt_amount(Balance.ELK_PER_BLOSSOM * per),
 		"swing_incense": str(Balance.CENSER_SWING_INCENSE + int(round(talent("holy_heavy_chain")))),   # Heavy Chain

@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"dewfall"
 display_name = "Dewfall"
-description = "Heals an ally for {heal}, {b:DEWFALL_PER_BLOSSOM}% more for each Blossom on them. It does not use them up."
+description = "Heals an ally for {heal}, {dewfall_per}% more for each Blossom on them. It does not use them up."
 tags = PackedStringArray("Nature", "Spell", "Heal")
 cast_type = 1
 cast_time = 0.0
