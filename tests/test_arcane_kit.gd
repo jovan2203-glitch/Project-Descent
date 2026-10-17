@@ -247,7 +247,7 @@ func test_glint() -> void:
 	assert_true(ArcaneCasterKit.glint_applies("convergence", ARCANE, 2.5, true))
 	assert_true(ArcaneCasterKit.glint_applies("fireball", PackedStringArray(["Fire", "Spell"]), 2.0, true))
 	assert_true(ArcaneCasterKit.glint_applies("embervolley", PackedStringArray(["Fire", "Spell"]), 3.0, true), "channels too")
-	assert_false(ArcaneCasterKit.glint_applies("steadyshot", PackedStringArray(["Ranged"]), 2.0, true), "spells only")
+	assert_false(ArcaneCasterKit.glint_applies("frostarrow", PackedStringArray(["Ranged"]), 2.0, true), "spells only")
 	assert_false(ArcaneCasterKit.glint_applies("rewind", ARCANE, 0.0, true), "instants don't use it up")
 
 func test_the_two_arcane_runes() -> void:

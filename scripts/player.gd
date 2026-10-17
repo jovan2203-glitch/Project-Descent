@@ -381,7 +381,7 @@ func is_alive() -> bool:
 # One authoritative state instead of loose flags. `casting` / `placing` are
 # kept as read-only-style properties derived from it so existing code works.
 #   IDLE / MOVING : free to act
-#   CASTING       : cast bar filling (Frost Bolt, Blizzard, Steady Shot)
+#   CASTING       : cast bar filling (Frost Bolt, Blizzard)
 #   CHANNELING    : cast bar draining (channeled spells)
 #   AIMING        : placing a ground-targeted spell (Blizzard circle)
 #   DEAD          : terminal until restart
@@ -928,7 +928,7 @@ func _muzzle() -> Vector3:
 ## Cast-time spells aimed at an ally / you / (Rime Shell) an enemy, or nothing.
 const SUPPORT_CASTS := ["rimeshell", "flashfreeze", "hoist", "patchup", "psalm", "outpour", "canticle", "exultation", "brightlance", "dewfall", "fawn"]
 ## Instant abilities every character has (handled like drafted ones).
-const BASE_INSTANTS := ["stoneguard", "taunt"]
+const BASE_INSTANTS: Array[String] = []   # (none since the Martial book was wiped)
 
 func _use_ability_now(id: String) -> void:
 	if id == DecayKit.BLIGHT_ID and (frost_melee._has_rune(DecayKit.OPEN_WOUND_RUNE) or decay.interest_ready()):
@@ -965,15 +965,6 @@ func _use_ability_now(id: String) -> void:
 					_error(rain_err)
 				else:
 					_begin_placement(id)
-		"slam":
-			cancel_placement()
-			_slam()
-		"execute":
-			cancel_placement()
-			_execute()
-		"steadyshot":
-			cancel_placement()
-			_start_steady_shot()
 		"glacialdraw":
 			cancel_placement()
 			frost_bow._start_glacial_draw()
@@ -1758,7 +1749,7 @@ func _on_hit_talents(ability_id: String, tgt: Node, amount: int, _crit: bool, is
 		if ftags.has("Frost") and (ftags.has("Spell") or ftags.has("Ability")):
 			frost_runes._apply_freeze(tgt, ftags)
 
-# --- Slam (instant melee, weapon damage) -------------------------------------------
+# --- Weapon helpers ---------------------------------------------------------------
 
 func _weapon() -> Dictionary:
 	var pd := get_node_or_null("/root/PlayerData")
@@ -1769,102 +1760,6 @@ func _weapon() -> Dictionary:
 func _in_weapon_range(e: Node3D, reach: float) -> bool:
 	var d := Vector2(e.global_position.x - global_position.x, e.global_position.z - global_position.z).length()
 	return d - Combat.hitbox_radius(e) - Combat.hitbox_radius(self) <= reach
-
-func _slam() -> void:
-	if casting:
-		return
-	if cooldown_left("slam") > 0.0:
-		_error("%s is not ready yet" % Abilities.ability_name("slam"))
-		return
-	var w := _weapon()
-	if w.get("weapon", "") != "melee":
-		_error("Requires a melee weapon")
-		return
-	if not _has_valid_target():
-		_error("No target")
-		return
-	if not _in_weapon_range(target, float(w["attack_range"])):
-		_error("Target out of range")
-		return
-	var sight_err := _target_error(target)
-	if sight_err != "":
-		_error(sight_err)
-		return
-	cooldowns["slam"] = float(Abilities.get_resource("slam").cooldown)
-	var dir := target.global_position - global_position
-	rotation.y = atan2(-dir.x, -dir.z)
-	var hit := target
-	_gain("rage", float(Abilities.info("slam").get("generates", 50)))
-	deal_damage(hit, _weapon_hit(w, Abilities.get_resource("slam")), "slam")
-	_bus().cast_finished.emit("slam")
-	_slash_effect()
-	_slash_effect()   # doubled for a heavier hit
-
-# --- Execute (instant melee, 3x weapon damage, 50 Rage) ------------------------------
-
-func _execute() -> void:
-	if casting:
-		return
-	var w := _weapon()
-	if w.get("weapon", "") != "melee":
-		_error("Requires a melee weapon")
-		return
-	if not _has_valid_target():
-		_error("No target")
-		return
-	if not _in_weapon_range(target, float(w["attack_range"])):
-		_error("Target out of range")
-		return
-	var sight_err := _target_error(target)
-	if sight_err != "":
-		_error(sight_err)
-		return
-	if not _pay("execute"):
-		return
-	var dir := target.global_position - global_position
-	rotation.y = atan2(-dir.x, -dir.z)
-	deal_damage(target, _weapon_hit(w, Abilities.get_resource("execute")), "execute")
-	_bus().cast_finished.emit("execute")
-	_slash_effect()
-	_slash_effect()
-	_slash_effect()
-
-# --- Steady Shot (1 s cast, bow, weapon damage; can move while casting) -------------
-
-func _start_steady_shot() -> void:
-	if casting:
-		return
-	var w := _weapon()
-	if w.get("weapon", "") != "ranged":
-		_error("Requires a bow")
-		return
-	if not _has_valid_target():
-		_error("No target")
-		return
-	if not _in_weapon_range(target, float(w["attack_range"])):
-		_error("Target out of range")
-		return
-	var sight_err := _target_error(target)
-	if sight_err != "":
-		_error(sight_err)
-		return
-	_begin_spell("steadyshot", Abilities.ability_name("steadyshot"), float(Abilities.get_resource("steadyshot").cast_time))
-
-func _release_steady_shot() -> void:
-	var w := _weapon()
-	if w.get("weapon", "") != "ranged":
-		_error("Requires a bow")
-		return
-	if not _has_valid_target():
-		return
-	var sight_err := _target_error(target)
-	if sight_err != "":
-		_error(sight_err)
-		return
-	var dir := target.global_position - global_position
-	rotation.y = atan2(-dir.x, -dir.z)
-	ARROW.spawn(get_tree().current_scene, _muzzle(),
-		target, self, _weapon_hit(w, Abilities.get_resource("steadyshot")), "steadyshot")
 
 func has_valid_target() -> bool:
 	return _has_valid_target()
@@ -1937,8 +1832,8 @@ func _try_auto_attack(moving: bool) -> void:
 ## Rage per auto-attack / auto-shot (only with a rage spender on the action bar).
 const AUTO_ATTACK_RAGE := Balance.AUTO_ATTACK_RAGE
 
-## A rage-costing ability on your action bar. The base kit (Slam, Execute) is
-## always known, so "on the bar" is what says you're actually playing rage.
+## A rage-costing ability on your action bar: "on the bar" (not just learned) is
+## what says you're actually playing rage.
 func _has_rage_spender() -> bool:
 	var pd := get_node_or_null("/root/PlayerData")
 	if pd == null:
@@ -2335,9 +2230,6 @@ func _release_cast() -> void:
 	if Abilities.is_a(spell, "frostbolt") and (frost_bow._instinct_cast or frost_bow.frozen_instinct_ready()):
 		status.remove(FrostBowKit.INSTINCT_ID)   # Frozen Instinct used up (this bolt was free)
 	frost_bow._instinct_cast = false
-	if spell == "steadyshot":
-		_release_steady_shot()
-		return
 	if spell == LightstringKit.REFRACTING_SHOT_ID:
 		lightstring._loose_refracting_shot()   # Holy archer
 		return
@@ -2558,15 +2450,14 @@ func _physics_process(delta: float) -> void:
 	if is_rooted():
 		input_dir = Vector2.ZERO
 
-	# Steady Shot can be cast on the move: tick it here, then fall through to
-	# normal movement below.
-	# (So can the instant casts from Concentrated Fire.)
-	# (And the one cast Cinder Step lets you finish while moving.)
-	# (And whatever Glint lets you cast or channel on the move.)
-	var steady := casting and (current_spell == "steadyshot" or fire_cooldowns._conc_cast or fire_cooldowns._cinder_cast or storm_arrow_kit._flicker_cast or bottled_kit._bottled_cast
+	# Some casts can be made on the move: tick them here, then fall through to
+	# normal movement below. (The instant casts from Concentrated Fire, the one
+	# cast Cinder Step lets you finish while moving, whatever Glint lets you cast
+	# or channel on the move.)
+	var steady := casting and (fire_cooldowns._conc_cast or fire_cooldowns._cinder_cast or storm_arrow_kit._flicker_cast or bottled_kit._bottled_cast
 		or arcane_caster._glint_cast or storm_arrow_kit._overture_cast)
 	if steady:
-		var aimed: bool = current_spell == "steadyshot" or current_spell in ENEMY_BOLTS or current_spell == "embervolley" \
+		var aimed: bool = current_spell in ENEMY_BOLTS or current_spell == "embervolley" \
 			or current_spell == FrostBowKit.GLACIAL_DRAW_ID or current_spell == ArcaneCasterKit.SIGIL_DARTS_ID or current_spell == LightstringKit.REFRACTING_SHOT_ID \
 			or current_spell == VenomstringKit.ADDER_ARROW_ID
 		if (aimed and not _has_valid_target()) or (current_spell in SUPPORT_CASTS and not _support_target_ok()):
@@ -2790,23 +2681,6 @@ func _use_drafted(id: String) -> void:
 			_ring_effect(0.8, Color(0.8, 0.6, 1.0), from)
 			_ring_effect(0.8, Color(0.8, 0.6, 1.0))
 			arcane_caster._leave_afterimage(from)   # Rune of the Afterimage
-		"whirlwind":
-			for e in _enemies_within(float(res.radius)):
-				deal_damage(e, _weapon_hit(w, res), "whirlwind")
-			for i in 3:
-				rotation.y += TAU / 3.0
-				_slash_effect()
-		"battleshout":
-			status.apply(StatusContainer.make_buff("battleshout", Abilities.ability_name(id), Stats.ATTACK_POWER, Balance.BATTLE_SHOUT_AP * _flat_unit(),
-				Balance.BATTLE_SHOUT_TIME, 1, Color(1.0, 0.6, 0.3)), self)
-			_ring_effect(2.0, Color(1.0, 0.6, 0.3))
-		"multishot":
-			for e in _multishot_targets(float(w["attack_range"])):
-				ARROW.spawn(get_tree().current_scene, muzzle, e, self, _weapon_hit(w, res), "multishot")
-		"poisonarrow":
-			ARROW.spawn(get_tree().current_scene, muzzle, target, self, _weapon_hit(w, res), "poisonarrow")
-		"secondwind":
-			heal(float(Abilities.HEALS[id]), id)
 		# Spell projectiles (tinted by book: Fire, Lightning, Shadow, Holy)
 		"groundout":
 			lightning_caster._ground_out()
@@ -2846,7 +2720,7 @@ func _use_drafted(id: String) -> void:
 			_slash_effect(Abilities.color_of(id))
 			_slash_effect(Abilities.color_of(id))
 		"searingstrike", "thunderstrike", "arcanestrike", "shadowstrike", \
-				"sinisterstrike", "rupture", "eviscerate", "chargededge":
+				"chargededge":
 			deal_damage(target, _weapon_hit(w, res), id)
 			_slash_effect(Abilities.color_of(id))
 			_slash_effect(Abilities.color_of(id))
@@ -2969,13 +2843,6 @@ func _use_drafted(id: String) -> void:
 			for e in hit:
 				deal_damage(e, float(res.damage) * share, id)
 			_ring_effect(float(res.radius), Abilities.color_of(id))
-		"fanofknives":
-			for e in _enemies_within(float(res.radius)):
-				deal_damage(e, _weapon_hit(w, res), id)
-			_ring_effect(float(res.radius), Abilities.color_of(id))
-			for i in 3:
-				rotation.y += TAU / 3.0
-				_slash_effect(Abilities.color_of(id))
 		# --- Lightning tank (a two-handed weapon; see "Lightning tank" below) ---
 		"stormshield":
 			# Stormbreak. Its arcs come from _on_hit_extra (like Leaping Arc's).
@@ -3046,18 +2913,8 @@ func _use_drafted(id: String) -> void:
 		"doubletime":
 			arcane_melee._start_double_time()
 		# --- Baseline tank tools ---
-		"stoneguard":
-			var sr := float(res.radius)
-			for e in _enemies_within(sr):
-				deal_damage(e, float(res.damage), id)   # 5x threat (threat_multiplier in its data)
-			status.apply(STONEGUARD_FX, self)
-			_ring_effect(sr, Color(0.8, 0.72, 0.55))
-			_ring_effect(1.2, Color(0.95, 0.9, 0.8))
-		"taunt":
-			_net_taunt(target, TAUNT_TIME)
-			_ring_effect(1.0, Color(1.0, 0.35, 0.25), target.global_position)
 		# --- Interrupts: stop the target's cast, lock it out of casting ---
-		"counterspell", "kick", "pummel", "rimelock", "jolt", "hush":
+		"counterspell", "rimelock", "jolt", "hush":
 			# (Hush: was there a cast to stop? Asked before anything lands.)
 			var hush_foe: Node3D = target
 			var hush_stops: bool = id == DecayKit.HUSH_ID and target.has_method("cast_progress") and float(target.cast_progress()) >= 0.0
@@ -3186,12 +3043,6 @@ func _drafted_precheck(id: String, _res: Resource, w: Dictionary) -> String:
 			return HoundsKit.bring_down_error(hounds.hounds_out(), hounds._prey_ok(hounds._hound_prey) or (_has_valid_target() and hounds._prey_ok(target)))
 		"spill":
 			return DecayKit.spill_error(decay.decay_on(target), decay._spill_targets(target).size() if _has_valid_target() else 0)
-		"multishot":
-			if _multishot_targets(float(w["attack_range"])).is_empty():
-				return "No enemies in range"
-		"secondwind":
-			if health >= max_health:
-				return "Already at full health"
 		"iceshards":
 			if ice_shards_kit.shards_firing():
 				return "Ice Shards are already firing"
@@ -3253,20 +3104,6 @@ func _enemies_within(radius: float) -> Array:
 		if d - Combat.hitbox_radius(e) <= radius and can_see(e):
 			out.append(e)
 	return out
-
-# Current target first, then the closest visible enemies in bow range (max 3).
-func _multishot_targets(reach: float) -> Array:
-	var list := []
-	for e in get_tree().get_nodes_in_group("enemies"):
-		if e is Node3D and e.is_alive() and _in_weapon_range(e, reach) and can_see(e):
-			list.append(e)
-	list.sort_custom(func(a, b):
-		if a == target:
-			return true
-		if b == target:
-			return false
-		return global_position.distance_squared_to(a.global_position) < global_position.distance_squared_to(b.global_position))
-	return list.slice(0, Balance.MULTISHOT_TARGETS)
 
 # Expanding flat ring (Frost Nova, Blink, shouts).
 func _ring_effect(radius: float, color: Color, at: Vector3 = Vector3.INF) -> void:
@@ -3387,10 +3224,8 @@ func _update_friendly_ring() -> void:
 
 # --- Support casts: Heal, Rime Shell, Flash Freeze ---------------------------------
 
-const STONEGUARD_FX = preload("res://data/effects/stoneguard.tres")
 const RIME_SHELL_FX = preload("res://data/effects/rime_shell.tres")
 const WEAKENED_SOUL_FX = preload("res://data/effects/weakened_soul.tres")
-const TAUNT_TIME := Balance.TAUNT_TIME
 ## Flash Freeze cone: half of its opening angle.
 const FLASH_FREEZE_HALF_ANGLE := 45.0
 ## "Shatter" marks every shatter hit (Shatterpoint looks for it); the hit's

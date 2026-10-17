@@ -120,7 +120,7 @@ const HP_REGEN_OUT_OF_COMBAT_PCT := 5.0
 const HP_REGEN_OOC_DELAY := 1.5
 
 ## Interrupts: seconds the target can't cast afterwards.
-const INTERRUPT_LOCKOUT := {"counterspell": 4.0, "kick": 3.0, "pummel": 3.0, "furnacebreath": 3.0, "rimelock": 3.0, "jolt": 3.0, "hush": 3.0}
+const INTERRUPT_LOCKOUT := {"counterspell": 4.0, "furnacebreath": 3.0, "rimelock": 3.0, "jolt": 3.0, "hush": 3.0}
 ## Interrupts share a cooldown: using one puts every other interrupt (of any
 ## book) on at least this many seconds of cooldown, and no interrupt's own
 ## cooldown may be shorter than this (a test checks it; longer is fine).
@@ -129,14 +129,10 @@ const INTERRUPT_SHARED_COOLDOWN := 15.0
 ## Buffs from abilities: amount in flat units (Stats.flat_unit) and seconds.
 const ICE_BARRIER_ARMOR := 3.0
 const ICE_BARRIER_TIME := 8.0
-const BATTLE_SHOUT_AP := 2.0
-const BATTLE_SHOUT_TIME := 10.0
-const TAUNT_TIME := 3.0
 const BLINK_DISTANCE := 6.0
 ## Counts and times the abilities' descriptions quote (the code reads the same ones).
 const ARCANE_MISSILES_COUNT := 6   # Sigil Darts: darts per channel (spread evenly over it)
 const CHAIN_JUMPS := 3             # Stormbreak: more enemies the charge arcs to (Leaping Arc: LEAPING_ARC_JUMPS)
-const MULTISHOT_TARGETS := 3       # Triple Nock: enemies hit
 const BLIZZARD_TIME := 3.0         # Whiteout: seconds it lasts
 const BLIZZARD_TICK := 0.5         # ... seconds between its waves of ice
 const ARCANE_STRIKE_MANA := 2.0    # Arcane Strike: mana points it restores
@@ -822,8 +818,7 @@ const EVERLASTING_RIME_MULT := 2.0       # Everlasting Rime: Rime Shell absorbs 
 const REFERENCE_HEAL := 2.2
 
 ## Heal / absorb coefficients (1.0 = a standard hit's worth of health).
-const HEALS := {"secondwind": 3.0,
-	"rimeshell": 1.1, "rimeslash": 1.1,
+const HEALS := {"rimeshell": 1.1, "rimeslash": 1.1,
 	"cinderwing": 1.1,   # each of the phoenix's heals (half a Heal spell)
 	"intervalward": 1.5, # Interval Ward's shield
 	# Holy healer (the Hymns), in old Heals (REFERENCE_HEAL 2.2): Psalm 1, Outpour 2.2, Lift 0.5,
@@ -1274,25 +1269,6 @@ const ABILITIES := {
 	"bloatarrow": {"cooldown": 15.0},
 	"coilback": {"cooldown": 20.0},
 	"venomsurge": {"cooldown": 120.0},
-	# Warrior
-	"slam": {"weapon_mult": 1.0, "cooldown": 2.0, "generates": 50},
-	"execute": {"weapon_mult": 3.0, "cost": 50},
-	"whirlwind": {"weapon_mult": 1.0, "cooldown": 4.0, "cost": 40, "radius": 2.2},
-	"battleshout": {"cooldown": 25.0, "generates": 40},
-	"secondwind": {"cooldown": 45.0},
-	"stoneguard": {"damage": 0.3, "cooldown": 10.0, "radius": 5.0, "threat": 5.0},
-	"taunt": {"cooldown": 8.0, "range": 25.0},
-	"pummel": {"weapon_mult": 0.3, "cooldown": 15.0, "generates": 30},
-	# Rogue
-	"sinisterstrike": {"weapon_mult": 1.2, "cooldown": 3.0, "cost": 30},
-	"rupture": {"weapon_mult": 0.6, "cooldown": 8.0, "cost": 30},
-	"fanofknives": {"weapon_mult": 1.0, "cooldown": 8.0, "cost": 40, "radius": 3.0},
-	"eviscerate": {"weapon_mult": 2.5, "cooldown": 10.0, "cost": 50},
-	"kick": {"weapon_mult": 0.3, "cooldown": 15.0, "cost": 20},
-	# Ranger
-	"steadyshot": {"weapon_mult": 2.0, "cost": 30, "cast_time": 1.2},
-	"multishot": {"weapon_mult": 1.0, "cooldown": 6.0, "cost": 40},
-	"poisonarrow": {"weapon_mult": 1.0, "cooldown": 8.0, "cost": 30},
 }
 
 # --- Status effects ----------------------------------------------------------------
@@ -1304,7 +1280,6 @@ const EFFECTS := {
 	"res://data/effects/burning.tres": {"duration": 4.0, "tick_damage": 0.1, "tick_every": 1.0},
 	"res://data/effects/immolate.tres": {"duration": 12.0, "tick_damage": 0.2, "tick_every": 1.0},
 	"res://data/effects/live_wire.tres": {"duration": 10.0, "tick_damage": 0.2, "tick_every": 1.0},
-	"res://data/effects/bleeding.tres": {"duration": 6.0, "tick_damage": 0.15, "tick_every": 1.0},
 	"res://data/effects/poisoned.tres": {"duration": 5.0, "tick_damage": 0.15, "tick_every": 1.0},
 	"res://data/effects/corrupted.tres": {"duration": 8.0, "tick_damage": 0.2, "tick_every": 1.0},
 	"res://data/effects/hoarfrost.tres": {"duration": 10.0, "tick_damage": 0.1, "tick_every": 1.0, "burst": 1.25},

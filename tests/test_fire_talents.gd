@@ -408,7 +408,7 @@ func test_level_head_rune() -> void:
 	assert_false(FireCooldownsKit.concentrated_applies(frostbolt.tags, float(frostbolt.cast_time), false), "other schools: not without the rune")
 	assert_true(FireCooldownsKit.concentrated_applies(frostbolt.tags, float(frostbolt.cast_time), true), "other schools: with the rune")
 	assert_false(FireCooldownsKit.concentrated_applies(frostbolt.tags, 0.0, true), "instants have nothing to make instant")
-	assert_false(FireCooldownsKit.concentrated_applies(Abilities.tags_of("steadyshot"), 1.2, true), "the rune is for spells, not abilities")
+	assert_false(FireCooldownsKit.concentrated_applies(Abilities.tags_of("frostarrow"), 1.2, true), "the rune is for spells, not abilities")
 
 func test_kiln_blast() -> void:
 	var r := Abilities.get_resource("kilnblast")

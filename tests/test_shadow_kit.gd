@@ -168,7 +168,7 @@ func test_what_feeds_an_open_decay() -> void:
 	# ... only through the talent Tainted Steel and the Rune of Rot.
 	assert_eq(DecayKit.decay_feed_pct("shadowstrike", strike, false, false, 30.0, 15.0), 30.0, "Tainted Steel: Shadow abilities")
 	assert_eq(DecayKit.decay_feed_pct("frostbolt", frost, false, false, 30.0, 15.0), 15.0, "Rune of Rot: other books' spells")
-	assert_eq(DecayKit.decay_feed_pct("slam", PackedStringArray(["Ability", "Melee"]), false, false, 30.0, 15.0), 0.0,
+	assert_eq(DecayKit.decay_feed_pct("froststrike", PackedStringArray(["Ability", "Melee"]), false, false, 30.0, 15.0), 0.0,
 		"another book's ability feeds nothing")
 	assert_eq(DecayKit.decay_feed_pct("gnaw", SHADOW, false, false, 30.0, 15.0), 50.0, "the talents change nothing for Shadow spells")
 	assert_eq(DecayKit.decay_feed_pct("erode", SHADOW, false, false, 30.0, 15.0), 100.0)

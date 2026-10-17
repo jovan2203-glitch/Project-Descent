@@ -130,7 +130,7 @@ func test_coldmark() -> void:
 	var p := _player()
 	assert_eq(FrostBowKit.COLDMARK_FX, "coldmarked")
 	assert_false(FrostBowKit.is_arrow_ability("coldmark"), "marking is not an arrow")
-	for id in ["frostarrow", "icepin", "steadyshot", "stormarrow", "multishot"]:
+	for id in ["frostarrow", "icepin", "stormarrow", "shadowarrow", "flamingarrow"]:
 		assert_true(FrostBowKit.is_arrow_ability(id), "%s is an arrow ability" % id)
 	for id in ["auto_ranged", "frostbolt", "froststrike", "icyretreat"]:
 		assert_false(FrostBowKit.is_arrow_ability(id), "%s is not an arrow ability" % id)

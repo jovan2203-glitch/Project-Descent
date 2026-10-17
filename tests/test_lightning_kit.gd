@@ -38,9 +38,9 @@ func test_energy_and_rage_are_bars_of_100() -> void:
 			assert_true(v == 0 or (v >= 10 and v <= 100), "%s: %d %s is on the 100 scale" % [id, v, res])
 			seen += 1 if v > 0 else 0
 	assert_true(seen > 30, "the rage and energy abilities were checked (%d numbers)" % seen)
-	assert_eq(int(Abilities.get_resource("execute").resource_cost), 50)
-	assert_eq(int(Abilities.get_resource("slam").resource_generated), 50)
-	assert_eq(int(Abilities.get_resource("sinisterstrike").resource_cost), 30)
+	assert_eq(int(Abilities.get_resource("cinderguard").resource_cost), 40)
+	assert_eq(int(Abilities.get_resource("brand").resource_generated), 20)
+	assert_eq(int(Abilities.get_resource("stormarrow").resource_cost), 30)
 
 func test_leaping_arc() -> void:
 	var r := Abilities.get_resource("chainlightning")

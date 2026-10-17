@@ -144,7 +144,6 @@ func test_retired_names_are_gone() -> void:
 	assert_eq(Abilities.ability_name("immolate"), "Blaze")
 	assert_eq(str(Effects.get_effect("immolate").display_name), "Blaze")
 	assert_eq(str(Effects.get_effect("weakened_soul").display_name), "Frostworn")
-	assert_eq(Abilities.ability_name("slam"), "Heavy Blow")
 
 func test_talent_texts_follow_their_values() -> void:
 	var d := func(key: String) -> String: return Talents.description(Talents.id_for_key(key))
@@ -173,12 +172,12 @@ func test_talent_texts_follow_their_values() -> void:
 ## The Shift tooltip explains Spell / Attack Power scaling only for abilities
 ## that have a number to scale. Pure utility shows no Scaling section.
 func test_only_abilities_with_numbers_show_scaling() -> void:
-	for id in ["groundingsurge", "blink", "taunt", "coolhead", "counterspell", "rimelock", "deepwinter",
-			"winterhide", "icebarrier", "battleshout", "crucible", "flashfreeze", "rekindle"]:
+	for id in ["groundingsurge", "blink", "coolhead", "counterspell", "rimelock", "deepwinter",
+			"winterhide", "icebarrier", "crucible", "flashfreeze", "rekindle"]:
 		assert_false(Abilities.has_scaling(id), "%s has nothing to scale" % id)
 		assert_false(Abilities.tooltip_bbcode(id, true).contains("Scaling"), "%s: no Scaling section" % id)
-	for id in ["frostbolt", "slam", "immolate", "hoarfrost", "snowward", "cinderwing",
-			"discharge", "groundout", "balllightning", "chainlightning", "heatsink", "kick"]:
+	for id in ["frostbolt", "froststrike", "immolate", "hoarfrost", "snowward", "cinderwing",
+			"discharge", "groundout", "balllightning", "chainlightning", "heatsink", "frostarrow"]:
 		assert_true(Abilities.has_scaling(id), "%s scales" % id)
 		assert_contains(Abilities.tooltip_bbcode(id, true), "Scaling", "%s: keeps its Scaling section" % id)
 
@@ -190,11 +189,9 @@ func test_ability_texts_follow_the_data() -> void:
 	assert_contains(tip.call("blizzard"), "%s m wide" % TextFill.num(float(Abilities.get_resource("blizzard").radius) * 2.0))
 	assert_contains(tip.call("blizzard"), "for %s sec" % TextFill.num(Balance.BLIZZARD_TIME))
 	assert_contains(tip.call("kilnblast"), "%s%% more" % TextFill.num(Balance.KILN_BLAST_IMMOLATE_PCT))
-	assert_contains(tip.call("kick"), "for %s sec" % TextFill.num(float(Balance.INTERRUPT_LOCKOUT["kick"])))
+	assert_contains(tip.call("jolt"), "for %s sec" % TextFill.num(float(Balance.INTERRUPT_LOCKOUT["jolt"])))
 	assert_contains(tip.call("brand"), "%s%% less damage" % TextFill.num(Balance.BRAND_PCT))
-	assert_contains(tip.call("stoneguard"), "5x threat")
 	assert_contains(tip.call("chainlightning"), "up to %d more enemies" % Balance.LEAPING_ARC_JUMPS)
-	assert_contains(tip.call("multishot"), "up to %d enemies" % Balance.MULTISHOT_TARGETS)
 	assert_contains(tip.call("arcanemissiles"), "%d sigil darts" % Balance.ARCANE_MISSILES_COUNT)
 	assert_contains(tip.call("rimeshell"), "for %s sec" % TextFill.num(float(Balance.EFFECTS["res://data/effects/rime_shell.tres"]["duration"])))
 	assert_contains(tip.call("lightningbolt"), "Lightning damage")

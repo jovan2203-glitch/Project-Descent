@@ -182,7 +182,7 @@ func test_what_calls_the_hounds() -> void:
 		assert_true(HoundsKit.calls_hounds(id), "%s calls them" % id)
 		assert_eq(Abilities.category_of(id), "shadow")
 		assert_eq(int(Abilities.get_resource(id).weapon_requirement), 1, "%s is a melee ability" % id)
-	for id in ["corruption", "blight", "shadowarrow", "slam", "auto_melee", "bringitdown", ""]:
+	for id in ["corruption", "blight", "shadowarrow", "froststrike", "auto_melee", "bringitdown", ""]:
 		assert_false(HoundsKit.calls_hounds(id), "%s does not" % id)
 	assert_eq(HoundsKit.HOUND_CALLERS.size(), 7)
 

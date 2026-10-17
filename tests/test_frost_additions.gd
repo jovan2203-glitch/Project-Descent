@@ -217,17 +217,17 @@ func test_interrupts_share_a_cooldown() -> void:
 		assert_true(Abilities.is_interrupt(id))
 		assert_true(Abilities.tooltip(id).contains(Abilities.interrupt_note()), "%s's tooltip says so" % id)
 	assert_false(Abilities.is_interrupt("frostbolt"))
-	# Kick used with everything else ready: all the others wait 15 s.
-	var after: Dictionary = p.interrupt_cooldowns("kick", 15.0, {})
+	# Jolt used with everything else ready: all the others wait 15 s.
+	var after: Dictionary = p.interrupt_cooldowns("jolt", 15.0, {})
 	assert_eq(after.size(), Balance.INTERRUPT_LOCKOUT.size(), "only the interrupts")
 	for id in Balance.INTERRUPT_LOCKOUT:
-		assert_eq(float(after[id]), 15.0, "%s after Kick" % id)
+		assert_eq(float(after[id]), 15.0, "%s after Jolt" % id)
 	# A longer own cooldown stays longer; one already further out is not shortened.
-	after = p.interrupt_cooldowns("counterspell", 24.0, {"rimelock": 18.0, "kick": 4.0, "frostnova": 9.0})
+	after = p.interrupt_cooldowns("counterspell", 24.0, {"rimelock": 18.0, "jolt": 4.0, "frostnova": 9.0})
 	assert_eq(float(after["counterspell"]), 24.0)
 	assert_eq(float(after["rimelock"]), 18.0, "already longer: left alone")
-	assert_eq(float(after["kick"]), 15.0, "4 s left becomes 15")
-	assert_eq(float(after["pummel"]), 15.0)
+	assert_eq(float(after["jolt"]), 15.0, "4 s left becomes 15")
+	assert_eq(float(after["hush"]), 15.0)
 	assert_false(after.has("frostnova"), "other abilities are untouched")
 	# An interrupt whose own cooldown were shorter would still wait the shared one.
-	assert_eq(float(p.interrupt_cooldowns("kick", 8.0, {})["kick"]), 15.0)
+	assert_eq(float(p.interrupt_cooldowns("jolt", 8.0, {})["jolt"]), 15.0)

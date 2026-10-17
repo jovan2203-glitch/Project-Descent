@@ -34,7 +34,3 @@ Idle = time with nothing to press: "waiting on cooldowns" when every button was 
 | Holy | Censer Bearer | tank | 476 | 426 DPS, 0 self-HPS | 2566 DPS, 0 self-HPS | Censer Swing 47%, Auto Attack 27%, Pour Out 26% |  | Aureole, Gather the Light, Raise the Censer, Unfallen |
 | Holy | Line of Light | healer | 0 | 281 HPS | 1508 HPS | Bright Lance 47%, Gleam 46%, Prism Ward 7% |  | Set Prism, Move Prism, Realign, Shatter Prism, Shatter All, Infuse, Kaleidoscope |
 | Holy | Lightstring | dps | 222 | 223 DPS | 1358 DPS | Auto Attack 50%, Glimmer Shot 47%, Refracting Shot 2% | geared DPS low, hits small | Prism Arrow, Prism Breaker, Step of Light, Spectrum Volley |
-| Martial | Warpath | dps | 258 | 273 DPS | 1660 DPS | Auto Attack 41%, Heavy Blow 28%, Headsman's Cut 18% |  | Blood Roar |
-| Martial | Iron Line | tank | 144 | 123 DPS, 0 self-HPS | 725 DPS, 0 self-HPS | Auto Attack 94%, Stoneguard 6% | hits small, idle 85% (waiting on cooldowns) | Taunt |
-| Martial | Knife Work | dps | 333 | 230 DPS | 1401 DPS | Auto Attack 49%, Open Vein 28%, Quick Cut 21% | geared DPS low, idle 46% (resource-starved) |  |
-| Martial | Huntsman | dps | 483 | 277 DPS | 1693 DPS | Auto Attack 40%, Long Draw 35%, Poison Arrow 25% | idle 49% (resource-starved) |  |

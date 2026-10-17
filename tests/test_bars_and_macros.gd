@@ -21,15 +21,15 @@ func test_action_bar_has_four_bars() -> void:
 	assert_eq(pd.ACTION_SLOTS_TOTAL, 32)
 	assert_eq(pd.action_bar.size(), 32)
 	assert_eq(pd.action_bar[0], "frostbolt", "the main bar keeps its starting abilities")
-	pd.set_action_slot(20, "slam", -1)
-	assert_eq(pd.action_bar[20], "slam", "an ability can go on an extra bar")
+	pd.set_action_slot(20, "blizzard", -1)
+	assert_eq(pd.action_bar[20], "blizzard", "an ability can go on an extra bar")
 	assert_eq(pd.action_bar[4], "", "... and leaves the slot it was in")
-	pd.set_action_slot(31, "slam", 20)
-	assert_eq(pd.action_bar[31], "slam", "moved between extra-bar slots")
+	pd.set_action_slot(31, "blizzard", 20)
+	assert_eq(pd.action_bar[31], "blizzard", "moved between extra-bar slots")
 	pd.clear_action_slot(31)
 	assert_eq(pd.action_bar[31], "")
-	pd.set_action_slot(32, "slam", -1)   # out of range: ignored
-	assert_false(pd.action_bar.has("slam"))
+	pd.set_action_slot(32, "blizzard", -1)   # out of range: ignored
+	assert_false(pd.action_bar.has("blizzard"))
 
 ## Every slot has an Input Map action; the extra ones start without a key.
 func test_every_slot_has_a_keybind_action() -> void:
@@ -48,7 +48,7 @@ func test_every_slot_has_a_keybind_action() -> void:
 	assert_eq(str(names["bar3_4"][1]), "Left bar 4")
 
 func test_macro_text_is_understood() -> void:
-	var p := Macros.parse("# opener\n/cast Trinket 1\n/use Vent Flames\nFrost Bolt\n\n/castsequence reset=6 Frost Bolt, Firebolt, slam")
+	var p := Macros.parse("# opener\n/cast Trinket 1\n/use Vent Flames\nFrost Bolt\n\n/castsequence reset=6 Frost Bolt, Firebolt, blizzard")
 	assert_true((p["problems"] as Array).is_empty(), str(p["problems"]))
 	var steps: Array = p["steps"]
 	assert_eq(steps.size(), 4)
@@ -56,7 +56,7 @@ func test_macro_text_is_understood() -> void:
 	assert_eq(str(steps[1]["ability"]), "ventflames", "by its name")
 	assert_eq(str(steps[2]["ability"]), "frostbolt", "a bare name works too")
 	assert_eq(str(steps[3]["kind"]), "sequence")
-	assert_eq(steps[3]["abilities"], ["frostbolt", "fireball", "slam"])
+	assert_eq(steps[3]["abilities"], ["frostbolt", "fireball", "blizzard"])
 	assert_eq(float(steps[3]["reset"]), 6.0)
 	# Mistakes are reported with their line, and the rest still works.
 	var bad := Macros.parse("/cast Frost Bolt\n/cast Frots Bolt\n/dance")
@@ -64,7 +64,7 @@ func test_macro_text_is_understood() -> void:
 	assert_eq((bad["problems"] as Array).size(), 2)
 	assert_contains(str(bad["problems"][0]), "Line 2")
 	assert_contains(str(bad["problems"][1]), "/dance")
-	assert_eq(Macros.abilities_in("/cast Heavy Blow\n/castsequence Heavy Blow, Headsman's Cut"), ["slam", "execute"])
+	assert_eq(Macros.abilities_in("/cast Whiteout\n/castsequence Whiteout, Psalm"), ["blizzard", "psalm"])
 
 func test_macros_are_kept_on_the_bar() -> void:
 	var pd := _pd()

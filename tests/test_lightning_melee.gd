@@ -146,7 +146,7 @@ func test_static_step() -> void:
 func test_next_weapon_ability_bonuses() -> void:
 	var p := _player()
 	assert_true(LightningMeleeKit.is_weapon_ability_hit("chargededge", false, false))
-	assert_true(LightningMeleeKit.is_weapon_ability_hit("slam", false, false), "any weapon ability")
+	assert_true(LightningMeleeKit.is_weapon_ability_hit("froststrike", false, false), "any weapon ability")
 	assert_true(LightningMeleeKit.is_weapon_ability_hit("cadence", false, false))
 	assert_false(LightningMeleeKit.is_weapon_ability_hit("auto_melee", false, false), "not auto-attacks")
 	assert_false(LightningMeleeKit.is_weapon_ability_hit("chargededge", true, false), "not procs")

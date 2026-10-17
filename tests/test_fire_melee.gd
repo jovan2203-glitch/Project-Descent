@@ -70,7 +70,7 @@ func test_heat_numbers() -> void:
 func test_what_builds_and_spends_heat() -> void:
 	var p := _player()
 	assert_eq(FireMeleeKit.heat_from("auto_melee"), 1, "an auto-attack builds 1")
-	assert_eq(FireMeleeKit.heat_from("slam"), 1, "any melee ability builds 1")
+	assert_eq(FireMeleeKit.heat_from("froststrike"), 1, "any melee ability builds 1")
 	assert_eq(FireMeleeKit.heat_from("searingstrike"), 2, "Searing Strike builds 2")
 	assert_eq(FireMeleeKit.heat_from("quench"), 0, "the spenders build none")
 	assert_eq(FireMeleeKit.heat_from("flare"), 0)

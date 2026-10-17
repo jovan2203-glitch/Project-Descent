@@ -28,7 +28,6 @@ const KEYWORDS := {
 	"chilled": {"forms": ["Chilled", "Chilling", "Chills", "Chill"], "effect": "chilled"},
 	"frozen": {"forms": ["Frozen", "Freezing", "Freezes", "Freeze"], "effect": "frozen"},
 	"burning": {"forms": ["Burning", "Burns"], "effect": "burning"},
-	"bleeding": {"forms": ["Bleeding", "Bleeds", "Bleed"], "effect": "bleeding"},
 	"poisoned": {"forms": ["Poisoned", "Poisoning", "Poisons"], "effect": "poisoned"},
 	"rooted": {"forms": ["Rooted", "Rooting"], "effect": "rooted"},
 	"stunned": {"forms": ["Stunned", "Stunning", "Stuns"], "effect": "stunned"},

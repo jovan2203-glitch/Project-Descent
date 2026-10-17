@@ -59,20 +59,12 @@ const PATHS := {
 	"spectrumvolley": "res://data/abilities/spectrumvolley.tres",
 	"frostbolt": "res://data/abilities/frostbolt.tres",
 	"blizzard": "res://data/abilities/blizzard.tres",
-	"slam": "res://data/abilities/slam.tres",
-	"execute": "res://data/abilities/execute.tres",
-	"steadyshot": "res://data/abilities/steadyshot.tres",
 	"auto_melee": "res://data/abilities/auto_melee.tres",
 	"auto_ranged": "res://data/abilities/auto_ranged.tres",
 	# Draftable (learned through the level-up draft)
 	"frostnova": "res://data/abilities/frostnova.tres",
 	"icebarrier": "res://data/abilities/icebarrier.tres",
 	"blink": "res://data/abilities/blink.tres",
-	"whirlwind": "res://data/abilities/whirlwind.tres",
-	"battleshout": "res://data/abilities/battleshout.tres",
-	"multishot": "res://data/abilities/multishot.tres",
-	"poisonarrow": "res://data/abilities/poisonarrow.tres",
-	"secondwind": "res://data/abilities/secondwind.tres",
 	"fireball": "res://data/abilities/fireball.tres",
 	"searingstrike": "res://data/abilities/searingstrike.tres",
 	"flamingarrow": "res://data/abilities/flamingarrow.tres",
@@ -217,10 +209,6 @@ const PATHS := {
 	"bloatarrow": "res://data/abilities/bloatarrow.tres",
 	"coilback": "res://data/abilities/coilback.tres",
 	"venomsurge": "res://data/abilities/venomsurge.tres",
-	"sinisterstrike": "res://data/abilities/sinisterstrike.tres",
-	"rupture": "res://data/abilities/rupture.tres",
-	"fanofknives": "res://data/abilities/fanofknives.tres",
-	"eviscerate": "res://data/abilities/eviscerate.tres",
 	# Lightning tank: a parry tank with a two-handed weapon (draftable). Stormbreak
 	# ("stormshield") and Humming Blade ("thunderaegis") keep the ids they had as
 	# the shield abilities Stormshield Slam and Aegis of Thunder.
@@ -259,10 +247,8 @@ const PATHS := {
 	# Taught by the Rune of Polarity (never drafted)
 	"polarstrike": "res://data/abilities/polarstrike.tres",
 	# Action-bar buttons that fire the Use: effect of the equipped trinkets
-	# Baseline kit for every character (elemental bolts, heal, tank tools)
+	# Baseline kit for every character (elemental bolts, heal)
 	"lightningbolt": "res://data/abilities/lightningbolt.tres",
-	"stoneguard": "res://data/abilities/stoneguard.tres",
-	"taunt": "res://data/abilities/taunt.tres",
 	# Frost: Rime Shell kit (draftable)
 	"rimeshell": "res://data/abilities/rimeshell.tres",
 	"shatteringwave": "res://data/abilities/shatteringwave.tres",
@@ -291,14 +277,12 @@ const PATHS := {
 	"trinket_2": "res://data/abilities/trinket_2.tres",
 	# Interrupts (draftable): stop an enemy's cast and lock it out of casting
 	"counterspell": "res://data/abilities/counterspell.tres",
-	"kick": "res://data/abilities/kick.tres",
-	"pummel": "res://data/abilities/pummel.tres",
 }
 ## Always available (everything the player had before the draft existed).
-## Includes a basic spell of every element, a heal and tank tools, so a fresh
-## (level 1 / just died) character can play any role right away.
-const BASE := ["frostbolt", "fireball", "lightningbolt", "psalm", "stoneguard", "taunt",
-	"blizzard", "slam", "execute", "steadyshot",
+## Includes a basic spell of every element and a heal, so a fresh (level 1 /
+## just died) character can always do something. (The Martial basics were wiped with the book.)
+const BASE := ["frostbolt", "fireball", "lightningbolt", "psalm",
+	"blizzard",
 	"trinket_1", "trinket_2"]
 ## Trinket bar buttons -> the equipment slot whose Use: effect they fire.
 const TRINKET_SLOTS := {"trinket_1": "Trinket 1", "trinket_2": "Trinket 2"}
@@ -306,8 +290,7 @@ const TRINKET_SLOTS := {"trinket_1": "Trinket 1", "trinket_2": "Trinket 2"}
 static func is_trinket_slot(id: String) -> bool:
 	return TRINKET_SLOTS.has(id)
 ## Offered by the level-up draft; learned permanently when picked.
-const DRAFT_POOL := ["frostnova", "icebarrier", "blink", "whirlwind",
-	"battleshout", "multishot", "poisonarrow", "secondwind",
+const DRAFT_POOL := ["frostnova", "icebarrier", "blink",
 	"rimeshell", "shatteringwave", "flashfreeze", "hoarfrost", "shatteringslam", "rimeslash", "iceshards",
 	"coldspike", "sleetwave", "deepwinter", "rimelock", "snowward", "winterhide", "rimeedge", "icebreaker", "icepin",
 	"shattershot", "glacialdraw", "rimefletch", "coldmark", "icyretreat",
@@ -340,10 +323,9 @@ const DRAFT_POOL := ["frostnova", "icebarrier", "blink", "whirlwind",
 	"dewfall", "fawn", "rootguard", "owl", "heartwoodelk", "wildherd",
 	"vinefist", "grasp", "stomp", "giantshands", "heartsap", "awaken",
 	"fangarrow", "adderarrow", "asparrow", "kraitarrow", "venomburst", "spittingvolley", "bloatarrow", "coilback", "venomsurge",
-	"sinisterstrike", "rupture", "fanofknives", "eviscerate",
 	"stormshield", "thunderaegis",
 	"returnstroke", "shockring", "crossguard", "drawthestorm", "reelin", "recharge",
-	"counterspell", "kick", "pummel"]
+	"counterspell"]
 # Every ability that can go on the action bar (order = list order).
 const ALL := ["frostbolt", "blizzard", "frostnova", "icebarrier",
 	"rimeshell", "shatteringwave", "flashfreeze", "hoarfrost", "shatteringslam", "rimeslash", "iceshards",
@@ -379,9 +361,6 @@ const ALL := ["frostbolt", "blizzard", "frostnova", "icebarrier",
 	"censerswing", "hallowedarc", "beckon", "pourout", "absolve", "aureole", "gatherthelight", "raisethecenser", "unfallen",
 	"setprism", "moveprism", "mendingray", "brightlance", "gleam", "prismward", "piercinglight", "realign", "shatterprism", "shatterall", "infuse", "kaleidoscope",
 	"prismarrow", "glimmershot", "refractingshot", "sunlitarrow", "prismbreaker", "stepoflight", "spectrumvolley",
-	"slam", "execute", "whirlwind", "battleshout", "secondwind", "stoneguard", "taunt", "pummel",
-	"sinisterstrike", "rupture", "fanofknives", "eviscerate", "kick",
-	"steadyshot", "multishot", "poisonarrow",
 	"frostfirebolt", "polarstrike",
 	"trinket_1", "trinket_2"]
 ## Category (book) each ability belongs to — see categories.gd.
@@ -392,7 +371,7 @@ const CATEGORY_OF := {
 	"coldspike": "frost", "sleetwave": "frost", "deepwinter": "frost", "rimelock": "frost", "snowward": "frost",
 	"winterhide": "frost", "rimeedge": "frost", "icebreaker": "frost", "icepin": "frost",
 	"shattershot": "frost", "glacialdraw": "frost", "rimefletch": "frost", "coldmark": "frost", "icyretreat": "frost",
-	"lightningbolt": "lightning", "stoneguard": "martial", "taunt": "martial",
+	"lightningbolt": "lightning",
 	"fireball": "fire", "searingstrike": "fire", "flamingarrow": "fire", "flamenova": "fire",
 	"ventflames": "fire", "coolhead": "fire", "furnacebreath": "fire", "slagskin": "fire",
 	"stoke": "fire", "embervolley": "fire", "immolate": "fire", "walloffire": "fire",
@@ -424,19 +403,15 @@ const CATEGORY_OF := {
 	"wrench": "shadow", "pulltaut": "shadow", "cuppedhands": "shadow", "stringup": "shadow", "restring": "shadow",
 	"knot": "shadow", "tangle": "shadow", "yank": "shadow", "doublethread": "shadow", "behinditsback": "shadow",
 	"slack": "shadow", "stillstanding": "shadow", "cutthestrings": "shadow", "notfinished": "shadow",
-	"slam": "martial", "execute": "martial", "whirlwind": "martial", "battleshout": "martial",
-	"secondwind": "martial",
-	"steadyshot": "martial", "multishot": "martial", "poisonarrow": "martial",
 	"thornshot": "nature", "briartiger": "nature", "mossback": "nature", "thornwing": "nature", "chokingvipers": "nature", "greenwoodstag": "nature",
 	"dewfall": "nature", "fawn": "nature", "rootguard": "nature", "owl": "nature", "heartwoodelk": "nature", "wildherd": "nature",
 	"vinefist": "nature", "grasp": "nature", "stomp": "nature", "giantshands": "nature", "heartsap": "nature", "awaken": "nature",
 	"fangarrow": "nature", "adderarrow": "nature", "asparrow": "nature", "kraitarrow": "nature", "venomburst": "nature",
 	"spittingvolley": "nature", "bloatarrow": "nature", "coilback": "nature", "venomsurge": "nature",
-	"sinisterstrike": "martial", "rupture": "martial", "fanofknives": "martial", "eviscerate": "martial",
 	"stormshield": "lightning", "thunderaegis": "lightning",
 	"returnstroke": "lightning", "shockring": "lightning", "crossguard": "lightning", "drawthestorm": "lightning",
 	"reelin": "lightning", "recharge": "lightning",
-	"counterspell": "arcane", "kick": "martial", "pummel": "martial",
+	"counterspell": "arcane",
 	"psalm": "holy", "outpour": "holy", "lift": "holy", "refrain": "holy", "canticle": "holy", "exultation": "holy",
 	"antiphon": "holy", "shelter": "holy", "steadyvoice": "holy", "highnote": "holy", "reprise": "holy", "swell": "holy",
 	"rest": "holy", "lastverse": "holy", "singmercy": "holy", "singchorus": "holy", "singvigil": "holy",
@@ -465,11 +440,10 @@ const ICON_FORM := {
 	"arcanemissiles": "missiles", "arcanestrike": "blade", "arcaneshot": "arrow", "arcaneexplosion": "nova",
 	"corruption": "swirl", "shadowstrike": "blade", "shadowarrow": "arrow",
 	"froststrike": "blade", "frostarrow": "arrow",
-	"sinisterstrike": "blade", "rupture": "blade", "fanofknives": "nova", "eviscerate": "blade",
-	"lightningbolt": "zap", "stoneguard": "shield_nova", "taunt": "nova",
+	"lightningbolt": "zap",
 	"rimeshell": "shield", "shatteringwave": "nova", "flashfreeze": "missiles",
 	"hoarfrost": "swirl", "shatteringslam": "blade", "rimeslash": "blade",
-	"counterspell": "interrupt", "kick": "interrupt", "pummel": "interrupt",
+	"counterspell": "interrupt",
 }
 
 const Categories = preload("res://scripts/categories.gd")
@@ -546,12 +520,7 @@ const SPECS := {
 			"realign", "shatterprism", "shatterall", "infuse", "kaleidoscope"]],
 		["Lightstring", ["glimmershot", "prismarrow", "refractingshot", "sunlitarrow", "prismbreaker", "stepoflight", "spectrumvolley"]],
 	],
-	"martial": [
-		["Warpath", ["slam", "execute", "whirlwind", "battleshout", "secondwind", "pummel"]],
-		["Iron Line", ["stoneguard", "taunt"]],
-		["Knife Work", ["sinisterstrike", "rupture", "eviscerate", "fanofknives", "kick"]],
-		["Huntsman", ["steadyshot", "multishot", "poisonarrow"]],
-	],
+	"martial": [],   # (wiped; to be rebuilt)
 }
 
 ## A book's specs holding only the abilities `keep` accepts (all if not given),
@@ -1163,7 +1132,6 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		"ripple_enemies": str(Balance.WIDE_RINGS_ENEMIES if talent_capstone("arcane_wide_rings")         # Wide Rings' capstone
 			else Balance.RIPPLE_REFLECTION_ENEMIES),
 		# Buffs in flat units, and other sizes worked out from balance.gd.
-		"shout_ap": fmt_amount(Balance.BATTLE_SHOUT_AP * flat),
 		"barrier_armor": fmt_amount(Balance.ICE_BARRIER_ARMOR * flat),
 		"heat_sink_max": "?" if base < 0 else fmt_amount(base * per * (1.0 + Balance.HEAT_SINK_BONUS)),
 		"arcane_mana": str(int(round(Balance.ARCANE_STRIKE_MANA * Stats.mana_unit(level)))),
@@ -1472,8 +1440,6 @@ static func draw_icon(c: Control, id: String) -> void:
 	var bg := Color(0.08, 0.16, 0.26)
 	if CATEGORY_OF.has(id):
 		bg = color_of(id).darkened(0.75)
-	if id == "secondwind":
-		bg = Color(0.1, 0.2, 0.12)
 	c.draw_rect(Rect2(Vector2(pad, pad), s - Vector2(pad, pad) * 2), bg, true)
 	if _draw_unique(c, id, color_of(id), mid, k):
 		return
@@ -1525,33 +1491,6 @@ static func draw_icon(c: Control, id: String) -> void:
 					c.draw_line(tip, tip + n, col, 1.8 * k, true)
 					c.draw_line(tip, tip + n2, col, 1.8 * k, true)
 			c.draw_circle(mid, 3.0 * k, Color(1, 1, 1))
-		"slam":
-			# Impact burst with a sword coming down
-			var hit := mid + Vector2(0, 8) * k
-			for i in 8:
-				var ang := TAU * i / 8.0
-				c.draw_line(hit + Vector2(cos(ang), sin(ang)) * 5.0 * k, hit + Vector2(cos(ang), sin(ang)) * 12.0 * k, Color(1.0, 0.7, 0.3), 2.0 * k, true)
-			c.draw_line(mid + Vector2(-12, -14) * k, hit, Color(0.9, 0.9, 0.95), 4.0 * k, true)
-			c.draw_line(mid + Vector2(-16, -10) * k, mid + Vector2(-8, -18) * k, Color(0.85, 0.7, 0.3), 3.0 * k, true)
-			c.draw_circle(hit, 4.0 * k, Color(1, 0.9, 0.6))
-		"execute":
-			# Heavy blade chopping down with a red slash
-			c.draw_line(mid + Vector2(-15, 13) * k, mid + Vector2(14, -14) * k, Color(0.9, 0.15, 0.1, 0.6), 7.0 * k, true)
-			c.draw_line(mid + Vector2(-6, 10) * k, mid + Vector2(10, -10) * k, Color(0.92, 0.92, 0.96), 6.0 * k, true)
-			c.draw_line(mid + Vector2(-12, 4) * k, mid + Vector2(-2, 14) * k, Color(0.85, 0.7, 0.3), 3.5 * k, true)
-			c.draw_line(mid + Vector2(-7, 9) * k, mid + Vector2(-14, 16) * k, Color(0.4, 0.25, 0.15), 3.5 * k, true)
-			for i in 3:
-				c.draw_circle(mid + Vector2(8 + i * 3, 4 + i * 4) * k, (2.2 - i * 0.5) * k, Color(0.85, 0.1, 0.08))
-		"steadyshot":
-			# Crosshair with an arrow
-			var col := Color(0.8, 0.95, 0.6)
-			c.draw_arc(mid, 13.0 * k, 0, TAU, 24, col, 1.5 * k, true)
-			c.draw_line(mid + Vector2(0, -17) * k, mid + Vector2(0, -8) * k, col, 1.5 * k)
-			c.draw_line(mid + Vector2(0, 8) * k, mid + Vector2(0, 17) * k, col, 1.5 * k)
-			c.draw_line(mid + Vector2(-17, 0) * k, mid + Vector2(-8, 0) * k, col, 1.5 * k)
-			c.draw_line(mid + Vector2(8, 0) * k, mid + Vector2(17, 0) * k, col, 1.5 * k)
-			c.draw_line(mid + Vector2(-14, 14) * k, mid + Vector2(3, -3) * k, Color(0.75, 0.55, 0.35), 2.5 * k, true)
-			c.draw_colored_polygon(PackedVector2Array([mid + Vector2(6, -6) * k, mid + Vector2(-1, -4) * k, mid + Vector2(4, 1) * k]), Color(0.9, 0.9, 0.95))
 		"frostnova":
 			for i in 8:
 				var a := TAU * i / 8.0
@@ -1569,28 +1508,6 @@ static func draw_icon(c: Control, id: String) -> void:
 			c.draw_circle(mid + Vector2(8, 0) * k, 5.0 * k, Color(0.9, 0.75, 1.0))
 			for i in 3:
 				c.draw_line(mid + Vector2(-2 + i * 3, -6 + i * 6) * k, mid + Vector2(4 + i * 3, -6 + i * 6) * k, Color(0.8, 0.6, 1, 0.7), 1.5 * k)
-		"whirlwind":
-			for i in 3:
-				c.draw_arc(mid, (6.0 + i * 4.5) * k, i * 1.4, i * 1.4 + 4.0, 16, Color(0.95, 0.9, 0.85, 0.9 - i * 0.2), 2.5 * k, true)
-			c.draw_line(mid + Vector2(-3, 3) * k, mid + Vector2(12, -12) * k, Color(0.9, 0.9, 0.95), 3.0 * k, true)
-		"battleshout":
-			c.draw_colored_polygon(PackedVector2Array([mid + Vector2(-12, -5) * k, mid + Vector2(-4, -5) * k,
-				mid + Vector2(6, -13) * k, mid + Vector2(6, 13) * k, mid + Vector2(-4, 5) * k, mid + Vector2(-12, 5) * k]), Color(0.9, 0.55, 0.3))
-			for i in 3:
-				c.draw_arc(mid + Vector2(6, 0) * k, (6.0 + i * 4.0) * k, -0.7, 0.7, 8, Color(1, 0.8, 0.5, 0.8 - i * 0.2), 1.8 * k, true)
-		"multishot":
-			for off in [-9.0, 0.0, 9.0]:
-				c.draw_line(mid + Vector2(-13, 6 + off * 0.5) * k, mid + Vector2(10, -6 + off) * k, Color(0.75, 0.55, 0.35), 2.0 * k, true)
-				c.draw_circle(mid + Vector2(11, -6 + off) * k, 2.5 * k, Color(0.9, 0.9, 0.95))
-		"poisonarrow":
-			c.draw_line(mid + Vector2(-14, 14) * k, mid + Vector2(8, -8) * k, Color(0.75, 0.55, 0.35), 2.5 * k, true)
-			c.draw_colored_polygon(PackedVector2Array([mid + Vector2(13, -13) * k, mid + Vector2(5, -10) * k, mid + Vector2(10, -5) * k]), Color(0.5, 0.95, 0.3))
-			for p in [Vector2(-4, -8), Vector2(2, 6), Vector2(8, 2)]:
-				c.draw_circle(mid + p * k, 2.2 * k, Color(0.5, 0.95, 0.3, 0.85))
-		"secondwind":
-			c.draw_rect(Rect2(mid + Vector2(-4, -13) * k, Vector2(8, 26) * k), Color(0.45, 1.0, 0.5), true)
-			c.draw_rect(Rect2(mid + Vector2(-13, -4) * k, Vector2(26, 8) * k), Color(0.45, 1.0, 0.5), true)
-
 # Generic icon shapes, tinted with the ability's book color.
 # (Fallback only: every current ability has its own icon in _draw_unique.)
 static func _draw_form(c: Control, form: String, col: Color, mid: Vector2, k: float, pad: float) -> void:
@@ -3506,62 +3423,6 @@ static func _draw_unique(c: Control, id: String, col: Color, mid: Vector2, k: fl
 			c.draw_line(mid + Vector2(-17, 13) * k, mid + Vector2(17, 13) * k, col, 2.5 * k, true)
 			for side: float in [-1.0, 1.0]:
 				c.draw_colored_polygon(_pts(mid, k, [Vector2(-2 + side * 4, 13), Vector2(-2 + side * 12, 13), Vector2(-2 + side * 10, 5)]), Color(light, 0.85))
-		# --- Warrior ---
-		"secondwind":
-			for i in 3:
-				c.draw_arc(mid + Vector2(-2, -8 + i * 8) * k, (6.0 + i * 1.5) * k, -PI * 0.9, PI * 0.2, 12,
-					Color(0.6, 1.0, 0.65, 0.95 - i * 0.2), 2.5 * k, true)
-			c.draw_rect(Rect2(mid + Vector2(8, 6) * k, Vector2(8, 3) * k), Color(0.45, 1.0, 0.5), true)
-			c.draw_rect(Rect2(mid + Vector2(10.5, 3.5) * k, Vector2(3, 8) * k), Color(0.45, 1.0, 0.5), true)
-		"stoneguard":
-			c.draw_colored_polygon(_pts(mid, k, [Vector2(-13, 10), Vector2(-11, -4), Vector2(-3, -12), Vector2(8, -11),
-				Vector2(14, -1), Vector2(11, 11)]), Color(0.62, 0.58, 0.52))
-			c.draw_line(mid + Vector2(-5, -6) * k, mid + Vector2(1, 3) * k, Color(0.35, 0.32, 0.3), 1.6 * k, true)
-			c.draw_line(mid + Vector2(1, 3) * k, mid + Vector2(8, 1) * k, Color(0.35, 0.32, 0.3), 1.6 * k, true)
-			c.draw_line(mid + Vector2(-16, 14) * k, mid + Vector2(16, 14) * k, col, 2.5 * k)
-		"taunt":
-			c.draw_arc(mid, 14.0 * k, 0, TAU, 28, Color(1.0, 0.4, 0.3), 2.5 * k, true)
-			c.draw_rect(Rect2(mid + Vector2(-2.5, -10) * k, Vector2(5, 13) * k), Color(1.0, 0.45, 0.35), true)
-			c.draw_circle(mid + Vector2(0, 8) * k, 2.8 * k, Color(1.0, 0.45, 0.35))
-		"pummel":
-			# A fist.
-			c.draw_rect(Rect2(mid + Vector2(-10, -8) * k, Vector2(18, 16) * k), col, true)
-			for i in 4:
-				c.draw_circle(mid + Vector2(-8 + i * 4.7, -8) * k, 2.6 * k, light)
-			c.draw_rect(Rect2(mid + Vector2(-13, -2) * k, Vector2(6, 8) * k), light, true)
-			for i in 3:
-				c.draw_line(mid + Vector2(10, -6 + i * 6) * k, mid + Vector2(16, -8 + i * 6) * k, white, 1.8 * k, true)
-		# --- Rogue ---
-		"sinisterstrike":
-			c.draw_arc(mid + Vector2(-10, 10) * k, 22.0 * k, -1.35, -0.25, 12, Color(0.92, 0.92, 0.96), 3.5 * k, true)
-			c.draw_line(mid + Vector2(-10, 10) * k, mid + Vector2(-4, 4) * k, col, 3.5 * k, true)
-			c.draw_line(mid + Vector2(-9, 3) * k, mid + Vector2(-3, 9) * k, light, 2.5 * k, true)
-		"rupture":
-			for p in [Vector2(-7, -6), Vector2(5, -2), Vector2(-2, 8)]:
-				var at := mid + (p as Vector2) * k
-				c.draw_colored_polygon(PackedVector2Array([at + Vector2(0, -8) * k, at + Vector2(4, 1) * k,
-					at + Vector2(0, 4) * k, at + Vector2(-4, 1) * k]), Color(0.85, 0.12, 0.1))
-			c.draw_line(mid + Vector2(-14, 14) * k, mid + Vector2(14, -14) * k, Color(0.92, 0.92, 0.96, 0.8), 1.5 * k, true)
-		"fanofknives":
-			for i in 6:
-				var a := TAU * i / 6.0
-				var d := Vector2(cos(a), sin(a))
-				c.draw_line(mid + d * 5.0 * k, mid + d * 13.0 * k, Color(0.92, 0.92, 0.96), 2.5 * k, true)
-				c.draw_colored_polygon(PackedVector2Array([mid + d * 17.0 * k, mid + d * 12.0 * k + d.orthogonal() * 2.5 * k,
-					mid + d * 12.0 * k - d.orthogonal() * 2.5 * k]), Color(0.92, 0.92, 0.96))
-			c.draw_circle(mid, 3.0 * k, col)
-		"eviscerate":
-			for side: float in [-1.0, 1.0]:
-				c.draw_line(mid + Vector2(-11 * side, 11) * k, mid + Vector2(11 * side, -11) * k, Color(0.92, 0.92, 0.96), 3.0 * k, true)
-				c.draw_line(mid + Vector2(-11 * side, 11) * k, mid + Vector2(-6 * side, 6) * k, col, 3.5 * k, true)
-			c.draw_circle(mid, 3.5 * k, Color(0.85, 0.12, 0.1))
-		"kick":
-			# A boot mid-kick.
-			c.draw_colored_polygon(_pts(mid, k, [Vector2(-14, -12), Vector2(-6, -12), Vector2(-4, 2), Vector2(12, 2),
-				Vector2(14, 10), Vector2(-12, 10)]), col)
-			c.draw_line(mid + Vector2(-12, 6) * k, mid + Vector2(14, 6) * k, light, 1.8 * k)
-			for i in 3:
-				c.draw_line(mid + Vector2(15, -2 + i * 5) * k, mid + Vector2(18, -4 + i * 5) * k, white, 1.6 * k, true)
 		_:
 			return false
 	return true

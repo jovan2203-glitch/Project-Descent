@@ -31,12 +31,9 @@ func test_fight_overrides_name_real_specs() -> void:
 	for book in Abilities.SPECS:
 		for spec in Abilities.SPECS[book]:
 			names.append(spec[0])
+	assert_false(names.is_empty(), "there are specs")
 	for name in SpecsInfo.FIGHTS:
 		assert_true(names.has(name), "%s is a spec" % name)
-
-func test_iron_line_swings_a_weapon() -> void:
-	var r: Dictionary = Sim.simulate(["stoneguard", "taunt"], "tank", "no gear", "Iron Line")
-	assert_true(r["sources"].has("Auto Attack"), "Iron Line auto-attacks: %s" % str(r["sources"]))
 
 func test_payoffs_name_real_abilities() -> void:
 	for id in SpecsInfo.PAYOFF:

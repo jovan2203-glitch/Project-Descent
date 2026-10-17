@@ -586,10 +586,8 @@ static func spell_color(id: String) -> Color:
 			return Abilities.color_of("stomp")   # (Nature tank)
 		"poisoned":
 			return Color(0.45, 0.85, 0.3)
-		"bleeding":
-			return Color(0.8, 0.2, 0.2)
 		"lifesteal":
-			return Color(0.85, 0.25, 0.35)   # (blood red, a little pinker than Bleeding)
+			return Color(0.85, 0.25, 0.35)   # (blood red, a little pink)
 		"corrupted", "decay":
 			return Abilities.color_of("corruption")
 		"hound_bite", "hound_lunge", "hound_drag", "stand_over":

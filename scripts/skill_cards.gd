@@ -9,8 +9,7 @@ extends RefCounted
 
 const DIR := "res://data/skill_cards/"
 const MAX_EQUIPPED := 5
-const ALL := ["battleshout", "frostnova", "whirlwind", "poisonarrow",
-	"icebarrier", "multishot", "blink", "secondwind",
+const ALL := ["frostnova", "icebarrier", "blink",
 	"rimeshell", "shatteringwave", "flashfreeze", "hoarfrost", "shatteringslam", "rimeslash", "iceshards",
 	"searingstrike", "flamingarrow", "flamenova", "ventflames", "coolhead", "furnacebreath", "slagskin", "stoke", "embervolley", "immolate", "walloffire",
 	"kilnblast", "slowfuse", "rekindle",
@@ -42,10 +41,9 @@ const ALL := ["battleshout", "frostnova", "whirlwind", "poisonarrow",
 	"dewfall", "fawn", "rootguard", "owl", "heartwoodelk", "wildherd",
 	"vinefist", "grasp", "stomp", "giantshands", "heartsap", "awaken",
 	"fangarrow", "adderarrow", "asparrow", "kraitarrow", "venomburst", "spittingvolley", "bloatarrow", "coilback", "venomsurge",
-	"sinisterstrike", "rupture", "fanofknives", "eviscerate",
 	"stormshield", "thunderaegis",
 	"returnstroke", "shockring", "crossguard", "drawthestorm", "reelin", "recharge",
-	"counterspell", "kick", "pummel"]
+	"counterspell"]
 
 static var _cache := {}
 

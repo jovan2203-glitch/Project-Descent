@@ -37,3 +37,19 @@ func test_no_ray_of_frost() -> void:
 			if re.search(lines[i]) != null:
 				hits.append("%s:%d" % [p, i + 1])
 	assert_true(hits.is_empty(), "Ray of Frost references: " + ", ".join(hits))
+
+## The Martial book was wiped (to be rebuilt): its old abilities stay gone from
+## every list, and their data files with them.
+const WIPED_MARTIAL := ["slam", "execute", "whirlwind", "battleshout", "secondwind", "pummel", "stoneguard", "taunt",
+	"sinisterstrike", "rupture", "eviscerate", "fanofknives", "kick", "steadyshot", "multishot", "poisonarrow"]
+
+func test_wiped_martial_abilities_are_gone() -> void:
+	const Abilities = preload("res://scripts/abilities.gd")
+	const SkillCards = preload("res://scripts/skill_cards.gd")
+	for id in WIPED_MARTIAL:
+		assert_false(Abilities.PATHS.has(id), "%s has no ability path" % id)
+		assert_false(Abilities.ALL.has(id) or Abilities.BASE.has(id) or Abilities.DRAFT_POOL.has(id), "%s is in no ability list" % id)
+		assert_false(SkillCards.ALL.has(id), "%s has no Skill Card" % id)
+		assert_false(FileAccess.file_exists("res://data/abilities/%s.tres" % id), "%s.tres is deleted" % id)
+		assert_false(FileAccess.file_exists("res://data/skill_cards/%s.tres" % id), "its Skill Card file is deleted")
+	assert_true(Abilities.SPECS["martial"].is_empty(), "the Martial book has no specs")
