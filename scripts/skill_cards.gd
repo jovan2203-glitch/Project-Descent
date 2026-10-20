@@ -48,6 +48,7 @@ const ALL := ["frostnova", "icebarrier", "blink",
 	"punch", "catch", "comeon", "toughitout", "onemore",
 	"cut", "whirl", "dartin", "kickoff", "twinstab", "closeitout", "rollwithit", "hityourstride", "snatch",
 	"pintheshadow", "overtheshoulder", "playdead",
+	"quickshot", "pierce", "spread", "heavydraw", "followup", "breathe", "fasthands",
 	"counterspell"]
 
 static var _cache := {}

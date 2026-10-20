@@ -40,3 +40,5 @@ frostfire_kit FrostfireKit rune_frostfire.gd
 wheel WheelKit martial_wheel.gd
 brawler BrawlerKit martial_brawler.gd
 rogue RogueKit martial_rogue.gd
+sharp SharpshooterKit martial_sharpshooter.gd
+martial_talents MartialTalentsKit martial_talents_open.gd

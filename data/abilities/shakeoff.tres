@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"shakeoff"
 display_name = "Shake Off"
-description = "Made by a Chain of three different strikes that ends with Elbow. Clears {b:SHAKE_OFF_PCT}% of your Bruise."
+description = "Made by a Chain of three different strikes that ends with Elbow. Clears {shake_off_pct}% of your Bruise."
 tags = PackedStringArray("Ability", "Physical", "Defensive")
 cast_type = 0
 cast_time = 0.0

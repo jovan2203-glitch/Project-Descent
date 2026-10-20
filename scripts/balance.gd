@@ -1144,6 +1144,42 @@ const OVER_SHOULDER_TIME := 5.0           # Over the Shoulder: seconds your next
 const OVER_SHOULDER_GAP := 1.2            # ... metres behind the target you land
 const PLAY_DEAD_TIME := 3.0               # Play Dead: seconds enemies forget you
 
+# Martial archer: Sharpshooter (scripts/player/martial_sharpshooter.gd). No resource: every
+# shot is on a cooldown and each hit cuts another shot's (Abilities.SHARP_LINKS). A cut on
+# a shot that is already ready becomes Overcut on it (more damage when it's fired).
+const SHARP_QUICK_CUT := 3.0              # Quick Shot: seconds it takes off Pierce
+const SHARP_PIERCE_CUT_FIRST := 2.0       # Pierce: seconds off Spread for the first enemy hit ...
+const SHARP_PIERCE_CUT_PER := 1.5         # ... and for each enemy after it ...
+const SHARP_PIERCE_CUT_MAX := 6.0         # ... up to this many in all
+const SHARP_PIERCE_WIDTH := 1.5           # ... how wide its line is (metres; enemies on it are hit)
+const SHARP_SPREAD_ARROWS := 3            # Spread: arrows, across up to this many enemies in front ...
+const SHARP_SPREAD_ARC := 90.0            # ... in this wide a cone (degrees); a lone enemy takes them all
+const SHARP_SPREAD_CUT := 1.5             # ... seconds each arrow takes off Heavy Draw
+const SHARP_HEAVY_CUT := 2.0              # Heavy Draw: seconds off every other shot (Quick Shot is reset)
+const SHARP_FOLLOW_HITS := 2              # Follow Up: arrows ...
+const SHARP_FOLLOW_CUT := 2.0             # ... seconds each takes off the shot you used just before it
+const SHARP_FOLLOW_GAP := 0.15            # ... seconds between its two arrows
+const OVERCUT_PCT := 8.0                  # Overcut: % more damage per second of it ...
+const OVERCUT_MAX := 12.5                 # ... up to this many seconds (+100%)
+const STREAK_MAX := 10                    # Streak: most stacks ...
+const STREAK_PCT := 2.0                   # ... % more damage per stack
+const STREAK_HOLD := 4.0                  # ... lost after this many seconds without a Sharpshooter shot
+const BREATHE_TIME := 10.0                # Breathe: seconds your next cut is a full reset
+const FAST_HANDS_TIME := 10.0             # Fast Hands: seconds ...
+const FAST_HANDS_MULT := 2.0              # ... every cut is this many times as long
+
+# Martial talents (talents.gd holds each rank's number; these are the fixed parts).
+const HARD_BREAK_CRACKS := 6              # Hard Break's capstone: a finisher with this many Cracks or more ...
+const HARD_BREAK_FURY := 20.0             # ... gives this much Fury
+const TURNING_WHEEL_TIME := 15.0          # Turning Wheel: seconds each broken weapon's stack lasts
+const CLEAN_KILL_FLOW := 3                # Clean Kill's capstone: Flow Close It Out leaves you
+const SOAK_IT_UP_SHAKE_OFF := 40.0        # Soak It Up's capstone: % of your Bruise Shake Off clears
+const FULL_DRAW_CUT := 3.0                # Full Draw's capstone: seconds Heavy Draw takes off the other shots
+const CATCH_BREATH_HEALTH_PCT := 35.0     # Catch Your Breath: dropping below this % health ...
+const CATCH_BREATH_TIME := 6.0            # ... heals over this many seconds ...
+const CATCH_BREATH_TICK := 1.0            # ... a tick every this many seconds ...
+const CATCH_BREATH_COOLDOWN := 60.0       # ... at most once every this many seconds
+
 # --- Utility (each book's "Utility" divider; scripts/player/utility.gd) ---------------------
 # Roots: every book has its own kind (CLAUDE.md). The other tools: useful to anyone
 # in the book, each with a rider only one of that book's specs cashes in.
@@ -1478,6 +1514,15 @@ const ABILITIES := {
 	"pintheshadow": {"cooldown": 20.0, "range": 30.0},
 	"overtheshoulder": {"cooldown": 20.0, "range": 10.0},
 	"playdead": {"cooldown": 90.0},
+	# Martial archer: Sharpshooter (SHARP_*, OVERCUT_*, STREAK_* above). No costs.
+	"quickshot": {"damage": 0.45, "cooldown": 8.0},
+	"pierce": {"damage": 0.5, "cooldown": 12.0},
+	"spread": {"damage": 0.3, "cooldown": 15.0},
+	"heavydraw": {"damage": 1.3, "cooldown": 20.0, "cast_time": 1.5},
+	"followup": {"damage": 0.22, "cooldown": 10.0},
+	"loose": {"damage": 0.25},
+	"breathe": {"cooldown": 30.0},
+	"fasthands": {"cooldown": 120.0},
 	# Utility (each book's "Utility" divider; the numbers above)
 	"rootsnare": {"cooldown": 20.0, "cost": 2, "radius": 3.0, "range": 30.0},
 	"deeproots": {"cooldown": 60.0, "cost": 1},

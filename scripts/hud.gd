@@ -1027,6 +1027,7 @@ func _refresh_action_bar() -> void:
 	_refresh_venom_bar()
 	_refresh_wheel_strip()
 	_refresh_chain_strip()
+	_refresh_sharp_strip()
 	var settings := get_node_or_null("/root/Settings")
 	for i in _slot_buttons:
 		var id := _slot_id(i)
@@ -1107,6 +1108,7 @@ func _process(delta: float) -> void:
 	_update_action_bar()
 	_update_wheel_strip()
 	_update_chain_strip()
+	_update_sharp_strip()
 	_update_bruise_segment()
 	_update_resource_bars()
 	_buff_t -= delta
@@ -1361,6 +1363,116 @@ func _update_chain_strip() -> void:
 		else:
 			cell.modulate.a = 0.35
 		_chain_row.add_child(cell)
+
+# --- The engine (Martial archer: Sharpshooter) ---------------------------------------------
+# A strip above the main action bar while the Sharpshooter is out: its five shots in the
+# order they feed each other, each with its cooldown (or Overcut, gold) under it, and
+# above it what the shots that are ready right now would take off it if they hit
+# (blue: it comes back sooner; gold: it's ready, so that time would become Overcut).
+const SHARP_CELL := 34.0
+const SHARP_BLUE := Color(0.42, 0.72, 1.0)
+const SHARP_GOLD := Color(1.0, 0.83, 0.3)
+var _sharp_root: PanelContainer
+var _sharp_row: HBoxContainer
+var _sharp_cells := {}   # shot id -> {"cell", "under", "over"}
+
+func _refresh_sharp_strip() -> void:
+	var wanted: bool = player != null and player.get("sharp") != null and player.sharp.is_out()
+	if not wanted:
+		if _sharp_root:
+			_sharp_root.visible = false
+		return
+	if _sharp_root == null:
+		_sharp_root = PanelContainer.new()
+		_sharp_root.anchor_left = 0.5
+		_sharp_root.anchor_right = 0.5
+		_sharp_root.anchor_top = 1.0
+		_sharp_root.anchor_bottom = 1.0
+		_sharp_root.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_sharp_root.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		_sharp_root.add_theme_stylebox_override("panel", _box(Color(0, 0, 0, 0.55), 6))
+		_sharp_root.tooltip_text = "Your shots, in the order they feed each other. Above a shot: what your ready shots would take off it. Gold: Overcut."
+		add_child(_sharp_root)
+		_sharp_row = HBoxContainer.new()
+		_sharp_row.add_theme_constant_override("separation", 4)
+		_sharp_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		_sharp_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_sharp_root.add_child(_sharp_row)
+	for c in _sharp_row.get_children():
+		c.queue_free()
+	_sharp_cells.clear()
+	var pd := get_node_or_null("/root/PlayerData")
+	var first := true
+	for id in Abilities.SHARP_ENGINE:
+		if pd and not pd.has_ability(id):
+			continue
+		if not first:
+			var arrow := Label.new()
+			arrow.text = "+" if id == "followup" else "›"
+			arrow.add_theme_color_override("font_color", UI.TEXT_DIM)
+			arrow.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_sharp_row.add_child(arrow)
+		first = false
+		var col := VBoxContainer.new()
+		col.add_theme_constant_override("separation", 0)
+		col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var over := _sharp_label()
+		var cell := Abilities.make_slot(SHARP_CELL)
+		cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		Abilities.set_slot_ability(cell, id)
+		var under := _sharp_label()
+		col.add_child(over)
+		col.add_child(cell)
+		col.add_child(under)
+		_sharp_row.add_child(col)
+		_sharp_cells[id] = {"cell": cell, "under": under, "over": over}
+	var bottom := -SLOT_SIZE - 26 - 8 - _top_bar_lift()
+	_sharp_root.offset_bottom = bottom
+	_sharp_root.offset_top = bottom - SHARP_CELL - 40
+	_sharp_root.visible = true
+
+func _sharp_label() -> Label:
+	var l := Label.new()
+	l.add_theme_font_size_override("font_size", 11)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.custom_minimum_size = Vector2(SHARP_CELL, 14)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
+
+func _update_sharp_strip() -> void:
+	if _sharp_root == null or not _sharp_root.visible or player == null:
+		return
+	var incoming := {}   # shot -> seconds the ready shots would take off it
+	for src in _sharp_cells:
+		if player.cooldown_left(src) > 0.0:
+			continue
+		var cuts: Dictionary = player.sharp.cut_preview(src)
+		for t in cuts:
+			if t != src:
+				incoming[t] = float(incoming.get(t, 0.0)) + float(cuts[t])
+	for id in _sharp_cells:
+		var parts: Dictionary = _sharp_cells[id]
+		var left: float = float(player.cooldowns.get(id, 0.0))
+		var overcut: float = player.sharp.overcut_of(id)
+		var under: Label = parts["under"]
+		var under_text := "+%d%%" % int(round(SharpshooterKit.overcut_bonus(overcut, player.sharp.overcut_per()))) if overcut > 0.0 \
+			else ("%.0f" % ceilf(left) if left > 0.0 else "")
+		if under.text != under_text:
+			under.text = under_text
+			under.add_theme_color_override("font_color", SHARP_GOLD if overcut > 0.0 else Color.WHITE)
+		var over: Label = parts["over"]
+		var cut: float = float(incoming.get(id, 0.0))
+		var over_text := "-%.1f" % cut if cut > 0.0 else ""
+		if over.text != over_text:
+			over.text = over_text
+		var over_gold := left <= cut
+		if bool(over.get_meta("gold", false)) != over_gold or not over.has_meta("gold"):
+			over.set_meta("gold", over_gold)
+			over.add_theme_color_override("font_color", SHARP_GOLD if over_gold else SHARP_BLUE)
+		var a := 1.0 if left <= 0.0 else 0.5
+		if (parts["cell"] as Control).modulate.a != a:
+			(parts["cell"] as Control).modulate.a = a
 
 func _turn_wheel() -> void:
 	if player == null or player.get("wheel") == null:

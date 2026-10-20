@@ -377,6 +377,9 @@ func has_ability(id: String) -> bool:
 	# The Rogue (Martial DPS): Cut brings Go In and the Kill forms.
 	if id == "goin" or Abilities.is_kill_form(id):
 		return learned_abilities.has("cut")
+	# The Sharpshooter (Martial archer): Quick Shot brings Loose.
+	if id == "loose":
+		return learned_abilities.has("quickshot")
 	return Runes.rune_for_spell(id) != "" and rune_spells().has(id)
 
 ## The Wheel's weapons I have learned, in the order they turn.

@@ -23,6 +23,7 @@ const Effects = preload("res://scripts/core/effects.gd")
 const CRACKS_FX := "cracks"
 const SWORD_FX := "wheel_greatsword"      # the Greatsword's rider: more crit while it is held
 const BLADE_GUARD_FX := "bladeguard"
+const TURNING_FX := "turning_wheel"       # Turning Wheel (talent): one stack per weapon broken lately
 const KNOCKED_DOWN_FX := "knocked_down"   # a full Stagger
 const SHAKEN_DOWN_FX := "shaken_down"     # Earthshake
 ## Meter / log ids of the riders (their own lines: Details.HIT_NAMES).
@@ -39,6 +40,7 @@ var _cracks := 0            # Cracks in it
 var _stagger := {}          # enemy instance id -> [Stagger, when I last hit it]
 var _cracks_fx: Resource = null
 var _sword_fx: Resource = null
+var _broken := {}           # Turning Wheel: weapon -> when its stack runs out
 var _was_in_combat := false
 var _shown := ""            # what the picture / the party last saw
 var _told := 0.0
@@ -63,6 +65,22 @@ static func stagger_after(have: float, add: float) -> Array:
 	if now >= Balance.STAGGER_MAX:
 		return [0.0, true]
 	return [now, false]
+
+## Enemies Axe Cleave hits besides the target (`extra`: Wide Cleave).
+static func axe_cleave_targets(extra: float) -> int:
+	return 1 + maxi(int(round(extra)), 0)
+
+## Stagger a hit adds: `amount`, `pct` % more (Rattled).
+static func stagger_add(amount: float, pct: float) -> float:
+	return amount * (1.0 + maxf(pct, 0.0) / 100.0)
+
+## Turning Wheel: % more damage with `broken` weapons broken lately, `per` % each.
+static func turning_wheel_pct(per: float, broken: int) -> float:
+	return maxf(per, 0.0) * float(clampi(broken, 0, Abilities.WHEEL_ORDER.size()))
+
+## Hard Break's capstone: does a finisher with `cracks` Cracks give Fury?
+static func hard_break_fury(cracks: int, capstone: bool) -> float:
+	return Balance.HARD_BREAK_FURY if capstone and cracks >= Balance.HARD_BREAK_CRACKS else 0.0
 
 ## Is `forward` within half of `arc_deg` of the direction to `to` (flat)?
 static func in_arc(from: Vector3, forward: Vector3, to: Vector3, arc_deg: float) -> bool:
@@ -127,6 +145,8 @@ func _turn(burst: bool) -> void:
 	if burst and player.is_inside_tree():
 		WHEEL_PICTURE.burst(player, held_weapon())
 		player._net_fx("wheel_burst", player.global_position, null, {"w": held_weapon()})
+	if burst:
+		_note_broken(held_weapon())
 	_held = next_index(_held, ws.size())
 	_uses = 0
 	_set_cracks(0)
@@ -151,6 +171,41 @@ func _on_cast_finished(id: String) -> void:
 		_turn(true)   # its last use: it breaks, and its Cracks are lost
 	else:
 		_sync()
+
+## Turning Wheel: weapon `w` broke; its stack lasts TURNING_WHEEL_TIME.
+func _note_broken(w: String) -> void:
+	if w == "" or player._talent("martial_turning_wheel") <= 0.0:
+		return
+	_broken[w] = Time.get_ticks_msec() / 1000.0 + Balance.TURNING_WHEEL_TIME
+	_show_turning()
+
+## Weapons broken in the last TURNING_WHEEL_TIME seconds (Turning Wheel's stacks).
+func broken_count() -> int:
+	var now := Time.get_ticks_msec() / 1000.0
+	var n := 0
+	for w in _broken:
+		if float(_broken[w]) > now:
+			n += 1
+	return n
+
+func _show_turning() -> void:
+	if player.status == null:
+		return
+	var n := broken_count()
+	if n <= 0:
+		player.status.remove(TURNING_FX)
+		return
+	var last := 0.0
+	for w in _broken:
+		last = maxf(last, float(_broken[w]))
+	var fx := StatusContainer.make_buff(TURNING_FX, "Turning Wheel", TURNING_FX, 0.0, Balance.TURNING_WHEEL_TIME,
+		Abilities.WHEEL_ORDER.size(), Color(1.0, 0.75, 0.35))
+	fx.stat_modifiers = {}
+	fx.tags = PackedStringArray(["Physical"])
+	fx.description = "Weapons of your Wheel broke lately: you deal more damage for each one."
+	player.status.apply(fx, player)
+	player.status.set_stacks(TURNING_FX, n)
+	player.status.set_remaining(TURNING_FX, maxf(last - Time.get_ticks_msec() / 1000.0, 0.1))
 
 func _set_cracks(n: int) -> void:
 	_cracks = maxi(n, 0)
@@ -187,6 +242,14 @@ func _tick_wheel() -> void:
 			player.status.apply(_sword_fx, player)
 		elif not sword and player.status.has(SWORD_FX):
 			player.status.remove(SWORD_FX)
+	if not _broken.is_empty():
+		var gone := false
+		for w in _broken.keys():
+			if float(_broken[w]) <= now:
+				_broken.erase(w)
+				gone = true
+		if gone:
+			_show_turning()
 	if not _stagger.is_empty():
 		for key in _stagger.keys():
 			if now - float(_stagger[key][1]) > Balance.STAGGER_FADE:
@@ -255,11 +318,17 @@ func _wheel_use(id: String, res: Resource) -> void:
 			_flying_head(res)
 		"faultline":
 			_fault_line(res, col)
+	if BREAKS.has(id):
+		var fury := hard_break_fury(_cracks, player.frost_melee._capstone("martial_hard_break"))   # Hard Break's capstone
+		if fury > 0.0:
+			player._gain("fury", fury)
 	var slot := Abilities.wheel_slot_index(id)
 	if slot == 0:
 		_set_cracks(_cracks + Balance.CRACKS_QUICK)
 	elif slot == 1:
 		_set_cracks(_cracks + Balance.CRACKS_FULL)
+	elif slot == 2:
+		_set_cracks(_cracks + int(round(player._talent("martial_well_drilled"))))   # Well Drilled
 
 ## Hack / Chop: the target, and part of it to a few enemies near it.
 func _cleave(res: Resource, col: Color) -> void:
@@ -403,14 +472,21 @@ func _on_damage_dealt_wheel(info: RefCounted) -> void:
 			if not tgt.is_alive():
 				return
 			var near: Array = player._enemies_near(tgt.global_position, Balance.AXE_CLEAVE_REACH, tgt)
-			if not near.is_empty():
-				player.deal_damage(near[0], float(info.base) * Balance.AXE_CLEAVE_PCT / 100.0, AXE_CLEAVE_ID, true, str(info.damage_type), tags)
+			for e in near.slice(0, axe_cleave_targets(player._talent("martial_wide_cleave"))):   # + Wide Cleave
+				player.deal_damage(e, float(info.base) * Balance.AXE_CLEAVE_PCT / 100.0, AXE_CLEAVE_ID, true, str(info.damage_type), tags)
 		"wheelhalberd":
-			if tgt.is_alive() and randf() * 100.0 < Balance.HALBERD_AGAIN_PCT:
+			if tgt.is_alive() and randf() * 100.0 < Balance.HALBERD_AGAIN_PCT + player._talent("martial_twice_over"):   # + Twice Over
 				player.deal_damage(tgt, float(info.base), SECOND_HIT_ID, true, str(info.damage_type), tags)
 		"wheelmaul":
 			var extra := Balance.STAGGER_MAUL_EXTRA if MAUL_MOVES.has(str(info.ability_id)) else 0.0
-			_add_stagger(tgt, Balance.STAGGER_PER_HIT + extra)
+			_add_stagger(tgt, stagger_add(Balance.STAGGER_PER_HIT + extra, player._talent("martial_rattled")))   # Rattled
+
+## Keen Edge: a crit of mine while I hold the Greatsword hits harder (Player.crit_hit_bonus).
+func crit_hit_bonus(_info: RefCounted) -> Array:
+	var pct := player._talent("martial_keen_edge")
+	if pct <= 0.0 or not is_out() or held_weapon() != "wheelgreatsword":
+		return []
+	return [pct, "Keen Edge"]
 
 ## Stagger on `e` (never a boss); full knocks it down and starts over.
 func _add_stagger(e: Node, amount: float) -> void:

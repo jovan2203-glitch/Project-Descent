@@ -9,7 +9,7 @@ No magic, only technique. Physical damage; everything scales like an ability (mo
 - Warrior - two-handers, Fury: the Wheel (below). FINAL DRAFT 2026-10-19.
 - Rogue - dual wield, Energy: Flow and the Kill window (below). BUILT 2026-10-20.
 - Brawler - the tank, Fury: pugilist / mixed martial artist (below). DRAFT 2026-10-20. Takes the old Tank and Brawler slots.
-- Fourth slot: open.
+- Sharpshooter - the archer, bow, no resource: the Reset Engine (below). BUILT 2026-10-21.
 - Utility divider: Pin the Shadow (root), Over the Shoulder, Play Dead (below). Still needs an interrupt.
 
 ## Rogue (dual wield, Energy) - spec "Rogue" - BUILT 2026-10-20 (scripts/player/martial_rogue.gd)
@@ -58,6 +58,43 @@ Build up fast, then go in for the kill. Quick hits build **Flow**; weaving in an
 
 ### Learning (Skill Cards)
 - Level 2: Cut (brings Go In and the Kill forms). 4: Whirl. 6: Dart In. 8: Kick Off. 10: Twin Stab. 12: Close It Out. 14: Roll With It. 16: Hit Your Stride. 18: Snatch.
+
+## Sharpshooter (bow, no resource) - spec "Sharpshooter" - BUILT 2026-10-21 (scripts/player/martial_sharpshooter.gd)
+Numbers are drafts (balance.gd); balance sim ~2220 geared DPS. Every ability needs a bow. Physical, scales like an ability. Built gameplay-first: the theme is plain archery on purpose.
+
+### The playstyle
+The cooldowns are the resource. Every shot has a real cooldown and every hit brings another shot back sooner. In the right order the engine never runs dry. The twist is **Overcut**: time cut off a shot that is already ready charges that shot instead, so holding a shot can beat firing it. But a held shot feeds nothing, the engine starves, and you end up pressing Loose, which halves your Streak.
+
+### The shots
+| Shot | CD | Damage | On hit, brings back sooner |
+|---|---|---|---|
+| **Quick Shot** | 8 s | 0.45 FB | Pierce 3 s |
+| **Pierce** | 12 s | 0.5 FB to every enemy on a line through the target (bow range, 1.5 m wide; split past the cap) | Spread 2 s for the first enemy, +1.5 s per extra one, up to 6 s |
+| **Spread** | 15 s | 3 arrows, 0.3 FB each, across up to 3 enemies in front (a lone enemy takes them all) | Heavy Draw 1.5 s per arrow |
+| **Heavy Draw** | 20 s, 1.5 s cast | 1.3 FB | Quick Shot ready at once; every other shot 2 s |
+| **Follow Up** | 10 s | 2 x 0.22 FB | the shot you used just before it, 2 s per arrow |
+| **Loose** | none | 0.25 FB | nothing; halves the Streak |
+- Without cuts the cooldowns fill ~64% of your GCDs; good ordering fills the rest.
+- **Crits reset**: a crit makes that hit's cuts full resets (a reset on a ready shot gives it its whole cooldown as Overcut).
+
+### Overcut
+- A cut past ready becomes Overcut on that shot: +8% damage per second, up to 12.5 s (+100%). Firing the shot spends it. Leaving combat clears it.
+- Shown as "+40%" on the button and on the engine strip; the party sees a gold glow on your quiver while a held shot has 6+ s of it.
+
+### Streak
+- +1 per engine shot used (Quick Shot, Pierce, Spread, Heavy Draw, Follow Up), up to 10, +2% damage each. Loose halves it; 4 s without a shot loses it.
+- At 10, Heavy Draw is instant and always crits, so its cuts are all resets. The Streak stays at 10.
+- The party sees it as lit fletchings in the quiver on your back.
+
+### Cooldowns (off the GCD)
+- **Breathe** (30 s): for 10 s, the next cut you make is a full reset.
+- **Fast Hands** (2 min): every cut is doubled for 10 s.
+
+### HUD
+- The engine strip above the bar: the five shots in feeding order, each with its cooldown (or Overcut, gold) under it, and above it what your ready shots would take off it (blue: sooner, gold: Overcut).
+
+### Learning (Skill Cards)
+- Level 2: Quick Shot (brings Loose). 4: Pierce. 6: Spread. 8: Heavy Draw. 10: Follow Up. 12: Breathe. 16: Fast Hands.
 
 ## Martial Utility (the book's "Utility" divider) - BUILT 2026-10-20 (scripts/player/martial_rogue.gd)
 Cooldowns only, no cost (the Warrior and the Brawler spend Fury, the Rogue Energy). Each needs a melee weapon.
@@ -118,9 +155,6 @@ Numbers are drafts (balance.gd). Built with: strikes 0.3 FB and +10 Fury each (t
 ### Fighting Style (toggle)
 - Off the GCD, no cooldown: switches the strike animations between **Armed** (your weapon in hand: pommel jabs, kicks with it drawn) and **Bare Hands** (weapon on your back, wrapped fists). Animations only; the numbers are the same. Remembered, and the party sees it.
 
-### Still to design
-- Talents. Numbers are drafts (balance.gd).
-
 ### Learning (Skill Cards)
 - Level 2: Punch, Kick, Elbow and Fighting Style. Level 4: Catch. Level 6: Come On. Level 8: Tough It Out. Level 10: One More.
 
@@ -158,3 +192,47 @@ Each weapon has a rider that works while it is held, for every ability (any book
 - The spec lists the 4 weapons; each has a dropdown showing its 4 moves. The spec also lists four placeholders, Filler, Heavy Filler, Weapon Art and Finisher: they do nothing themselves; on the bar each becomes the held weapon's move of that kind. Dragging a move from a dropdown places its placeholder.
 - Weapons are learned whole (Skill Cards): Greataxe 2, Greatsword 4, Halberd 6, Maul 8. The Wheel holds the learned ones, in order.
 - Readability: a Cracks buff (one stack per Crack), the Wheel strip (weapons in order, the held one large with its uses left and Cracks) and the Crack count on the Break button.
+
+## Talents (Martial tree) - BUILT 2026-10-21
+Numbers are drafts (talents.gd, balance.gd). Layout: the Wheel down the left edge (columns 1-2), the Rogue in column 3, the open talents down the middle (column 4), the Brawler in column 5, the Sharpshooter down the right edge (columns 6-7). Row 1 holds each spec's 4-rank talent (capstone at 4), the bottom row its 5-rank one. No links. Code: each spec's component; the open talents and the damage bonuses (each its own meter line): scripts/player/martial_talents_open.gd. Save v10 refunds points in the old empty Martial slots.
+
+### The Wheel
+- Hard Break (4, needs the Greataxe; r1c1): finishers deal 5/10/15% more. Capstone: a finisher that breaks a weapon with 6+ Cracks gives 20 Fury.
+- Well Drilled (2; r2c2): Weapon Arts add 1/2 Cracks.
+- Wide Cleave (2, Greataxe; r4c1): Axe Cleave hits 1/2 more enemies.
+- Keen Edge (2, Greatsword; r5c2): while it is held, crits deal 10/20% more.
+- Twice Over (2, Halberd; r7c1): Second Hit chance 25/30% (from 20%).
+- Rattled (2, Maul; r8c2): hits build 25/50% more Stagger.
+- Turning Wheel (5; r10c1): each weapon that breaks gives a stack for 15 s (one per weapon, up to 4): 0.5/1/1.5/2/2.5% more damage each (10% with all four).
+
+### Rogue
+- Clean Kill (4, Go In; r1c3): Kill forms deal 5/10/15% more. Capstone: Close It Out leaves 3 Flow.
+- In and Out (2, Cut; r3c3): a range switch gives 2/3 extra Flow (from 1).
+- Barbed (3, Cut; r4c3): Ripped Out deals 20/40/60% more.
+- Steady Pace (2, Cut; r6c3): Flow holds 4/5 s before it drops (from 3).
+- Mix It Up (2, Go In; r7c3): Variety adds 0.75/1 s per different Kill form (cap stays 5 s).
+- Deep Pockets (2, Snatch; r9c3): Snatch's cooldown is 5/10 s shorter.
+- In the Zone (5; r10c3): each Flow stack gives 0.1/0.2/0.3/0.4/0.5% crit chance (5% at 10); in a Kill window the Flow spent on it counts.
+
+### Brawler
+- Soak It Up (4, Punch; r1c5): Bruise takes 42/44/46% of each hit (from 40%). Capstone: Shake Off clears 40% (from 30%).
+- Tight Clinch (2, Elbow; r3c5): Clinch lasts 5/6 s (from 4).
+- Soft Catch (2, Catch; r4c5): 25/50% of a caught hit still goes into Bruise. Turn It Around and Takedown still count the whole hit.
+- Knockout (3, Punch; r6c5): Haymaker deals 10/20/30% more.
+- Wide Stance (2, Kick; r7c5): Sweep and Roundhouse reach 1/2 m further.
+- Round Two (2, One More; r9c5): One More's cooldown is 3/6 s shorter.
+- Scar Tissue (5; r10c5): Bruise deals 2/4/6/8/10% less damage (its Fury stays the same).
+
+### Sharpshooter
+- Full Draw (4, Heavy Draw; r1c7): Heavy Draw deals 5/10/15% more. Capstone: its cuts are 3 s (from 2).
+- Broadhead (2, Pierce; r2c6): Pierce's line is 0.75/1.5 m wider.
+- Patience (3, Quick Shot; r4c7): Overcut gives 9/10/11% per second (from 8%), still up to 12.5 s.
+- Extra Arrows (2, Spread; r5c6): Spread shoots 1/2 more arrows, across as many enemies; each cuts Heavy Draw.
+- No Letup (2, Quick Shot; r7c7): the Streak lasts 5/6 s without a shot (from 4).
+- Easy Release (2, Loose; r8c6): Loose takes a third / a quarter of the Streak (rounded up) instead of half.
+- Keen Eye (5; r10c7): Sharpshooter shots have 1/2/3/4/5% more crit chance.
+
+### Open talents (any spec)
+- Conditioning (3; r2c4): 2/4/6% more maximum health.
+- Catch Your Breath (2; r5c4): dropping below 35% health heals 10/20% of max health over 6 s (a heal over time, own meter line); once every 60 s.
+- Pinned Down (2, Pin the Shadow; r9c4): Pin the Shadow takes 4/5 hits to break and lasts 2/4 s longer. (The extra hits are a per-application count in StatusContainer, sent to the host with the duration.)

@@ -86,7 +86,7 @@ func test_talent_points_scale_with_level() -> void:
 func test_every_category_has_a_full_tree() -> void:
 	const Categories = preload("res://scripts/categories.gd")
 	var shapes := {}
-	for cat in Categories.ORDER:
+	for cat in preload("res://scripts/categories.gd").ORDER:
 		for r in Talents.ROWS:
 			var n := Talents.in_row(cat, r).size()
 			assert_true(n >= Talents.MIN_PER_ROW and n <= Talents.MAX_PER_ROW, "%s row %d has 2-4 talents" % [cat, r + 1])
@@ -133,19 +133,29 @@ func test_martial_book_replaces_warrior_rogue_and_ranger() -> void:
 func _t(cat: String, row: int, i: int = 0) -> String:
 	return Talents.in_row(cat, row)[i]
 
-# Books without designed talents (martial, nature, holy) only have
-# placeholders with PLACEHOLDER_RANKS (2) ranks.
+## The i-th talent of row `row` (0-based), across the books in order, that has 2 ranks
+## and needs no ability: every book is designed now, so the rules are tested on these.
+func _plain(row: int, i: int = 0, only: String = "") -> String:
+	var found: Array[String] = []
+	for cat in preload("res://scripts/categories.gd").ORDER:
+		if only != "" and cat != only:
+			continue
+		for id in Talents.in_row(cat, row):
+			if Talents.max_rank(id) == 2 and Talents.required_ability(id) == "":
+				found.append(id)
+	return found[i]
+
 func test_talent_row_gating() -> void:
 	Talents.set_links([])
 	var pd := _pd()
 	pd.level = 10
-	assert_ne(pd.can_invest(_t("martial", 1)), "", "row 2 locked with 0 points in row 1")
+	assert_ne(pd.can_invest(_plain(1)), "", "row 2 locked with 0 points in row 1")
 	for i in 2:
-		assert_eq(pd.invest_talent(_t("martial", 0)), "")
-	assert_ne(pd.invest_talent(_t("martial", 0)), "", "placeholder max rank is 2")
-	assert_ne(pd.can_invest(_t("martial", 1)), "", "2 points is not enough")
-	assert_eq(pd.invest_talent(_t("martial", 0, 1)), "")
-	assert_eq(pd.can_invest(_t("martial", 1)), "", "row 2 unlocks after 3 points")
+		assert_eq(pd.invest_talent(_plain(0)), "")
+	assert_ne(pd.invest_talent(_plain(0)), "", "max rank is 2")
+	assert_ne(pd.can_invest(_plain(1)), "", "2 points is not enough")
+	assert_eq(pd.invest_talent(_plain(0, 1)), "")
+	assert_eq(pd.can_invest(_plain(1)), "", "row 2 unlocks after 3 points")
 	Talents.set_links(null)
 
 func test_talent_rows_unlock_across_all_trees() -> void:
@@ -155,7 +165,7 @@ func test_talent_rows_unlock_across_all_trees() -> void:
 	pd.invest_talent(_t("fire", 0))
 	pd.invest_talent(_t("frost", 0))   # (Nature's row 1 is two linked talents: they need their ability learned)
 	assert_ne(pd.can_invest(_t("shadow", 1)), "", "2 points in row 1 is not enough")
-	pd.invest_talent(_t("martial", 0))
+	pd.invest_talent(_plain(0, 0, "holy"))
 	assert_eq(pd.can_invest(_t("shadow", 1)), "", "3 points spread over trees open row 2 everywhere")
 	assert_eq(pd.tree_points("fire"), 1)
 	Talents.set_links(null)
@@ -163,8 +173,8 @@ func test_talent_rows_unlock_across_all_trees() -> void:
 func test_talent_budget_limited_by_level() -> void:
 	var pd := _pd()
 	pd.level = 1
-	assert_eq(pd.invest_talent(_t("martial", 0)), "")
-	assert_eq(pd.invest_talent(_t("martial", 0)), "")
+	assert_eq(pd.invest_talent(_plain(0)), "")
+	assert_eq(pd.invest_talent(_plain(0)), "")
 	assert_eq(pd.invest_talent(_t("shadow", 0)), "")
 	assert_eq(pd.invest_talent(_t("shadow", 0)), "")
 	assert_eq(pd.invest_talent(_t("shadow", 0, 1)), "")
@@ -175,19 +185,18 @@ func test_talent_refund_protects_lower_tiers() -> void:
 	Talents.set_links([])
 	var pd := _pd()
 	pd.level = 10
-	pd.invest_talent(_t("martial", 0))
-	pd.invest_talent(_t("martial", 0))
-	pd.invest_talent(_t("martial", 0, 1))
+	pd.invest_talent(_plain(0))
+	pd.invest_talent(_plain(0))
+	pd.invest_talent(_plain(0, 1))
 	pd.invest_talent(_t("shadow", 1))
-	assert_ne(pd.can_refund(_t("martial", 0)), "", "row 2 depends on 3 row-1 points")
+	assert_ne(pd.can_refund(_plain(0)), "", "row 2 depends on 3 row-1 points")
 	assert_eq(pd.can_refund(_t("shadow", 1)), "")
 	Talents.set_links(null)
 
 func test_talent_link_unlocks_past_row_lock() -> void:
-	# (A book of empty talents: designed ones may need an ability to be learned.)
-	var src := _t("martial", 0)
-	var dst := _t("martial", 3)
-	var other := _t("martial", 3, 1)
+	var src := _plain(0)
+	var dst := _plain(3)
+	var other := _plain(3, 1)
 	Talents.set_links([[src, dst]])
 	var pd := _pd()
 	pd.level = 10
@@ -271,7 +280,7 @@ func test_shard_proc_talent_needs_ice_shards() -> void:
 func test_validate_talents_refunds_when_over_budget() -> void:
 	var pd := _pd()
 	pd.level = 1
-	pd.talents = {_t("martial", 0): 2, _t("shadow", 0): 2, _t("fire", 0): 2}
+	pd.talents = {_plain(0): 2, _t("shadow", 0): 2, _t("fire", 0): 2}
 	assert_false(pd.validate_talents())
 	assert_true(pd.talents.is_empty())
 

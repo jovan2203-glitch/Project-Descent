@@ -121,8 +121,11 @@ const LAYOUTS := {
 	"shadow": [[0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5]],
 	"nature": [[0, 2, 4, 6], [0, 3, 6], [0, 2, 4, 6], [0, 3, 6], [2, 3, 4], [2, 3, 4], [1, 3, 5], [1, 2, 4, 5], [0, 3, 6], [2, 3, 4]],
 	"holy": [[0, 1, 3, 5, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5]],
-	# (One book where Warrior, Rogue and Ranger used to be three.)
-	"martial": [[1, 3, 5], [0, 2, 4, 6], [1, 5], [2, 3, 4], [0, 3, 6], [1, 2, 4, 5], [2, 4], [1, 3, 5], [0, 2, 4, 6], [2, 3, 4]],
+	# (One book where Warrior, Rogue and Ranger used to be three.) The Wheel down the
+	# left edge (columns 0-1), the Rogue in column 2, the open talents down the middle,
+	# the Brawler in column 4, the Sharpshooter down the right edge (columns 5-6). Row 1
+	# holds each spec's 4-rank talent, the bottom row its 5-rank one. No links.
+	"martial": [[0, 2, 4, 6], [1, 3, 5], [2, 4], [0, 2, 4, 6], [1, 3, 5], [2, 4], [0, 2, 4, 6], [1, 5], [2, 3, 4], [0, 2, 4, 6]],
 }
 
 # --- Talent definitions ------------------------------------------------------------
@@ -796,6 +799,86 @@ const TALENTS := {
 			{"key": "nature_circling_hawk", "values": [3.0, 6.0], "requires": "thornwing"}],
 		"r10c5": ["Overgrown", 5, "Your Nature spells deal {v}% more damage for each Mulch patch you have.",
 			{"key": "nature_overgrown", "values": [0.4, 0.8, 1.2, 1.6, 2.0]}],
+	},
+	"martial": {
+		# The Wheel (warrior) down the left edge (columns 1-2), the Rogue in column 3, the
+		# open talents down the middle (column 4), the Brawler (tank) in column 5 and the
+		# Sharpshooter (archer) down the right edge (columns 6-7). Row 1 holds each spec's
+		# 4-rank talent, the bottom row its 5-rank one. Code: each spec's component in
+		# scripts/player/ (martial_wheel.gd, martial_rogue.gd, martial_brawler.gd,
+		# martial_sharpshooter.gd); the open talents and the hits' bonuses:
+		# martial_talents_open.gd.
+		# The Wheel.
+		"r1c1": ["Hard Break", 4, "Your finishers deal {v}% more damage.",
+			{"key": "martial_hard_break", "values": [5.0, 10.0, 15.0, 15.0], "requires": "wheelgreataxe",
+			"capstone": "A finisher that breaks a weapon with {b:HARD_BREAK_CRACKS} or more Cracks gives you {b:HARD_BREAK_FURY} Fury."}],
+		"r2c2": ["Well Drilled", 2, "Your Weapon Arts add {v} Cracks to the weapon you hold.",
+			{"key": "martial_well_drilled", "values": [1.0, 2.0], "requires": "wheelgreataxe"}],
+		"r4c1": ["Wide Cleave", 2, "Axe Cleave, the rider of the {n:wheelgreataxe}, hits {v} more enemies near the target.",
+			{"key": "martial_wide_cleave", "values": [1.0, 2.0], "requires": "wheelgreataxe"}],
+		"r5c2": ["Keen Edge", 2, "While you hold the {n:wheelgreatsword}, your critical strikes deal {v}% more damage.",
+			{"key": "martial_keen_edge", "values": [10.0, 20.0], "requires": "wheelgreatsword"}],
+		"r7c1": ["Twice Over", 2, "While you hold the {n:wheelhalberd}, each of your ability hits has a {v+b:HALBERD_AGAIN_PCT}% chance to hit again instead of {b:HALBERD_AGAIN_PCT}%.",
+			{"key": "martial_twice_over", "values": [5.0, 10.0], "requires": "wheelhalberd"}],
+		"r8c2": ["Rattled", 2, "While you hold the {n:wheelmaul}, your hits build {v}% more Stagger.",
+			{"key": "martial_rattled", "values": [25.0, 50.0], "requires": "wheelmaul"}],
+		"r10c1": ["Turning Wheel", 5, "Each weapon of your Wheel that breaks makes you deal {v}% more damage for {b:TURNING_WHEEL_TIME} sec. Each of the four weapons counts once, so all four together give four times as much.",
+			{"key": "martial_turning_wheel", "values": [0.5, 1.0, 1.5, 2.0, 2.5]}],
+		# The Rogue.
+		"r1c3": ["Clean Kill", 4, "Your Kill forms deal {v}% more damage.",
+			{"key": "martial_clean_kill", "values": [5.0, 10.0, 15.0, 15.0], "requires": "goin",
+			"capstone": "{n:closeitout} leaves you {b:CLEAN_KILL_FLOW} Flow."}],
+		"r3c3": ["In and Out", 2, "A hit from a different range than your last one gives {v+b:FLOW_SWITCH} more Flow instead of {b:FLOW_SWITCH}.",
+			{"key": "martial_in_and_out", "values": [1.0, 2.0], "requires": "cut"}],
+		"r4c3": ["Barbed", 3, "Your stuck daggers deal {v}% more damage when they are ripped out.",
+			{"key": "martial_barbed", "values": [20.0, 40.0, 60.0], "requires": "cut"}],
+		"r6c3": ["Steady Pace", 2, "Your Flow lasts {v+b:FLOW_HOLD} sec without a hit before it starts to drop, instead of {b:FLOW_HOLD}.",
+			{"key": "martial_steady_pace", "values": [1.0, 2.0], "requires": "cut"}],
+		"r7c3": ["Mix It Up", 2, "In a Kill window, each Kill form that differs from the one before it adds {v+b:KILL_VARIETY} sec to the window instead of {b:KILL_VARIETY} (still up to {b:KILL_VARIETY_MAX} sec in all).",
+			{"key": "martial_mix_it_up", "values": [0.25, 0.5], "requires": "goin"}],
+		"r9c3": ["Deep Pockets", 2, "{n:snatch}'s cooldown is {v} sec shorter.",
+			{"key": "martial_deep_pockets", "values": [5.0, 10.0], "requires": "snatch"}],
+		"r10c3": ["In the Zone", 5, "Each stack of your Flow also gives you {v}% critical strike chance. In a Kill window, the Flow you spent on it counts.",
+			{"key": "martial_in_the_zone", "values": [0.1, 0.2, 0.3, 0.4, 0.5]}],
+		# The open talents (Martial in theme, useful to anyone).
+		"r2c4": ["Conditioning", 3, "Increases your maximum health by {v}%.",
+			{"key": "martial_conditioning", "values": [2.0, 4.0, 6.0], "stats": {"max_health%": 2.0}}],
+		"r5c4": ["Catch Your Breath", 2, "When you drop below {b:CATCH_BREATH_HEALTH_PCT}% health, you heal over time for {v}% of your maximum health over {b:CATCH_BREATH_TIME} sec. Once every {b:CATCH_BREATH_COOLDOWN} sec.",
+			{"key": "martial_catch_your_breath", "values": [10.0, 20.0]}],
+		"r9c4": ["Pinned Down", 2, "{n:pintheshadow} takes {v+b:PIN_SHADOW_HITS} hits to shake loose instead of {b:PIN_SHADOW_HITS}, and lasts {v2} sec longer.",
+			{"key": "martial_pinned_down", "values": [1.0, 2.0], "values2": [2.0, 4.0], "requires": "pintheshadow"}],
+		# The Brawler.
+		"r1c5": ["Soak It Up", 4, "{v+b:BRUISE_PCT}% of each hit you take goes into your Bruise instead of {b:BRUISE_PCT}%.",
+			{"key": "martial_soak_it_up", "values": [2.0, 4.0, 6.0, 6.0], "requires": "punch",
+			"capstone": "{n:shakeoff} clears {b:SOAK_IT_UP_SHAKE_OFF}% of your Bruise instead of {b:SHAKE_OFF_PCT}%."}],
+		"r3c5": ["Tight Clinch", 2, "{n:clinch} lasts {v+b:CLINCH_TIME} sec instead of {b:CLINCH_TIME}.",
+			{"key": "martial_tight_clinch", "values": [1.0, 2.0], "requires": "elbow"}],
+		"r4c5": ["Soft Catch", 2, "{v}% of a hit you catch with {n:catch} still goes into your Bruise instead of landing at once.",
+			{"key": "martial_soft_catch", "values": [25.0, 50.0], "requires": "catch"}],
+		"r6c5": ["Knockout", 3, "{n:haymaker} deals {v}% more damage.",
+			{"key": "martial_knockout", "values": [10.0, 20.0, 30.0], "requires": "punch"}],
+		"r7c5": ["Wide Stance", 2, "{n:sweep} and {n:roundhouse} reach {v} m further.",
+			{"key": "martial_wide_stance", "values": [1.0, 2.0], "requires": "brawlkick"}],
+		"r9c5": ["Round Two", 2, "{n:onemore}'s cooldown is {v} sec shorter.",
+			{"key": "martial_round_two", "values": [3.0, 6.0], "requires": "onemore"}],
+		"r10c5": ["Scar Tissue", 5, "Your Bruise deals {v}% less damage to you.",
+			{"key": "martial_scar_tissue", "values": [2.0, 4.0, 6.0, 8.0, 10.0]}],
+		# The Sharpshooter.
+		"r1c7": ["Full Draw", 4, "{n:heavydraw} deals {v}% more damage.",
+			{"key": "martial_full_draw", "values": [5.0, 10.0, 15.0, 15.0], "requires": "heavydraw",
+			"capstone": "{n:heavydraw} brings your other shots back {b:FULL_DRAW_CUT} sec sooner instead of {b:SHARP_HEAVY_CUT}."}],
+		"r2c6": ["Broadhead", 2, "{n:pierce}'s line is {v} m wider.",
+			{"key": "martial_broadhead", "values": [0.75, 1.5], "requires": "pierce"}],
+		"r4c7": ["Patience", 3, "Overcut gives {v+b:OVERCUT_PCT}% more damage per second instead of {b:OVERCUT_PCT}% (still up to {b:OVERCUT_MAX} sec).",
+			{"key": "martial_patience", "values": [1.0, 2.0, 3.0], "requires": "quickshot"}],
+		"r5c6": ["Extra Arrows", 2, "{n:spread} shoots {v} more arrows. Each one brings {n:heavydraw} back sooner too.",
+			{"key": "martial_extra_arrows", "values": [1.0, 2.0], "requires": "spread"}],
+		"r7c7": ["No Letup", 2, "Your Streak lasts {v+b:STREAK_HOLD} sec without a shot instead of {b:STREAK_HOLD}.",
+			{"key": "martial_no_letup", "values": [1.0, 2.0], "requires": "quickshot"}],
+		"r8c6": ["Easy Release", 2, "{n:loose} takes away a third / a quarter of your Streak instead of half.",
+			{"key": "martial_easy_release", "values": [3.0, 4.0], "requires": "loose"}],
+		"r10c7": ["Keen Eye", 5, "Your Sharpshooter shots have {v}% more critical strike chance.",
+			{"key": "martial_keen_eye", "values": [1.0, 2.0, 3.0, 4.0, 5.0]}],
 	},
 	"holy": {
 		# The healer (the Hymns: player.gd, "Holy healer: the Hymns"). Row 1: a way for

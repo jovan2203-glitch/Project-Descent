@@ -357,6 +357,15 @@ const PATHS := {
 	"pintheshadow": "res://data/abilities/pintheshadow.tres",
 	"overtheshoulder": "res://data/abilities/overtheshoulder.tres",
 	"playdead": "res://data/abilities/playdead.tres",
+	# Martial archer: Sharpshooter (the shots that cut each other's cooldowns)
+	"quickshot": "res://data/abilities/quickshot.tres",
+	"pierce": "res://data/abilities/pierce.tres",
+	"spread": "res://data/abilities/spread.tres",
+	"heavydraw": "res://data/abilities/heavydraw.tres",
+	"followup": "res://data/abilities/followup.tres",
+	"loose": "res://data/abilities/loose.tres",
+	"breathe": "res://data/abilities/breathe.tres",
+	"fasthands": "res://data/abilities/fasthands.tres",
 }
 ## Always available (everything the player had before the draft existed).
 ## Includes a basic spell of every element and a heal, so a fresh (level 1 /
@@ -410,6 +419,7 @@ const DRAFT_POOL := ["frostnova", "icebarrier", "blink",
 	"punch", "catch", "comeon", "toughitout", "onemore",
 	"cut", "whirl", "dartin", "kickoff", "twinstab", "closeitout", "rollwithit", "hityourstride", "snatch",
 	"pintheshadow", "overtheshoulder", "playdead",
+	"quickshot", "pierce", "spread", "heavydraw", "followup", "breathe", "fasthands",
 	"counterspell"]
 # Every ability that can go on the action bar (order = list order).
 const ALL := ["frostbolt", "blizzard", "frostnova", "icebarrier",
@@ -456,6 +466,7 @@ const ALL := ["frostbolt", "blizzard", "frostnova", "icebarrier",
 	"cut", "whirl", "dartin", "kickoff", "twinstab", "goin", "closeitout", "hityourstride", "rollwithit", "snatch",
 	"gut", "throughandthrough", "redwhirl", "backflip", "drivethrough",
 	"pintheshadow", "overtheshoulder", "playdead",
+	"quickshot", "pierce", "spread", "heavydraw", "followup", "loose", "breathe", "fasthands",
 	"trinket_1", "trinket_2"]
 ## Category (book) each ability belongs to — see categories.gd.
 const CATEGORY_OF := {
@@ -533,6 +544,8 @@ const CATEGORY_OF := {
 	"goin": "martial", "closeitout": "martial", "hityourstride": "martial", "rollwithit": "martial", "snatch": "martial",
 	"gut": "martial", "throughandthrough": "martial", "redwhirl": "martial", "backflip": "martial", "drivethrough": "martial",
 	"pintheshadow": "martial", "overtheshoulder": "martial", "playdead": "martial",
+	"quickshot": "martial", "pierce": "martial", "spread": "martial", "heavydraw": "martial", "followup": "martial", "loose": "martial",
+	"breathe": "martial", "fasthands": "martial",
 }
 
 ## Abilities that ARE other abilities too: whatever names the base ability
@@ -656,6 +669,7 @@ const SPECS := {
 			"rapidfists", "haymaker", "sweep", "roundhouse", "clinch", "shakeoff", "turnitaround", "throw", "takedown"]],
 		["Rogue", ["cut", "whirl", "dartin", "kickoff", "twinstab", "goin", "closeitout", "hityourstride", "rollwithit", "snatch",
 			"gut", "throughandthrough", "redwhirl", "backflip", "drivethrough"]],
+		["Sharpshooter", ["quickshot", "pierce", "spread", "heavydraw", "followup", "loose", "breathe", "fasthands"]],
 		["Utility", ["pintheshadow", "overtheshoulder", "playdead"]],
 	],
 }
@@ -757,6 +771,23 @@ static func rogue_kill_table() -> Array:
 		forms.append(str(ROGUE_KILL_FORMS[b]))
 	return [["Kill forms: what your builders become in a Kill window", forms]]
 
+# --- Martial archer: Sharpshooter -------------------------------------------------------
+# No resource: each shot's hit brings others back sooner (SHARP_LINKS); a cut on a shot
+# that is already ready becomes Overcut on it. Rules: scripts/player/martial_sharpshooter.gd.
+## The shots that cut, and that Streak counts (Loose, Breathe and Fast Hands don't).
+const SHARP_ENGINE := ["quickshot", "pierce", "spread", "heavydraw", "followup"]
+## Every Sharpshooter ability: each needs a bow.
+const SHARP_IDS := ["quickshot", "pierce", "spread", "heavydraw", "followup", "loose", "breathe", "fasthands"]
+## Shot -> the shots its hits bring back sooner (Heavy Draw resets Quick Shot; Follow Up
+## cuts whichever shot you used just before it, so it has none here).
+const SHARP_LINKS := {"quickshot": ["pierce"], "pierce": ["spread"], "spread": ["heavydraw"],
+	"heavydraw": ["quickshot", "pierce", "spread", "followup"], "followup": []}
+
+## Buttons that come with another ability's Skill Card instead of their own card
+## (PlayerData.has_ability), and are used like drafted ones.
+const BROUGHT_BUTTONS := {"goin": "cut", "brawlkick": "punch", "elbow": "punch", "fightingstyle": "punch",
+	"loose": "quickshot"}
+
 ## A book's specs holding only the abilities `keep` accepts (all if not given),
 ## empty ones dropped: [[spec name, [ids]], ...]. Abilities of the book that no
 ## spec lists (a book without specs, e.g. Rune Spells) come last under "".
@@ -786,7 +817,7 @@ const SPENDS_ALL := ["discharge", "groundout", "recharge"]
 const OFF_GCD := ["groundingsurge", "capacitor", "returnstroke", "rimefletch", "rewind", "lapse", "scatter",
 	"missedbeat", "tradeplaces", "doubletime", "offthechain", "doublethread", "restring", "behinditsback", "swell",
 	"aureole", "gatherthelight", "unfallen", "setprism", "moveprism", "shatterall", "prismarrow", "stepoflight",
-	"fightingstyle", "goin", "hityourstride", "rollwithit", "playdead"]
+	"fightingstyle", "goin", "hityourstride", "rollwithit", "playdead", "breathe", "fasthands"]
 ## Melee-weapon abilities used from their own range (cast_range) instead of the
 ## weapon's reach: Static Step dashes in, Whiplash lashes from afar.
 const LONG_REACH := ["staticstep", "whiplash", "reelin", "beckon", "raisethecenser", "dragin", "comeon",
@@ -1057,9 +1088,11 @@ const Macros = preload("res://scripts/core/macros.gd")
 const WheelIcons = preload("res://scripts/ui/wheel_icons.gd")
 const BrawlerIcons = preload("res://scripts/ui/brawler_icons.gd")
 const RogueIcons = preload("res://scripts/ui/rogue_icons.gd")
+const SharpshooterIcons = preload("res://scripts/ui/sharpshooter_icons.gd")
 ## Talents that widen an ability: [talent key, metres of RADIUS per point of the
 ## talent's value]. Deep Crucible gives width, so half of it is radius.
-const RADIUS_TALENTS := {"crucible": ["fire_deep_crucible", 0.5], "ripple": ["arcane_wide_rings", 1.0], "hallowedarc": ["holy_wide_arc", 1.0]}
+const RADIUS_TALENTS := {"crucible": ["fire_deep_crucible", 0.5], "ripple": ["arcane_wide_rings", 1.0], "hallowedarc": ["holy_wide_arc", 1.0],
+	"sweep": ["martial_wide_stance", 1.0], "roundhouse": ["martial_wide_stance", 1.0]}
 
 ## Metres your talents add to ability `id`'s radius (the game and its {radius} / {width} use this).
 static func radius_bonus(id: String) -> float:
@@ -1105,6 +1138,8 @@ static func effect_time_bonus(res: Resource, talent_of: Callable) -> float:
 		bonus += float(talent_of.call("frost_hard_freeze", "values"))  # Hard Freeze
 	if id == "grasped":
 		bonus += float(talent_of.call("nature_firm_hold", "values"))   # Firm Hold
+	if id == "pinned_shadow":
+		bonus += float(talent_of.call("martial_pinned_down", "values2"))   # Pinned Down
 	# Shadow melee (the Hounds): Open Up's mark, Roused and Off the Chain.
 	if id == "laid_open":
 		bonus += float(talent_of.call("shadow_still_wet", "values"))       # Still Wet
@@ -1122,14 +1157,34 @@ static func effect_time_bonus(res: Resource, talent_of: Callable) -> float:
 		bonus += float(talent_of.call("frost_dot_duration", "values"))
 	return bonus
 
+## % more damage a Martial talent gives every hit of ability `id` (the hits get it as a
+## bonus of their own, MartialTalentsKit; the tooltips show it in {hit}).
+## `talent_of` = func(key, field) -> float.
+static func martial_hit_pct(id: String, talent_of: Callable) -> float:
+	var key := martial_hit_talent(id)
+	return float(talent_of.call(key, "values")) if key != "" else 0.0
+
+## The Martial talent that makes every hit of `id` stronger ("" if none).
+static func martial_hit_talent(id: String) -> String:
+	if ["shrapnel", "shardlance", "flyinghead", "faultline"].has(id):
+		return "martial_hard_break"   # Hard Break: the Wheel's finishers
+	if is_kill_form(id):
+		return "martial_clean_kill"   # Clean Kill: the Rogue's Kill forms
+	if id == "haymaker":
+		return "martial_knockout"     # Knockout
+	if id == "heavydraw":
+		return "martial_full_draw"    # Full Draw
+	return ""
+
 ## Heals over time: heals (by their meter / log id) that come a little at a time,
 ## every second or so (Green Thumb heals them more; keyword "heals over time").
-const HEAL_OVER_TIME_IDS := ["sap", "evergreen", "puppetstring", "refrain"]
+const HEAL_OVER_TIME_IDS := ["sap", "evergreen", "puppetstring", "refrain", "catchyourbreath"]
 
 ## Talents that shorten an ability's cooldown: ability id -> talent key (its
 ## value = seconds taken off).
 const COOLDOWN_TALENTS := {"winterhide": "frost_thick_hide", "raisethecenser": "holy_high_censer", "realign": "holy_quick_realign", "stepoflight": "holy_swift_light",
-	"prismarrow": "holy_full_quiver", "lastverse": "holy_last_rites", "wildherd": "nature_big_herd"}
+	"prismarrow": "holy_full_quiver", "lastverse": "holy_last_rites", "wildherd": "nature_big_herd",
+	"snatch": "martial_deep_pockets", "onemore": "martial_round_two"}
 
 ## Ability `r`'s cooldown in seconds with your talents (the game and the
 ## tooltips both use this). Thick Hide shortens Winter Hide's.
@@ -1303,6 +1358,7 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		hit_coef *= 1.0 + talent("arcane_on_the_beat") / 100.0   # On the Beat
 	elif id == "rimeshell" or id == "shatteringwave":
 		hit_coef *= shatter_mult                              # (their {hit} is the shatter)
+	hit_coef *= 1.0 + martial_hit_pct(id, talent_of) / 100.0  # Martial: Hard Break, Clean Kill, Knockout, Full Draw
 	var dot_mult := 1.0 + talent("frost_hoarfrost") / 100.0 if id == "hoarfrost" else 1.0    # Deep Hoarfrost
 	var slow_mult := 1.0   # (no talent strengthens slows right now)
 	var shatter := (SHATTER_COEF * unit() + SHATTER_COEF * Stats.power_bonus(PackedStringArray(["Frost", "Spell"]), stat_of)) * shatter_mult
@@ -1424,6 +1480,17 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		"awaken_time": TextFill.num(Balance.AWAKEN_TIME + talent("nature_wide_awake")),   # Wide Awake
 		# Nature archer: Venomstring.
 		"fang_extend": TextFill.num(Balance.FANG_EXTEND + talent("nature_long_fangs")),   # Long Fangs
+		# Martial: what its talents change.
+		"halberd_again": TextFill.num(Balance.HALBERD_AGAIN_PCT + talent("martial_twice_over")),   # Twice Over
+		"axe_cleave_targets": str(1 + int(round(talent("martial_wide_cleave")))),   # Wide Cleave
+		"clinch_time": TextFill.num(Balance.CLINCH_TIME + talent("martial_tight_clinch")),   # Tight Clinch
+		"shake_off_pct": TextFill.num(Balance.SOAK_IT_UP_SHAKE_OFF if talent_capstone("martial_soak_it_up") else Balance.SHAKE_OFF_PCT),   # Soak It Up's capstone
+		"pin_hits": str(Balance.PIN_SHADOW_HITS + int(round(talent("martial_pinned_down")))),   # Pinned Down
+		"pin_time": TextFill.num(Balance.PIN_SHADOW_TIME + talent("martial_pinned_down", "values2")),
+		"spread_arrows": str(Balance.SHARP_SPREAD_ARROWS + int(round(talent("martial_extra_arrows")))),   # Extra Arrows
+		"heavy_cut": TextFill.num(Balance.FULL_DRAW_CUT if talent_capstone("martial_full_draw") else Balance.SHARP_HEAVY_CUT),   # Full Draw's capstone
+		"loose_takes": "halves your Streak" if talent("martial_easy_release") <= 0.0
+			else "takes away a %s of your Streak" % ("third" if int(round(talent("martial_easy_release"))) == 3 else "quarter"),   # Easy Release
 		"rootguard_per": fmt_amount(Balance.ROOTGUARD_PER_BLOSSOM * per * absorb),
 		"elk_per": fmt_amount(Balance.ELK_PER_BLOSSOM * per),
 		"swing_incense": str(Balance.CENSER_SWING_INCENSE + int(round(talent("holy_heavy_chain")))),   # Heavy Chain
@@ -3837,6 +3904,9 @@ static func _draw_unique(c: Control, id: String, col: Color, mid: Vector2, k: fl
 			RogueIcons.draw(c, id, mid, k)
 		"gut", "throughandthrough", "redwhirl", "backflip", "drivethrough", "pintheshadow", "overtheshoulder", "playdead":
 			RogueIcons.draw(c, id, mid, k)
+		# --- Martial archer: Sharpshooter (drawn in scripts/ui/sharpshooter_icons.gd) ---
+		"quickshot", "pierce", "spread", "heavydraw", "followup", "loose", "breathe", "fasthands":
+			SharpshooterIcons.draw(c, id, mid, k)
 		_:
 			return false
 	return true

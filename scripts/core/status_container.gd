@@ -95,6 +95,8 @@ func params_of(res: Resource, source: Node) -> Dictionary:
 	var out := {"dur": maxf(float(effects[key]["expires"]) - _now(), 0.0)}
 	if effects[key].has("slow_mult"):
 		out["slow"] = float(effects[key]["slow_mult"])
+	if int(effects[key].get("hits", 0)) < 0:
+		out["hits"] = int(effects[key]["hits"])   # (Pinned Down: more hits to shake it)
 	return out
 
 ## Host: give `source`'s copy of `res` the numbers its caster's machine worked out.
@@ -106,6 +108,8 @@ func tune(res: Resource, source: Node, params: Dictionary) -> void:
 		effects[key]["expires"] = _now() + float(params["dur"])
 	if float(params.get("slow", 0.0)) > 0.0:
 		effects[key]["slow_mult"] = float(params["slow"])
+	if int(params.get("hits", 0)) < 0:
+		effects[key]["hits"] = int(params["hits"])
 
 ## Keys of every active copy of effect `id`.
 func _keys_of(id: String) -> Array:
@@ -190,6 +194,13 @@ func apply(res: Resource, source: Node = null, tags: PackedStringArray = PackedS
 	# Casters can lengthen effects they apply (Deep Hoarfrost).
 	if effects.has(id) and source != null and is_instance_valid(source) and source.has_method("effect_duration_bonus"):
 		effects[id]["expires"] = float(effects[id]["expires"]) + float(source.effect_duration_bonus(res))
+	# ... make effects that end after a number of hits take more of them (Pinned Down):
+	# the count starts below 0.
+	if effects.has(id) and int(res.get("break_after_hits") if res.get("break_after_hits") != null else 0) > 0 \
+			and source != null and is_instance_valid(source) and source.has_method("effect_extra_hits"):
+		var more := int(source.effect_extra_hits(res))
+		if more > 0:
+			effects[id]["hits"] = -more
 	# ... and make the buffs they put on themselves last longer (Overtime).
 	if effects.has(id) and source != null and is_instance_valid(source) and is_same(source, owner_node) \
 			and not bool(res.is_debuff) and source.has_method("self_buff_time_mult"):

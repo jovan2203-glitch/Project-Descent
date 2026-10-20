@@ -509,6 +509,7 @@ const HIT_NAMES := {
 	"thornburst": "Thornburst",
 	"owlstrike": "Owl's Strike",
 	"evergreen": "Evergreen",
+	"catchyourbreath": "Catch Your Breath",
 	"stomproots": "Stomp Roots",
 	"giantsslam": "Giant's Slam",
 	"sap": "Sap",
@@ -600,6 +601,8 @@ static func spell_color(id: String) -> Color:
 			return Abilities.RogueIcons.STEEL   # (Martial DPS: daggers ripped out)
 		"oiljar":
 			return Color(1.0, 0.5, 0.15)   # (Martial DPS: Snatch)
+		"catchyourbreath":
+			return Color(0.55, 1.0, 0.6)   # (Martial, open talent)
 		"poisoned":
 			return Color(0.45, 0.85, 0.3)
 		"lifesteal":

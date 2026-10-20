@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"clinch"
 display_name = "Clinch"
-description = "Made by a Chain that ends with Elbow. You tie the target up: for {b:CLINCH_TIME} sec you take {b:CLINCH_PCT}% less damage from it."
+description = "Made by a Chain that ends with Elbow. You tie the target up: for {clinch_time} sec you take {b:CLINCH_PCT}% less damage from it."
 tags = PackedStringArray("Ability", "Physical", "Melee", "Defensive")
 cast_type = 0
 cast_time = 0.0

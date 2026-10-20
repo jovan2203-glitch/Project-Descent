@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"breathe"
+display_name = "Breathe"
+description = "Steady yourself: for {b:BREATHE_TIME} sec, the next time one of your shots would bring another back sooner, that shot is ready at once instead."
+tags = PackedStringArray("Ability", "Physical")
+cast_type = 0
+cast_time = 0.0
+requires_target = false
+weapon_requirement = 2
+resource_type = 0
+damage = 0.0
+damage_type = &"physical"

@@ -54,6 +54,7 @@ var _daggers := {}                   # enemy instance id -> {"e", "n", "until"}
 var _kill_until := 0.0
 var _kill_last := ""                 # the Kill form used last in this window
 var _kill_extra := 0.0               # seconds variety has added to this window
+var _kill_flow := 0                  # Flow spent on this window (In the Zone)
 var _double_until := 0.0             # Kick Off: my next throw before this throws two daggers
 var _whetstone := 0
 var _sure_crit_until := 0.0
@@ -65,9 +66,10 @@ var _told := 0.0
 
 # Rules as static functions (tests/test_rogue.gd).
 
-## Flow after a hit that gives `gain` (`switch`: it came from a different range than my last).
-static func flow_after(flow: int, gain: int, switch: bool) -> int:
-	return mini(flow + gain + (Balance.FLOW_SWITCH if switch else 0), Balance.FLOW_MAX)
+## Flow after a hit that gives `gain` (`switch`: it came from a different range than my
+## last; `extra`: more for it, In and Out).
+static func flow_after(flow: int, gain: int, switch: bool, extra: int = 0) -> int:
+	return mini(flow + gain + (Balance.FLOW_SWITCH + maxi(extra, 0) if switch else 0), Balance.FLOW_MAX)
 
 ## Is a hit from `now_range` a range switch after one from `last`?
 static func is_switch(last: String, now_range: String) -> bool:
@@ -78,11 +80,16 @@ static func window_time(flow: int, mult: float = 1.0) -> float:
 	return float(flow) * Balance.KILL_PER_FLOW * mult
 
 ## Seconds a Kill form adds to the window: KILL_VARIETY when it differs from the one
-## before it, while the window has had less than KILL_VARIETY_MAX added.
-static func variety_add(last_form: String, form: String, added: float) -> float:
+## before it, while the window has had less than KILL_VARIETY_MAX added (`extra`: more
+## each time, Mix It Up).
+static func variety_add(last_form: String, form: String, added: float, extra: float = 0.0) -> float:
 	if last_form == "" or last_form == form:
 		return 0.0
-	return clampf(Balance.KILL_VARIETY_MAX - added, 0.0, Balance.KILL_VARIETY)
+	return clampf(Balance.KILL_VARIETY_MAX - added, 0.0, Balance.KILL_VARIETY + maxf(extra, 0.0))
+
+## In the Zone: crit chance from `flow` Flow at `per` % a stack.
+static func in_the_zone_crit(flow: int, per: float) -> float:
+	return float(maxi(flow, 0)) * maxf(per, 0.0)
 
 ## Daggers in an enemy after `add` more stick in it.
 static func daggers_after(n: int, add: int) -> int:
@@ -239,6 +246,8 @@ func _rogue_use(id: String, res: Resource) -> void:
 		"closeitout":
 			var left := kill_left()
 			_end_kill()
+			if player.frost_melee._capstone("martial_clean_kill"):
+				_set_flow(Balance.CLEAN_KILL_FLOW)   # Clean Kill's capstone
 			if foe:
 				player.deal_damage(foe, close_it_out_coef(left), id)
 				player._ring_effect(1.2, RogueIcons.KILL, foe.global_position)
@@ -329,10 +338,10 @@ func _landed(where: String, gain: int) -> void:
 	var switch := is_switch(_last_range, where)
 	_last_range = where
 	_flow_at = _now()
-	_decay_at = _flow_at + Balance.FLOW_HOLD
+	_decay_at = _flow_at + Balance.FLOW_HOLD + player._talent("martial_steady_pace")   # + Steady Pace
 	if in_kill():
 		return
-	_set_flow(flow_after(_flow, gain, switch))
+	_set_flow(flow_after(_flow, gain, switch, int(round(player._talent("martial_in_and_out")))))   # In and Out
 
 ## Whirl / Red Whirl: everyone around me, or Knife Spread with nobody close.
 func _whirl(id: String, res: Resource) -> void:
@@ -432,6 +441,7 @@ func _set_flow(n: int) -> void:
 	_show_flow()
 
 func _open_kill(time: float) -> void:
+	_kill_flow = _flow   # (In the Zone counts it through the window)
 	_set_flow(0)
 	_kill_until = _now() + time
 	_kill_last = ""
@@ -447,7 +457,7 @@ func _end_kill() -> void:
 
 ## A Kill form went off: one that differs from the last adds to the window.
 func _kill_form_used(form: String) -> void:
-	var add := variety_add(_kill_last, form, _kill_extra)
+	var add := variety_add(_kill_last, form, _kill_extra, player._talent("martial_mix_it_up"))   # + Mix It Up
 	_kill_last = form
 	if add > 0.0 and in_kill():
 		_kill_until += add
@@ -599,7 +609,11 @@ func _on_ability_used(id: String) -> void:
 # --- Hits -----------------------------------------------------------------------------
 
 ## Over the Shoulder: my next hit (not over time) is a sure crit (Player.adjust_crit).
+## In the Zone: my Flow (in a Kill window, the Flow spent on it) gives crit chance too.
 func adjust_crit(info: RefCounted, chance: float) -> float:
+	var zone := player._talent("martial_in_the_zone")
+	if zone > 0.0:
+		chance += in_the_zone_crit(_kill_flow if in_kill() else _flow, zone)
 	if info.is_dot or info.is_proc or _sure_crit_until <= _now():
 		return chance
 	_sure_crit_until = 0.0

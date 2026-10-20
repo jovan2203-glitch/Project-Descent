@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"spread"
+display_name = "Spread"
+description = "Loose {spread_arrows} arrows at once across up to {spread_arrows} enemies in front of you (a lone enemy takes them all), {hit} Physical damage each. Each arrow that hits brings {n:heavydraw} back {b:SHARP_SPREAD_CUT} sec sooner (a critical hit: at once). Builds Streak and spends its Overcut."
+tags = PackedStringArray("Ability", "Physical", "Ranged", "Projectile")
+cast_type = 0
+cast_time = 0.0
+requires_target = true
+weapon_requirement = 2
+resource_type = 0
+damage = 0.0
+damage_type = &"physical"

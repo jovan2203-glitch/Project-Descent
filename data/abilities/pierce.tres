@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"pierce"
+display_name = "Pierce"
+description = "Shoot an arrow straight through your target: {hit} Physical damage to every enemy on its line, up to your bow's range. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, it is split evenly between all of them. {n:spread} comes back {b:SHARP_PIERCE_CUT_FIRST} sec sooner for the first enemy hit and {b:SHARP_PIERCE_CUT_PER} sec for each one after it, up to {b:SHARP_PIERCE_CUT_MAX} sec (a critical hit: at once). Builds Streak and spends its Overcut."
+tags = PackedStringArray("Ability", "Physical", "Ranged", "Projectile")
+cast_type = 0
+cast_time = 0.0
+requires_target = true
+weapon_requirement = 2
+resource_type = 0
+damage = 0.0
+damage_type = &"physical"

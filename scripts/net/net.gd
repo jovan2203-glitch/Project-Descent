@@ -54,6 +54,7 @@ const CENSER = preload("res://scripts/censer.gd")
 const WEAPON_WHEEL = preload("res://scripts/weapon_wheel.gd")
 const BRAWLER_ORBS = preload("res://scripts/brawler_orbs.gd")
 const ROGUE_FX = preload("res://scripts/rogue_fx.gd")
+const SHARP_FX = preload("res://scripts/sharpshooter_fx.gd")
 const LIGHT_MOTE = preload("res://scripts/light_mote.gd")
 const PRISM = preload("res://scripts/prism.gd")
 const LIGHT_BEAM = preload("res://scripts/light_beam.gd")
@@ -1379,6 +1380,10 @@ func _fx(t: int, member: int, kind: String, at: Vector3, target_id: String, id: 
 			# the rules run on their machine.
 			ROGUE_FX.show_flow(src, int(extra.get("f", 0)), Balance.FLOW_MAX, bool(extra.get("k", false)))
 			ROGUE_FX.play_dead(src, bool(extra.get("dead", false)))
+		"sharpshooter":
+			# A party member's quiver (Martial archer: Sharpshooter): their Streak, gold while
+			# they hold a charged shot. A picture; the rules run on their machine.
+			SHARP_FX.show_streak(src, int(extra.get("s", 0)), Balance.STREAK_MAX, bool(extra.get("g", false)))
 		"rogue_daggers":
 			# A party member's daggers stuck in an enemy (theirs only; one set per member).
 			if tgt:

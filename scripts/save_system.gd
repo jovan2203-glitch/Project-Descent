@@ -20,7 +20,7 @@ extends Node
 const PATH := "user://profile.cfg"
 const TMP_PATH := "user://profile.cfg.tmp"
 const BAK_PATH := "user://profile.cfg.bak"
-const VERSION := 9
+const VERSION := 10
 const AUTOSAVE_DELAY := 0.5
 
 const Items = preload("res://scripts/items.gd")
@@ -299,6 +299,8 @@ func _migrate(cfg: ConfigFile, from_version: int) -> void:
 				_migrate_7_to_8(cfg)
 			8:
 				_migrate_8_to_9(cfg)
+			9:
+				_migrate_9_to_10(cfg)
 		v += 1
 		cfg.set_value("meta", "version", v)
 
@@ -402,6 +404,18 @@ func _migrate_8_to_9(cfg: ConfigFile) -> void:
 				(ranks as Dictionary).erase(id)
 		cfg.set_value("talents", "ranks", ranks)
 	_log(1, "Migrated profile to v9 (points in old empty Nature talents refunded)")
+
+# v9 -> v10: the Martial book got its talents and a new layout. Every Martial slot
+# was empty until now, so points saved in one are refunded instead of becoming the
+# new talent there.
+func _migrate_9_to_10(cfg: ConfigFile) -> void:
+	var ranks: Variant = cfg.get_value("talents", "ranks", {})
+	if ranks is Dictionary:
+		for id in (ranks as Dictionary).keys():
+			if str(id).begins_with("martial_"):
+				(ranks as Dictionary).erase(id)
+		cfg.set_value("talents", "ranks", ranks)
+	_log(1, "Migrated profile to v10 (points in old empty Martial talents refunded)")
 
 # --- Validation --------------------------------------------------------------------
 

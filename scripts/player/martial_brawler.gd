@@ -93,10 +93,18 @@ static func would_finish(chain: Array, strike: String) -> String:
 		return ""
 	return chain_move(chain_after(chain, strike))
 
-## A hit of `amount`: [dealt now, into Bruise].
-static func bruise_split(amount: int) -> Array:
-	var later := int(round(float(amount) * Balance.BRUISE_PCT / 100.0))
+## A hit of `amount`: [dealt now, into Bruise] (`pct`: the share that goes in; Soak It Up raises it).
+static func bruise_split(amount: int, pct: float = Balance.BRUISE_PCT) -> Array:
+	var later := int(round(float(amount) * clampf(pct, 0.0, 100.0) / 100.0))
 	return [amount - later, later]
+
+## % of my Bruise Shake Off clears (`capstone`: Soak It Up's).
+static func shake_off_pct(capstone: bool) -> float:
+	return Balance.SOAK_IT_UP_SHAKE_OFF if capstone else Balance.SHAKE_OFF_PCT
+
+## A Bruise tick of `amount` after Scar Tissue (`pct` % less).
+static func scarred(amount: float, pct: float) -> float:
+	return amount * clampf(1.0 - pct / 100.0, 0.0, 1.0)
 
 ## Damage one Bruise tick deals with `total` left over `left` seconds.
 static func bruise_per_tick(total: float, left: float) -> float:
@@ -257,21 +265,23 @@ func _do_move(move: String, again: bool) -> void:
 				done = "rapidfists"   # no Fury for it
 				_hit(foe, float(Abilities.get_resource("rapidfists").damage), "rapidfists")
 		"sweep", "roundhouse":
-			var foes: Array = player._enemies_within(float(res.radius))
+			var reach := float(res.radius) + Abilities.radius_bonus(move)   # + Wide Stance
+			var foes: Array = player._enemies_within(reach)
 			var share := Balance.aoe_share(foes.size())
 			for e in foes:
 				player.deal_damage(e, float(res.damage) * share, move)
 				if move == "roundhouse":
 					_knock(e, KICKED_DOWN_FX, move)
-			player._ring_effect(float(res.radius), BrawlerIcons.KICK)
+			player._ring_effect(reach, BrawlerIcons.KICK)
 		"clinch":
 			if foe:
 				_clinched = foe
-				_clinch_until = _now() + Balance.CLINCH_TIME
-				_buff(CLINCH_FX, Abilities.ability_name("clinch"), Balance.CLINCH_TIME, BrawlerIcons.ELBOW,
+				var hold := Balance.CLINCH_TIME + player._talent("martial_tight_clinch")   # + Tight Clinch
+				_clinch_until = _now() + hold
+				_buff(CLINCH_FX, Abilities.ability_name("clinch"), hold, BrawlerIcons.ELBOW,
 					"You have an enemy tied up: you take %s%% less damage from it." % Stats.num(Balance.CLINCH_PCT))
 		"shakeoff":
-			_bruise *= 1.0 - Balance.SHAKE_OFF_PCT / 100.0
+			_bruise *= 1.0 - shake_off_pct(player.frost_melee._capstone("martial_soak_it_up")) / 100.0   # (Soak It Up's capstone)
 			player._ring_effect(1.5, BrawlerIcons.ELBOW)
 			_show_bruise()
 		"turnitaround":
@@ -376,11 +386,14 @@ func bruise_take(amount: int) -> int:
 	if _ticking or amount <= 0 or not is_out():
 		_landing_caught = false
 		return amount
+	var pct := Balance.BRUISE_PCT + player._talent("martial_soak_it_up")   # + Soak It Up
 	if _landing_caught:
 		_landing_caught = false
-		_caught_amount = amount
-		return amount
-	var split := bruise_split(amount)
+		_caught_amount = amount   # (the whole hit: Turn It Around and Takedown count all of it)
+		pct = player._talent("martial_soft_catch")   # Soft Catch: part of it still goes into Bruise
+		if pct <= 0.0:
+			return amount
+	var split := bruise_split(amount, pct)
 	if int(split[1]) > 0:
 		_bruise += float(split[1])
 		_bruise_left = Balance.BRUISE_TIME
@@ -442,7 +455,7 @@ func _tick_bruise() -> void:
 	player._gain("fury", bruise_fury(amt, float(player.max_health), tough))
 	if tough:
 		return   # Tough It Out: it doesn't hurt
-	_bruise_carry += amt
+	_bruise_carry += scarred(amt, player._talent("martial_scar_tissue"))   # Scar Tissue
 	var whole := int(floor(_bruise_carry))
 	if whole <= 0:
 		return

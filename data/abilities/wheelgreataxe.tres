@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"wheelgreataxe"
 display_name = "Greataxe"
-description = "One of the four weapons on your Wheel. While you hold it, your ability hits also hit {b:AXE_CLEAVE_REACH} m around: one other enemy near the target takes {b:AXE_CLEAVE_PCT}% of the damage. Its moves: {n:hack}, {n:chop}, {n:rush} and {n:shrapnel}."
+description = "One of the four weapons on your Wheel. While you hold it, your ability hits also hit {b:AXE_CLEAVE_REACH} m around: other enemies near the target (up to {axe_cleave_targets}) take {b:AXE_CLEAVE_PCT}% of the damage. Its moves: {n:hack}, {n:chop}, {n:rush} and {n:shrapnel}."
 tags = PackedStringArray("Ability", "Physical")
 cast_type = 0
 cast_time = 0.0

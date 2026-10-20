@@ -15,7 +15,7 @@ const ROLES := {
 	"The Breach": "dps", "Pack of Two": "dps", "Strings Attached": "healer", "Nightstring": "dps",
 	"Thornweaver": "dps", "Shepherd": "healer", "Colossus": "tank", "Venomstring": "dps",
 	"Choir of One": "healer", "Censer Bearer": "tank", "Line of Light": "healer", "Lightstring": "dps",
-	"The Wheel": "dps", "Brawler": "tank", "Rogue": "dps",
+	"The Wheel": "dps", "Brawler": "tank", "Rogue": "dps", "Sharpshooter": "dps",
 	"Utility": "utility",
 }
 
@@ -76,6 +76,16 @@ const PAYOFF := {
 	"goin": {"skip": true}, "hityourstride": {"skip": true}, "rollwithit": {"skip": true}, "closeitout": {"skip": true},
 	"gut": {"skip": true}, "throughandthrough": {"skip": true}, "redwhirl": {"skip": true}, "backflip": {"skip": true},
 	"drivethrough": {"skip": true},
+	# Martial archer: Sharpshooter. Base cooldowns fill ~64% of GCDs; the cuts fill ~90%, so
+	# each engine shot fires ~1.4x as often (folded in here), with ~20% Overcut and Streak ~6 (+12%).
+	# Spread: 3 arrows; Follow Up: 2. Loose fills the gaps.
+	"quickshot": {"coef": 0.45 * 1.85},
+	"pierce": {"coef": 0.5 * 1.85},
+	"spread": {"coef": 0.3 * 3.0 * 1.85},
+	"heavydraw": {"coef": 1.3 * 1.85},
+	"followup": {"coef": 0.22 * 2.0 * 1.85},
+	"loose": {"coef": 0.25 * 1.12},
+	"breathe": {"skip": true}, "fasthands": {"skip": true},
 	# Holy tank: Pour Out at 100 Incense; Absolve at 40.
 	"pourout": {"coef": 0.03 * 100.0},
 	"absolve": {"heal": 0.05 * 40.0 * 2.2},

@@ -66,6 +66,8 @@ var utility: UtilityKit = _kit(UtilityKit) as UtilityKit
 var wheel: WheelKit = _kit(WheelKit) as WheelKit
 var brawler: BrawlerKit = _kit(BrawlerKit) as BrawlerKit
 var rogue: RogueKit = _kit(RogueKit) as RogueKit
+var sharp: SharpshooterKit = _kit(SharpshooterKit) as SharpshooterKit
+var martial_talents: MartialTalentsKit = _kit(MartialTalentsKit) as MartialTalentsKit
 
 ## A component of `script` working for me (a child node, made before _ready).
 func _kit(script: Script) -> Node:
@@ -152,7 +154,8 @@ func hounds_out() -> bool:
 
 # Forwards to ShadowTalentsKit (called from other scripts).
 func crit_hit_bonus(info: RefCounted) -> Array:
-	return shadow_talents.crit_hit_bonus(info)
+	var ill_will: Array = shadow_talents.crit_hit_bonus(info)   # Ill Will (damage over time)
+	return ill_will if not ill_will.is_empty() else wheel.crit_hit_bonus(info)   # Keen Edge (the Greatsword)
 
 # Forwards to DecayKit (called from other scripts).
 func interest_ready() -> bool:
@@ -283,7 +286,10 @@ func heat_stacks() -> int:
 # Forwards to FireCasterKit (called from other scripts).
 func charges_text(id: String) -> String:
 	var cracks := wheel.charges_text(id)   # Martial warrior: the Cracks on a Break button
-	return cracks if cracks != "" else fire_caster.charges_text(id)
+	if cracks != "":
+		return cracks
+	var over := sharp.charges_text(id)   # Martial archer: the Overcut on a shot
+	return over if over != "" else fire_caster.charges_text(id)
 
 func stacks_kept_on_use(res: Resource, stacks: int) -> int:
 	return fire_caster.stacks_kept_on_use(res, stacks)
@@ -603,6 +609,8 @@ func _ready() -> void:
 	_bus().damage_dealt.connect(rogue._on_damage_dealt_rogue)   # Martial DPS: Kill window crits give Energy, attacks end Play Dead
 	_bus().damage_modify.connect(rogue._on_damage_modify)   # ... Flow and Whetstone
 	_bus().ability_used.connect(rogue._on_ability_used)   # ... acting ends Play Dead
+	_bus().damage_dealt.connect(sharp._on_damage_dealt_sharp)   # Martial archer: hits bring other shots back sooner
+	_bus().damage_modify.connect(sharp._on_damage_modify)   # ... and the Streak
 	_bus().ability_used.connect(frost_runes._cold_precision_on_use)
 	_bus().damage_dealt.connect(frost_runes._on_damage_dealt_frost)
 	_bus().damage_dealt.connect(fire_runes._on_damage_dealt_fire)
@@ -1019,6 +1027,9 @@ func _use_ability_now(id: String) -> void:
 		"adderarrow":
 			cancel_placement()
 			venomstring._start_adder_arrow()   # Nature archer (a bow cast; instant after Fang Arrow)
+		"heavydraw":
+			cancel_placement()
+			sharp._start_heavy_draw()   # Martial archer (a bow cast; instant at full Streak)
 		"mendingray":
 			cancel_placement()
 			prism_kit._start_mending_ray()
@@ -1026,7 +1037,8 @@ func _use_ability_now(id: String) -> void:
 			_use_trinket(id)
 		_:
 			if Abilities.DRAFT_POOL.has(id) or BASE_INSTANTS.has(id) or LightningMeleeKit.RUNE_INSTANTS.has(id) \
-					or Abilities.wheel_weapon_of(id) != "" or Abilities.is_kill_form(id):   # (the Wheel's moves come with their weapon; the Rogue's Kill forms with a Kill window)
+					or Abilities.wheel_weapon_of(id) != "" or Abilities.is_kill_form(id) \
+					or Abilities.BROUGHT_BUTTONS.has(id):   # (the Wheel's moves come with their weapon; the Rogue's Kill forms with a Kill window; Go In, Kick, Elbow, Fighting Style and Loose with another card)
 				cancel_placement()
 				_use_drafted(id)
 
@@ -1544,6 +1556,10 @@ func effect_duration_bonus(res: Resource) -> float:
 	# with the tooltips, so what they say is what happens.)
 	return Abilities.effect_time_bonus(res, _talent) + utility.duration_bonus(res)   # (Fixed Point: per Arcane cooldown)
 
+## Extra hits effects you apply take to shake (StatusContainer asks). Pinned Down.
+func effect_extra_hits(res: Resource) -> int:
+	return int(round(_talent("martial_pinned_down"))) if res != null and str(res.get("id")) == "pinned_shadow" else 0
+
 ## Every hit you deal, before its damage is worked out (CombatSystem ->
 ## SignalBus.damage_modify): talent damage bonuses and threat changes.
 func _on_damage_modify(info: RefCounted) -> void:
@@ -1612,6 +1628,7 @@ func _on_damage_modify(info: RefCounted) -> void:
 	fire_lightning_talents._open_talents_modify(info)   # Feed the Flames, Change of Pace, Dig In
 	shadow_talents._shadow_talents_modify(info, id)   # Slow Death, Finish It, Inevitable, Spite
 	nature_open._nature_talents_outgoing(info)   # Undergrowth, Overgrown
+	martial_talents._martial_talents_outgoing(info)   # Hard Break, Clean Kill, Knockout, Full Draw, Barbed, Turning Wheel
 	lightning_melee._empower_weapon_ability(info, id)   # Static Step, Polar Strike's charge
 	# Running on Empty: with little Energy left, my Lightning spells and abilities hit harder.
 	var empty := _talent("lightning_running_on_empty")
@@ -2251,6 +2268,9 @@ func _release_cast() -> void:
 	if spell == VenomstringKit.ADDER_ARROW_ID:
 		venomstring._loose_adder_arrow()   # Nature archer
 		return
+	if spell == SharpshooterKit.HEAVY_DRAW_ID:
+		sharp._loose_heavy_draw()   # Martial archer
+		return
 	if spell == FrostBowKit.GLACIAL_DRAW_ID:
 		frost_bow._loose_glacial_draw()
 		return
@@ -2418,6 +2438,8 @@ func _process(_delta: float) -> void:
 	wheel._tick_wheel()
 	brawler._tick_brawler(_delta)
 	rogue._tick_rogue(_delta)
+	sharp._tick_sharp(_delta)
+	martial_talents._tick_martial_talents(_delta)   # Catch Your Breath
 	venomstring._tick_venom(_delta)
 	utility._tick_utility()
 	lightstring._tick_lightstring(_delta)
@@ -2481,7 +2503,7 @@ func _physics_process(delta: float) -> void:
 	if steady:
 		var aimed: bool = current_spell in ENEMY_BOLTS or current_spell == "embervolley" \
 			or current_spell == FrostBowKit.GLACIAL_DRAW_ID or current_spell == ArcaneCasterKit.SIGIL_DARTS_ID or current_spell == LightstringKit.REFRACTING_SHOT_ID \
-			or current_spell == VenomstringKit.ADDER_ARROW_ID
+			or current_spell == VenomstringKit.ADDER_ARROW_ID or current_spell == SharpshooterKit.HEAVY_DRAW_ID
 		if (aimed and not _has_valid_target()) or (current_spell in SUPPORT_CASTS and not _support_target_ok()):
 			_cancel_cast()
 			steady = false
@@ -2502,7 +2524,7 @@ func _physics_process(delta: float) -> void:
 	if casting and not steady:
 		var targeted: bool = current_spell in ENEMY_BOLTS or current_spell == "embervolley" or current_spell == FrostBowKit.GLACIAL_DRAW_ID \
 			or current_spell == LightstringKit.REFRACTING_SHOT_ID or current_spell == VenomstringKit.ADDER_ARROW_ID \
-			or current_spell == ArcaneCasterKit.SIGIL_DARTS_ID
+			or current_spell == SharpshooterKit.HEAVY_DRAW_ID or current_spell == ArcaneCasterKit.SIGIL_DARTS_ID
 		var lost_target := targeted and not _has_valid_target()
 		if current_spell in SUPPORT_CASTS and not _support_target_ok():
 			lost_target = true
@@ -2698,6 +2720,8 @@ func _use_drafted(id: String) -> void:
 		"cut", "whirl", "dartin", "kickoff", "twinstab", "goin", "closeitout", "hityourstride", "rollwithit", "snatch", \
 				"gut", "throughandthrough", "redwhirl", "backflip", "drivethrough", "pintheshadow", "overtheshoulder", "playdead":
 			rogue._rogue_use(id, res)   # Martial DPS: the Rogue, and Martial Utility
+		"quickshot", "pierce", "spread", "heavydraw", "followup", "loose", "breathe", "fasthands":
+			sharp._sharp_use(id, res)   # Martial archer: Sharpshooter
 		VenomstringKit.FANG_ARROW_ID, VenomstringKit.ADDER_ARROW_ID, VenomstringKit.ASP_ARROW_ID, VenomstringKit.KRAIT_ARROW_ID, VenomstringKit.VENOM_BURST_ID, VenomstringKit.SPITTING_VOLLEY_ID, VenomstringKit.BLOAT_ARROW_ID, VenomstringKit.COIL_BACK_ID, VenomstringKit.VENOM_SURGE_ID:
 			venomstring._venom_use(id, res, w)   # Nature archer: Venomstring
 		UtilityKit.ROOTSNARE_ID, UtilityKit.BELLOWS_ID, UtilityKit.DEEP_ROOTS_ID, UtilityKit.STORM_FRONT_ID, UtilityKit.LEAF_CLOAK_ID, \
@@ -3068,6 +3092,8 @@ func _drafted_precheck(id: String, _res: Resource, w: Dictionary) -> String:
 		return rogue._rogue_precheck(id)   # Martial DPS: the Rogue, and Martial Utility
 	if Abilities.BRAWLER_IDS.has(id):
 		return brawler._brawler_precheck(id)   # Martial tank: the Brawler
+	if Abilities.SHARP_IDS.has(id):
+		return sharp._sharp_precheck(id)   # Martial archer: Sharpshooter
 	if VenomstringKit.VENOM_INSTANTS.has(id) or id == VenomstringKit.ADDER_ARROW_ID:
 		return venomstring._venom_precheck(id)   # Nature archer
 	if UtilityKit.INSTANTS.has(id):
@@ -3701,6 +3727,7 @@ func adjust_crit(info: RefCounted, chance: float) -> float:
 			info.add_bonus(float(fire[1]), "Vent Flames" if id == "ventflames" else "Tempered Flame")
 		chance = float(fire[0])
 	chance = rogue.adjust_crit(info, chance)   # Over the Shoulder (Martial Utility): a sure crit
+	chance = sharp.adjust_crit(info, chance)   # Sharpshooter: Heavy Draw at full Streak, a sure crit
 	var tags: PackedStringArray = info.tags
 	if fire_cooldowns.cool_head_active() and FireCooldownsKit.is_fire_action(tags):
 		return 0.0                               # Cool Head: no Fire crits at all (ticks and Vent Flames included)

@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"wheelhalberd"
 display_name = "Halberd"
-description = "One of the four weapons on your Wheel. While you hold it, each of your ability hits has a {b:HALBERD_AGAIN_PCT}% chance to hit again for as much. Its moves: {n:jab}, {n:hook}, {n:dragin} and {n:flyinghead}."
+description = "One of the four weapons on your Wheel. While you hold it, each of your ability hits has a {halberd_again}% chance to hit again for as much. Its moves: {n:jab}, {n:hook}, {n:dragin} and {n:flyinghead}."
 tags = PackedStringArray("Ability", "Physical")
 cast_type = 0
 cast_time = 0.0

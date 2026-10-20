@@ -99,7 +99,7 @@ func test_bruise_is_hooked_into_damage_taken_before_the_caps() -> void:
 
 func test_catch_costs_the_chain_and_the_caught_hit_skips_bruise() -> void:
 	var src := PlayerSource.text()
-	assert_contains(src, "if _landing_caught:\n\t\t_landing_caught = false\n\t\t_caught_amount = amount\n\t\treturn amount", "the caught hit lands in full")
+	assert_contains(src, "pct = _talent(\"martial_soft_catch\")   # Soft Catch: part of it still goes into Bruise\n\t\tif pct <= 0.0:\n\t\t\treturn amount", "the caught hit lands in full (without Soft Catch)")
 	assert_contains(src, "if bool(info.is_dot) or not PackedStringArray(info.tags).has(\"Melee\")", "only the enemy's melee hit is caught")
 	assert_true(FileAccess.get_file_as_string("res://scripts/core/combat_system.gd").contains("tgt.before_hit_lands(info)"))
 	assert_contains(src, "\"Your target shows no melee tell at you\"", "only usable on a melee tell")

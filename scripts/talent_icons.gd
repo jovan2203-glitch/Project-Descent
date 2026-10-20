@@ -90,7 +90,13 @@ const ICONED := ["frost_haste", "frost_cold_draw", "frost_black_ice", "frost_cle
 	"nature_spring_trap", "nature_soaked_through", "nature_old_bark", "nature_morning_dew", "nature_return_flight", "nature_deep_bloom",
 	"nature_big_herd", "nature_quick_return", "nature_evergreen", "nature_rising_sap", "nature_crushing_grip", "nature_broad_fist",
 	"nature_spreading_roots", "nature_firm_hold", "nature_wide_awake", "nature_old_growth", "nature_rich_soil", "nature_compost",
-	"nature_bramble_burst", "nature_fertile_ground", "nature_second_growth", "nature_circling_hawk", "nature_overgrown"]
+	"nature_bramble_burst", "nature_fertile_ground", "nature_second_growth", "nature_circling_hawk", "nature_overgrown",
+	"martial_hard_break", "martial_well_drilled", "martial_wide_cleave", "martial_keen_edge", "martial_twice_over", "martial_rattled",
+	"martial_turning_wheel", "martial_clean_kill", "martial_in_and_out", "martial_barbed", "martial_steady_pace", "martial_mix_it_up",
+	"martial_deep_pockets", "martial_in_the_zone", "martial_conditioning", "martial_catch_your_breath", "martial_pinned_down",
+	"martial_soak_it_up", "martial_tight_clinch", "martial_soft_catch", "martial_knockout", "martial_wide_stance", "martial_round_two",
+	"martial_scar_tissue", "martial_full_draw", "martial_broadhead", "martial_patience", "martial_extra_arrows", "martial_no_letup",
+	"martial_easy_release", "martial_keen_eye"]
 
 static func draw(c: Control, id: String) -> void:
 	if not has_icon(id):
@@ -2088,3 +2094,165 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			c.draw_circle(mid + Vector2(-3, -2) * k, 3.0 * k, Color(0.15, 0.25, 0.4))
 			c.draw_line(mid + Vector2(-3, 1) * k, mid + Vector2(-3, 9) * k, Color(0.15, 0.25, 0.4), 2.5 * k, true)
 			c.draw_line(mid + Vector2(-8, 4) * k, mid + Vector2(2, 4) * k, Color(0.15, 0.25, 0.4), 2.0 * k, true)
+		# --- Martial warrior: the Wheel ---
+		"martial_hard_break":   # a blade snapping in two, shards flying
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-15, 12), Vector2(-11, 15), Vector2(-1, 3), Vector2(-4, 0)]), WHITE)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(2, -2), Vector2(5, 1), Vector2(15, -11), Vector2(13, -15)]), WHITE)
+			for p in [Vector2(-3, -9), Vector2(6, 9), Vector2(10, 2)]:
+				_shard(c, mid + (p as Vector2) * k, (p as Vector2).normalized(), 6.0 * k, 2.0 * k, light, WHITE, k)
+		"martial_well_drilled":   # a weapon held level, three cracks along it
+			c.draw_line(mid + Vector2(-15, 4) * k, mid + Vector2(15, -4) * k, WHITE, 5.0 * k, true)
+			for x in [-7.0, 0.0, 7.0]:
+				c.draw_polyline(_p(mid, k, [Vector2(x, -4 - x * 0.27), Vector2(x + 2, 0 - x * 0.27), Vector2(x - 1, 4 - x * 0.27)]), col.darkened(0.3), 1.6 * k, true)
+			c.draw_line(mid + Vector2(-10, 12) * k, mid + Vector2(10, 12) * k, light, 2.0 * k, true)
+		"martial_wide_cleave":   # an axe head, its swing reaching two marks beside it
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-4, -12), Vector2(8, -15), Vector2(10, 0), Vector2(-4, -3)]), WHITE)
+			c.draw_line(mid + Vector2(-4, -12) * k, mid + Vector2(-4, 15) * k, WOOD.lightened(0.2), 3.0 * k, true)
+			c.draw_arc(mid + Vector2(-4, -4) * k, 16.0 * k, -PI * 0.35, PI * 0.35, 12, light, 2.0 * k, true)
+			for p in [Vector2(14, -8), Vector2(15, 2), Vector2(12, 11)]:
+				c.draw_circle(mid + (p as Vector2) * k, 2.4 * k, light)
+		"martial_keen_edge":   # a greatsword point, a star of light on its edge
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-3, 15), Vector2(3, 15), Vector2(3, -9), Vector2(0, -15), Vector2(-3, -9)]), Color(0.78, 0.9, 1.0))
+			c.draw_line(mid + Vector2(-9, 9) * k, mid + Vector2(9, 9) * k, WHITE, 3.0 * k, true)
+			for i in 4:
+				var a := TAU * i / 4.0 + PI * 0.25
+				c.draw_line(mid + Vector2(8, -8) * k, mid + Vector2(8, -8) * k + Vector2(cos(a), sin(a)) * 6.0 * k, WHITE, 1.8 * k, true)
+		"martial_twice_over":   # a halberd blade and its echo behind it
+			for off in [Vector2(-5, 3), Vector2(3, -3)]:
+				var o := off as Vector2
+				var a := 0.45 if o.x < 0 else 1.0
+				c.draw_line(mid + (Vector2(-10, 14) + o) * k, mid + (Vector2(8, -12) + o) * k, Color(WOOD.lightened(0.3), a), 2.4 * k, true)
+				c.draw_colored_polygon(_p(mid + o * k, k, [Vector2(4, -10), Vector2(13, -8), Vector2(10, 0), Vector2(6, -4)]), Color(0.5, 0.95, 0.6, a))
+		"martial_rattled":   # a maul head, a dizzy ring of stars
+			c.draw_rect(Rect2(mid + Vector2(-10, -2) * k, Vector2(20, 11) * k), Color(1.0, 0.75, 0.3))
+			c.draw_line(mid + Vector2(0, 9) * k, mid + Vector2(0, 16) * k, WOOD.lightened(0.2), 3.0 * k, true)
+			c.draw_arc(mid + Vector2(0, -9) * k, 9.0 * k, PI, TAU, 12, light, 1.6 * k, true)
+			for x in [-8.0, 0.0, 8.0]:
+				_plus(c, mid + Vector2(x, -12 + absf(x) * 0.4) * k, 2.4 * k, WHITE, 1.5 * k)
+		"martial_turning_wheel":   # four weapons around a turning circle
+			c.draw_arc(mid, 11.0 * k, 0, TAU, 24, light, 2.0 * k, true)
+			var tones := [Color(1.0, 0.4, 0.35), Color(0.78, 0.9, 1.0), Color(0.5, 0.95, 0.6), Color(1.0, 0.75, 0.3)]
+			for i in 4:
+				var a := TAU * i / 4.0 - PI * 0.5
+				var at := mid + Vector2(cos(a), sin(a)) * 11.0 * k
+				c.draw_circle(at, 4.2 * k, tones[i])
+			c.draw_colored_polygon(_p(mid, k, [Vector2(4, -15), Vector2(9, -12), Vector2(3, -10)]), WHITE)
+		# --- Martial DPS: the Rogue ---
+		"martial_clean_kill":   # a dagger through a red slash
+			c.draw_line(mid + Vector2(-14, 12) * k, mid + Vector2(14, -12) * k, Color(0.95, 0.25, 0.3), 4.0 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-2, -15), Vector2(2, -15), Vector2(2, 5), Vector2(0, 9), Vector2(-2, 5)]), WHITE)
+			c.draw_line(mid + Vector2(-6, 9) * k, mid + Vector2(6, 9) * k, WOOD.lightened(0.3), 2.6 * k, true)
+			c.draw_line(mid + Vector2(0, 9) * k, mid + Vector2(0, 15) * k, WOOD, 3.0 * k, true)
+		"martial_in_and_out":   # two arrows, one in, one out
+			c.draw_line(mid + Vector2(-14, -6) * k, mid + Vector2(8, -6) * k, WHITE, 2.4 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(8, -11), Vector2(15, -6), Vector2(8, -1)]), WHITE)
+			c.draw_line(mid + Vector2(14, 7) * k, mid + Vector2(-8, 7) * k, light, 2.4 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-8, 2), Vector2(-15, 7), Vector2(-8, 12)]), light)
+		"martial_barbed":   # a barbed dagger blade
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-3, 14), Vector2(3, 14), Vector2(3, -8), Vector2(0, -15), Vector2(-3, -8)]), WHITE)
+			for y in [-6.0, 0.0, 6.0]:
+				c.draw_colored_polygon(_p(mid, k, [Vector2(-3, y), Vector2(-9, y + 5), Vector2(-3, y + 3)]), light)
+				c.draw_colored_polygon(_p(mid, k, [Vector2(3, y), Vector2(9, y + 5), Vector2(3, y + 3)]), light)
+		"martial_steady_pace":   # a ring of Flow, an hourglass inside
+			c.draw_arc(mid, 15.0 * k, 0, TAU, 28, Color(0.55, 0.85, 1.0), 2.2 * k, true)
+			_hourglass(c, mid + Vector2(0, -1) * k, 0.75 * k, light, WHITE)
+		"martial_mix_it_up":   # three different blade marks, side by side
+			c.draw_line(mid + Vector2(-14, 10) * k, mid + Vector2(-8, -10) * k, Color(0.95, 0.25, 0.3), 3.0 * k, true)
+			c.draw_arc(mid + Vector2(0, 2) * k, 7.0 * k, PI * 1.1, PI * 1.9, 10, WHITE, 3.0 * k, true)
+			c.draw_line(mid + Vector2(8, -10) * k, mid + Vector2(14, 10) * k, light, 3.0 * k, true)
+			c.draw_line(mid + Vector2(-12, 14) * k, mid + Vector2(12, 14) * k, Color(WHITE, 0.5), 1.4 * k, true)
+		"martial_deep_pockets":   # a pouch with a hand slipping in
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-11, -4), Vector2(11, -4), Vector2(13, 10), Vector2(0, 15), Vector2(-13, 10)]), WOOD.lightened(0.15))
+			c.draw_line(mid + Vector2(-11, -4) * k, mid + Vector2(11, -4) * k, light, 2.4 * k, true)
+			c.draw_line(mid + Vector2(4, -15) * k, mid + Vector2(1, -4) * k, Color(0.95, 0.78, 0.62), 4.0 * k, true)
+			c.draw_circle(mid + Vector2(-4, 6) * k, 2.4 * k, Color(1.0, 0.85, 0.3))
+		"martial_in_the_zone":   # an eye with a red ring round it
+			c.draw_arc(mid, 15.0 * k, 0, TAU, 28, Color(0.95, 0.25, 0.3), 2.2 * k, true)
+			_ellipse(c, mid, Vector2(10, 5) * k, Color(WHITE, 0.9), light, 1.4 * k)
+			c.draw_circle(mid, 3.5 * k, col.darkened(0.6))
+		# --- Martial: the open talents ---
+		"martial_conditioning":   # a dumbbell over a heart line
+			c.draw_line(mid + Vector2(-10, -6) * k, mid + Vector2(10, -6) * k, WHITE, 3.0 * k, true)
+			for x in [-12.0, 12.0]:
+				c.draw_rect(Rect2(mid + Vector2(x - 2.5, -12) * k, Vector2(5, 12) * k), light)
+			c.draw_polyline(_p(mid, k, [Vector2(-15, 9), Vector2(-5, 9), Vector2(-2, 3), Vector2(2, 15), Vector2(5, 9), Vector2(15, 9)]), HEAL_GREEN, 2.0 * k, true)
+		"martial_catch_your_breath":   # breath curling out, a green plus
+			for i in 3:
+				c.draw_arc(mid + Vector2(-6 + i * 5, -2 + i * 2) * k, (5.0 + i * 2.0) * k, PI * 1.2, PI * 1.9, 10, Color(WHITE, 0.9 - i * 0.2), 2.0 * k, true)
+			_plus(c, mid + Vector2(8, 9) * k, 5.0 * k, HEAL_GREEN, 3.0 * k)
+		"martial_pinned_down":   # a knife through a shadow on the floor
+			_ellipse(c, mid + Vector2(0, 9) * k, Vector2(14, 5) * k, Color(0.08, 0.06, 0.1), light, 1.4 * k)
+			c.draw_line(mid + Vector2(-5, -15) * k, mid + Vector2(1, 8) * k, WHITE, 3.0 * k, true)
+			c.draw_line(mid + Vector2(-9, -9) * k, mid + Vector2(0, -12) * k, WOOD.lightened(0.3), 2.6 * k, true)
+			for x in [-8.0, 8.0]:
+				c.draw_circle(mid + Vector2(x, 9) * k, 1.6 * k, WHITE)
+		# --- Martial tank: the Brawler ---
+		"martial_soak_it_up":   # a fist meeting a purple bruise that spreads it out
+			c.draw_circle(mid + Vector2(3, 3) * k, 12.0 * k, Color(0.6, 0.35, 0.7, 0.75))
+			c.draw_circle(mid + Vector2(3, 3) * k, 6.0 * k, Color(0.75, 0.5, 0.85))
+			c.draw_rect(Rect2(mid + Vector2(-15, -13) * k, Vector2(11, 10) * k), Color(0.95, 0.78, 0.62))
+			c.draw_rect(Rect2(mid + Vector2(-15, -13) * k, Vector2(11, 10) * k), WHITE, false, 1.4 * k)
+		"martial_tight_clinch":   # two arms locked around each other
+			c.draw_arc(mid + Vector2(-4, 0) * k, 10.0 * k, -PI * 0.4, PI * 0.9, 14, Color(0.95, 0.78, 0.62), 4.0 * k, true)
+			c.draw_arc(mid + Vector2(4, 0) * k, 10.0 * k, PI * 0.6, PI * 1.9, 14, light, 4.0 * k, true)
+		"martial_soft_catch":   # an open hand, a hit landing softly in it
+			c.draw_arc(mid + Vector2(0, 2) * k, 11.0 * k, 0, PI, 14, Color(0.95, 0.78, 0.62), 4.0 * k, true)
+			c.draw_circle(mid + Vector2(0, 0) * k, 4.5 * k, WHITE)
+			c.draw_circle(mid + Vector2(0, 12) * k, 3.0 * k, Color(0.6, 0.35, 0.7))
+			c.draw_line(mid + Vector2(0, -15) * k, mid + Vector2(0, -7) * k, Color(WHITE, 0.6), 1.6 * k, true)
+		"martial_knockout":   # a big fist, gold stars over it
+			c.draw_rect(Rect2(mid + Vector2(-10, -4) * k, Vector2(20, 16) * k), Color(0.95, 0.78, 0.62))
+			for x in [-5.0, 0.0, 5.0]:
+				c.draw_line(mid + Vector2(x, -4) * k, mid + Vector2(x, 2) * k, Color(0.6, 0.45, 0.35), 1.3 * k, true)
+			for x in [-10.0, 0.0, 10.0]:
+				_plus(c, mid + Vector2(x, -12) * k, 3.0 * k, Color(1.0, 0.85, 0.3), 2.0 * k)
+		"martial_wide_stance":   # two feet set wide, a sweep between them
+			for x in [-11.0, 11.0]:
+				c.draw_rect(Rect2(mid + Vector2(x - 3, -4) * k, Vector2(6, 16) * k), WHITE.darkened(0.2))
+			c.draw_arc(mid + Vector2(0, 4) * k, 15.0 * k, PI * 1.15, PI * 1.85, 14, Color(0.5, 0.95, 0.6), 2.4 * k, true)
+			c.draw_line(mid + Vector2(-15, 13) * k, mid + Vector2(15, 13) * k, light, 1.6 * k, true)
+		"martial_round_two":   # a bell and a "2"
+			c.draw_arc(mid + Vector2(-4, 2) * k, 10.0 * k, PI, TAU, 14, Color(1.0, 0.85, 0.3), 3.0 * k, true)
+			c.draw_line(mid + Vector2(-15, 2) * k, mid + Vector2(7, 2) * k, Color(1.0, 0.85, 0.3), 3.0 * k, true)
+			c.draw_circle(mid + Vector2(-4, 6) * k, 2.5 * k, WHITE)
+			c.draw_polyline(_p(mid, k, [Vector2(7, -1), Vector2(10, -4), Vector2(14, -1), Vector2(8, 13), Vector2(15, 13)]), WHITE, 2.2 * k, true)
+		"martial_scar_tissue":   # a shoulder plate with stitched scars
+			_shield(c, mid, k, Color(col, 0.6), light)
+			for y in [-5.0, 4.0]:
+				c.draw_line(mid + Vector2(-7, y) * k, mid + Vector2(7, y + 2) * k, WHITE, 1.6 * k, true)
+				for x in [-4.0, 0.0, 4.0]:
+					c.draw_line(mid + Vector2(x, y - 2) * k, mid + Vector2(x, y + 3) * k, WHITE, 1.1 * k, true)
+		# --- Martial archer: Sharpshooter ---
+		"martial_full_draw":   # a bow drawn all the way back
+			c.draw_arc(mid + Vector2(6, 0) * k, 15.0 * k, PI * 0.6, PI * 1.4, 16, WOOD.lightened(0.3), 3.0 * k, true)
+			c.draw_polyline(_p(mid, k, [Vector2(0, -14), Vector2(-12, 0), Vector2(0, 14)]), WHITE, 1.4 * k, true)
+			c.draw_line(mid + Vector2(-12, 0) * k, mid + Vector2(15, 0) * k, Color(1.0, 0.85, 0.3), 2.0 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(15, -3), Vector2(18, 0), Vector2(15, 3)]), Color(1.0, 0.85, 0.3))
+		"martial_broadhead":   # a wide arrowhead
+			c.draw_colored_polygon(_p(mid, k, [Vector2(0, -15), Vector2(13, 2), Vector2(4, 0), Vector2(-4, 0), Vector2(-13, 2)]), WHITE)
+			c.draw_line(mid + Vector2(0, 0) * k, mid + Vector2(0, 15) * k, WOOD.lightened(0.3), 3.0 * k, true)
+		"martial_patience":   # an arrow resting over a clock
+			_clock(c, mid + Vector2(0, 3) * k, 11.0 * k, light, k)
+			c.draw_line(mid + Vector2(0, 3) * k, mid + Vector2(0, -4) * k, WHITE, 1.8 * k, true)
+			c.draw_line(mid + Vector2(-15, -12) * k, mid + Vector2(13, -12) * k, Color(1.0, 0.85, 0.3), 2.2 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(13, -15), Vector2(17, -12), Vector2(13, -9)]), Color(1.0, 0.85, 0.3))
+		"martial_extra_arrows":   # five arrows fanned out
+			for i in 5:
+				var a := -PI * 0.5 + (i - 2) * 0.32
+				var d := Vector2(cos(a), sin(a))
+				c.draw_line(mid + Vector2(0, 14) * k, mid + Vector2(0, 14) * k + d * 26.0 * k, WHITE if i == 2 else light, 1.8 * k, true)
+		"martial_no_letup":   # a quiver of lit fletchings
+			c.draw_rect(Rect2(mid + Vector2(-7, -2) * k, Vector2(14, 17) * k), WOOD)
+			for x in [-4.0, 0.0, 4.0]:
+				c.draw_line(mid + Vector2(x, -2) * k, mid + Vector2(x, -12) * k, WHITE, 1.4 * k, true)
+				c.draw_circle(mid + Vector2(x, -13) * k, 2.4 * k, Color(1.0, 0.85, 0.3))
+		"martial_easy_release":   # fingers letting the string go gently
+			c.draw_line(mid + Vector2(8, -15) * k, mid + Vector2(8, 15) * k, WHITE, 1.4 * k, true)
+			c.draw_arc(mid + Vector2(-2, 0) * k, 6.0 * k, -PI * 0.5, PI * 0.5, 10, Color(0.95, 0.78, 0.62), 3.4 * k, true)
+			for i in 3:
+				c.draw_arc(mid + Vector2(8, 0) * k, (4.0 + i * 3.5) * k, -PI * 0.3, PI * 0.3, 6, Color(light, 0.8 - i * 0.2), 1.4 * k, true)
+		"martial_keen_eye":   # an eye on a target
+			c.draw_arc(mid, 15.0 * k, 0, TAU, 28, light, 1.6 * k, true)
+			c.draw_arc(mid, 9.0 * k, 0, TAU, 24, light, 1.6 * k, true)
+			_ellipse(c, mid, Vector2(8, 4) * k, WHITE, WHITE, 1.0 * k)
+			c.draw_circle(mid, 2.6 * k, Color(1.0, 0.85, 0.3))

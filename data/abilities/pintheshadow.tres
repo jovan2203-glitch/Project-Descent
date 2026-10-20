@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"pintheshadow"
 display_name = "Pin the Shadow"
-description = "Throw a knife through your target's shadow: it is Pinned (it can't move) until it has been hit {b:PIN_SHADOW_HITS} times, by anyone, or {b:PIN_SHADOW_TIME} sec pass. Damage over time doesn't count."
+description = "Throw a knife through your target's shadow: it is Pinned (it can't move) until it has been hit {pin_hits} times, by anyone, or {pin_time} sec pass. Damage over time doesn't count."
 tags = PackedStringArray("Ability", "Physical", "Utility", "Root")
 cast_type = 0
 cast_time = 0.0
