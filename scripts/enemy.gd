@@ -455,6 +455,7 @@ func apply_elite_trait(t: String) -> void:
 			move_speed *= 1.0 + EB.ELITE_HASTE_MOVE / 100.0
 			attack_cooldown /= 1.0 + EB.ELITE_HASTE_ATTACK / 100.0
 			attack_windup /= 1.0 + EB.ELITE_HASTE_ATTACK / 100.0
+			melee_tell /= 1.0 + EB.ELITE_HASTE_ATTACK / 100.0
 		"shielded", "berserker":
 			var comp := Node.new()
 			comp.name = "EliteTrait"
@@ -620,7 +621,8 @@ func _physics_process(delta: float) -> void:
 		State.CHASE:
 			var tgt := _leashed_target()
 			if tgt == null:
-				change_state(State.RETURN)
+				if not _waiting_on_forgotten():
+					change_state(State.RETURN)   # (Play Dead: nobody else to fight, so it waits)
 			elif _in_reach(tgt):
 				change_state(State.ATTACK)
 			elif not stunned and not rooted:
@@ -631,7 +633,8 @@ func _physics_process(delta: float) -> void:
 		State.ATTACK:
 			var tgt2 := _leashed_target()
 			if tgt2 == null:
-				change_state(State.RETURN)
+				if not _waiting_on_forgotten():
+					change_state(State.RETURN)
 			elif not _still_in_reach(tgt2):
 				change_state(State.CHASE)
 			elif _kiting(tgt2, stunned, rooted):
@@ -653,6 +656,8 @@ func _physics_process(delta: float) -> void:
 				velocity.x = dir2.x * _current_speed() * 1.5
 				velocity.z = dir2.z * _current_speed() * 1.5
 				moving = true
+	if _swing_at > 0.0:
+		_tick_swing(stunned)
 
 	if not moving:
 		velocity.x = 0.0
@@ -728,6 +733,7 @@ func _check_frenzy() -> void:
 	_frenzied = true
 	attack_cooldown /= FRENZY_ATTACK
 	attack_windup /= FRENZY_ATTACK
+	melee_tell /= FRENZY_ATTACK
 	move_speed *= 1.15
 	BOSS_ABILITIES.apply_enrage_look(self)
 	_cs().float_text(self, "Frenzy!", Color(1.0, 0.3, 0.2), false)
@@ -748,6 +754,73 @@ func _attack(tgt: Node3D) -> void:
 	if projectile != "":
 		_ranged_attack(_pick_ranged_target(tgt))
 		return
+	if melee_tell > 0.0:
+		if _swing_at <= 0.0:
+			_start_swing(tgt)
+		return
+	_land_melee(tgt)
+
+# --- Melee tells ------------------------------------------------------------------------
+# A melee hit shows a short, bright tell (MeleeTellFx) before it lands, melee_tell
+# seconds later: same hit rate (the attack timer starts with the tell). Not a cast, so
+# interrupts don't see it; a stun or knockdown cancels it, and so does the target
+# getting away. The host tells the party ("swing"), so the target's machine knows
+# a hit is coming (the Brawler's Catch: melee_tell_at()).
+
+const MELEE_TELL_FX = preload("res://scripts/melee_tell_fx.gd")
+var melee_tell := EB.MELEE_TELL_TIME
+var _swing_tgt: Node3D = null
+var _swing_at := 0.0       # host / solo: when the hit lands (0 = no swing)
+var _tell_tgt: Node3D = null
+var _tell_until := 0.0     # every machine: the tell shows until then
+
+## Is this enemy showing a melee tell at `body` right now?
+func melee_tell_at(body: Node) -> bool:
+	return body != null and _tell_tgt == body and _now_s() < _tell_until
+
+## When the tell aimed at `body` ends (0 if there is none).
+func melee_tell_end(body: Node) -> float:
+	return _tell_until if melee_tell_at(body) else 0.0
+
+func _start_swing(tgt: Node3D) -> void:
+	_swing_tgt = tgt
+	_swing_at = _now_s() + melee_tell
+	_show_tell(tgt, melee_tell)
+	if _net and _net.is_host():
+		_net.enemy_fx(self, "swing", tgt, {"d": melee_tell})
+
+func _tick_swing(stunned: bool) -> void:
+	var tgt := _swing_tgt
+	if stunned or state != State.ATTACK or not is_instance_valid(tgt) or _is_dead(tgt):
+		_cancel_swing()
+		return
+	if _now_s() < _swing_at:
+		return
+	_swing_tgt = null
+	_swing_at = 0.0
+	if _dist_to(tgt) <= attack_range * 1.25:
+		_land_melee(tgt)
+
+func _cancel_swing() -> void:
+	_swing_tgt = null
+	_swing_at = 0.0
+	_tell_until = 0.0
+	var fx := get_node_or_null(MELEE_TELL_FX.NODE_NAME)
+	if fx:
+		fx.stop()
+
+func _show_tell(tgt: Node3D, d: float) -> void:
+	_tell_tgt = tgt
+	_tell_until = _now_s() + d
+	var fx := get_node_or_null(MELEE_TELL_FX.NODE_NAME)
+	if fx == null:
+		fx = MELEE_TELL_FX.new()
+		fx.name = MELEE_TELL_FX.NODE_NAME
+		fx.position = Vector3(0, health_bar_height * 0.6, 0)
+		add_child(fx)
+	fx.play(d)
+
+func _land_melee(tgt: Node3D) -> void:
 	play_once("attack")
 	if _hits_decoy(tgt):
 		return
@@ -1033,6 +1106,9 @@ func net_fx(kind: String, tgt: Node3D, extra: Dictionary) -> void:
 					_show_cast(false))
 		"interrupted":
 			show_interrupted()
+		"swing":
+			if tgt != null:
+				_show_tell(tgt, float(extra.get("d", melee_tell)))
 		"arrow", "bolt":
 			if tgt == null or scene == null:
 				return
@@ -1204,6 +1280,8 @@ func top_threat() -> Node3D:
 		if not is_instance_valid(n) or _is_dead(n):
 			threat.erase(key)
 			continue
+		if _is_forgotten(n):
+			continue   # (Play Dead)
 		if float(threat[key]["value"]) > best_v:
 			best_v = float(threat[key]["value"])
 			best = n
@@ -1265,6 +1343,48 @@ func drag_to(to: Vector3, drag_time: float = 0.25) -> bool:
 	drag.set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
 	drag.tween_property(self, "global_position", to, maxf(drag_time, 0.01))
 	return true
+
+
+## Play Dead (Martial Utility): players this enemy has forgotten, until when
+## ({instance id: seconds}). It doesn't turn on them while it lasts; with nobody
+## else to fight it stands where it is instead of going home.
+var _forgotten := {}
+
+## Play Dead: `source`'s threat on me drops to nothing and I forget them for `time`
+## seconds (0: I remember them again). Host / solo only.
+func forget(source: Node, time: float) -> void:
+	if _replica() or source == null or not is_instance_valid(source):
+		return
+	var key := source.get_instance_id()
+	if time <= 0.0:
+		_forgotten.erase(key)
+		return
+	drop_threat(source)
+	_forgotten[key] = Time.get_ticks_msec() / 1000.0 + time
+
+func _is_forgotten(n: Node) -> bool:
+	var key := n.get_instance_id()
+	if not _forgotten.has(key):
+		return false
+	if Time.get_ticks_msec() / 1000.0 >= float(_forgotten[key]):
+		_forgotten.erase(key)
+		return false
+	return true
+
+## Is the only one left to fight someone I have forgotten (Play Dead)? Then I wait.
+func _waiting_on_forgotten() -> bool:
+	for key in threat:
+		var n = threat[key]["node"]
+		if is_instance_valid(n) and not _is_dead(n) and _is_forgotten(n):
+			return true
+	return false
+
+## A direct hit (not over time) landed on me, from anyone: effects that end after a
+## number of hits count it (Pin the Shadow). Host / solo (CombatSystem, Net).
+func count_hit(tags: PackedStringArray) -> void:
+	if _replica() or tags.has("DoT") or status == null:
+		return
+	status.count_hit()
 
 ## Leaf Cloak: `source`'s threat on me drops to nothing (a taunt of theirs ends too).
 ## Host / solo only.

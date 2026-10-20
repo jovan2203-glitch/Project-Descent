@@ -120,6 +120,12 @@ func deal(info: RefCounted) -> RefCounted:
 			var ip: float = tgt.incoming_damage_pct(info)
 			if ip != 0.0:
 				info.add_bonus(ip, "Shield")
+		# The target may take more or less from this attacker (incoming_bonus(info) ->
+		# [pct, label] or []; Clinch).
+		if tgt.has_method("incoming_bonus"):
+			var ib: Array = tgt.incoming_bonus(info)
+			if ib.size() >= 2 and float(ib[0]) != 0.0:
+				info.add_bonus(float(ib[0]), str(ib[1]))
 		# Dungeon modifiers (e.g. Frost-Touched).
 		var gm := get_node_or_null("/root/GameManager")
 		if gm and gm.has_method("dungeon_damage_pct"):
@@ -201,6 +207,8 @@ func deal(info: RefCounted) -> RefCounted:
 				_bus().player_blocked.emit()
 			_bus().player_avoided.emit(info.avoid_kind())
 	elif dmg > 0:
+		if tgt.has_method("count_hit"):
+			tgt.count_hit(info.tags)   # (Pin the Shadow: a few hits, from anyone, free it)
 		# Absorb shields (Rime Shell...) soak the hit first.
 		var st_abs: Node = tgt.get_node_or_null("Status")
 		var through := dmg
@@ -215,6 +223,8 @@ func deal(info: RefCounted) -> RefCounted:
 				tgt.note_attacker(src)   # killing-blow tracking (on-kill runes)
 			float_text(tgt, hit_text(dmg, info.absorbed, info.crit), col, info.crit)
 			if is_instance_valid(tgt):
+				if tgt.has_method("before_hit_lands"):
+					tgt.before_hit_lands(info)   # (Catch: the hit it catches lands in full)
 				tgt.take_damage(through)
 		else:
 			float_text(tgt, hit_text(dmg, info.absorbed, info.crit), Color(0.7, 0.9, 1.0), false)

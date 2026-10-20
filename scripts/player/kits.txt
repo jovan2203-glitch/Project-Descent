@@ -37,3 +37,6 @@ pacts_kit PactsKit pacts.gd
 frost_melee FrostMeleeKit frost_melee.gd
 ice_shards_kit IceShardsKit frost_ice_shards.gd
 frostfire_kit FrostfireKit rune_frostfire.gd
+wheel WheelKit martial_wheel.gd
+brawler BrawlerKit martial_brawler.gd
+rogue RogueKit martial_rogue.gd

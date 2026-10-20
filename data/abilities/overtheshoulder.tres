@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"overtheshoulder"
+display_name = "Over the Shoulder"
+description = "Vault over your target (up to {a:overtheshoulder.range} m) and land behind it. Your next hit within {b:OVER_SHOULDER_TIME} sec is a sure critical strike."
+tags = PackedStringArray("Ability", "Physical", "Utility", "Movement")
+cast_type = 0
+cast_time = 0.0
+requires_target = true
+weapon_requirement = 1
+requires_dual_wield = false
+resource_type = 0
+damage = 0.0
+damage_type = &"physical"

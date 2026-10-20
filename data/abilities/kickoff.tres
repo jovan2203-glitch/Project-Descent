@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"kickoff"
+display_name = "Kick Off"
+description = "Kick your target for {hit} Physical damage and flip back {b:KICK_OFF_DISTANCE} m. Your next throw within {b:KICK_OFF_WINDOW} sec throws two daggers. Builds Flow. In a Kill window it becomes {n:backflip}."
+tags = PackedStringArray("Ability", "Physical", "Melee", "Movement")
+cast_type = 0
+cast_time = 0.0
+requires_target = true
+weapon_requirement = 1
+requires_dual_wield = true
+resource_type = 2
+damage = 0.0
+damage_type = &"physical"

@@ -134,7 +134,7 @@ const PATHS := {
 	"corruption": "res://data/abilities/corruption.tres",
 	"shadowstrike": "res://data/abilities/shadowstrike.tres",
 	"shadowarrow": "res://data/abilities/shadowarrow.tres",
-	# Shadow melee: the Hounds, two demon dogs that fight beside you, on Rage
+	# Shadow melee: the Hounds, two demon dogs that fight beside you, on Fury
 	# (draftable). See player.gd, "Shadow melee: the Hounds". Leeching Strike
 	# ("shadowstrike") is the kit's seventh ability.
 	"sic": "res://data/abilities/sic.tres",
@@ -295,6 +295,68 @@ const PATHS := {
 	"trinket_2": "res://data/abilities/trinket_2.tres",
 	# Interrupts (draftable): stop an enemy's cast and lock it out of casting
 	"counterspell": "res://data/abilities/counterspell.tres",
+	# Martial warrior: the Wheel (four weapons, the four bar buttons, each weapon's four moves)
+	"wheelgreataxe": "res://data/abilities/wheelgreataxe.tres",
+	"wheelgreatsword": "res://data/abilities/wheelgreatsword.tres",
+	"wheelhalberd": "res://data/abilities/wheelhalberd.tres",
+	"wheelmaul": "res://data/abilities/wheelmaul.tres",
+	"quickswing": "res://data/abilities/quickswing.tres",
+	"fullswing": "res://data/abilities/fullswing.tres",
+	"weaponart": "res://data/abilities/weaponart.tres",
+	"wheelbreak": "res://data/abilities/wheelbreak.tres",
+	"hack": "res://data/abilities/hack.tres",
+	"chop": "res://data/abilities/chop.tres",
+	"rush": "res://data/abilities/rush.tres",
+	"shrapnel": "res://data/abilities/shrapnel.tres",
+	"slash": "res://data/abilities/slash.tres",
+	"lunge": "res://data/abilities/lunge.tres",
+	"bladeguard": "res://data/abilities/bladeguard.tres",
+	"shardlance": "res://data/abilities/shardlance.tres",
+	"jab": "res://data/abilities/jab.tres",
+	"hook": "res://data/abilities/hook.tres",
+	"dragin": "res://data/abilities/dragin.tres",
+	"flyinghead": "res://data/abilities/flyinghead.tres",
+	"thud": "res://data/abilities/thud.tres",
+	"crush": "res://data/abilities/crush.tres",
+	"earthshake": "res://data/abilities/earthshake.tres",
+	"faultline": "res://data/abilities/faultline.tres",
+	# Martial tank: the Brawler (the strikes, Catch, the chain's moves, the rest)
+	"punch": "res://data/abilities/punch.tres",
+	"brawlkick": "res://data/abilities/brawlkick.tres",
+	"elbow": "res://data/abilities/elbow.tres",
+	"catch": "res://data/abilities/catch.tres",
+	"rapidfists": "res://data/abilities/rapidfists.tres",
+	"haymaker": "res://data/abilities/haymaker.tres",
+	"sweep": "res://data/abilities/sweep.tres",
+	"roundhouse": "res://data/abilities/roundhouse.tres",
+	"clinch": "res://data/abilities/clinch.tres",
+	"shakeoff": "res://data/abilities/shakeoff.tres",
+	"turnitaround": "res://data/abilities/turnitaround.tres",
+	"throw": "res://data/abilities/throw.tres",
+	"takedown": "res://data/abilities/takedown.tres",
+	"onemore": "res://data/abilities/onemore.tres",
+	"toughitout": "res://data/abilities/toughitout.tres",
+	"comeon": "res://data/abilities/comeon.tres",
+	"fightingstyle": "res://data/abilities/fightingstyle.tres",
+	# Martial DPS: the Rogue (the builders, the Kill, the Kill forms) and Martial Utility
+	"cut": "res://data/abilities/cut.tres",
+	"whirl": "res://data/abilities/whirl.tres",
+	"dartin": "res://data/abilities/dartin.tres",
+	"kickoff": "res://data/abilities/kickoff.tres",
+	"twinstab": "res://data/abilities/twinstab.tres",
+	"goin": "res://data/abilities/goin.tres",
+	"closeitout": "res://data/abilities/closeitout.tres",
+	"hityourstride": "res://data/abilities/hityourstride.tres",
+	"rollwithit": "res://data/abilities/rollwithit.tres",
+	"snatch": "res://data/abilities/snatch.tres",
+	"gut": "res://data/abilities/gut.tres",
+	"throughandthrough": "res://data/abilities/throughandthrough.tres",
+	"redwhirl": "res://data/abilities/redwhirl.tres",
+	"backflip": "res://data/abilities/backflip.tres",
+	"drivethrough": "res://data/abilities/drivethrough.tres",
+	"pintheshadow": "res://data/abilities/pintheshadow.tres",
+	"overtheshoulder": "res://data/abilities/overtheshoulder.tres",
+	"playdead": "res://data/abilities/playdead.tres",
 }
 ## Always available (everything the player had before the draft existed).
 ## Includes a basic spell of every element and a heal, so a fresh (level 1 /
@@ -344,6 +406,10 @@ const DRAFT_POOL := ["frostnova", "icebarrier", "blink",
 	"fangarrow", "adderarrow", "asparrow", "kraitarrow", "venomburst", "spittingvolley", "bloatarrow", "coilback", "venomsurge",
 	"stormshield", "thunderaegis",
 	"returnstroke", "shockring", "crossguard", "drawthestorm", "reelin", "recharge",
+	"wheelgreataxe", "wheelgreatsword", "wheelhalberd", "wheelmaul",
+	"punch", "catch", "comeon", "toughitout", "onemore",
+	"cut", "whirl", "dartin", "kickoff", "twinstab", "closeitout", "rollwithit", "hityourstride", "snatch",
+	"pintheshadow", "overtheshoulder", "playdead",
 	"counterspell"]
 # Every ability that can go on the action bar (order = list order).
 const ALL := ["frostbolt", "blizzard", "frostnova", "icebarrier",
@@ -382,6 +448,14 @@ const ALL := ["frostbolt", "blizzard", "frostnova", "icebarrier",
 	"setprism", "moveprism", "mendingray", "brightlance", "gleam", "prismward", "piercinglight", "realign", "shatterprism", "shatterall", "infuse", "kaleidoscope", "relight",
 	"prismarrow", "glimmershot", "refractingshot", "sunlitarrow", "prismbreaker", "stepoflight", "spectrumvolley",
 	"frostfirebolt", "polarstrike",
+	"wheelgreataxe", "wheelgreatsword", "wheelhalberd", "wheelmaul", "quickswing", "fullswing", "weaponart", "wheelbreak",
+	"hack", "chop", "rush", "shrapnel", "slash", "lunge", "bladeguard", "shardlance",
+	"jab", "hook", "dragin", "flyinghead", "thud", "crush", "earthshake", "faultline",
+	"punch", "brawlkick", "elbow", "catch", "onemore", "toughitout", "comeon", "fightingstyle",
+	"rapidfists", "haymaker", "sweep", "roundhouse", "clinch", "shakeoff", "turnitaround", "throw", "takedown",
+	"cut", "whirl", "dartin", "kickoff", "twinstab", "goin", "closeitout", "hityourstride", "rollwithit", "snatch",
+	"gut", "throughandthrough", "redwhirl", "backflip", "drivethrough",
+	"pintheshadow", "overtheshoulder", "playdead",
 	"trinket_1", "trinket_2"]
 ## Category (book) each ability belongs to — see categories.gd.
 const CATEGORY_OF := {
@@ -445,6 +519,20 @@ const CATEGORY_OF := {
 	"coolingslag": "fire", "bellows": "fire", "staticsnare": "lightning", "stormfront": "lightning", "fixedpoint": "arcane",
 	"bindingring": "holy", "circleofsilence": "holy", "climbthestring": "shadow",
 	"frostfirebolt": "rune", "polarstrike": "rune",
+	"wheelgreataxe": "martial", "wheelgreatsword": "martial", "wheelhalberd": "martial", "wheelmaul": "martial",
+	"quickswing": "martial", "fullswing": "martial", "weaponart": "martial", "wheelbreak": "martial",
+	"hack": "martial", "chop": "martial", "rush": "martial", "shrapnel": "martial",
+	"slash": "martial", "lunge": "martial", "bladeguard": "martial", "shardlance": "martial",
+	"jab": "martial", "hook": "martial", "dragin": "martial", "flyinghead": "martial",
+	"thud": "martial", "crush": "martial", "earthshake": "martial", "faultline": "martial",
+	"punch": "martial", "brawlkick": "martial", "elbow": "martial", "catch": "martial", "onemore": "martial",
+	"toughitout": "martial", "comeon": "martial", "fightingstyle": "martial",
+	"rapidfists": "martial", "haymaker": "martial", "sweep": "martial", "roundhouse": "martial", "clinch": "martial",
+	"shakeoff": "martial", "turnitaround": "martial", "throw": "martial", "takedown": "martial",
+	"cut": "martial", "whirl": "martial", "dartin": "martial", "kickoff": "martial", "twinstab": "martial",
+	"goin": "martial", "closeitout": "martial", "hityourstride": "martial", "rollwithit": "martial", "snatch": "martial",
+	"gut": "martial", "throughandthrough": "martial", "redwhirl": "martial", "backflip": "martial", "drivethrough": "martial",
+	"pintheshadow": "martial", "overtheshoulder": "martial", "playdead": "martial",
 }
 
 ## Abilities that ARE other abilities too: whatever names the base ability
@@ -560,8 +648,114 @@ const SPECS := {
 		["Lightstring", ["glimmershot", "prismarrow", "refractingshot", "sunlitarrow", "prismbreaker", "stepoflight", "spectrumvolley"]],
 		["Utility", ["bindingring", "circleofsilence", "steadyvoice", "rest", "unfallen"]],
 	],
-	"martial": [],   # (wiped; to be rebuilt)
+	"martial": [
+		["The Wheel", ["quickswing", "fullswing", "weaponart", "wheelbreak", "wheelgreataxe", "wheelgreatsword", "wheelhalberd", "wheelmaul",
+			"hack", "chop", "rush", "shrapnel", "slash", "lunge", "bladeguard", "shardlance",
+			"jab", "hook", "dragin", "flyinghead", "thud", "crush", "earthshake", "faultline"]],
+		["Brawler", ["punch", "brawlkick", "elbow", "catch", "comeon", "toughitout", "onemore", "fightingstyle",
+			"rapidfists", "haymaker", "sweep", "roundhouse", "clinch", "shakeoff", "turnitaround", "throw", "takedown"]],
+		["Rogue", ["cut", "whirl", "dartin", "kickoff", "twinstab", "goin", "closeitout", "hityourstride", "rollwithit", "snatch",
+			"gut", "throughandthrough", "redwhirl", "backflip", "drivethrough"]],
+		["Utility", ["pintheshadow", "overtheshoulder", "playdead"]],
+	],
 }
+
+# --- Martial warrior: the Wheel -------------------------------------------------------
+# Four weapons ride on the warrior's back in WHEEL_ORDER; the one in front is held.
+# The spellbooks list the four WHEEL_SLOTS (Filler, Heavy Filler, Weapon Art,
+# Finisher): placeholders that do nothing themselves. On the bar, each one becomes
+# the held weapon's move of that kind (WHEEL_FORMS). The weapons are listed too,
+# each with a dropdown of its moves (to read; dragging one places its slot).
+# Moves and slots are known once a weapon is (PlayerData.has_ability).
+# Rules: scripts/player/martial_wheel.gd.
+
+## The order the weapons turn in.
+const WHEEL_ORDER := ["wheelgreataxe", "wheelgreatsword", "wheelhalberd", "wheelmaul"]
+## The bar placeholders: Filler, Heavy Filler, Weapon Art, Finisher.
+const WHEEL_SLOTS := ["quickswing", "fullswing", "weaponart", "wheelbreak"]
+## Each weapon's moves, in WHEEL_SLOTS order.
+const WHEEL_FORMS := {
+	"wheelgreataxe": ["hack", "chop", "rush", "shrapnel"],
+	"wheelgreatsword": ["slash", "lunge", "bladeguard", "shardlance"],
+	"wheelhalberd": ["jab", "hook", "dragin", "flyinghead"],
+	"wheelmaul": ["thud", "crush", "earthshake", "faultline"],
+}
+
+## The weapon a Wheel move belongs to ("" if `id` is not one).
+static func wheel_weapon_of(id: String) -> String:
+	for weapon in WHEEL_FORMS:
+		if (WHEEL_FORMS[weapon] as Array).has(id):
+			return weapon
+	return ""
+
+## Which bar button a Wheel move is a form of (-1 if `id` is not one).
+static func wheel_slot_index(id: String) -> int:
+	var weapon := wheel_weapon_of(id)
+	return (WHEEL_FORMS[weapon] as Array).find(id) if weapon != "" else WHEEL_SLOTS.find(id)
+
+## What the bar keeps for `id`: a Wheel move goes on as its bar button.
+static func bar_id(id: String) -> String:
+	return WHEEL_SLOTS[wheel_slot_index(id)] if wheel_weapon_of(id) != "" else id
+
+## Is `id` shown in the spellbooks? (Wheel moves sit under their weapon's dropdown;
+## the Brawler's chain moves are made by the chain, shown in its table; the Rogue's Kill
+## forms are made by a Kill window, shown in theirs.)
+static func listed_in_book(id: String) -> bool:
+	return wheel_weapon_of(id) == "" and not is_chain_move(id) and not is_kill_form(id)
+
+# --- Martial tank: the Brawler ---------------------------------------------------------
+# Punch, Kick and Elbow go into a chain of Balance.CHAIN_LENGTH; when the last one
+# lands, a move goes off on top of it. The strike that ends the chain picks the move
+# (BRAWLER_MOVES: [any repeat, all three different]); a chain started by Catch picks
+# from BRAWLER_CATCH_MOVES. The moves have no buttons. Rules: scripts/player/martial_brawler.gd.
+const BRAWLER_STRIKES := ["punch", "brawlkick", "elbow"]
+const BRAWLER_MOVES := {"punch": ["rapidfists", "haymaker"], "brawlkick": ["sweep", "roundhouse"], "elbow": ["clinch", "shakeoff"]}
+const BRAWLER_CATCH_MOVES := {"punch": "turnitaround", "brawlkick": "throw", "elbow": "takedown"}
+## Every Brawler ability (buttons and moves): none of them works with a shield.
+const BRAWLER_IDS := ["punch", "brawlkick", "elbow", "catch", "onemore", "toughitout", "comeon", "fightingstyle",
+	"rapidfists", "haymaker", "sweep", "roundhouse", "clinch", "shakeoff", "turnitaround", "throw", "takedown"]
+
+## The Chain's moves as the spellbooks show them: [[heading, [ids]], ...]; the first
+## part in pairs (any repeat, three different) for each strike that ends the chain.
+static func brawler_move_table() -> Array:
+	var pairs: Array[String] = []
+	for strike in BRAWLER_STRIKES:
+		pairs.append_array(BRAWLER_MOVES[strike])
+	var caught: Array[String] = []
+	for strike in BRAWLER_STRIKES:
+		caught.append(str(BRAWLER_CATCH_MOVES[strike]))
+	return [["Chain moves: the last strike picks (right: three different strikes)", pairs],
+		["After Catch: the last strike picks", caught]]
+
+## Is `id` one of the Brawler's chain moves (made by the chain, no button)?
+static func is_chain_move(id: String) -> bool:
+	for strike in BRAWLER_MOVES:
+		if (BRAWLER_MOVES[strike] as Array).has(id):
+			return true
+	return BRAWLER_CATCH_MOVES.values().has(id)
+
+# --- Martial DPS: the Rogue -------------------------------------------------------------
+# Rogue hits build Flow; Go In spends it on a Kill window, during which each builder's
+# button takes its Kill form (ROGUE_KILL_FORMS). The forms have no buttons of their own:
+# the bar shows them in place of their builder. Rules: scripts/player/martial_rogue.gd.
+const ROGUE_KILL_FORMS := {"cut": "gut", "twinstab": "throughandthrough", "whirl": "redwhirl",
+	"kickoff": "backflip", "dartin": "drivethrough"}
+## Every Rogue ability (buttons and Kill forms): each needs a melee weapon in both hands.
+const ROGUE_IDS := ["cut", "whirl", "dartin", "kickoff", "twinstab", "goin", "closeitout", "hityourstride",
+	"rollwithit", "snatch", "gut", "throughandthrough", "redwhirl", "backflip", "drivethrough"]
+## Martial Utility (any Martial spec; scripts/player/martial_rogue.gd codes them too).
+const MARTIAL_UTILITY := ["pintheshadow", "overtheshoulder", "playdead"]
+
+## Is `id` one of the Rogue's Kill forms (made by a Kill window, no button)?
+static func is_kill_form(id: String) -> bool:
+	return ROGUE_KILL_FORMS.values().has(id)
+
+## The Kill forms as the spellbooks show them: [[heading, [ids]]].
+static func rogue_kill_table() -> Array:
+	var forms: Array[String] = []
+	for b in ROGUE_KILL_FORMS:
+		forms.append(str(ROGUE_KILL_FORMS[b]))
+	return [["Kill forms: what your builders become in a Kill window", forms]]
 
 ## A book's specs holding only the abilities `keep` accepts (all if not given),
 ## empty ones dropped: [[spec name, [ids]], ...]. Abilities of the book that no
@@ -585,16 +779,18 @@ static func specs_in(category: String, keep: Callable = Callable()) -> Array:
 		out.append(["", rest])
 	return out
 
-const RESOURCE_NAMES := ["", "mana", "energy", "rage"]
+const RESOURCE_NAMES := ["", "mana", "energy", "fury"]
 ## Abilities that spend ALL your Energy (their tooltips say so; player.gd spends it).
 const SPENDS_ALL := ["discharge", "groundout", "recharge"]
 ## Abilities that skip the global cooldown without being an interrupt or a trinket.
 const OFF_GCD := ["groundingsurge", "capacitor", "returnstroke", "rimefletch", "rewind", "lapse", "scatter",
 	"missedbeat", "tradeplaces", "doubletime", "offthechain", "doublethread", "restring", "behinditsback", "swell",
-	"aureole", "gatherthelight", "unfallen", "setprism", "moveprism", "shatterall", "prismarrow", "stepoflight"]
+	"aureole", "gatherthelight", "unfallen", "setprism", "moveprism", "shatterall", "prismarrow", "stepoflight",
+	"fightingstyle", "goin", "hityourstride", "rollwithit", "playdead"]
 ## Melee-weapon abilities used from their own range (cast_range) instead of the
 ## weapon's reach: Static Step dashes in, Whiplash lashes from afar.
-const LONG_REACH := ["staticstep", "whiplash", "reelin", "beckon", "raisethecenser"]
+const LONG_REACH := ["staticstep", "whiplash", "reelin", "beckon", "raisethecenser", "dragin", "comeon",
+	"cut", "gut", "whirl", "redwhirl", "dartin", "drivethrough", "pintheshadow", "overtheshoulder"]
 
 ## Does ability `id` have to be within the equipped weapon's reach of its target?
 static func uses_weapon_reach(id: String) -> bool:
@@ -651,7 +847,7 @@ static func live_haste() -> float:
 	return Stats.haste_mult(float(stat_source().call(Stats.HASTE)))
 
 ## Cost shown in tooltips: mana is on the health scale (cost points x 10% of base
-## mana, with your talent discounts when you're in game); energy / rage are points.
+## mana, with your talent discounts when you're in game); energy / fury are points.
 ## How many patches of mulch I have (Nature caster; 0 out of game).
 static func mulch_count() -> int:
 	var tree := Engine.get_main_loop() as SceneTree
@@ -698,6 +894,8 @@ static func _build_tip(r: Resource, desc: String = "", haste: float = 1.0) -> St
 		req.append("a target")
 	if not req.is_empty():
 		lines.append("Requires " + _join_and(req))
+	if r.get("forbids_shield"):
+		lines.append(NO_SHIELD_LINE)
 	if is_interrupt(str(r.id)):
 		lines.append(interrupt_note())
 	lines.append("Tags: " + ", ".join(r.tags))
@@ -737,6 +935,8 @@ static func has_two_hander_equipped() -> bool:
 ## What a dual-wield ability needs, as its "Requires ..." line says it (the
 ## Arcane tank: a one-handed melee weapon in the Main Hand and in the Off Hand).
 const DUAL_WIELD_NEED := "a melee weapon in each hand"
+## The line an ability that can't be used with a shield carries (the Brawler, Martial tank).
+const NO_SHIELD_LINE := "Requires no shield"
 
 ## The one-handed melee weapon equipped in the Off Hand ({} if there is none):
 ## the second weapon a dual-wield ability strikes with.
@@ -815,7 +1015,7 @@ static func generated_of(id: String) -> int:
 	var extra := talent("lightning_honed_edge") if id == "chargededge" else 0.0
 	return int(r.resource_generated) + int(round(extra))
 
-## Base cost (Mana in points, which may be fractions; Energy / Rage whole).
+## Base cost (Mana in points, which may be fractions; Energy / Fury whole).
 static func cost_of(id: String) -> float:
 	return float(info(id).get("cost", 0.0))
 
@@ -854,6 +1054,9 @@ const SHATTER_AOE_CAP := Balance.AOE_TARGET_CAP
 const TextFill = preload("res://scripts/core/text_fill.gd")
 const Keywords = preload("res://scripts/core/keywords.gd")
 const Macros = preload("res://scripts/core/macros.gd")
+const WheelIcons = preload("res://scripts/ui/wheel_icons.gd")
+const BrawlerIcons = preload("res://scripts/ui/brawler_icons.gd")
+const RogueIcons = preload("res://scripts/ui/rogue_icons.gd")
 ## Talents that widen an ability: [talent key, metres of RADIUS per point of the
 ## talent's value]. Deep Crucible gives width, so half of it is radius.
 const RADIUS_TALENTS := {"crucible": ["fire_deep_crucible", 0.5], "ripple": ["arcane_wide_rings", 1.0], "hallowedarc": ["holy_wide_arc", 1.0]}
@@ -1323,6 +1526,8 @@ static func tooltip_bbcode(id: String, detailed: bool = false) -> String:
 		bits.append("%s s cast%s" % [secs(base_cast_time(r) / haste), " (can move)" if r.can_move_while_casting else ""])
 	if r.cooldown > 0.0:
 		bits.append("%s s cooldown" % Stats.num(cooldown_of(r)))
+	if WHEEL_ORDER.has(id):
+		bits = ["Rides on your Wheel: not used on its own"]   # (a weapon: its moves are the buttons)
 	lines.append(_c(dim, "  •  ".join(bits)))
 	var req: Array[String] = []
 	if weapon_need(r) != "":
@@ -1341,6 +1546,8 @@ static func tooltip_bbcode(id: String, detailed: bool = false) -> String:
 			or (bool(r.get("requires_shield")) and not has_shield_equipped()) \
 			or (bool(r.get("requires_off_hand")) and not has_off_hand_item_equipped())
 		lines.append(_c(Color(1, 0.4, 0.35) if missing else dim, "Requires " + _join_and(req)))
+	if r.get("forbids_shield"):
+		lines.append(_c(Color(1, 0.4, 0.35) if has_shield_equipped() else dim, NO_SHIELD_LINE))
 	if is_interrupt(id):
 		lines.append(_c(dim, interrupt_note()))
 
@@ -3613,6 +3820,23 @@ static func _draw_unique(c: Control, id: String, col: Color, mid: Vector2, k: fl
 			c.draw_line(mid + Vector2(-17, 13) * k, mid + Vector2(17, 13) * k, col, 2.5 * k, true)
 			for side: float in [-1.0, 1.0]:
 				c.draw_colored_polygon(_pts(mid, k, [Vector2(-2 + side * 4, 13), Vector2(-2 + side * 12, 13), Vector2(-2 + side * 10, 5)]), Color(light, 0.85))
+		# --- Martial warrior: the Wheel (drawn in scripts/ui/wheel_icons.gd) ---
+		"wheelgreataxe", "wheelgreatsword", "wheelhalberd", "wheelmaul", "quickswing", "fullswing", "weaponart", "wheelbreak":
+			WheelIcons.draw(c, id, mid, k)
+		"hack", "chop", "rush", "shrapnel", "slash", "lunge", "bladeguard", "shardlance":
+			WheelIcons.draw(c, id, mid, k)
+		"jab", "hook", "dragin", "flyinghead", "thud", "crush", "earthshake", "faultline":
+			WheelIcons.draw(c, id, mid, k)
+		# --- Martial tank: the Brawler (drawn in scripts/ui/brawler_icons.gd) ---
+		"punch", "brawlkick", "elbow", "catch", "onemore", "toughitout", "comeon", "fightingstyle":
+			BrawlerIcons.draw(c, id, mid, k)
+		"rapidfists", "haymaker", "sweep", "roundhouse", "clinch", "shakeoff", "turnitaround", "throw", "takedown":
+			BrawlerIcons.draw(c, id, mid, k)
+		# --- Martial DPS: the Rogue and Martial Utility (drawn in scripts/ui/rogue_icons.gd) ---
+		"cut", "whirl", "dartin", "kickoff", "twinstab", "goin", "closeitout", "hityourstride", "rollwithit", "snatch":
+			RogueIcons.draw(c, id, mid, k)
+		"gut", "throughandthrough", "redwhirl", "backflip", "drivethrough", "pintheshadow", "overtheshoulder", "playdead":
+			RogueIcons.draw(c, id, mid, k)
 		_:
 			return false
 	return true

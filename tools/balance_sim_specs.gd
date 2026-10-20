@@ -15,6 +15,7 @@ const ROLES := {
 	"The Breach": "dps", "Pack of Two": "dps", "Strings Attached": "healer", "Nightstring": "dps",
 	"Thornweaver": "dps", "Shepherd": "healer", "Colossus": "tank", "Venomstring": "dps",
 	"Choir of One": "healer", "Censer Bearer": "tank", "Line of Light": "healer", "Lightstring": "dps",
+	"The Wheel": "dps", "Brawler": "tank", "Rogue": "dps",
 	"Utility": "utility",
 }
 
@@ -51,6 +52,30 @@ const PAYOFF := {
 	"bloatarrow": {"skip": true},
 	"coilback": {"skip": true},
 	"venomsurge": {"skip": true},
+	# Martial tank: the Brawler. A strike every 1.0 s (the sim's GCD is 1.5 s: x1.5), each
+	# with a third of an average chain move (~0.65); the moves have no buttons. One More
+	# repeats an average move.
+	"punch": {"coef": (0.3 + 0.65 / 3.0) * 1.5},
+	"brawlkick": {"coef": (0.3 + 0.65 / 3.0) * 1.5},
+	"elbow": {"coef": (0.3 + 0.65 / 3.0) * 1.5},
+	"onemore": {"coef": 0.65},
+	"catch": {"skip": true}, "toughitout": {"skip": true}, "comeon": {"skip": true}, "fightingstyle": {"skip": true},
+	"rapidfists": {"skip": true}, "haymaker": {"skip": true}, "sweep": {"skip": true}, "roundhouse": {"skip": true},
+	"clinch": {"skip": true}, "shakeoff": {"skip": true}, "turnitaround": {"skip": true}, "throw": {"skip": true},
+	"takedown": {"skip": true},
+	# Martial DPS: the Rogue. About half the fight is Kill windows (forms hit ~1.8x the
+	# builder) and Flow averages ~3%: each builder is worth ~1.45x itself, plus the stuck
+	# daggers it throws or rips out. The Kill forms have no buttons; Go In and the rest
+	# only move damage around.
+	"cut": {"coef": 0.55 * 1.45 + 0.1},
+	"twinstab": {"coef": 1.0 * 1.45 + 0.5},
+	"dartin": {"coef": 0.5 * 1.45 + 0.25},
+	"kickoff": {"coef": 0.4 * 1.45 + 0.45},
+	"whirl": {"coef": 0.35 * 1.45},
+	"snatch": {"coef": 0.6},
+	"goin": {"skip": true}, "hityourstride": {"skip": true}, "rollwithit": {"skip": true}, "closeitout": {"skip": true},
+	"gut": {"skip": true}, "throughandthrough": {"skip": true}, "redwhirl": {"skip": true}, "backflip": {"skip": true},
+	"drivethrough": {"skip": true},
 	# Holy tank: Pour Out at 100 Incense; Absolve at 40.
 	"pourout": {"coef": 0.03 * 100.0},
 	"absolve": {"heal": 0.05 * 40.0 * 2.2},

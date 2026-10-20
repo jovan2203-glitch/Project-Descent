@@ -146,7 +146,7 @@ Code: player.gd, "Holy tank: the Censer". Numbers: balance.gd (INCENSE_*, MOTE_*
 
 ## Melee (Daylight, two-handed mace or hammer) - spec "High Noon" - DRAFT, not planned soon
 - Theme: a small sun icon over the resource bar rises as Daylight builds; the hammer glows hotter. Ties into the Dusk till Dawn rune.
-- Daylight: 0-100 bar like Rage. Built by strikes, spent by finishers. At 75+ it is Noon: strikes deal 15% more. Out of combat it fades.
+- Daylight: 0-100 bar like Fury. Built by strikes, spent by finishers. At 75+ it is Noon: strikes deal 15% more. Out of combat it fades.
 - Dawnstrike - 6 s cooldown, 1.2 weapon damage, +25 Daylight.
 - Rising Blow - no cooldown, 0.6 weapon damage, +10 Daylight. Filler.
 - Morning Star - 8 s cooldown, hammer thrown up to 20 m, 0.7 FB, +15 Daylight.

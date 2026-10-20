@@ -153,12 +153,12 @@ func test_cooldowns_costs_and_resources() -> void:
 	assert_true(_near(Pacts.cooldown_rate("sidestep", true), 0.8))
 	assert_eq(Pacts.cooldown_rate("unbowed", false), 1.0)
 	assert_eq(Pacts.cooldown_rate("", true), 1.0)
-	for res in ["mana", "rage", "energy"]:
+	for res in ["mana", "fury", "energy"]:
 		assert_true(_near(Pacts.cost_mult("sidestep", false, res), 1.1), "every resource")
 		assert_true(_near(Pacts.cost_mult("sidestep", true, res), 1.1), "the drawback stays")
 	assert_true(_near(Pacts.cost_mult("reservoir", false, "mana"), 0.8))
 	assert_true(_near(Pacts.cost_mult("reservoir", true, "mana"), 1.2))
-	assert_eq(Pacts.cost_mult("reservoir", false, "rage"), 1.0, "only mana: it gives a Rage build nothing")
+	assert_eq(Pacts.cost_mult("reservoir", false, "fury"), 1.0, "only mana: it gives a Fury build nothing")
 	assert_eq(Pacts.cost_mult("reservoir", false, "energy"), 1.0)
 	assert_eq(Pacts.cost_mult("unbowed", false, "mana"), 1.0)
 	assert_true(_near(Pacts.resource_gain_mult("restless", false), 1.25))

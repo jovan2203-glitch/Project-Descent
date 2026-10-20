@@ -194,7 +194,7 @@ const TALENTS := {
 		# More of the tank's, down the right side.
 		"r7c6": ["Slag Mending", 2, "When your Slag shatters, you are healed for {v}% of your maximum health per stack.",
 			{"key": "fire_slag_mending", "values": [1.0, 2.0], "requires": "slagskin"}],
-		"r9c6": ["Furnace Heart", 2, "{n:cinderguard} costs {v} less Rage.",
+		"r9c6": ["Furnace Heart", 2, "{n:cinderguard} costs {v} less Fury.",
 			{"key": "fire_furnace_heart", "values": [10.0, 20.0], "requires": "cinderguard"}],
 		"r1c5": ["Banked Mana", 2, "Each of your Fire spells that fails to critically strike refunds {v}% of its mana cost.",
 			{"key": "fire_banked_mana", "values": [5.0, 10.0]}],
@@ -254,7 +254,7 @@ const TALENTS := {
 			{"key": "frost_hoarfrost", "values": [15.0, 20.0, 25.0], "values2": [2.0, 3.0, 4.0], "requires": "hoarfrost"}],
 		"r5c2": ["Brittle Rime", 3, "Your direct damage has a {v}% chance to trigger the burst of your {n:hoarfrost} on the target. {n:hoarfrost} stays on the target and still bursts when it expires.",
 			{"key": "frost_hoarfrost_burst", "values": [5.0, 10.0, 15.0], "requires": "hoarfrost"}],
-		"r7c2": ["Clean Break", 2, "{n:icebreaker} refunds {v} Rage when it hits a target you have Frozen.",
+		"r7c2": ["Clean Break", 2, "{n:icebreaker} refunds {v} Fury when it hits a target you have Frozen.",
 			{"key": "frost_clean_break", "values": [10.0, 20.0], "requires": "icebreaker"}],
 		# (values = what is added to Coldspike's 25%.)
 		"r6c3": ["Piercing Cold", 2, "{n:coldspike} deals {v+b:COLDSPIKE_FROZEN_PCT}% more damage to a target you have Frozen, instead of {b:COLDSPIKE_FROZEN_PCT}%.",
@@ -608,10 +608,10 @@ const TALENTS := {
 		# (Its twin for the other books' spells is the Rune of Invitation, rune id "rot".)
 		"r3c1": ["Baited Steel", 3, "Your Shadow abilities add {v}% of the direct damage they deal to your Breach under the target while it is open.",
 			{"key": "shadow_tainted_steel", "values": [10.0, 20.0, 30.0], "requires": "blight"}],
-		# Two more open talents, on the edges of row 2: Rage for every build that
+		# Two more open talents, on the edges of row 2: Fury for every build that
 		# runs on it, and Haste when what you damaged dies.
 		# Thick Blood: Player._tick_resources; Feeding Frenzy: _on_enemy_died_shadow.
-		"r2c1": ["Thick Blood", 3, "Your Rage decays {v}% slower.",
+		"r2c1": ["Thick Blood", 3, "Your Fury decays {v}% slower.",
 			{"key": "shadow_thick_blood", "values": [15.0, 30.0, 45.0]}],
 		"r2c7": ["Feeding Frenzy", 3, "When an enemy you damaged dies, you gain {v}% Haste for {b:FEEDING_FRENZY_TIME} sec.",
 			{"key": "shadow_feeding_frenzy", "values": [2.0, 4.0, 6.0]}],
@@ -622,7 +622,7 @@ const TALENTS := {
 		# and Worked Up are linked, and so are Long Night and Take It With You.
 		"r4c1": ["Lean and Hungry", 3, "Your Hounds bite {v}% faster.",
 			{"key": "shadow_lean_and_hungry", "values": [4.0, 8.0, 12.0]}],
-		"r5c1": ["Fed", 2, "A bite of your Hounds that critically strikes gives you {v} Rage.",
+		"r5c1": ["Fed", 2, "A bite of your Hounds that critically strikes gives you {v} Fury.",
 			{"key": "shadow_fed", "values": [2.0, 4.0]}],
 		"r6c1": ["Worked Up", 2, "Roused lasts {v} sec longer.",
 			{"key": "shadow_worked_up", "values": [2.0, 4.0],
@@ -645,7 +645,7 @@ const TALENTS := {
 			{"key": "shadow_share_the_kill", "values": [50.0, 100.0], "requires": "shadowstrike"}],
 		"r5c7": ["Pincer", 3, "The lunges of {n:bothatonce} deal {v}% more damage.",
 			{"key": "shadow_pincer", "values": [10.0, 20.0, 30.0], "requires": "bothatonce",
-			"capstone": "A lunge that critically strikes gives you {b:PINCER_RAGE} Rage back."}],
+			"capstone": "A lunge that critically strikes gives you {b:PINCER_FURY} Fury back."}],
 		"r6c7": ["Again", 2, "{n:bothatonce} has a {v}% chance to reset its own cooldown.",
 			{"key": "shadow_again", "values": [15.0, 30.0], "requires": "bothatonce"}],
 		"r7c7": ["Stand Over", 2, "During {n:guarddogs}, each bite of your Hounds heals you for {v}% of your maximum health.",
@@ -774,7 +774,7 @@ const TALENTS := {
 			{"key": "nature_broad_fist", "values": [1.0, 2.0], "requires": "vinefist"}],
 		"r7c4": ["Spreading Roots", 2, "The roots {n:stomp} leaves last {v} sec longer and reach {v2} m further. Their damage per second stays the same.",
 			{"key": "nature_spreading_roots", "values": [2.0, 4.0], "values2": [1.0, 2.0], "requires": "stomp"}],
-		"r9c4": ["Firm Hold", 2, "{n:grasp} holds the enemy {v} sec longer and gives you {v2} Rage back.",
+		"r9c4": ["Firm Hold", 2, "{n:grasp} holds the enemy {v} sec longer and gives you {v2} Fury back.",
 			{"key": "nature_firm_hold", "values": [0.5, 1.0], "values2": [5.0, 10.0], "requires": "grasp"}],
 		"r9c1": ["Wide Awake", 2, "{n:awaken} lasts {v} sec longer.",
 			{"key": "nature_wide_awake", "values": [3.0, 6.0], "requires": "awaken"}],
@@ -984,7 +984,7 @@ const LINKS := [
 	# --- Shadow ---
 	# Call Due's two, straight down the middle.
 	["shadow_interest", "shadow_small_change"],
-	# The Hounds themselves, down the left edge: faster bites, Rage from them, Roused.
+	# The Hounds themselves, down the left edge: faster bites, Fury from them, Roused.
 	["shadow_lean_and_hungry", "shadow_fed"],
 	["shadow_fed", "shadow_worked_up"],
 	# How long a pair stays, and what it does as it goes.

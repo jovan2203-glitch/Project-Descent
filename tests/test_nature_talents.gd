@@ -133,7 +133,7 @@ func test_colossus_rules() -> void:
 func test_colossus_hooks() -> void:
 	var src := _src()
 	assert_contains(src, "Balance.VINE_FIST_EXTRA + int(round(_talent(\"nature_broad_fist\")))")
-	assert_contains(src, "_gain(\"rage\", back)")
+	assert_contains(src, "_gain(\"fury\", back)")
 	assert_contains(src, "crushing_grip_mult(_hands_hits, _talent(\"nature_crushing_grip\"))")
 	assert_contains(src, "Balance.AWAKEN_TIME + _talent(\"nature_wide_awake\")")
 	assert_contains(src, "_nature_talents_incoming(info)   # Old Growth")

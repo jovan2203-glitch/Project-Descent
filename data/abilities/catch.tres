@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"catch"
+display_name = "Catch"
+description = "Only while your target shows a melee tell aimed at you. You catch the hit: it lands in full at once, with nothing of it going into your Bruise, and becomes your caught hit. Catch always starts a new Chain (the strikes already in it are lost). The strike that ends it picks the move: Punch {n:turnitaround}, Kick {n:throw}, Elbow {n:takedown}."
+tags = PackedStringArray("Ability", "Physical")
+cast_type = 0
+cast_time = 0.0
+requires_target = true
+weapon_requirement = 1
+forbids_shield = true
+resource_type = 3
+damage = 0.0
+damage_type = &"physical"

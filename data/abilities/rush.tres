@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"rush"
+display_name = "Rush"
+description = "Dash up to {b:RUSH_DISTANCE} m forward with the Greataxe held low, straight through enemies. Deals no damage."
+tags = PackedStringArray("Ability", "Physical", "Movement")
+cast_type = 0
+cast_time = 0.0
+requires_target = false
+weapon_requirement = 1
+resource_type = 3
+damage = 0.0
+damage_type = &"physical"

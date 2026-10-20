@@ -4,7 +4,7 @@ class_name HoundsKit
 # Moved out of scripts/player.gd as it was (player = the player node). Hooked up from
 # player.gd through its var "hounds".
 # --- Shadow melee: the Hounds ---------------------------------------------------------------
-# Two demon dogs that fight beside me, on Rage. With none out, my next Shadow
+# Two demon dogs that fight beside me, on Fury. With none out, my next Shadow
 # melee ability (HOUND_CALLERS) calls them up through the ground for HOUND_TIME
 # seconds. They always bite the last enemy I damaged directly: every hit of a
 # spell, an ability or an auto attack sends them to its enemy (no tick, no proc).
@@ -14,7 +14,7 @@ class_name HoundsKit
 # do not fire off them, they spend no "your next ..." buff and feed no Breach
 # (but for the talent Out of the Hole). Haste makes them bite faster. Enemies
 # cannot target them. Sent at prey more than a second's run away, they dash.
-# Sic and Open Up build Rage; whatever spends Rage Rouses them (their bites hit
+# Sic and Open Up build Fury; whatever spends Fury Rouses them (their bites hit
 # harder for ROUSED_TIME; it does not stack). Open Up marks its target (the Laid
 # Open debuff, own only): bites on it hit harder. Both At Once makes each of
 # them lunge. Run Them Down lets their bites reach other enemies. Guard Dogs: I
@@ -27,7 +27,7 @@ class_name HoundsKit
 # them through the "hounds" fx. Numbers: balance.gd (HOUND_*, ROUSED_*, ...).
 # Talents (talents.gd, the two edges of the Shadow book):
 #   Lean and Hungry   faster bites                  hound_bite_interval
-#   Fed               a bite that crits gives Rage  _hound_bite
+#   Fed               a bite that crits gives Fury  _hound_bite
 #   Worked Up         Roused lasts longer           Abilities.effect_time_bonus;
 #                     capstone: bites crit more while Roused (adjust_crit)
 #   Out of the Hole   bites add to my open Breach   _hound_bite
@@ -38,7 +38,7 @@ class_name HoundsKit
 #   Still Wet         Open Up's mark lasts longer   Abilities.effect_time_bonus;
 #                     capstone: my own direct hits on it too (_shadow_talents_modify)
 #   Pincer            lunges hit harder             hound_hit_bonuses; capstone:
-#                     a lunge that crits gives Rage back (_hounds_lunge)
+#                     a lunge that crits gives Fury back (_hounds_lunge)
 #   Again             Both At Once may reset        _use_drafted
 #   Stand Over        bites heal me in Guard Dogs   _hound_bite
 #   Slipped Leash     Off the Chain lasts longer    Abilities.effect_time_bonus;
@@ -104,9 +104,9 @@ var _drag_watch := {}           # enemy instance id -> time until which its deat
 static func calls_hounds(id: String) -> bool:
 	return HOUND_CALLERS.has(id)
 
-## Does spending `cost` of resource `res` Rouse my Hounds? Anything that costs Rage.
+## Does spending `cost` of resource `res` Rouse my Hounds? Anything that costs Fury.
 static func rouses(res: String, cost: float) -> bool:
-	return res == "rage" and cost > 0.0
+	return res == "fury" and cost > 0.0
 
 ## Seconds between one Hound's bites (`haste` = my haste multiplier, `unchained`
 ## = Off the Chain, `faster_pct` = Lean and Hungry). The three multiply.
@@ -151,8 +151,8 @@ static func stand_over_heal(max_hp: int, pct: float) -> int:
 static func leech_heal_mult(hounds_are_out: bool, pct: float) -> float:
 	return 1.0 + maxf(pct, 0.0) / 100.0 if hounds_are_out else 1.0
 
-## Thick Blood: Rage lost per second, `slower_pct` % slower than `base`.
-static func rage_decay(base: float, slower_pct: float) -> float:
+## Thick Blood: Fury lost per second, `slower_pct` % slower than `base`.
+static func fury_decay(base: float, slower_pct: float) -> float:
 	return base * clampf(1.0 - slower_pct / 100.0, 0.0, 1.0)
 
 ## Again: does Both At Once come off cooldown? `roll` = 0-100.
@@ -274,7 +274,7 @@ func _prey_ok(foe: Variant) -> bool:   # untyped: may be a freed enemy
 		and player._flat_dist_to((foe as Node3D).global_position) <= Balance.HOUND_LEASH
 
 ## An ability of mine went off (_use_drafted, once it was paid for). A Shadow
-## melee ability calls the Hounds if none are out; one that cost Rage Rouses
+## melee ability calls the Hounds if none are out; one that cost Fury Rouses
 ## them (the pair it just called too).
 func _hounds_on_ability(id: String) -> void:
 	if player.status == null:
@@ -317,7 +317,7 @@ func _call_hounds(at_prey: Node3D) -> void:
 func _hound_bite_every() -> float:
 	return hound_bite_interval(player.haste_mult(), player.status != null and player.status.has(OFF_THE_CHAIN_FX), player._talent("shadow_lean_and_hungry"))
 
-## I spent Rage (_pay, _hounds_on_ability): my Hounds are Roused.
+## I spent Fury (_pay, _hounds_on_ability): my Hounds are Roused.
 func _rouse_hounds() -> void:
 	if not hounds_out():
 		return
@@ -398,9 +398,9 @@ func _hound_bite(i: int) -> void:
 		_hound_nodes[i].bite()
 	if dealt <= 0:
 		return
-	# Fed: a bite that critically strikes gives me Rage.
+	# Fed: a bite that critically strikes gives me Fury.
 	if _hound_crit:
-		player._gain("rage", player._talent("shadow_fed"))
+		player._gain("fury", player._talent("shadow_fed"))
 	# Out of the Hole: part of the bite is added to my open Breach under the enemy.
 	var hole := player._talent("shadow_out_of_the_hole")
 	if hole > 0.0:
@@ -448,16 +448,16 @@ func _hound_hit(foe: Variant, coef: float, id: String, bonuses: Array = [], crit
 
 ## Both At Once: each of my Hounds leaps at `foe` and hits it (a third one too,
 ## while it is out). Pincer's capstone: a lunge that critically strikes gives
-## Rage back.
+## Fury back.
 func _hounds_lunge(foe: Variant) -> void:
 	if not hounds_out() or not _prey_ok(foe):
 		return
 	_set_hound_prey(foe)
-	var refund := Balance.PINCER_RAGE if player.frost_melee._capstone("shadow_pincer") else 0.0
+	var refund := Balance.PINCER_FURY if player.frost_melee._capstone("shadow_pincer") else 0.0
 	for i in _hound_bite_at.size():
 		_hound_hit(foe, Balance.HOUND_LUNGE, HOUND_LUNGE_ID)
 		if _hound_crit:
-			player._gain("rage", refund)
+			player._gain("fury", refund)
 		if i < _hound_nodes.size() and is_instance_valid(_hound_nodes[i]):
 			_hound_nodes[i].lunge()
 	_tell_hounds(true)

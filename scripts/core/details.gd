@@ -512,6 +512,11 @@ const HIT_NAMES := {
 	"stomproots": "Stomp Roots",
 	"giantsslam": "Giant's Slam",
 	"sap": "Sap",
+	"axecleave": "Axe Cleave",
+	"secondhit": "Second Hit",
+	"reversal": "Reversal",
+	"rippedout": "Ripped Out",   # (Martial DPS: daggers ripped out)
+	"oiljar": "Oil Jar",   # (Martial DPS: Snatch)
 	"venomburst_splash": "Venom Burst",
 	"volley_arrow": "Spectrum Volley",
 	"auto_melee": "Auto Attack",
@@ -585,6 +590,16 @@ static func spell_color(id: String) -> Color:
 			return Abilities.color_of("venomburst")   # (Nature archer)
 		"stomproots", "giantsslam", "sap":
 			return Abilities.color_of("stomp")   # (Nature tank)
+		"axecleave":
+			return Abilities.WheelIcons.AXE   # (Martial warrior: the Greataxe's rider)
+		"secondhit":
+			return Abilities.WheelIcons.HALBERD   # (the Halberd's rider)
+		"reversal":
+			return Abilities.BrawlerIcons.KICK   # (Martial tank: Throw on a boss)
+		"rippedout":
+			return Abilities.RogueIcons.STEEL   # (Martial DPS: daggers ripped out)
+		"oiljar":
+			return Color(1.0, 0.5, 0.15)   # (Martial DPS: Snatch)
 		"poisoned":
 			return Color(0.45, 0.85, 0.3)
 		"lifesteal":

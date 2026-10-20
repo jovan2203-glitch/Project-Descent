@@ -72,7 +72,7 @@ The code and balance.gd are the source of truth for numbers. Design docs record 
 - GCD 1.5 s, benefiting from 40% of your haste.
 - Dodge, Parry, Block drop on gear. Dodge slightly boosted by agility; Parry and Block by strength. Dodge and Parry cap at 30% unless an ability raises it.
 - Move speed and lifesteal are rare secondaries. Lifesteal returns % of damage/healing done; 5% should be hard to reach.
-- Energy and rage are 100/100 bars; every cost is on that scale.
+- Energy and fury are 100/100 bars; every cost is on that scale.
 - Natural HP regen. Items have no durability.
 - In combat while anything is aggroed on you or a party member (+1 s after kills, +2 s after an evade). WoW-style line of sight; no facing requirement.
 - Tanks make more threat baseline; healing makes threat.

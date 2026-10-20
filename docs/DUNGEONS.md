@@ -22,3 +22,6 @@ Enemy level = party average pulled toward the highest level (Balance.DUNGEON_LEV
 
 ## Death
 Balance.ROGUELIKE_DEATH = false: dying costs nothing. Revive (R / button) at the entrance or the last boss room cleared, or go to the menu.
+
+## Melee tells
+Every melee hit (trash, elites, bosses' auto-attacks) shows a short bright tell before it lands (`Balance.MELEE_TELL_TIME`, 0.6 s; Hasted elites and Frenzy shorten it). Same hit rate as before. Stuns and knockdowns stop the hit; interrupts don't (it isn't a cast). The Brawler's Catch works on it. See docs/INTERACTIONS.md.

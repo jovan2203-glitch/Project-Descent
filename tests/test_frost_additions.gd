@@ -198,8 +198,8 @@ func test_new_talents() -> void:
 	var pierce := Talents.id_for_key("frost_piercing_cold")
 	assert_eq(Balance.COLDSPIKE_FROZEN_PCT + Talents.value_at(pierce, 1), 35.0)
 	assert_eq(Balance.COLDSPIKE_FROZEN_PCT + Talents.value_at(pierce, 2), 45.0)
-	# Clean Break gives back Rage, which is what Icebreaker costs (never more than it cost).
-	assert_eq(Abilities.resource_of("icebreaker"), "rage")
+	# Clean Break gives back Fury, which is what Icebreaker costs (never more than it cost).
+	assert_eq(Abilities.resource_of("icebreaker"), "fury")
 	assert_true(Talents.value_at(Talents.id_for_key("frost_clean_break"), 2) <= float(Abilities.get_resource("icebreaker").resource_cost))
 
 func test_interrupts_share_a_cooldown() -> void:

@@ -166,6 +166,7 @@ func apply(res: Resource, source: Node = null, tags: PackedStringArray = PackedS
 		match res.stack_mode:
 			0:  # REFRESH
 				e["expires"] = now + res.duration
+				e.erase("hits")   # (Pin the Shadow: a new one takes its hits over)
 			1:  # ADD_STACK (every new stack refreshes the duration of all stacks)
 				var before := int(e["stacks"])
 				e["stacks"] = mini(before + 1, max(res.max_stacks, 1))
@@ -228,6 +229,23 @@ func break_on_damage() -> void:
 	var gone: Array = []
 	for k in effects:
 		if effects[k]["res"].break_on_damage:
+			gone.append(k)
+	for k in gone:
+		effects.erase(k)
+		absorbs.erase(k)
+	if not gone.is_empty():
+		changed.emit()
+
+## The carrier took a direct hit (not over time), from anyone: effects that end
+## after a number of hits (Pin the Shadow) count it.
+func count_hit() -> void:
+	var gone: Array = []
+	for k in effects:
+		var need: Variant = effects[k]["res"].get("break_after_hits")
+		if need == null or int(need) <= 0:
+			continue
+		effects[k]["hits"] = int(effects[k].get("hits", 0)) + 1
+		if int(effects[k]["hits"]) >= int(need):
 			gone.append(k)
 	for k in gone:
 		effects.erase(k)

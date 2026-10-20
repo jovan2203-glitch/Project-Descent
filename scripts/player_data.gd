@@ -313,6 +313,7 @@ var card_reoffer := false
 const Pacts = preload("res://scripts/pacts.gd")
 var pact := ""          # the Pact held ("" = none); saved
 var pact_book := ""     # Pact of the Purist: the one book it allows; saved
+var bare_hands := false  # the Brawler's Fighting Style: Bare Hands (true) or Armed; saved
 ## The vow was broken in this dungeon: the Pact works against you until the run
 ## ends. Not saved; GameManager clears it when a run starts from the menu.
 var pact_broken := false
@@ -361,7 +362,30 @@ func available_abilities() -> Array[String]:
 func has_ability(id: String) -> bool:
 	if Abilities.BASE.has(id) or learned_abilities.has(id):
 		return true
+	# The Wheel (Martial warrior): a weapon's moves come with it; the bar buttons with any weapon.
+	var weapon := Abilities.wheel_weapon_of(id)
+	if weapon != "":
+		return learned_abilities.has(weapon)
+	if Abilities.WHEEL_SLOTS.has(id):
+		return wheel_weapons().size() > 0
+	# The Brawler (Martial tank): Punch brings Kick, Elbow, Fighting Style and the
+	# chain's moves; Catch brings the moves a Catch chain makes.
+	if Abilities.BRAWLER_CATCH_MOVES.values().has(id):
+		return learned_abilities.has("catch")
+	if Abilities.is_chain_move(id) or ["brawlkick", "elbow", "fightingstyle"].has(id):
+		return learned_abilities.has("punch")
+	# The Rogue (Martial DPS): Cut brings Go In and the Kill forms.
+	if id == "goin" or Abilities.is_kill_form(id):
+		return learned_abilities.has("cut")
 	return Runes.rune_for_spell(id) != "" and rune_spells().has(id)
+
+## The Wheel's weapons I have learned, in the order they turn.
+func wheel_weapons() -> Array[String]:
+	var out: Array[String] = []
+	for w in Abilities.WHEEL_ORDER:
+		if learned_abilities.has(w):
+			out.append(w)
+	return out
 
 ## Spells taught by the runes on equipped gear (Rune of Frostfire Bolt ->
 ## Frostfire Bolt). Known only while the rune is worn.
@@ -994,6 +1018,9 @@ static func default_action_bar() -> Array[String]:
 func set_action_slot(to: int, id: String, from: int) -> void:
 	if to < 0 or to >= ACTION_SLOTS_TOTAL:
 		return
+	id = Abilities.bar_id(id)   # a Wheel move goes on as its bar button (it takes the held weapon's form)
+	if Abilities.WHEEL_ORDER.has(id) or Abilities.is_chain_move(id) or Abilities.is_kill_form(id):
+		return   # a Wheel weapon isn't a button: its moves are (the Brawler's chain moves and the Rogue's Kill forms have none)
 	if from >= 0 and from < ACTION_SLOTS_TOTAL:
 		var tmp := action_bar[to]
 		action_bar[to] = action_bar[from]

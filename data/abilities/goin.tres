@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"goin"
+display_name = "Go In"
+description = "Spend all your Flow (at least {b:KILL_MIN_FLOW}) to open a Kill window of {b:KILL_PER_FLOW} sec for each Flow spent. During it {n:cut}, {n:twinstab}, {n:whirl}, {n:kickoff} and {n:dartin} take their Kill forms, each of your crits gives {b:KILL_CRIT_ENERGY} Energy, and no Flow builds. A Kill form that differs from the one before it adds {b:KILL_VARIETY} sec to the window (up to {b:KILL_VARIETY_MAX} sec)."
+tags = PackedStringArray("Ability", "Physical")
+cast_type = 0
+cast_time = 0.0
+requires_target = false
+weapon_requirement = 1
+requires_dual_wield = true
+resource_type = 0
+damage = 0.0
+damage_type = &"physical"

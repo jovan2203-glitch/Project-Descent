@@ -103,7 +103,7 @@ func test_every_category_has_a_full_tree() -> void:
 
 ## Warrior, Rogue and Ranger are one book now: Martial. (The damage type its
 ## abilities deal is still called Physical.)
-func test_martial_book_replaces_warrior_rogue_and_ranger_and_is_empty() -> void:
+func test_martial_book_replaces_warrior_rogue_and_ranger() -> void:
 	const Categories = preload("res://scripts/categories.gd")
 	const Abilities = preload("res://scripts/abilities.gd")
 	assert_eq(Categories.ORDER.size(), 8)
@@ -114,9 +114,9 @@ func test_martial_book_replaces_warrior_rogue_and_ranger_and_is_empty() -> void:
 		assert_false(Categories.INFO.has(old))
 		assert_false(Talents.LAYOUTS.has(old), "%s has no talent tree of its own" % old)
 		assert_false(Talents.exists("%s_r1c3" % old), "old %s talent slots are gone (saved points in them are refunded)" % old)
-	# Wiped to be rebuilt: the book stays on the shelf (last, so no book moves), empty.
+	# Wiped and rebuilt: the book stays on the shelf (last, so no book moves).
 	assert_eq(Categories.ORDER[-1], "martial")
-	assert_true(Abilities.in_category("martial").is_empty(), "the Martial book is empty")
+	assert_false(Abilities.SPECS["martial"].is_empty(), "the Martial book is being rebuilt")
 	# Every ability is in a book that exists (or in none: trinket buttons).
 	for id in Abilities.ALL:
 		var cat := Abilities.category_of(id)

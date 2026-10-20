@@ -7,7 +7,7 @@ extends Node
 # x (1 + crit chance); haste shortens casts, the GCD and DoT ticks. A 3-minute
 # fight on a fake clock: each GCD it presses the button that does the most per
 # second of casting among those ready and affordable (a DoT only when it isn't
-# already up), plus weapon auto-attacks for weapon specs. Rage decays as in game.
+# already up), plus weapon auto-attacks for weapon specs. Fury decays as in game.
 # NOT counted: talents, runes, items' equip effects, procs, buffs between
 # abilities, movement, AoE. Spec-specific payoffs: tools/balance_sim_specs.gd.
 #   godot --headless --path . res://tools/balance_sim.tscn
@@ -84,8 +84,8 @@ static func simulate(ids: Array, role: String, profile: String, spec_name := "",
 	var ready_at := {}
 	var dot_until := {}
 	var mana_max := 10.0 + float(stat_of.call(Stats.INTELLECT)) * 4.0 * Stats.POINT_VALUE / Stats.mana_unit(LEVEL)
-	var res := {"mana": mana_max, "energy": Balance.RESOURCE_MAX, "rage": 0.0, "venom": 0.0}
-	# Weapon auto-attacks (weapon specs): damage, and the Rage each swing gives.
+	var res := {"mana": mana_max, "energy": Balance.RESOURCE_MAX, "fury": 0.0, "venom": 0.0}
+	# Weapon auto-attacks (weapon specs): damage, and the Fury each swing gives.
 	var swing_every := 0.0
 	var swing_dmg := 0.0
 	if not w.is_empty() and weapon != "":
@@ -103,7 +103,7 @@ static func simulate(ids: Array, role: String, profile: String, spec_name := "",
 		while swing_every > 0.0 and next_swing <= t:
 			dmg_total += swing_dmg
 			sources["Auto Attack"] = float(sources.get("Auto Attack", 0.0)) + swing_dmg
-			res["rage"] = minf(float(res["rage"]) + Balance.AUTO_ATTACK_RAGE, Balance.RESOURCE_MAX)
+			res["fury"] = minf(float(res["fury"]) + Balance.AUTO_ATTACK_FURY, Balance.RESOURCE_MAX)
 			next_swing += swing_every
 		var pick := _best(buttons, role, t, res, ready_at, dot_until)
 		var step := 0.1
@@ -131,7 +131,7 @@ static func simulate(ids: Array, role: String, profile: String, spec_name := "",
 		# Resources come back over the step.
 		res["mana"] = minf(float(res["mana"]) + Balance.MANA_REGEN * step, mana_max)
 		res["energy"] = minf(float(res["energy"]) + Balance.ENERGY_REGEN * step, Balance.RESOURCE_MAX)
-		res["rage"] = maxf(float(res["rage"]) - Balance.RAGE_DECAY * step, 0.0)
+		res["fury"] = maxf(float(res["fury"]) - Balance.FURY_DECAY * step, 0.0)
 		if venom_spec and _all_poisons_up(dot_until, t):
 			res["venom"] = minf(float(res["venom"]) + Balance.VENOM_PER_TICK * 3.0 * haste * step, Balance.VENOM_MAX)
 		t += step
@@ -219,7 +219,7 @@ static func _pay(b: Dictionary, res: Dictionary) -> void:
 	if r != "":
 		res[r] = maxf(float(res.get(r, 0.0)) - float(b["cost"]), 0.0)
 	if float(b["gen"]) > 0.0:
-		var key := "rage" if r == "" or r == "rage" else r
+		var key := "fury" if r == "" or r == "fury" else r
 		res[key] = minf(float(res.get(key, 0.0)) + float(b["gen"]), Balance.RESOURCE_MAX)
 
 static func _all_poisons_up(dot_until: Dictionary, t: float) -> bool:

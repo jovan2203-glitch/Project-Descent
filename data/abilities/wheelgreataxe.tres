@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"wheelgreataxe"
+display_name = "Greataxe"
+description = "One of the four weapons on your Wheel. While you hold it, your ability hits also hit {b:AXE_CLEAVE_REACH} m around: one other enemy near the target takes {b:AXE_CLEAVE_PCT}% of the damage. Its moves: {n:hack}, {n:chop}, {n:rush} and {n:shrapnel}."
+tags = PackedStringArray("Ability", "Physical")
+cast_type = 0
+cast_time = 0.0
+requires_target = false
+weapon_requirement = 1
+resource_type = 3
+damage = 0.0
+damage_type = &"physical"

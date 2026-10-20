@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"hityourstride"
+display_name = "Hit Your Stride"
+description = "Your Flow fills to {b:FLOW_MAX} and a Kill window opens at once, {b:HIT_YOUR_STRIDE_MULT} times as long as usual."
+tags = PackedStringArray("Ability", "Physical")
+cast_type = 0
+cast_time = 0.0
+requires_target = false
+weapon_requirement = 1
+requires_dual_wield = true
+resource_type = 0
+damage = 0.0
+damage_type = &"physical"

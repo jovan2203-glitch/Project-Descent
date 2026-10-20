@@ -10,10 +10,10 @@ Values in Frost Bolts (FB) are conversation shorthand; real numbers live in bala
 - Also in the kit: Spill, Gnaw, Hush (interrupt, shared 15 s), Call Due, Bottomless.
 - Removed: Usher In (was Sink In), Gloom Bolt. Pall was renamed.
 
-## Melee (Hounds, Rage)
-- Two demon dogs in the world, red/purple and evil, 30 s duration; if they aren't up your rotation spawns them. They share your stats; the kit builds and spends Rage (no Frenzy stacks).
+## Melee (Hounds, Fury)
+- Two demon dogs in the world, red/purple and evil, 30 s duration; if they aren't up your rotation spawns them. They share your stats; the kit builds and spends Fury (no Frenzy stacks).
 - They always hit the last thing you damaged (direct damage only) and dash to the target when it is more than 1 second's walk away. They keep biting during Guard Dogs.
-- Abilities include Open Up (Laid Open), Both At Once (lunges), Guard Dogs, Off the Chain, Leeching Strike, Roused, Drag Down; a 10 s cooldown ability with no Rage cost or gain dismisses the Hounds early so they Drag Down.
+- Abilities include Open Up (Laid Open), Both At Once (lunges), Guard Dogs, Off the Chain, Leeching Strike, Roused, Drag Down; a 10 s cooldown ability with no Fury cost or gain dismisses the Hounds early so they Drag Down.
 
 ## Healer (Strings)
 - A demon floats behind you while you have Strings; strings leave his hands only toward allies and vanish quickly. On allies they come down from just above the target, and must not look stiff when the player rotates.
@@ -36,9 +36,9 @@ Values in Frost Bolts (FB) are conversation shorthand; real numbers live in bala
 
 ## Talents
 - Caster: Bitter End (2): last drop +50/100%. Next of Kin (3, capstone a second enemy gets half). Seep (2). Loose Grains (2, Erode). Interest (3, Call Due; capstone instant Blight within 5 s). Small Change (2, Call Due). No Floor (2, Bottomless; capstone Breach can't close). Rot Through (5): 2-10%. Running Over (2, Spill: copies 60/70% instead of 50%, capstone every copy open at least 5 s). Bite Down (2, Gnaw: ticks +10/20% crit chance). Cut Short (2, Hush: interrupting takes 2/4 s off, never below 15 s).
-- Hounds: Lean and Hungry (3): bites 4/8/12% faster. Fed (2): bite crit gives 2/4 Rage. Worked Up (2): Roused +2/4 s, capstone bites +10% crit during Roused. Take It With You (2): Drag Down +25/50%, capstone a kill makes the next pair arrive Roused. Long Night (2): +3/6 s. Out of the Hole (2): bites add 25/50% of damage to your open Breach. Pack Leader (5, bottom): Hounds +3-15%. Still Wet (2, Open Up: Laid Open +2/4 s, capstone your strikes +10% to that enemy). Pincer (3, Both At Once: lunges +10/20/30%, capstone lunge crit refunds 10 Rage). Again (2): Both At Once 15/30% reset. Stand Over (2, Guard Dogs: bites heal 1/2% max health). Slipped Leash (2, Off the Chain +2/4 s, capstone a third Hound). Share the Kill (2, Leeching Strike heal +50/100% while Hounds are out).
+- Hounds: Lean and Hungry (3): bites 4/8/12% faster. Fed (2): bite crit gives 2/4 Fury. Worked Up (2): Roused +2/4 s, capstone bites +10% crit during Roused. Take It With You (2): Drag Down +25/50%, capstone a kill makes the next pair arrive Roused. Long Night (2): +3/6 s. Out of the Hole (2): bites add 25/50% of damage to your open Breach. Pack Leader (5, bottom): Hounds +3-15%. Still Wet (2, Open Up: Laid Open +2/4 s, capstone your strikes +10% to that enemy). Pincer (3, Both At Once: lunges +10/20/30%, capstone lunge crit refunds 10 Fury). Again (2): Both At Once 15/30% reset. Stand Over (2, Guard Dogs: bites heal 1/2% max health). Slipped Leash (2, Off the Chain +2/4 s, capstone a third Hound). Share the Kill (2, Leeching Strike heal +50/100% while Hounds are out).
 - Strings: Steady Hands (5, bottom): +3-15%. Long Thread (2): +2/4 s on allies. Spare Spool (2): Strings back 1/2 s sooner. Taking the Weight (2): Crossed Strings 5/7%, capstone breaks at 40 m. Full Harness (2): ally with 3 Strings takes 3/6% less damage. First Stitch (2): tying heals at once for 2/4 String heals. Heave (2, Hoist: +5/10% per String, capstone 0.5 s shorter cast on an ally with 3). Snap Back (2, Pull Taut: 25/50% String returns). Long Drop (2, String Up: 0.5/1 FB when it ends). Give and Take (3, Slack: 1/2/3 s shorter).
-- Open: Inevitable (5): 2-10%. Slow Death (3). Wasting (3). Finish It (3). Spite (3). Carrion (2): an enemy dying with your DoT gives back 1/2% max mana. Thick Blood (3): Rage decays 15/30/45% slower. Feeding Frenzy (3): an enemy you damaged dies: 2/4/6% Haste for 8 s. Lean On Me (3): after healing another ally, 2/4/6% less damage for 4 s. Left Hanging (2): stuns and roots +10/20%. Many Hands (3): heals on other allies +2/4/6%.
+- Open: Inevitable (5): 2-10%. Slow Death (3). Wasting (3). Finish It (3). Spite (3). Carrion (2): an enemy dying with your DoT gives back 1/2% max mana. Thick Blood (3): Fury decays 15/30/45% slower. Feeding Frenzy (3): an enemy you damaged dies: 2/4/6% Haste for 8 s. Lean On Me (3): after healing another ally, 2/4/6% less damage for 4 s. Left Hanging (2): stuns and roots +10/20%. Many Hands (3): heals on other allies +2/4/6%.
 
 ## Runes
 - Rare: Blight is instant, 15 s cooldown, opens the gate for 8 s.
@@ -51,4 +51,4 @@ Values in Frost Bolts (FB) are conversation shorthand; real numbers live in bala
 
 ## Utility (the book's "Utility" divider) - BUILT 2026-10-17
 - Climb the String (Shadow's movement) - instant, 20 s cooldown, 1 mana, 30 m, card level 16. A String hauls you to your friendly target (else your enemy target), 1.5 m short; needs line of sight, blocked during Grounding Surge. On an ally it stays as a loose String for 8 s (Strings Attached heals through it). Only you move. Code: scripts/player/utility.gd.
-- Also in Utility (coded with their specs): Tangle (Shadow's root), Hush (interrupt), String Up (stun). Yank, Behind Its Back and Cupped Hands stay in Strings Attached (they need a String); Guard Dogs in Pack of Two (Rage); Take It Back in The Breach (the Breach).
+- Also in Utility (coded with their specs): Tangle (Shadow's root), Hush (interrupt), String Up (stun). Yank, Behind Its Back and Cupped Hands stay in Strings Attached (they need a String); Guard Dogs in Pack of Two (Fury); Take It Back in The Breach (the Breach).

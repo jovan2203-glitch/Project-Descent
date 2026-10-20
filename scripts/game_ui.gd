@@ -478,7 +478,8 @@ func _refresh_spellbook() -> void:
 	var cats: Array = Categories.ORDER.duplicate()
 	cats.append(Categories.RUNE)   # spells taught by runes on your gear
 	cats.append("")   # abilities without a book
-	var learned := func(id: String) -> bool: return pd.has_ability(id) and not Abilities.is_trinket_slot(id)
+	# (Wheel moves sit under their weapon's dropdown, not in the list.)
+	var learned := func(id: String) -> bool: return pd.has_ability(id) and not Abilities.is_trinket_slot(id) and Abilities.listed_in_book(id)
 	for cat in cats:
 		var specs: Array = Abilities.specs_in(cat, learned)   # only specs you know something from
 		if specs.is_empty():
@@ -493,7 +494,47 @@ func _refresh_spellbook() -> void:
 			flow.add_theme_constant_override("v_separation", 6)
 			_book_list.add_child(flow)
 			for id in spec[1]:
-				flow.add_child(_spellbook_slot(id, locked, pd.action_bar.has(id)))
+				var s := _spellbook_slot(id, locked, pd.action_bar.has(id))
+				flow.add_child(s)
+				if Abilities.WHEEL_FORMS.has(id):
+					s.pressed.connect(_toggle_wheel_weapon.bind(id))   # click a Wheel weapon to show its moves
+			# The Wheel's weapons drop down to show their moves; drag one onto the bar.
+			for id in spec[1]:
+				if Abilities.WHEEL_FORMS.has(id) and _wheel_open.get(id, false):
+					_book_list.add_child(UI.label("%s's moves" % Abilities.ability_name(id), 11, UI.TEXT_DIM))
+					var moves := HFlowContainer.new()
+					moves.add_theme_constant_override("h_separation", 6)
+					moves.add_theme_constant_override("v_separation", 6)
+					_book_list.add_child(moves)
+					for move in Abilities.WHEEL_FORMS[id]:
+						moves.add_child(_spellbook_slot(str(move), locked, pd.action_bar.has(Abilities.bar_id(str(move)))))
+			# The Brawler's Chain: what each ending makes (shown, not dragged: no buttons).
+			if spec[1].has("punch"):
+				for part in Abilities.brawler_move_table():
+					_book_list.add_child(UI.label(str(part[0]), 11, UI.TEXT_DIM))
+					var row := HFlowContainer.new()
+					row.add_theme_constant_override("h_separation", 6)
+					row.add_theme_constant_override("v_separation", 6)
+					_book_list.add_child(row)
+					for move in part[1]:
+						row.add_child(_spellbook_slot(str(move), locked, false))
+			# The Rogue's Kill forms: what each builder becomes in a Kill window (shown, not dragged: no buttons).
+			if spec[1].has("cut"):
+				for part in Abilities.rogue_kill_table():
+					_book_list.add_child(UI.label(str(part[0]), 11, UI.TEXT_DIM))
+					var krow := HFlowContainer.new()
+					krow.add_theme_constant_override("h_separation", 6)
+					krow.add_theme_constant_override("v_separation", 6)
+					_book_list.add_child(krow)
+					for form in part[1]:
+						krow.add_child(_spellbook_slot(str(form), locked, false))
+
+## Weapon id -> its dropdown is open (the Wheel, Martial warrior).
+var _wheel_open := {}
+
+func _toggle_wheel_weapon(weapon: String) -> void:
+	_wheel_open[weapon] = not bool(_wheel_open.get(weapon, false))
+	_book_dirty = true
 
 func _spellbook_slot(id: String, locked: bool, on_bar: bool) -> Button:
 	var s := Abilities.make_slot(40)

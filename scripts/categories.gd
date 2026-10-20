@@ -36,7 +36,7 @@ const INFO := {
 	# Warrior, Rogue and Ranger).
 	# (The book is Martial; the damage its abilities deal is still Physical damage.)
 	"martial": {"name": "Martial", "color": Color(0.78, 0.78, 0.84),
-		"desc": "Weapons without magic: heavy blows and rage, quick blades, and the bow."},
+		"desc": "Weapons without magic: heavy blows and fury, quick blades, and the bow."},
 }
 
 static func cat_name(id: String) -> String:

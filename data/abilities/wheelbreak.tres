@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"wheelbreak"
+display_name = "Finisher"
+description = "A place on your bar for the finisher of the weapon you hold: {n:shrapnel}, {n:shardlance}, {n:flyinghead} or {n:faultline}. It becomes that move. Finishers break the weapon, deal more for every Crack in it, and bring the next weapon on your Wheel into your hands."
+tags = PackedStringArray("Ability", "Physical", "Melee")
+cast_type = 0
+cast_time = 0.0
+requires_target = false
+weapon_requirement = 1
+resource_type = 3
+damage = 0.0
+damage_type = &"physical"

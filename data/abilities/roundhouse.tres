@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"roundhouse"
+display_name = "Roundhouse"
+description = "Made by a Chain of three different strikes that ends with Kick. A spinning kick, dealing {hit} Physical damage to every enemy within {radius} m and knocking them down for {b:KICKED_DOWN_TIME} sec (never bosses). Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, that damage is split evenly between all of them."
+tags = PackedStringArray("Ability", "Physical", "Melee", "AoE")
+cast_type = 0
+cast_time = 0.0
+requires_target = false
+weapon_requirement = 1
+forbids_shield = true
+resource_type = 3
+damage = 0.0
+damage_type = &"physical"

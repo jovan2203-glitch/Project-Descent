@@ -428,6 +428,11 @@ func _build_health_bar() -> void:
 	_hp_shield.color = Color(0.72, 0.9, 1.0, 0.85)
 	_hp_shield.size = Vector2(0, 16)
 	_hp_bar.add_child(_hp_shield)
+	# Bruise (Martial tank): the health it will still take, darker at the end of the red.
+	_hp_bruise = ColorRect.new()
+	_hp_bruise.color = Color(0.32, 0.12, 0.38, 0.9)
+	_hp_bruise.size = Vector2(0, 16)
+	_hp_bar.add_child(_hp_bruise)
 
 	_hp_label = Label.new()
 	_hp_label.add_theme_font_size_override("font_size", 16)
@@ -449,7 +454,19 @@ const HP_W := 178.0
 var _hp_bar: Control
 var _hp_fill: ColorRect
 var _hp_shield: ColorRect
+var _hp_bruise: ColorRect
 var _combat_label: Label
+
+## Bruise: the end of the red health that is still to come, darker.
+func _update_bruise_segment() -> void:
+	if _hp_bruise == null or player == null or player.get("brawler") == null:
+		return
+	var m := float(maxi(player.max_health, 1))
+	var frac := clampf(float(player.health) / m, 0.0, 1.0)
+	var w := HP_W * clampf(float(player.brawler.bruise()) / m, 0.0, frac)
+	if absf(_hp_bruise.size.x - w) > 0.25:
+		_hp_bruise.size.x = w
+	_hp_bruise.position.x = HP_W * frac - _hp_bruise.size.x
 
 func _on_health_changed(current: int, maximum: int) -> void:
 	if _hp_fill == null:
@@ -738,6 +755,17 @@ func _make_slot(i: int, size: float) -> Button:
 	charges.size = Vector2(size - 4, 20)
 	charges.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(charges)
+
+	# The move a Brawler strike would finish its Chain with (Martial tank), along the top.
+	var finish := UI.label("", 9 if size < 50.0 else 10, Color(1.0, 0.83, 0.3))
+	finish.name = "Finish"
+	finish.add_theme_color_override("font_outline_color", Color.BLACK)
+	finish.add_theme_constant_override("outline_size", 4)
+	finish.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	finish.position = Vector2(0, size * 0.5 - 8)
+	finish.size = Vector2(size, 16)
+	finish.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(finish)
 	return b
 
 func _player_in_combat() -> bool:
@@ -854,13 +882,13 @@ func _update_xp_bar() -> void:
 
 # --- Resource bars (under HP): only the resources used by the abilities on the bar ---
 
-const RES_ORDER := ["mana", "energy", "rage"]
+const RES_ORDER := ["mana", "energy", "fury"]
 const RES_COLORS := {
 	"mana": Color(0.25, 0.5, 1.0),
 	"energy": Color(1.0, 0.85, 0.2),
-	"rage": Color(0.9, 0.25, 0.1),
+	"fury": Color(0.9, 0.25, 0.1),
 }
-const RES_LABELS := {"mana": "MP", "energy": "EN", "rage": "RG"}
+const RES_LABELS := {"mana": "MP", "energy": "EN", "fury": "FY"}
 var _res_box: VBoxContainer
 var _res_rows := {}   # res -> {"segs": Array[ColorRect], "label": Label}
 
@@ -997,6 +1025,8 @@ func _update_resource_bars() -> void:
 func _refresh_action_bar() -> void:
 	_refresh_resource_bars()
 	_refresh_venom_bar()
+	_refresh_wheel_strip()
+	_refresh_chain_strip()
 	var settings := get_node_or_null("/root/Settings")
 	for i in _slot_buttons:
 		var id := _slot_id(i)
@@ -1016,6 +1046,16 @@ func _update_action_bar() -> void:
 		# A macro's button behaves like the ability it is linked to (none: always lit).
 		var id := Macros.link_of(slot_id) if Macros.is_macro(slot_id) else slot_id
 		var b: Button = _slot_buttons[i]
+		if Abilities.WHEEL_SLOTS.has(id):
+			id = player.wheel.form_of(id)   # Martial warrior: the held weapon's move
+			if slot_id != id and Abilities.WHEEL_SLOTS.has(slot_id) \
+					and str(b.get_node("AbilityIcon").get_meta("ability_id", "")) != id:
+				Abilities.set_slot_ability(b, id)   # its icon and tooltip change with the weapon
+		elif Abilities.ROGUE_KILL_FORMS.has(id):
+			id = player.rogue.form_of(id)   # Martial DPS: a builder is its Kill form in a Kill window
+			if Abilities.ROGUE_KILL_FORMS.has(slot_id) \
+					and str(b.get_node("AbilityIcon").get_meta("ability_id", "")) != id:
+				Abilities.set_slot_ability(b, id)   # its icon and tooltip change with the window
 		var active := false
 		var left := 0.0
 		var total := 1.0
@@ -1042,6 +1082,11 @@ func _update_action_bar() -> void:
 		var ch_text: String = player.charges_text(id) if id != "" and player.has_method("charges_text") else ""
 		if ch.text != ch_text:
 			ch.text = ch_text
+		var fin: Label = b.get_node_or_null("Finish")
+		if fin:
+			var fin_text: String = player.brawler.finish_label(id) if Abilities.BRAWLER_STRIKES.has(id) else ""
+			if fin.text != fin_text:
+				fin.text = fin_text
 		var cd: Control = _slot_cd[i]
 		var frac := clampf(left / total, 0.0, 1.0)
 		if frac != float(cd.get_meta("frac", 0.0)) or left != float(cd.get_meta("left", 0.0)):
@@ -1060,6 +1105,9 @@ func _process(delta: float) -> void:
 	if player == null:
 		return
 	_update_action_bar()
+	_update_wheel_strip()
+	_update_chain_strip()
+	_update_bruise_segment()
 	_update_resource_bars()
 	_buff_t -= delta
 	var slow_tick := _buff_t <= 0.0
@@ -1207,3 +1255,139 @@ func _update_venom_bar() -> void:
 	_venom_fill.size = Vector2(maxf(inner * clampf(v / Balance.VENOM_MAX, 0.0, 1.0), 0.0), VENOM_BAR_H - 4.0)
 	_venom_fill.color = VENOM_COLOR.lightened(0.25) if flowing else VENOM_COLOR.darkened(0.25)
 	_venom_label.text = "Venom %d" % int(v)
+
+# --- The Wheel (Martial warrior) ---------------------------------------------------------
+# A strip above the main action bar while the Wheel is out (one of its buttons is on
+# the bars): its weapons in the order they turn, the held one large with its uses
+# left and Cracks. Out of combat, clicking it turns the Wheel to the next weapon.
+const WHEEL_CELL := 30.0
+const WHEEL_HELD := 42.0
+var _wheel_root: PanelContainer
+var _wheel_row: HBoxContainer
+var _wheel_label: Label
+var _wheel_last := ""
+
+func _refresh_wheel_strip() -> void:
+	var wanted: bool = player != null and player.get("wheel") != null and player.wheel.is_out()
+	if not wanted:
+		if _wheel_root:
+			_wheel_root.visible = false
+		return
+	if _wheel_root == null:
+		_wheel_root = PanelContainer.new()
+		_wheel_root.anchor_left = 0.5
+		_wheel_root.anchor_right = 0.5
+		_wheel_root.anchor_top = 1.0
+		_wheel_root.anchor_bottom = 1.0
+		_wheel_root.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_wheel_root.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		_wheel_root.add_theme_stylebox_override("panel", _box(Color(0, 0, 0, 0.55), 6))
+		_wheel_root.tooltip_text = "Your Wheel. Out of combat, click it to turn it to the next weapon."
+		_wheel_root.gui_input.connect(func(ev: InputEvent):
+			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+				_turn_wheel())
+		add_child(_wheel_root)
+		var box := HBoxContainer.new()
+		box.add_theme_constant_override("separation", 8)
+		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_wheel_root.add_child(box)
+		_wheel_row = HBoxContainer.new()
+		_wheel_row.add_theme_constant_override("separation", 4)
+		_wheel_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		_wheel_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(_wheel_row)
+		_wheel_label = Label.new()
+		_wheel_label.add_theme_font_size_override("font_size", 12)
+		_wheel_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_wheel_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(_wheel_label)
+	var bottom := -SLOT_SIZE - 26 - 8 - _top_bar_lift()
+	_wheel_root.offset_bottom = bottom
+	_wheel_root.offset_top = bottom - WHEEL_HELD - 8
+	_wheel_root.visible = true
+	_wheel_last = ""
+
+# --- The Chain (Martial tank: the Brawler) ------------------------------------------------
+# A strip above the main action bar while the Brawler is out: the Chain's inputs so far
+# (the same as the orbs on your back), empty cells for the ones still to come.
+const CHAIN_CELL := 34.0
+var _chain_root: PanelContainer
+var _chain_row: HBoxContainer
+var _chain_last := "-"
+
+func _refresh_chain_strip() -> void:
+	var wanted: bool = player != null and player.get("brawler") != null and player.brawler.is_out()
+	if not wanted:
+		if _chain_root:
+			_chain_root.visible = false
+		return
+	if _chain_root == null:
+		_chain_root = PanelContainer.new()
+		_chain_root.anchor_left = 0.5
+		_chain_root.anchor_right = 0.5
+		_chain_root.anchor_top = 1.0
+		_chain_root.anchor_bottom = 1.0
+		_chain_root.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_chain_root.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		_chain_root.add_theme_stylebox_override("panel", _box(Color(0, 0, 0, 0.55), 6))
+		_chain_root.tooltip_text = "Your Chain. The strike that ends it picks the move; three different strikes make the strong one."
+		add_child(_chain_root)
+		_chain_row = HBoxContainer.new()
+		_chain_row.add_theme_constant_override("separation", 4)
+		_chain_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		_chain_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_chain_root.add_child(_chain_row)
+	var bottom := -SLOT_SIZE - 26 - 8 - _top_bar_lift()
+	_chain_root.offset_bottom = bottom
+	_chain_root.offset_top = bottom - CHAIN_CELL - 8
+	_chain_root.visible = true
+	_chain_last = "-"
+
+func _update_chain_strip() -> void:
+	if _chain_root == null or not _chain_root.visible or player == null:
+		return
+	var inputs: Array = player.brawler.chain()
+	var key := ",".join(PackedStringArray(inputs))
+	if key == _chain_last:
+		return
+	_chain_last = key
+	for c in _chain_row.get_children():
+		c.queue_free()
+	for i in Balance.CHAIN_LENGTH:
+		var cell := Abilities.make_slot(CHAIN_CELL)
+		cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if i < inputs.size():
+			Abilities.set_slot_ability(cell, str(inputs[i]))
+		else:
+			cell.modulate.a = 0.35
+		_chain_row.add_child(cell)
+
+func _turn_wheel() -> void:
+	if player == null or player.get("wheel") == null:
+		return
+	if not player.wheel.turn_out_of_combat():
+		player._error("The Wheel only turns out of combat")
+
+func _update_wheel_strip() -> void:
+	if _wheel_root == null or not _wheel_root.visible or player == null:
+		return
+	var ws: Array = player.wheel.weapons()
+	var held: String = player.wheel.held_weapon()
+	var key := "%s|%s|%d|%d" % [",".join(PackedStringArray(ws)), held, player.wheel.uses_left(), player.wheel.cracks()]
+	if key == _wheel_last:
+		return
+	_wheel_last = key
+	for c in _wheel_row.get_children():
+		c.queue_free()
+	# The held weapon first, then the rest in the order they will come.
+	var start := maxi(ws.find(held), 0)
+	for i in ws.size():
+		var w := str(ws[(start + i) % ws.size()])
+		var cell := Abilities.make_slot(WHEEL_HELD if i == 0 else WHEEL_CELL)
+		Abilities.set_slot_ability(cell, w)
+		cell.mouse_filter = Control.MOUSE_FILTER_PASS
+		cell.pressed.connect(_turn_wheel)
+		if i > 0:
+			cell.modulate.a = 0.85 if i == 1 else 0.55
+		_wheel_row.add_child(cell)
+	_wheel_label.text = "%d / %d uses\n%d Cracks" % [player.wheel.uses_left(), Balance.WHEEL_USES, player.wheel.cracks()]

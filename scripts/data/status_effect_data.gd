@@ -102,6 +102,9 @@ func mod_pct_per_stack(stat_of: Callable) -> float:
 @export var stun: bool = false
 ## Ends as soon as the carrier takes damage (Spore Sleep).
 @export var break_on_damage: bool = false
+## Ends once the carrier has taken this many direct hits, from anyone (damage over
+## time doesn't count; 0 = never): Pin the Shadow.
+@export var break_after_hits: int = 0
 
 ## Does this effect's damage modifier apply to a hit?
 ## Pass the hit's damage type, ability tags and whether it is a DoT tick.

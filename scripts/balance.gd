@@ -19,9 +19,9 @@ extends RefCounted
 #                 weapon damage (weapon abilities)
 #    weapon_mult  weapon damage x this (melee / bow abilities)
 #    cooldown     seconds
-#    cost         mana (points: 10% of base mana each) / Energy / Rage spent
+#    cost         mana (points: 10% of base mana each) / Energy / Fury spent
 #                 (see the .tres for which one)
-#    generates    Energy / Rage gained on use
+#    generates    Energy / Fury gained on use
 #    cast_time    seconds (casts and channels; 0 = instant)
 #    radius       metres (AoE size, chain / splash reach)
 #    range        metres (targeted spells)
@@ -98,16 +98,16 @@ const ARMOR_PIECE_NAMES := {
 ## then (Iron Helm, Leather Grips, Chain Leggings...).
 const ARMOR_LEGACY_TYPE := {"helmet": 3, "pauldrons": 3, "chestplate": 3, "gloves": 1, "leggings": 2, "boots": 1}
 
-## Resources. Energy and Rage are bars of RESOURCE_MAX (100): their costs and
-## gains in ABILITIES below are that many Energy / Rage. Mana is on the same
+## Resources. Energy and Fury are bars of RESOURCE_MAX (100): their costs and
+## gains in ABILITIES below are that many Energy / Fury. Mana is on the same
 ## scale as health: base mana = MANA_OF_BASE_HEALTH x base health (Intellect
 ## adds 4 per point). Mana costs and MANA_REGEN are in "points" = 10% of base mana.
 const RESOURCE_MAX := 100.0
 const MANA_OF_BASE_HEALTH := 0.8
 const MANA_REGEN := 0.5        # points per second (= 5% of base mana)
 const ENERGY_REGEN := 10.0     # Energy per second
-const RAGE_DECAY := 5.0        # Rage per second lost
-const AUTO_ATTACK_RAGE := 10.0 # Rage per auto-attack (with a rage spender on the bar)
+const FURY_DECAY := 5.0        # Fury per second lost
+const AUTO_ATTACK_FURY := 10.0 # Fury per auto-attack (with a fury spender on the bar)
 ## Auto-attacks and auto-shots deal this share of the weapon's damage (weapon
 ## abilities still use all of it).
 const AUTO_ATTACK_MULT := 0.5
@@ -410,7 +410,7 @@ const AFTERSHOCK_TIME := 3.0             # Aftershock: seconds the slow lasts
 const AFTERSHOCK_SLOW_STEP := 20.0       # ... the slow of the effect itself (%); the talent's rank scales it
 
 ## Arcane tank: a dodge tank with a melee weapon in each hand, on cooldowns alone
-## (no Mana, Energy or Rage). It keeps Reflections up: images of itself. Each one
+## (no Mana, Energy or Fury). It keeps Reflections up: images of itself. Each one
 ## adds Dodge and raises the Dodge cap. An attack it dodges uses one up, and that
 ## Reflection shatters: damage around the tank, and time off the cooldown of
 ## everything in the Arcane book (spells and abilities alike; interrupts keep
@@ -518,17 +518,17 @@ const BOTTOMLESS_TIME := 8.0              # Bottomless: seconds Decay does not s
 ## stay HOUND_TIME seconds and bite the enemy their owner last struck. They have
 ## no stats of their own: every hit of theirs is the player's (level, Attack /
 ## Spell Power, crit, Haste, damage bonuses, Lifesteal, threat), dealt as a proc.
-## Enemies cannot target them. The kit runs on Rage: Sic and Open Up build it,
-## and any ability that spends Rage Rouses the Hounds. When their time is up each
+## Enemies cannot target them. The kit runs on Fury: Sic and Open Up build it,
+## and any ability that spends Fury Rouses the Hounds. When their time is up each
 ## drags at its prey once, and the next Shadow melee ability calls a new pair.
-## (Rage costs and gains, cooldowns, weapon damage and radius are in ABILITIES.)
+## (Fury costs and gains, cooldowns, weapon damage and radius are in ABILITIES.)
 const HOUND_COUNT := 2                    # Hounds: how many are called
 const HOUND_TIME := 30.0                  # ... seconds they stay
 const HOUND_BITE := 0.15                  # ... damage of one bite (a coefficient; it scales like an ability)
 const HOUND_BITE_EVERY := 1.5             # ... seconds between one Hound's bites (faster with Haste)
 const HOUND_LEASH := 30.0                 # ... metres from you their prey can be before they come back to heel
 const HOUND_DRAG := 0.75                  # ... damage each deals to its prey when their time is up (Drag Down)
-const ROUSED_TIME := 8.0                  # Roused: seconds it lasts (spending Rage again starts it over; it does not stack)
+const ROUSED_TIME := 8.0                  # Roused: seconds it lasts (spending Fury again starts it over; it does not stack)
 const ROUSED_PCT := 25.0                  # ... % more damage the Hounds' bites deal
 const LAID_OPEN_TIME := 8.0               # Open Up: seconds its mark stays on the target
 const LAID_OPEN_PCT := 30.0               # ... % more damage the Hounds' bites deal to the marked enemy
@@ -546,7 +546,7 @@ const OFF_THE_CHAIN_SPEED_PCT := 50.0     # ... % faster the Hounds bite
 ## The Hounds' talents (their per-rank numbers are in talents.gd):
 const WORKED_UP_CRIT := 10.0              # Worked Up's capstone: % more critical strike chance of bites while Roused
 const STILL_WET_PCT := 10.0               # Still Wet's capstone: % more damage your own direct hits deal to an enemy you Laid Open
-const PINCER_RAGE := 10.0                 # Pincer's capstone: Rage back for each lunge that critically strikes
+const PINCER_FURY := 10.0                 # Pincer's capstone: Fury back for each lunge that critically strikes
 const SLIPPED_LEASH_HOUNDS := 1           # Slipped Leash's capstone: Hounds that join for as long as Off the Chain lasts
 const DRAG_KILL_WINDOW := 1.5             # Take It With You's capstone: seconds after Drag Down in which the enemy's death is its kill
 const FEEDING_FRENZY_TIME := 8.0          # Feeding Frenzy: seconds its Haste lasts (another death starts the time over)
@@ -860,7 +860,7 @@ const PACT_SHEPHERD_SELF := 30.0         # ... % smaller heals of yours on yours
 const PACT_SHEPHERD_RANGE := 40.0        # ... vow: no party member goes down within this many metres of you
 const PACT_VANGUARD_TAKEN := 12.0        # Pact of the Vanguard: % less damage taken (broken: % more) ...
 const PACT_VANGUARD_DAMAGE := 10.0       # ... % less damage dealt. Vow: no enemy attacking you turns on a party member
-const PACT_RESTLESS_RESOURCE := 25.0     # Pact of the Restless: % faster Mana, Rage and Energy gains (broken: % slower) ...
+const PACT_RESTLESS_RESOURCE := 25.0     # Pact of the Restless: % faster Mana, Fury and Energy gains (broken: % slower) ...
 const PACT_RESTLESS_BLEED := 1.0         # ... % of max health lost every second out of combat (and no regeneration)
 const PACT_RESTLESS_IDLE := 30.0         # ... vow: never this many seconds out of combat once the first fight has started
 const PACT_RESERVOIR_COST := 20.0        # Pact of the Reservoir: % lower mana costs (broken: % higher) ...
@@ -903,6 +903,11 @@ const RAISE_MANA_PCT := 50.0       # ... and mana back
 const PING_TIME := 6.0             # seconds a ping stays up
 const PING_COOLDOWN := 0.5         # seconds between your pings
 const PING_MAX_PER_PLAYER := 3     # older pings disappear beyond this
+
+# --- Enemies: melee tells ----------------------------------------------------------------
+# Every melee hit shows a short, bright tell before it lands (same hit rate; not a cast:
+# interrupts don't stop it, stuns and knockdowns do). The Brawler's Catch works on it.
+const MELEE_TELL_TIME := 0.6       # seconds from the tell to the hit (Hasted elites and Frenzy shorten it)
 
 # --- Elite traits (every elite gets one at random) ------------------------------------
 const ELITE_SHIELD_PCT := 20.0          # Shielded: shield = % of max health...
@@ -1028,6 +1033,116 @@ const LINGERING_VENOM_KEEP := 40.0        # Lingering Venom (talent) capstone: %
 # Nature open talents (scripts/player/nature_talents_open.gd)
 const CLINGING_VINES_TIME := 3.0          # Clinging Vines: seconds an enemy stays slowed after a root or hold of mine on it ends
 const CLINGING_VINES_SLOW_STEP := 20.0    # ... it moves this % slower per rank of the talent (one stack of the slow per rank)
+# Martial warrior: the Wheel (scripts/player/martial_wheel.gd)
+const WHEEL_USES := 4                     # uses each held weapon takes before it breaks (off-GCD abilities and trinkets don't count)
+const CRACKS_QUICK := 1                   # Cracks a Filler adds to the held weapon
+const CRACKS_FULL := 2                    # Cracks a Heavy Filler adds
+const BREAK_BASE := 0.2                   # Break: damage (coefficient) with no Cracks ...
+const BREAK_PER_CRACK := 0.6              # ... plus this per Crack (no cap)
+const AXE_CLEAVE_PCT := 25.0              # Greataxe rider: your ability hits also hit 1 other enemy for this % ...
+const AXE_CLEAVE_REACH := 5.0             # ... within this many metres of the target
+const HACK_CLEAVE_TARGETS := 2            # Hack / Chop: also hit this many more enemies ...
+const HACK_CLEAVE_REACH := 5.0            # ... within this many metres of the target ...
+const HACK_CLEAVE_PCT := 50.0             # ... for this % of the hit
+const SWORD_CRIT_PCT := 10.0              # Greatsword rider: % more crit chance
+const SHARD_LANCE_MULT := 1.2             # Shard Lance: its Break damage times this (all into one target) ...
+const SHARD_LANCE_PER_CRACK := BREAK_PER_CRACK * SHARD_LANCE_MULT   # ... so this per Crack
+const HALBERD_AGAIN_PCT := 20.0           # Halberd rider: % chance an ability hit hits again (as much again)
+const HALBERD_SWEEP_TARGETS := 3          # Jab / Hook: hit up to this many enemies in front of you ...
+const HALBERD_SWEEP_REACH := 5.0          # ... this far ...
+const HALBERD_SWEEP_ARC := 120.0          # ... in this wide an arc (degrees); split past the AoE cap
+const FLYING_HEAD_BOUNCES := 3            # Flying Head: after the target, the head bounces to this many more enemies ...
+const FLYING_HEAD_BOUNCE_PCT := 50.0      # ... for this % each ...
+const FLYING_HEAD_REACH := 8.0            # ... each within this many metres of the last
+const STAGGER_MAX := 100.0                # Maul rider: Stagger an enemy can hold; full = knocked down (never bosses)
+const STAGGER_PER_HIT := 20.0             # ... Stagger each of your ability hits adds
+const STAGGER_MAUL_EXTRA := 20.0          # ... Thud, Crush and Fault Line add this much more
+const STAGGER_FADE := 8.0                 # ... an enemy you haven't hit for this many seconds loses its Stagger
+const STAGGER_KNOCKDOWN := 1.0            # ... seconds a full Stagger knocks it down
+const SHRAPNEL_RADIUS := 8.0              # Shrapnel: hits every enemy within this many metres (split past the AoE cap)
+const FAULT_LINE_REACH := 8.0             # Fault Line: a cone this long ...
+const FAULT_LINE_ARC := 90.0              # ... and this wide (degrees); split past the AoE cap
+const RUSH_DISTANCE := 12.0               # Rush: metres you dash forward, through enemies
+const BLADE_GUARD_PCT := 40.0             # Blade Guard: % less damage taken ...
+const BLADE_GUARD_TIME := 4.0             # ... for this many seconds
+const DRAG_IN_GAP := 0.6                  # Drag In: metres between you and where the enemy lands
+const DRAG_IN_TIME := 0.25                # ... seconds the drag takes
+const EARTHSHAKE_TIME := 1.5              # Earthshake: seconds enemies are knocked down (never bosses)
+
+# Martial tank: the Brawler (scripts/player/martial_brawler.gd). Strikes go into a chain of
+# CHAIN_LENGTH; the last one picks the move, all different makes the strong one.
+const BRUISE_PCT := 40.0                  # Bruise: % of every hit you take that is not dealt now ...
+const BRUISE_TIME := 6.0                  # ... but over this many seconds (new damage starts it over with the total left)
+const BRUISE_TICK := 0.5                  # ... in a tick every this many seconds
+const BRUISE_FURY := 1.0                  # ... each tick gives this much Fury per 1% of your max health it deals
+const STRIKE_GCD := 1.0                   # Punch / Kick / Elbow / Catch: their global cooldown (Haste shortens it like the GCD)
+const CHAIN_LENGTH := 3                   # inputs in a chain
+const CHAIN_TIMEOUT := 5.0                # seconds without a strike that clear the chain
+const HAYMAKER_FURY := 30.0               # Haymaker: Fury it spends (without it: Rapid Fists)
+const KICKED_DOWN_TIME := 1.0             # Roundhouse / Throw: seconds enemies are knocked down (never bosses)
+const CLINCH_PCT := 30.0                  # Clinch: % less damage you take from the clinched enemy ...
+const CLINCH_TIME := 4.0                  # ... for this long
+const SHAKE_OFF_PCT := 30.0               # Shake Off: % of your Bruise it clears
+const TURN_IT_AROUND_PCT := 100.0         # Turn It Around: % of the caught hit it deals back
+const THROW_DISTANCE := 6.0               # Throw: metres the caught enemy is thrown (away from you) ...
+const THROW_SPLASH := 3.0                 # ... it and enemies within this many metres of where it lands are knocked down
+const THROW_TIME := 0.3                   # ... seconds the throw takes
+const REVERSAL_COEF := 1.0                # Throw on a boss (Reversal): damage (coefficient) instead
+const TAKEDOWN_TIME := 3.0                # Takedown: seconds the caught enemy is on the floor (bosses: Bruise cleared instead)
+const CATCH_GRACE := 0.3                  # Catch: seconds after the tell ends that the hit still counts as caught (latency)
+const TOUGH_IT_OUT_TIME := 5.0            # Tough It Out: seconds your Bruise ticks deal nothing ...
+const TOUGH_IT_OUT_FURY := 2.0            # ... and give this many times the Fury
+const COME_ON_TAUNT := 3.0                # Come On: seconds the target must attack you
+
+# Martial DPS: the Rogue (scripts/player/martial_rogue.gd). Rogue hits build Flow; a range
+# switch builds more; Go In spends it on a Kill window where the builders take their Kill forms.
+const FLOW_MAX := 10                      # Flow: most stacks ...
+const FLOW_PCT := 1.0                     # ... % more damage per stack
+const FLOW_SWITCH := 1                    # ... extra Flow for a hit from a different range than your last
+const FLOW_HOLD := 3.0                    # ... seconds without a Rogue hit before it starts to drop ...
+const FLOW_DECAY_EVERY := 1.0             # ... then one stack every this many seconds
+const TWIN_STAB_FLOW := 2                 # Twin Stab: Flow it gives (the others give 1)
+const WHIRL_FLOW_MAX := 3                 # Whirl / Knife Spread: 1 Flow per enemy hit, up to this many
+const KILL_MIN_FLOW := 5                  # Go In: Flow needed
+const KILL_PER_FLOW := 1.0                # ... seconds of Kill window per Flow spent
+const KILL_CRIT_ENERGY := 10.0            # ... Energy back for each crit of yours in it
+const KILL_VARIETY := 0.5                 # ... seconds a Kill form adds when it differs from the one before it ...
+const KILL_VARIETY_MAX := 5.0             # ... up to this many in all
+const HIT_YOUR_STRIDE_MULT := 1.5         # Hit Your Stride: its Kill window (at FLOW_MAX) is this many times as long
+const CLOSE_IT_OUT_PER_SEC := 0.4         # Close It Out: damage (coefficient) per second the window had left
+const ROLL_WITH_IT_FLOW := 3              # Roll With It: Flow it spends ...
+const ROLL_WITH_IT_PCT := 40.0            # ... % less damage taken ...
+const ROLL_WITH_IT_TIME := 3.0            # ... for this long
+const DAGGER_MAX := 3                     # Stuck daggers: most of yours in one enemy ...
+const DAGGER_TIME := 20.0                 # ... seconds they stay (a new one starts it over)
+const DAGGER_RIP := 0.25                  # ... damage (coefficient) each one does when ripped out ("Ripped Out")
+const THROW_RANGE := 25.0                 # Cut / Gut / Knife Spread: how far you throw
+const CUT_THROWN := 0.45                  # Cut thrown: damage (coefficient)
+const GUT_THROWN := 0.8                   # Gut thrown: damage (coefficient)
+const KICK_OFF_DISTANCE := 8.0            # Kick Off / Back Flip: metres you flip back
+const KICK_OFF_WINDOW := 4.0              # Kick Off: seconds your next throw throws two daggers
+const KNIFE_SPREAD_TARGETS := 3           # Knife Spread: enemies in front it throws at ...
+const KNIFE_SPREAD_ARC := 90.0            # ... in this wide a cone (degrees)
+const KNIFE_SPREAD_COEF := 0.3            # ... damage (coefficient) per dagger
+const RED_SPREAD_COEF := 0.5              # ... in a Kill window (Red Whirl thrown)
+const BACK_FLIP_DAGGERS := 3              # Back Flip: daggers thrown into the target ...
+const BACK_FLIP_DAGGER_COEF := 0.3        # ... damage (coefficient) each
+const FLASH_POWDER_REACH := 8.0           # Snatch - Flash Powder: enemies this close in front ...
+const FLASH_POWDER_ARC := 90.0            # ... in this wide a cone (degrees) are Blinded (not bosses)
+const FLASH_POWDER_TIME := 2.0            # ... for this long
+const WHETSTONE_HITS := 3                 # Snatch - Whetstone: your next this many hits ...
+const WHETSTONE_PCT := 50.0               # ... deal this % more
+const SMOKE_FLASK_DODGE := 20.0           # Snatch - Smoke Flask: threat dropped, % dodge ...
+const SMOKE_FLASK_TIME := 4.0             # ... for this long
+const OIL_JAR_RADIUS := 4.0               # Snatch - Oil Jar: a burning pool this wide (radius) ...
+const OIL_JAR_TIME := 6.0                 # ... for this long ...
+const OIL_JAR_TICK := 1.0                 # ... burning every this many seconds ...
+const OIL_JAR_COEF := 0.15                # ... for this damage (coefficient, Fire; split past the AoE cap)
+const PIN_SHADOW_HITS := 3                # Pin the Shadow (Martial's root): hits (by anyone, not over time) that free it ...
+const PIN_SHADOW_TIME := 8.0              # ... or this many seconds
+const OVER_SHOULDER_TIME := 5.0           # Over the Shoulder: seconds your next hit is sure to crit
+const OVER_SHOULDER_GAP := 1.2            # ... metres behind the target you land
+const PLAY_DEAD_TIME := 3.0               # Play Dead: seconds enemies forget you
 
 # --- Utility (each book's "Utility" divider; scripts/player/utility.gd) ---------------------
 # Roots: every book has its own kind (CLAUDE.md). The other tools: useful to anyone
@@ -1202,7 +1317,7 @@ const ABILITIES := {
 	"hush": {"damage": 0.3, "cooldown": 20.0, "cost": 2, "range": 25.0},                                  # interrupt: see INTERRUPT_LOCKOUT
 	"takeitback": {"cooldown": 45.0, "cost": 2, "range": 30.0},                                           # shield = TAKE_IT_BACK_PCT % of the Decay on the target
 	"bottomless": {"cooldown": 90.0},
-	# Shadow melee: the Hounds (see HOUND_* above). Sic and Open Up build Rage, the rest spend it.
+	# Shadow melee: the Hounds (see HOUND_* above). Sic and Open Up build Fury, the rest spend it.
 	"sic": {"damage": 0.0, "weapon_mult": 1.0, "cooldown": 0.0, "generates": 15},
 	"openup": {"damage": 0.0, "weapon_mult": 1.4, "cooldown": 6.0, "generates": 25},                       # its mark: LAID_OPEN_*
 	"bothatonce": {"damage": 0.0, "weapon_mult": 1.2, "cooldown": 4.0, "cost": 40},                       # each Hound's lunge = HOUND_LUNGE
@@ -1291,7 +1406,7 @@ const ABILITIES := {
 	"owl": {"damage": 0.5, "cooldown": 12.0, "cost": 2, "range": 40.0},
 	"heartwoodelk": {"cooldown": 15.0, "cost": 3, "radius": 10.0},
 	"wildherd": {"cooldown": 120.0, "cost": 3, "radius": 40.0},
-	# Nature tank: the Colossus (Rage; SAP_* and the rest above)
+	# Nature tank: the Colossus (Fury; SAP_* and the rest above)
 	"vinefist": {"damage": 1.0, "cooldown": 3.0, "generates": 20, "threat": 4.0},
 	"grasp": {"cooldown": 10.0, "cost": 15, "range": 25.0, "threat": 6.0},
 	"stomp": {"damage": 0.8, "cooldown": 8.0, "cost": 25, "radius": 8.0, "threat": 4.0},
@@ -1308,6 +1423,61 @@ const ABILITIES := {
 	"bloatarrow": {"cooldown": 15.0},
 	"coilback": {"cooldown": 20.0},
 	"venomsurge": {"cooldown": 120.0},
+	# Martial warrior: the Wheel (Fury; WHEEL_* and the rest above). Fillers
+	# give Fury, Heavy Fillers cost it, Weapon Arts are free, Finishers deal BREAK_BASE
+	# + BREAK_PER_CRACK per Crack.
+	"hack": {"damage": 0.6, "generates": 20},
+	"chop": {"damage": 0.8, "cost": 30},
+	"rush": {"cooldown": 15.0},
+	"shrapnel": {"damage": BREAK_BASE, "radius": SHRAPNEL_RADIUS},
+	"slash": {"damage": 0.7, "generates": 20},
+	"lunge": {"damage": 0.95, "cost": 30},
+	"bladeguard": {"cooldown": 45.0},
+	"shardlance": {"damage": BREAK_BASE * SHARD_LANCE_MULT},
+	"jab": {"damage": 0.6, "generates": 30},
+	"hook": {"damage": 0.8, "cost": 20},
+	"dragin": {"cooldown": 20.0, "range": 12.0},
+	"flyinghead": {"damage": BREAK_BASE},
+	"thud": {"damage": 0.6, "generates": 20},
+	"crush": {"damage": 0.8, "cost": 30},
+	"earthshake": {"cooldown": 30.0, "radius": 6.0},
+	"faultline": {"damage": BREAK_BASE, "radius": FAULT_LINE_REACH},
+	# Martial tank: the Brawler (BRUISE_*, the chain and the rest above). Strikes give Fury;
+	# the chain's moves go off with the third strike and are paid for by it (Haymaker:
+	# HAYMAKER_FURY).
+	"punch": {"damage": 0.3, "generates": 10, "threat": 4.0},
+	"brawlkick": {"damage": 0.3, "generates": 10, "threat": 4.0},
+	"elbow": {"damage": 0.3, "generates": 10, "threat": 4.0},
+	"rapidfists": {"damage": 0.45, "threat": 5.0},
+	"haymaker": {"damage": 1.1, "threat": 4.0},
+	"sweep": {"damage": 0.4, "radius": 5.0, "threat": 5.0},
+	"roundhouse": {"damage": 0.5, "radius": 6.0, "threat": 5.0},
+	"throw": {"damage": 0.6, "threat": 4.0},
+	"turnitaround": {"threat": 4.0},
+	"onemore": {"cooldown": 15.0, "cost": 25},
+	"toughitout": {"cooldown": 30.0, "cost": 40},
+	"comeon": {"cooldown": 8.0, "range": 25.0, "threat": 6.0},
+	# Martial DPS: the Rogue (FLOW_*, KILL_*, DAGGER_* and the rest above). Kill forms
+	# (gut ... drivethrough) are what the builders become in a Kill window.
+	"cut": {"damage": 0.55, "cost": 20, "range": THROW_RANGE},
+	"whirl": {"damage": 0.35, "cost": 35, "radius": 5.0, "range": THROW_RANGE},
+	"dartin": {"damage": 0.5, "cost": 15, "cooldown": 10.0, "range": 15.0},
+	"kickoff": {"damage": 0.4, "cost": 15, "cooldown": 10.0},
+	"twinstab": {"damage": 0.5, "cost": 30, "cooldown": 8.0},
+	"goin": {},
+	"closeitout": {"cost": 20},
+	"hityourstride": {"cooldown": 120.0},
+	"rollwithit": {"cooldown": 25.0},
+	"snatch": {"cost": 15, "cooldown": 20.0},
+	"gut": {"damage": 1.0, "cost": 20, "range": THROW_RANGE},
+	"throughandthrough": {"damage": 0.9, "cost": 30},
+	"redwhirl": {"damage": 0.6, "cost": 35, "radius": 5.0, "range": THROW_RANGE},
+	"backflip": {"damage": 0.6, "cost": 15, "cooldown": 10.0},
+	"drivethrough": {"damage": 0.8, "cost": 15, "cooldown": 10.0, "range": 15.0},
+	# Martial Utility (cooldowns only: the book's specs spend different resources)
+	"pintheshadow": {"cooldown": 20.0, "range": 30.0},
+	"overtheshoulder": {"cooldown": 20.0, "range": 10.0},
+	"playdead": {"cooldown": 90.0},
 	# Utility (each book's "Utility" divider; the numbers above)
 	"rootsnare": {"cooldown": 20.0, "cost": 2, "radius": 3.0, "range": 30.0},
 	"deeproots": {"cooldown": 60.0, "cost": 1},
@@ -1332,6 +1502,12 @@ const ABILITIES := {
 
 const EFFECTS := {
 	"res://data/effects/grasped.tres": {"duration": GRASP_HOLD},   # Grasp (Nature tank)
+	"res://data/effects/knocked_down.tres": {"duration": STAGGER_KNOCKDOWN},   # a full Stagger (Martial warrior: the Maul)
+	"res://data/effects/shaken_down.tres": {"duration": EARTHSHAKE_TIME},   # Earthshake (Martial warrior: the Maul)
+	"res://data/effects/kicked_down.tres": {"duration": KICKED_DOWN_TIME},   # Roundhouse / Throw (Martial tank: the Brawler)
+	"res://data/effects/taken_down.tres": {"duration": TAKEDOWN_TIME},   # Takedown (Martial tank: the Brawler)
+	"res://data/effects/pinned_shadow.tres": {"duration": PIN_SHADOW_TIME, "break_hits": PIN_SHADOW_HITS},   # Pin the Shadow (Martial Utility)
+	"res://data/effects/blinded.tres": {"duration": FLASH_POWDER_TIME},   # Snatch - Flash Powder (Martial DPS: the Rogue)
 	"res://data/effects/asp_venom.tres": {"duration": POISON_TIME, "slow": -ASP_SLOW},   # Asp Arrow (Nature archer)
 	"res://data/effects/coiled.tres": {"duration": COIL_HOLD},   # Coil Back
 	"res://data/effects/snagged.tres": {"duration": CLINGING_VINES_TIME, "slow": -CLINGING_VINES_SLOW_STEP},   # Clinging Vines (Nature open talent; one stack per rank)
@@ -1373,7 +1549,8 @@ const _ABILITY_FIELDS := {"damage": "damage", "weapon_mult": "weapon_damage_mult
 	"cooldown": "cooldown", "cost": "resource_cost", "generates": "resource_generated",
 	"cast_time": "cast_time", "radius": "radius", "range": "cast_range", "threat": "threat_multiplier"}
 const _EFFECT_FIELDS := {"duration": "duration", "tick_damage": "tick_damage",
-	"tick_every": "tick_interval", "burst": "expire_damage", "damage_pct": "damage_mod_pct"}
+	"tick_every": "tick_interval", "burst": "expire_damage", "damage_pct": "damage_mod_pct",
+	"break_hits": "break_after_hits"}
 
 ## Effects stay loaded (and so keep their tuned values) while the game runs.
 static var _effects_kept: Array[Resource] = []
@@ -1419,7 +1596,7 @@ static func apply_effects() -> void:
 				continue
 			var field: String = _EFFECT_FIELDS.get(k, "")
 			if field != "" and field in fx:
-				fx.set(field, float(t[k]))
+				fx.set(field, int(t[k]) if fx.get(field) is int else float(t[k]))
 		_effects_kept.append(fx)
 
 ## Share of full damage each target takes when `count` enemies are hit by a

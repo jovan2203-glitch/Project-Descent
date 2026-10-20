@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/status_effect_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"pinned_shadow"
+display_name = "Pinned"
+description = "A knife through its shadow holds it to the floor: cannot move. A few hits shake it loose."
+color = Color(0.85, 0.82, 0.75, 1)
+is_debuff = true
+tags = PackedStringArray("Physical", "Root")
+duration = 8.0
+stack_mode = 0
+max_stacks = 1
+root = true
+break_after_hits = 3

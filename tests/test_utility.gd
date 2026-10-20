@@ -48,7 +48,7 @@ func test_every_utility_ability_is_set_up() -> void:
 func test_every_book_has_a_utility_divider_with_its_interrupts() -> void:
 	for book in Abilities.SPECS:
 		if (Abilities.SPECS[book] as Array).is_empty():
-			continue   # (Martial: wiped)
+			continue
 		assert_false(_utility_spec(book).is_empty(), "%s has a Utility divider" % book)
 	for id in Balance.INTERRUPT_LOCKOUT:
 		assert_true(_utility_spec(Abilities.category_of(id)).has(id), "%s (an interrupt) is in its book's Utility" % id)

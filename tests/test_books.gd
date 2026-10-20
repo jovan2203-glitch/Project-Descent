@@ -108,7 +108,7 @@ func test_every_book_has_a_root() -> void:
 	for cat in Categories.ORDER:
 		var ids := Abilities.in_category(cat)
 		if ids.is_empty():
-			continue   # (Martial: wiped, gets its root when it is rebuilt)
+			continue
 		var found := false
 		for id in ids:
 			if Abilities.get_resource(id).tags.has("Root"):

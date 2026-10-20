@@ -161,7 +161,7 @@ func _icebreaker(w: Dictionary, res: Resource) -> void:
 	if frozen:
 		var back := player._talent("frost_clean_break")
 		if back > 0.0:
-			player._gain("rage", back)   # Clean Break: part of its Rage comes back
+			player._gain("fury", back)   # Clean Break: part of its Fury comes back
 		player._ring_effect(1.1, Color(0.85, 0.95, 1.0), at)
 		player._ring_effect(0.6, Color(0.95, 0.97, 1.0), at)
 

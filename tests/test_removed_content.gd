@@ -52,4 +52,3 @@ func test_wiped_martial_abilities_are_gone() -> void:
 		assert_false(SkillCards.ALL.has(id), "%s has no Skill Card" % id)
 		assert_false(FileAccess.file_exists("res://data/abilities/%s.tres" % id), "%s.tres is deleted" % id)
 		assert_false(FileAccess.file_exists("res://data/skill_cards/%s.tres" % id), "its Skill Card file is deleted")
-	assert_true(Abilities.SPECS["martial"].is_empty(), "the Martial book has no specs")

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"faultline"
+display_name = "Fault Line"
+description = "The Maul breaks into the ground and a shockwave runs {radius} m ahead in a {b:FAULT_LINE_ARC} degree cone, dealing {hit} Physical damage plus {d:BREAK_PER_CRACK} for each Crack in it, and {b:STAGGER_MAUL_EXTRA} more Stagger, to every enemy in it. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, it is split evenly between all of them. The next weapon on your Wheel comes into your hands."
+tags = PackedStringArray("Ability", "Physical", "Melee", "AoE")
+cast_type = 0
+cast_time = 0.0
+requires_target = false
+weapon_requirement = 1
+resource_type = 3
+damage = 0.0
+damage_type = &"physical"

@@ -64,14 +64,14 @@ func test_blocks_burn_harder_with_hot_iron() -> void:
 
 func test_tank_abilities() -> void:
 	var brand := Abilities.get_resource("brand")
-	assert_true(int(brand.resource_generated) > 0 and int(brand.resource_cost) == 0, "Brand builds rage")
+	assert_true(int(brand.resource_generated) > 0 and int(brand.resource_cost) == 0, "Brand builds fury")
 	assert_true(float(brand.threat_multiplier) >= 3.0, "high threat")
 	assert_true(brand.on_hit_effect != null, "leaves the brand on the target")
 	var fx: Resource = load("res://data/effects/branded.tres")
 	assert_true(bool(fx.get("per_caster")), "each tank has their own brand")
 	assert_eq(float(fx.get("duration")), 10.0)
 	var guard := Abilities.get_resource("cinderguard")
-	assert_true(int(guard.resource_cost) > 0 and Abilities.resource_of("cinderguard") == "rage", "Cinder Guard spends rage")
+	assert_true(int(guard.resource_cost) > 0 and Abilities.resource_of("cinderguard") == "fury", "Cinder Guard spends fury")
 	assert_true(bool(guard.requires_shield))
 	var anvil := Abilities.get_resource("anvil")
 	assert_true(bool(anvil.requires_shield) and float(anvil.radius) > 0.0, "a shield slam around you")

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"brawlkick"
+display_name = "Kick"
+description = "A hard kick, dealing {hit} Physical damage. It goes into your Chain: a Chain that ends with Kick finishes with {n:sweep}, or {n:roundhouse} when its three strikes are all different."
+tags = PackedStringArray("Ability", "Physical", "Melee")
+cast_type = 0
+cast_time = 0.0
+requires_target = true
+weapon_requirement = 1
+forbids_shield = true
+resource_type = 3
+damage = 0.0
+damage_type = &"physical"

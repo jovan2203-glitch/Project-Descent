@@ -44,6 +44,10 @@ const ALL := ["frostnova", "icebarrier", "blink",
 	"fangarrow", "adderarrow", "asparrow", "kraitarrow", "venomburst", "spittingvolley", "bloatarrow", "coilback", "venomsurge",
 	"stormshield", "thunderaegis",
 	"returnstroke", "shockring", "crossguard", "drawthestorm", "reelin", "recharge",
+	"wheelgreataxe", "wheelgreatsword", "wheelhalberd", "wheelmaul",
+	"punch", "catch", "comeon", "toughitout", "onemore",
+	"cut", "whirl", "dartin", "kickoff", "twinstab", "closeitout", "rollwithit", "hityourstride", "snatch",
+	"pintheshadow", "overtheshoulder", "playdead",
 	"counterspell"]
 
 static var _cache := {}

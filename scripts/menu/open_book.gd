@@ -218,13 +218,74 @@ func _refresh_book_abilities() -> void:
 		grid.add_theme_constant_override("h_separation", 4)
 		grid.add_theme_constant_override("v_separation", 4)
 		_book_abilities.add_child(grid)
+		var open_weapons: Array[String] = []
 		for id in spec[1]:
+			if not Abilities.listed_in_book(id):
+				continue   # (a Wheel move: under its weapon's dropdown)
 			var cell := _book_ability_cell(pd, id)
 			grid.add_child(cell)
 			_ability_cells[id] = cell
 			menu.book_search._add_mark(cell)
 			menu.book_search._wire_hover(cell, "a:" + id)
+			if Abilities.WHEEL_FORMS.has(id):
+				cell.pressed.connect(_toggle_wheel_weapon.bind(id))
+				if _wheel_open.get(id, false):
+					open_weapons.append(id)
+		# The Wheel's weapons drop down to show their moves.
+		for w in open_weapons:
+			_book_abilities.add_child(menu._label("%s's moves" % Abilities.ability_name(w), 12, col.darkened(0.1)))
+			var moves := GridContainer.new()
+			moves.columns = 2
+			moves.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			moves.add_theme_constant_override("h_separation", 4)
+			moves.add_theme_constant_override("v_separation", 4)
+			_book_abilities.add_child(moves)
+			for move in Abilities.WHEEL_FORMS[w]:
+				var mcell := _book_ability_cell(pd, str(move))
+				moves.add_child(mcell)
+				_ability_cells[str(move)] = mcell
+				menu.book_search._add_mark(mcell)
+				menu.book_search._wire_hover(mcell, "a:" + str(move))
+		# The Brawler's Chain: what each ending makes (left any repeat, right three different).
+		if spec[1].has("punch"):
+			for part in Abilities.brawler_move_table():
+				_book_abilities.add_child(menu._label(str(part[0]), 12, col.darkened(0.1)))
+				var moves := GridContainer.new()
+				moves.columns = 2
+				moves.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				moves.add_theme_constant_override("h_separation", 4)
+				moves.add_theme_constant_override("v_separation", 4)
+				_book_abilities.add_child(moves)
+				for move in part[1]:
+					var mcell := _book_ability_cell(pd, str(move))
+					moves.add_child(mcell)
+					_ability_cells[str(move)] = mcell
+					menu.book_search._add_mark(mcell)
+					menu.book_search._wire_hover(mcell, "a:" + str(move))
+		# The Rogue's Kill forms: what each builder becomes in a Kill window.
+		if spec[1].has("cut"):
+			for part in Abilities.rogue_kill_table():
+				_book_abilities.add_child(menu._label(str(part[0]), 12, col.darkened(0.1)))
+				var forms := GridContainer.new()
+				forms.columns = 2
+				forms.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				forms.add_theme_constant_override("h_separation", 4)
+				forms.add_theme_constant_override("v_separation", 4)
+				_book_abilities.add_child(forms)
+				for form in part[1]:
+					var fcell := _book_ability_cell(pd, str(form))
+					forms.add_child(fcell)
+					_ability_cells[str(form)] = fcell
+					menu.book_search._add_mark(fcell)
+					menu.book_search._wire_hover(fcell, "a:" + str(form))
 	menu.book_search._update_marks()
+
+## Weapon id -> its dropdown is open (the Wheel, Martial warrior).
+var _wheel_open := {}
+
+func _toggle_wheel_weapon(weapon: String) -> void:
+	_wheel_open[weapon] = not bool(_wheel_open.get(weapon, false))
+	_refresh_book_abilities()
 
 ## One ability on the book's left page: icon + name (+ learned state). Learned
 ## ones are bright, unlearned ones dimmed with a red name. Hover for the tooltip.
@@ -259,4 +320,9 @@ func _book_ability_cell(pd: Node, id: String) -> Button:
 	n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	n.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(n)
+	if Abilities.WHEEL_FORMS.has(id):
+		# A Wheel weapon: click to show / hide its moves.
+		var arrow := menu._label("-" if _wheel_open.get(id, false) else "+", 16, MainMenu.INK_DIM)
+		arrow.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(arrow)
 	return b

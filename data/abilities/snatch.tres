@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"snatch"
+display_name = "Snatch"
+description = "Lift something off your target's belt and use it at once, one of four at random. Flash Powder: enemies within {b:FLASH_POWDER_REACH} m in front of you are Blinded. Whetstone: your next {b:WHETSTONE_HITS} hits deal {b:WHETSTONE_PCT}% more. Smoke Flask: your threat on every enemy is dropped and you have {b:SMOKE_FLASK_DODGE}% more Dodge for {b:SMOKE_FLASK_TIME} sec. Oil Jar: a burning pool under it deals {d:OIL_JAR_COEF} Fire damage {bev:OIL_JAR_TICK} to enemies within {b:OIL_JAR_RADIUS} m for {b:OIL_JAR_TIME} sec."
+tags = PackedStringArray("Ability", "Physical", "Melee")
+cast_type = 0
+cast_time = 0.0
+requires_target = true
+weapon_requirement = 1
+requires_dual_wield = true
+resource_type = 2
+damage = 0.0
+damage_type = &"physical"

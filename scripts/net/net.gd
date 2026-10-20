@@ -51,6 +51,9 @@ const BREACH_FX = preload("res://scripts/breach_fx.gd")
 const PUPPETEER = preload("res://scripts/puppeteer.gd")
 const HYMN_RING = preload("res://scripts/hymn_ring.gd")
 const CENSER = preload("res://scripts/censer.gd")
+const WEAPON_WHEEL = preload("res://scripts/weapon_wheel.gd")
+const BRAWLER_ORBS = preload("res://scripts/brawler_orbs.gd")
+const ROGUE_FX = preload("res://scripts/rogue_fx.gd")
 const LIGHT_MOTE = preload("res://scripts/light_mote.gd")
 const PRISM = preload("res://scripts/prism.gd")
 const LIGHT_BEAM = preload("res://scripts/light_beam.gd")
@@ -700,6 +703,8 @@ func _cdmg(t: int, member: int, id: String, amount: int, _ability_id: String, th
 	var threat_amount := amount
 	if src and e.has_method("note_attacker"):
 		e.note_attacker(src)
+	if amount > 0 and e.has_method("count_hit"):
+		e.count_hit(tags)   # (Pin the Shadow)
 	if amount > 0:
 		var st_abs := e.get_node_or_null("Status")
 		var through := amount
@@ -1056,6 +1061,26 @@ func _sup_drop_threat(t: int, member: int, id: String) -> void:
 	if e and src and e.has_method("drop_threat"):
 		e.drop_threat(src)
 
+## Play Dead (Martial Utility): `enemy` forgets `source` for `time` seconds (0: it
+## remembers them again). The host owns enemies.
+func forget(enemy: Node, source: Node, time: float) -> void:
+	if enemy == null or not is_instance_valid(enemy):
+		return
+	if is_client() and _connected():
+		rpc_id(1, "_sup_forget", token, member_of(source), enemy_id(enemy), time)
+	elif enemy.has_method("forget"):
+		enemy.forget(source, time)
+
+@rpc("any_peer", "call_remote", "reliable")
+func _sup_forget(t: int, member: int, id: String, time: float) -> void:
+	var w := _world()
+	if t != token or not is_host() or w == null:
+		return
+	var e := _enemy(w, id)
+	var src := body_of(member)
+	if e and src and e.has_method("forget"):
+		e.forget(src, time)
+
 ## Reel In: drag `enemy` to `to` and make it attack `source` for `taunt_time`
 ## seconds (the host owns enemies). Something that can't be dragged (a training
 ## dummy) is only taunted.
@@ -1337,6 +1362,30 @@ func _fx(t: int, member: int, kind: String, at: Vector3, target_id: String, id: 
 				CENSER.raise(src, at, float(extra.get("h", 4.0)), float(extra.get("up", 0.0)), float(extra.get("r", 10.0)))
 		"censer_flash":
 			CENSER.flash(src)
+		"wheel":
+			# A party member's Wheel (Martial warrior): their weapons, the held one and its
+			# Cracks. A picture; the rules run on their machine.
+			WEAPON_WHEEL.show_on(src, extra.get("w", []), int(extra.get("h", 0)), int(extra.get("c", 0)))
+		"wheel_burst":
+			WEAPON_WHEEL.burst(src, str(extra.get("w", "")))
+		"brawler":
+			# A party member's Chain (Martial tank): the orbs on their back and their
+			# Fighting Style. A picture; the rules run on their machine.
+			BRAWLER_ORBS.show_on(src, extra.get("i", []), bool(extra.get("b", false)), bool(extra.get("o", false)))
+		"brawler_burst":
+			BRAWLER_ORBS.burst(src, extra.get("i", []), bool(extra.get("g", false)))
+		"rogue":
+			# A party member's Flow ring (Martial DPS: the Rogue) and Play Dead. A picture;
+			# the rules run on their machine.
+			ROGUE_FX.show_flow(src, int(extra.get("f", 0)), Balance.FLOW_MAX, bool(extra.get("k", false)))
+			ROGUE_FX.play_dead(src, bool(extra.get("dead", false)))
+		"rogue_daggers":
+			# A party member's daggers stuck in an enemy (theirs only; one set per member).
+			if tgt:
+				ROGUE_FX.set_daggers(tgt, str(member), int(extra.get("n", 0)))
+		"rogue_throw":
+			if tgt:
+				ROGUE_FX.throw(w, at, tgt.global_position + Vector3(0, 1.0, 0))
 		"prisms":
 			# A party member's prisms (Holy healer #2): where they stand and how full,
 			# shown faint. A picture; only their beams charge them.

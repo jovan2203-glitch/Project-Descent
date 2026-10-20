@@ -223,7 +223,7 @@ func test_the_tank_kit_is_a_nature_spec() -> void:
 		assert_eq(Abilities.category_of(id), "nature", "%s is Nature" % id)
 		assert_true(Abilities.ALL.has(id) and Abilities.DRAFT_POOL.has(id) and SkillCards.ALL.has(id), "%s is drafted, with a Skill Card" % id)
 		assert_true(r.tags.has("Ability") and r.tags.has("Nature"), "%s is a Nature ability" % id)
-		assert_eq(Abilities.resource_of(id), "rage", "%s uses Rage" % id)
+		assert_eq(Abilities.resource_of(id), "fury", "%s uses Fury" % id)
 		var tip := Abilities.tooltip(id)
 		assert_false(tip.contains("{") or tip.contains("}"), "%s: every number in its text is filled in: %s" % [id, tip])
 	var spec: Array = []
@@ -231,7 +231,7 @@ func test_the_tank_kit_is_a_nature_spec() -> void:
 		if s[0] == "Colossus":
 			spec = s[1]
 	assert_eq(spec, TANK, "the Colossus spec holds the kit")
-	assert_true(Abilities.generated_of("vinefist") > 0, "Vine Fist builds Rage")
+	assert_true(Abilities.generated_of("vinefist") > 0, "Vine Fist builds Fury")
 
 func test_sap() -> void:
 	var p := _p()

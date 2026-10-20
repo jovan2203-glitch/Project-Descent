@@ -81,10 +81,10 @@ const INFO := {
 		"vow": "Never let an enemy that is attacking you turn on a party member while you are alive.",
 		"broken": "You take {b:PACT_VANGUARD_TAKEN}% more damage, and still deal {b:PACT_VANGUARD_DAMAGE}% less."},
 	RESTLESS: {"name": "Pact of the Restless",
-		"bonus": "Mana, Rage and Energy come in {b:PACT_RESTLESS_RESOURCE}% faster.",
+		"bonus": "Mana, Fury and Energy come in {b:PACT_RESTLESS_RESOURCE}% faster.",
 		"drawback": "Out of combat you lose {b:PACT_RESTLESS_BLEED}% of your maximum health every second and do not regenerate health. It starts with your first fight and never takes your last health.",
 		"vow": "Never stay out of combat for more than {b:PACT_RESTLESS_IDLE} sec once your first fight has started.",
-		"broken": "Mana, Rage and Energy come in {b:PACT_RESTLESS_RESOURCE}% slower, and you still lose health out of combat."},
+		"broken": "Mana, Fury and Energy come in {b:PACT_RESTLESS_RESOURCE}% slower, and you still lose health out of combat."},
 	RESERVOIR: {"name": "Pact of the Reservoir",
 		"bonus": "Your mana costs are {b:PACT_RESERVOIR_COST}% lower.",
 		"drawback": "{b:PACT_RESERVOIR_MANA}% less maximum mana.",
@@ -179,7 +179,7 @@ static func cooldown_rate(id: String, broken: bool) -> float:
 		return 1.0 + Balance.PACT_SIDESTEP_COOLDOWN / 100.0 * _sign(broken)
 	return 1.0
 
-## What an ability's cost in `resource` ("mana", "rage", "energy") is multiplied by.
+## What an ability's cost in `resource` ("mana", "fury", "energy") is multiplied by.
 static func cost_mult(id: String, broken: bool, resource: String) -> float:
 	match id:
 		SIDESTEP:
@@ -205,7 +205,7 @@ static func heal_done_mult(id: String, broken: bool) -> float:
 		return 1.0 + Balance.PACT_SHEPHERD_HEALS / 100.0 * _sign(broken)
 	return 1.0
 
-## What Mana, Rage and Energy I gain are multiplied by.
+## What Mana, Fury and Energy I gain are multiplied by.
 static func resource_gain_mult(id: String, broken: bool) -> float:
 	if id == RESTLESS:
 		return 1.0 + Balance.PACT_RESTLESS_RESOURCE / 100.0 * _sign(broken)

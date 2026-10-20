@@ -209,7 +209,7 @@ func test_the_hounds_talents() -> void:
 	assert_contains(Talents.tooltip(Talents.id_for_key("shadow_feeding_frenzy"), 1), "for 8 sec")
 	assert_contains(Talents.capstone_text(Talents.id_for_key("shadow_worked_up")), "10%")
 	assert_contains(Talents.capstone_text(Talents.id_for_key("shadow_still_wet")), "10%")
-	assert_contains(Talents.capstone_text(Talents.id_for_key("shadow_pincer")), "10 Rage")
+	assert_contains(Talents.capstone_text(Talents.id_for_key("shadow_pincer")), "10 Fury")
 	assert_contains(Talents.capstone_text(Talents.id_for_key("shadow_take_it_with_you")), "already Roused")
 	assert_contains(Talents.capstone_text(Talents.id_for_key("shadow_slipped_leash")), "third Hound")
 	assert_contains(Talents.tooltip(Talents.id_for_key("shadow_share_the_kill"), 1), Abilities.ability_name("shadowstrike"))

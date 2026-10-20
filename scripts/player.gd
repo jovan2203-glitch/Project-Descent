@@ -63,6 +63,9 @@ var venomstring: VenomstringKit = _kit(VenomstringKit) as VenomstringKit
 var nature_open: NatureTalentsOpenKit = _kit(NatureTalentsOpenKit) as NatureTalentsOpenKit
 var rez_kit: RezKit = _kit(RezKit) as RezKit
 var utility: UtilityKit = _kit(UtilityKit) as UtilityKit
+var wheel: WheelKit = _kit(WheelKit) as WheelKit
+var brawler: BrawlerKit = _kit(BrawlerKit) as BrawlerKit
+var rogue: RogueKit = _kit(RogueKit) as RogueKit
 
 ## A component of `script` working for me (a child node, made before _ready).
 func _kit(script: Script) -> Node:
@@ -191,6 +194,13 @@ func damage_taken_recently(window: float) -> int:
 func stand_in_for(_info: RefCounted) -> bool:
 	return arcane_tank.stand_in_for(_info)
 
+# Forwards to BrawlerKit (CombatSystem asks while a hit on me is worked out).
+func incoming_bonus(info: RefCounted) -> Array:
+	return brawler.incoming_bonus(info)   # Clinch
+
+func before_hit_lands(info: RefCounted) -> void:
+	brawler.before_hit_lands(info)   # Catch: is this the caught hit?
+
 # Forwards to ArcaneCasterKit (called from other scripts).
 func arcane_cooldowns(except: String = "") -> int:
 	return arcane_caster.arcane_cooldowns(except)
@@ -272,7 +282,8 @@ func heat_stacks() -> int:
 
 # Forwards to FireCasterKit (called from other scripts).
 func charges_text(id: String) -> String:
-	return fire_caster.charges_text(id)
+	var cracks := wheel.charges_text(id)   # Martial warrior: the Cracks on a Break button
+	return cracks if cracks != "" else fire_caster.charges_text(id)
 
 func stacks_kept_on_use(res: Resource, stacks: int) -> int:
 	return fire_caster.stacks_kept_on_use(res, stacks)
@@ -359,6 +370,7 @@ var god_mode := false   # debug: /god
 func take_damage(amount: int) -> void:
 	if health <= 0 or amount <= 0 or god_mode:
 		return
+	amount = brawler.bruise_take(amount)   # Martial tank: part of the hit goes into Bruise
 	amount = strings._still_standing_limit(amount)   # Still Standing: the Strings hold off a killing blow
 	amount = censer._unfallen_cap(amount)           # Unfallen: nothing can kill me
 	if amount <= 0:
@@ -586,6 +598,11 @@ func _ready() -> void:
 	_bus().cast_finished.connect(ice_shards_kit._on_spell_cast_for_shards)
 	_bus().cast_finished.connect(frost_runes._cold_precision_on_cast)
 	_bus().cast_finished.connect(holy_talents._zeal_on_cast)   # Zeal (an open Holy talent)
+	_bus().cast_finished.connect(wheel._on_cast_finished)   # Martial warrior: each use wears the held weapon
+	_bus().damage_dealt.connect(wheel._on_damage_dealt_wheel)   # ... and its rider
+	_bus().damage_dealt.connect(rogue._on_damage_dealt_rogue)   # Martial DPS: Kill window crits give Energy, attacks end Play Dead
+	_bus().damage_modify.connect(rogue._on_damage_modify)   # ... Flow and Whetstone
+	_bus().ability_used.connect(rogue._on_ability_used)   # ... acting ends Play Dead
 	_bus().ability_used.connect(frost_runes._cold_precision_on_use)
 	_bus().damage_dealt.connect(frost_runes._on_damage_dealt_frost)
 	_bus().damage_dealt.connect(fire_runes._on_damage_dealt_fire)
@@ -841,6 +858,8 @@ func use_ability(id: String) -> void:
 				_queued = id
 				_queued_at = Time.get_ticks_msec() / 1000.0
 			return
+	id = wheel.form_of(id)   # Martial warrior: a Wheel button is the held weapon's move (now, not when queued)
+	id = rogue.form_of(id)   # Martial DPS: in a Kill window a builder is its Kill form
 	if not casting and not cancelling_placement and not can_afford(id, true):
 		return
 	if not cancelling_placement:
@@ -858,6 +877,9 @@ func use_ability(id: String) -> void:
 		_start_gcd()
 		if id == StringsKit.STRING_ID:   # String: a short global cooldown, so several can be tied quickly
 			gcd_total = StringsKit.string_gcd(gcd_total)
+			gcd_left = gcd_total
+		elif BrawlerKit.short_gcd(id):   # the Brawler's strikes and Catch: a shorter global cooldown
+			gcd_total = BrawlerKit.strike_gcd(gcd_total)
 			gcd_left = gcd_total
 
 ## Enemy-targeted bolt spells with a cast time (same flow as Frost Bolt).
@@ -1003,7 +1025,8 @@ func _use_ability_now(id: String) -> void:
 		"trinket_1", "trinket_2":
 			_use_trinket(id)
 		_:
-			if Abilities.DRAFT_POOL.has(id) or BASE_INSTANTS.has(id) or LightningMeleeKit.RUNE_INSTANTS.has(id):
+			if Abilities.DRAFT_POOL.has(id) or BASE_INSTANTS.has(id) or LightningMeleeKit.RUNE_INSTANTS.has(id) \
+					or Abilities.wheel_weapon_of(id) != "" or Abilities.is_kill_form(id):   # (the Wheel's moves come with their weapon; the Rogue's Kill forms with a Kill window)
 				cancel_placement()
 				_use_drafted(id)
 
@@ -1174,21 +1197,36 @@ func deal_damage(enemy: Node, base: float, ability_id: String, is_proc: bool = f
 		frostfire_kit._on_hit_extra(enemy, at, ability_id)
 	return int(info.amount)
 
-# --- Resources: mana, Energy and Rage (Energy / Rage are bars of RESOURCE_MAX = 100) ----
+# --- Resources: mana, Energy and Fury (Energy / Fury are bars of RESOURCE_MAX = 100) ----
 
 const Abilities = preload("res://scripts/abilities.gd")
 const Balance = preload("res://scripts/balance.gd")
 const RESOURCE_MAX := Balance.RESOURCE_MAX
 const MANA_REGEN := Balance.MANA_REGEN      # points per second
 const ENERGY_REGEN := Balance.ENERGY_REGEN  # points per second
-const RAGE_DECAY := Balance.RAGE_DECAY      # points per second lost
+const FURY_DECAY := Balance.FURY_DECAY      # points per second lost
 
-var resources := {"mana": RESOURCE_MAX, "energy": RESOURCE_MAX, "rage": 0.0}
+var resources := {"mana": RESOURCE_MAX, "energy": RESOURCE_MAX, "fury": 0.0}
 
 func resource_points(res: String) -> int:
 	return int(floor(float(resources.get(res, 0.0)) + 0.0001))
 
 func can_afford(id: String, report: bool = false) -> bool:
+	# The Rogue (Martial DPS): Go In needs Flow, Kill forms and Close It Out a Kill window.
+	if not rogue.usable_now(id):
+		if report:
+			_error(rogue._rogue_precheck(id))
+		return false
+	# The Brawler (Martial tank): Catch only on a melee tell, One More only after a move, no shield.
+	if Abilities.BRAWLER_IDS.has(id):
+		if has_shield():
+			if report:
+				_error("Can't be used with a shield")
+			return false
+		if not brawler.usable_now(id):
+			if report:
+				_error(brawler._brawler_precheck(id))
+			return false
 	if id == "iceshards" and ice_shards_kit.ice_shard_charges <= 0:
 		if report:
 			_error("No Ice Shard charges")
@@ -1244,8 +1282,8 @@ func can_afford(id: String, report: bool = false) -> bool:
 	return false
 
 ## What using `id` costs right now. Mana costs in the data are points (10% of
-## base mana each) and get Cold Discipline's discount for spells; Energy / Rage
-## costs are that many Energy / Rage of their 100 (Grounding Surge halves Energy costs).
+## base mana each) and get Cold Discipline's discount for spells; Energy / Fury
+## costs are that many Energy / Fury of their 100 (Grounding Surge halves Energy costs).
 func resource_cost(id: String, with_storm_cycle: bool = true) -> float:
 	if Abilities.is_a(id, "frostbolt") and (frost_bow._instinct_cast or (not casting and frost_bow.frozen_instinct_ready())):
 		return 0.0   # Frozen Instinct: free
@@ -1298,7 +1336,7 @@ func _pay(id: String) -> bool:
 			lightning_melee._redline()   # Redline: Energy spent during Overdrive makes it last longer
 			bottled_kit._storm_cycle_spent(cost)   # Storm Cycle counts what I spend
 		if HoundsKit.rouses(res, cost):
-			hounds._rouse_hounds()   # Shadow melee: spending Rage Rouses my Hounds
+			hounds._rouse_hounds()   # Shadow melee: spending Fury Rouses my Hounds
 	return true
 
 func _gain(res: String, amount: float) -> void:
@@ -1306,7 +1344,7 @@ func _gain(res: String, amount: float) -> void:
 		amount *= PactsKit.PACTS.resource_gain_mult(pacts_kit.pact_id(), pacts_kit.pact_broken())   # Pact of the Restless
 	resources[res] = clampf(float(resources[res]) + amount, 0.0, resource_max(res))
 
-## Max of a resource. Mana grows with Max Mana (Intellect); Energy / Rage stay at 100.
+## Max of a resource. Mana grows with Max Mana (Intellect); Energy / Fury stay at 100.
 func resource_max(res: String) -> float:
 	if res == "mana":
 		return maxf(get_stat(Stats.MAX_MANA), 1.0)
@@ -1319,7 +1357,7 @@ func _tick_resources(delta: float) -> void:
 		return
 	_gain("mana", MANA_REGEN * mana_unit() * delta)
 	_gain("energy", LightningMeleeKit.energy_regen(ENERGY_REGEN, _talent("lightning_quick_charge")) * delta)   # Quick Charge
-	_gain("rage", -HoundsKit.rage_decay(RAGE_DECAY, _talent("shadow_thick_blood")) * delta)   # Thick Blood
+	_gain("fury", -HoundsKit.fury_decay(FURY_DECAY, _talent("shadow_thick_blood")) * delta)   # Thick Blood
 
 # --- Natural health regeneration (WoW-style) ------------------------------------------
 # A trickle in combat, fast once the fight is over (after a short delay).
@@ -1766,7 +1804,7 @@ var auto_windup := 0.0
 
 func _try_auto_attack(moving: bool) -> void:
 	var delta := get_physics_process_delta_time()
-	if moving or casting or placing or not is_on_floor():
+	if moving or casting or placing or not is_on_floor() or rogue.playing_dead():   # (Play Dead: no swings)
 		auto_windup = 0.0
 		return
 	var pd := get_node_or_null("/root/PlayerData")
@@ -1796,22 +1834,22 @@ func _try_auto_attack(moving: bool) -> void:
 	else:
 		deal_damage(enemy, float(w["damage"]) * Balance.AUTO_ATTACK_MULT, "auto_melee")
 		_slash_effect(FireMeleeKit.heat_tint(fire_melee.heat_stacks()))   # the swing glows hotter with Heat
-	# Auto-attacks and auto-shots build rage when you're playing a rage user.
-	if _has_rage_spender():
-		_gain("rage", AUTO_ATTACK_RAGE)
+	# Auto-attacks and auto-shots build fury when you're playing a fury user.
+	if _has_fury_spender():
+		_gain("fury", AUTO_ATTACK_FURY)
 
-## Rage per auto-attack / auto-shot (only with a rage spender on the action bar).
-const AUTO_ATTACK_RAGE := Balance.AUTO_ATTACK_RAGE
+## Fury per auto-attack / auto-shot (only with a fury spender on the action bar).
+const AUTO_ATTACK_FURY := Balance.AUTO_ATTACK_FURY
 
-## A rage-costing ability on your action bar: "on the bar" (not just learned) is
-## what says you're actually playing rage.
-func _has_rage_spender() -> bool:
+## A fury-costing ability on your action bar: "on the bar" (not just learned) is
+## what says you're actually playing fury.
+func _has_fury_spender() -> bool:
 	var pd := get_node_or_null("/root/PlayerData")
 	if pd == null:
 		return false
 	for slot_id in pd.action_bar:
 		for id in bar_abilities(slot_id):
-			if id != "" and Abilities.resource_of(id) == "rage" and Abilities.cost_of(id) > 0:
+			if id != "" and Abilities.resource_of(id) == "fury" and Abilities.cost_of(id) > 0:
 				return true
 	return false
 
@@ -2377,6 +2415,9 @@ func _process(_delta: float) -> void:
 	weaver._tick_weaver()
 	shepherd._tick_shepherd()
 	colossus._tick_colossus()
+	wheel._tick_wheel()
+	brawler._tick_brawler(_delta)
+	rogue._tick_rogue(_delta)
 	venomstring._tick_venom(_delta)
 	utility._tick_utility()
 	lightstring._tick_lightstring(_delta)
@@ -2579,6 +2620,9 @@ func _use_drafted(id: String) -> void:
 	if bool(res.get("requires_shield")) and not has_shield():
 		_error("Requires a shield")
 		return
+	if bool(res.get("forbids_shield")) and has_shield():
+		_error("Can't be used with a shield")
+		return
 	if bool(res.get("requires_off_hand")) and not has_off_hand_item():
 		_error("Requires an off hand")
 		return
@@ -2646,6 +2690,14 @@ func _use_drafted(id: String) -> void:
 			shepherd._shepherd_use(id, res)   # Nature healer: the Shepherd
 		ColossusKit.VINE_FIST_ID, ColossusKit.GRASP_ID, ColossusKit.STOMP_ID, ColossusKit.GIANTS_HANDS_ID, ColossusKit.HEARTSAP_ID, ColossusKit.AWAKEN_ID:
 			colossus._colossus_use(id, res)   # Nature tank: the Colossus
+		"hack", "chop", "rush", "shrapnel", "slash", "lunge", "bladeguard", "shardlance", \
+				"jab", "hook", "dragin", "flyinghead", "thud", "crush", "earthshake", "faultline":
+			wheel._wheel_use(id, res)   # Martial warrior: the Wheel
+		"punch", "brawlkick", "elbow", "catch", "onemore", "toughitout", "comeon", "fightingstyle":
+			brawler._brawler_use(id, res)   # Martial tank: the Brawler
+		"cut", "whirl", "dartin", "kickoff", "twinstab", "goin", "closeitout", "hityourstride", "rollwithit", "snatch", \
+				"gut", "throughandthrough", "redwhirl", "backflip", "drivethrough", "pintheshadow", "overtheshoulder", "playdead":
+			rogue._rogue_use(id, res)   # Martial DPS: the Rogue, and Martial Utility
 		VenomstringKit.FANG_ARROW_ID, VenomstringKit.ADDER_ARROW_ID, VenomstringKit.ASP_ARROW_ID, VenomstringKit.KRAIT_ARROW_ID, VenomstringKit.VENOM_BURST_ID, VenomstringKit.SPITTING_VOLLEY_ID, VenomstringKit.BLOAT_ARROW_ID, VenomstringKit.COIL_BACK_ID, VenomstringKit.VENOM_SURGE_ID:
 			venomstring._venom_use(id, res, w)   # Nature archer: Venomstring
 		UtilityKit.ROOTSNARE_ID, UtilityKit.BELLOWS_ID, UtilityKit.DEEP_ROOTS_ID, UtilityKit.STORM_FRONT_ID, UtilityKit.LEAF_CLOAK_ID, \
@@ -3009,6 +3061,13 @@ func _drafted_precheck(id: String, _res: Resource, w: Dictionary) -> String:
 		return shepherd._shepherd_precheck(id)   # Nature healer
 	if ColossusKit.COLOSSUS_IDS.has(id):
 		return colossus._colossus_precheck(id)   # Nature tank
+	if Abilities.CATEGORY_OF.get(id, "") == "martial" and (Abilities.wheel_weapon_of(id) != "" \
+			or Abilities.WHEEL_SLOTS.has(id) or Abilities.WHEEL_ORDER.has(id)):
+		return wheel._wheel_precheck(id)   # Martial warrior: the Wheel
+	if Abilities.ROGUE_IDS.has(id) or Abilities.MARTIAL_UTILITY.has(id):
+		return rogue._rogue_precheck(id)   # Martial DPS: the Rogue, and Martial Utility
+	if Abilities.BRAWLER_IDS.has(id):
+		return brawler._brawler_precheck(id)   # Martial tank: the Brawler
 	if VenomstringKit.VENOM_INSTANTS.has(id) or id == VenomstringKit.ADDER_ARROW_ID:
 		return venomstring._venom_precheck(id)   # Nature archer
 	if UtilityKit.INSTANTS.has(id):
@@ -3641,6 +3700,7 @@ func adjust_crit(info: RefCounted, chance: float) -> float:
 		if float(fire[1]) > 0.0:
 			info.add_bonus(float(fire[1]), "Vent Flames" if id == "ventflames" else "Tempered Flame")
 		chance = float(fire[0])
+	chance = rogue.adjust_crit(info, chance)   # Over the Shoulder (Martial Utility): a sure crit
 	var tags: PackedStringArray = info.tags
 	if fire_cooldowns.cool_head_active() and FireCooldownsKit.is_fire_action(tags):
 		return 0.0                               # Cool Head: no Fire crits at all (ticks and Vent Flames included)

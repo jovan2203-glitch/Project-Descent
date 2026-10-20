@@ -6,7 +6,7 @@ class_name ColossusKit
 # --- Nature tank: the Colossus ---------------------------------------------------------------
 # A huge vine giant fights through me, one limb at a time: each ability weaves
 # one limb behind me for one strike or block (the picture: scripts/nature_creature.gd),
-# then it unravels. Vine Fist (the Rage builder) punches over my shoulder, Grasp's
+# then it unravels. Vine Fist (the Fury builder) punches over my shoulder, Grasp's
 # hand carries an enemy to my feet, Stomp's foot comes down around me and leaves
 # thorny roots, Giant's Hands close around me as a shield that bursts when it
 # goes, Heartsap opens the chest behind me to heal, and Awaken raises the whole
@@ -202,7 +202,7 @@ func _grasp() -> void:
 		_grasped[foe.get_instance_id()] = Time.get_ticks_msec() / 1000.0 + Balance.GRASP_HOLD + player._talent("nature_firm_hold")
 		var back := player._talent("nature_firm_hold", "values2")
 		if back > 0.0:
-			player._gain("rage", back))   # Firm Hold: Rage back
+			player._gain("fury", back))   # Firm Hold: Fury back
 
 ## Is `e` held by my Grasp right now?
 func grasped(e: Node) -> bool:

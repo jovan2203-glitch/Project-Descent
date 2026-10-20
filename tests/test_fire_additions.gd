@@ -188,7 +188,7 @@ func test_talent_maths() -> void:
 	assert_eq(FireCooldownsKit.slag_mending_heal(1000, 6, 2.0), 120)
 	assert_eq(FireCooldownsKit.slag_mending_heal(1000, 3, 1.0), 30)
 	assert_eq(FireCooldownsKit.slag_mending_heal(1000, 6, 0.0), 0, "nothing without the talent")
-	# Furnace Heart: Cinder Guard's 40 Rage -> 30 / 20.
+	# Furnace Heart: Cinder Guard's 40 Fury -> 30 / 20.
 	var guard_cost := float(Abilities.get_resource("cinderguard").resource_cost)
 	assert_eq(guard_cost, 40.0)
 	assert_eq(FireCooldownsKit.furnace_heart_cost(guard_cost, 10.0), 30.0)

@@ -69,7 +69,7 @@ static func resist_stat(damage_type: String) -> String:
 # --- Resources ------------------------------------------------------------------------
 const MANA := "mana"
 const ENERGY := "energy"
-const RAGE := "rage"
+const FURY := "fury"
 
 # --- Helpers ------------------------------------------------------------------------
 ## Display color for a damage type (floating text, tooltips).

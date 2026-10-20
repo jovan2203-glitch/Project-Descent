@@ -55,7 +55,7 @@ func test_new_abilities_are_draftable_lightning_abilities() -> void:
 
 func test_thunder_strike_costs_energy() -> void:
 	var r: Resource = ResourceLoader.load("res://data/abilities/thunderstrike.tres", "", ResourceLoader.CACHE_MODE_IGNORE)
-	assert_eq(int(r.resource_type), 2, "Energy, not Rage")
+	assert_eq(int(r.resource_type), 2, "Energy, not Fury")
 	var tuned := Abilities.get_resource("thunderstrike")
 	assert_eq(int(tuned.resource_cost), 30)
 	assert_eq(float(tuned.weapon_damage_multiplier), 1.0)

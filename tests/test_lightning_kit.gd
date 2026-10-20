@@ -1,7 +1,7 @@
 @tool
 extends McpTestSuite
 
-# Energy and Rage as bars of 100, and the Lightning caster's Energy kit:
+# Energy and Fury as bars of 100, and the Lightning caster's Energy kit:
 # Leaping Arc (gives Energy), Lightning Bolt (spends some), Discharge and
 # Ground Out (spend all of it), Ball Lightning and Grounding Surge.
 
@@ -22,22 +22,22 @@ func suite_name() -> String:
 func _player() -> GDScript:
 	return load("res://scripts/player.gd")
 
-func test_energy_and_rage_are_bars_of_100() -> void:
+func test_energy_and_fury_are_bars_of_100() -> void:
 	assert_eq(Balance.RESOURCE_MAX, 100.0)
 	assert_eq(Balance.ENERGY_REGEN, 10.0, "the bar still fills in 10 s")
-	assert_eq(Balance.RAGE_DECAY, 5.0)
-	assert_eq(Balance.AUTO_ATTACK_RAGE, 10.0)
-	# Every Energy / Rage cost and gain is on the 100 scale.
+	assert_eq(Balance.FURY_DECAY, 5.0)
+	assert_eq(Balance.AUTO_ATTACK_FURY, 10.0)
+	# Every Energy / Fury cost and gain is on the 100 scale.
 	var seen := 0
 	for id in Abilities.ALL:
 		var res := Abilities.resource_of(id)
-		if res != "energy" and res != "rage":
+		if res != "energy" and res != "fury":
 			continue
 		var r := Abilities.get_resource(id)
 		for v in [int(r.resource_cost), int(r.resource_generated)]:
 			assert_true(v == 0 or (v >= 10 and v <= 100), "%s: %d %s is on the 100 scale" % [id, v, res])
 			seen += 1 if v > 0 else 0
-	assert_true(seen > 30, "the rage and energy abilities were checked (%d numbers)" % seen)
+	assert_true(seen > 30, "the fury and energy abilities were checked (%d numbers)" % seen)
 	assert_eq(int(Abilities.get_resource("cinderguard").resource_cost), 40)
 	assert_eq(int(Abilities.get_resource("brand").resource_generated), 20)
 	assert_eq(int(Abilities.get_resource("stormarrow").resource_cost), 30)

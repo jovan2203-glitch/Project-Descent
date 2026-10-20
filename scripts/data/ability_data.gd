@@ -4,7 +4,7 @@ extends Resource
 ## Data template for one ability. Create instances via
 ## FileSystem > right-click > New Resource > AbilityData and save as .tres.
 
-enum ResourceType { NONE, MANA, ENERGY, RAGE }
+enum ResourceType { NONE, MANA, ENERGY, FURY }
 enum CastType { INSTANT, CAST, CHANNEL, GROUND_TARGET }
 enum WeaponRequirement { NONE, MELEE, RANGED }
 
@@ -26,6 +26,8 @@ enum WeaponRequirement { NONE, MELEE, RANGED }
 @export var weapon_requirement: WeaponRequirement = WeaponRequirement.NONE
 ## Needs a shield equipped in the Off Hand.
 @export var requires_shield: bool = false
+## Can't be used with a shield in the Off Hand (the Brawler, Martial tank).
+@export var forbids_shield: bool = false
 ## Needs an off hand item (tome, wand, lantern...; not a weapon or shield) in the Off Hand.
 @export var requires_off_hand: bool = false
 ## Needs a two-handed weapon in the Main Hand (with weapon_requirement MELEE: a
@@ -37,9 +39,9 @@ enum WeaponRequirement { NONE, MELEE, RANGED }
 
 @export_group("Cost")
 @export var resource_type: ResourceType = ResourceType.NONE
-## Mana costs are in points (10% of base mana each) and may be fractions; Energy and Rage are whole.
+## Mana costs are in points (10% of base mana each) and may be fractions; Energy and Fury are whole.
 @export var resource_cost: float = 0.0
-## Resource gained on use (e.g. Slam generates rage).
+## Resource gained on use (e.g. Slam generates fury).
 @export var resource_generated: int = 0
 
 @export_group("Base stats")

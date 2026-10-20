@@ -67,19 +67,19 @@ Code: player.gd, "Nature healer: the Shepherd". Numbers: balance.gd (BLOSSOM_*, 
 
 ## Tank (the Colossus) - spec "Colossus" - BUILT 2026-10-16
 Code: player.gd, "Nature tank: the Colossus". Numbers: balance.gd (SAP_*, VINE_FIST_*, GRASP_*, STOMP_*, GIANTS_HANDS_*, HEARTSAP_*, AWAKEN_*). Pictures: scripts/nature_creature.gd (fist, hand, foot, hands, chest, giant). Hold effect: data/effects/grasped.tres. Tests: tests/test_nature.gd.
-- Melee, Rage. A huge vine giant (about three times your height, same bark and glowing veins) fights through you one limb at a time: each ability weaves one limb behind you for one strike or block, then it unravels. Martial abilities: Nature damage, scaling like abilities.
+- Melee, Fury. A huge vine giant (about three times your height, same bark and glowing veins) fights through you one limb at a time: each ability weaves one limb behind you for one strike or block, then it unravels. Martial abilities: Nature damage, scaling like abilities.
 - Names: "Sheltering Hands" became Giant's Hands (Sheltering Light / Shelter exist); "Heartwood" became Heartsap (Heartwood Elk exists).
 
 ### Sap
 - A buff on you: up to 5, 20 s, a gain starts the time over. Heals you 0.4% of max health per second per Sap (own meter line "Sap"). Gained from Vine Fist (1), Stomp (1, or 2 at 3+ enemies) and each hit Giant's Hands soaks (1). Heartsap uses it all.
 
-### Kit (FB; Rage 0-100)
+### Kit (FB; Fury 0-100)
 - Unlock levels: Vine Fist 2, Grasp 4, Stomp 6, Giant's Hands 8, Heartsap 10, Awaken 12.
-- Vine Fist - builder, 3 s cooldown, generates 20 Rage. A giant fist punches over your shoulder: 1.0 FB to the target, 0.3 FB to up to 2 more enemies within 4 m of it, threat x4. +1 Sap.
-- Grasp - 10 s cooldown, 15 Rage, 25 m. A hand rises under the enemy and drops it at your feet: taunts 3 s, held in place 1 s (Grasped; can still attack).
-- Stomp - 8 s cooldown, 25 Rage. A foot comes down: 0.8 FB to every enemy within 8 m (split past the AoE cap), taunts them 3 s, double to a Grasped enemy. Leaves Stomp Roots for 6 s: 0.6 FB over the 6 s to enemies inside (DoT: crit and haste; split; own meter line).
-- Giant's Hands - 20 s cooldown, 30 Rage. Hands close around you: shield of 30% max health for 8 s (Rime Ward applies). Each hit it soaks: +1 Sap. When it breaks or runs out: the hands burst, 0.8 FB to enemies within 6 m (split), threat x6.
-- Heartsap - 12 s cooldown, 20 Rage, needs Sap. The chest opens behind you: heals 5% max health + 3% per Sap used (20% at 5).
+- Vine Fist - builder, 3 s cooldown, generates 20 Fury. A giant fist punches over your shoulder: 1.0 FB to the target, 0.3 FB to up to 2 more enemies within 4 m of it, threat x4. +1 Sap.
+- Grasp - 10 s cooldown, 15 Fury, 25 m. A hand rises under the enemy and drops it at your feet: taunts 3 s, held in place 1 s (Grasped; can still attack).
+- Stomp - 8 s cooldown, 25 Fury. A foot comes down: 0.8 FB to every enemy within 8 m (split past the AoE cap), taunts them 3 s, double to a Grasped enemy. Leaves Stomp Roots for 6 s: 0.6 FB over the 6 s to enemies inside (DoT: crit and haste; split; own meter line).
+- Giant's Hands - 20 s cooldown, 30 Fury. Hands close around you: shield of 30% max health for 8 s (Rime Ward applies). Each hit it soaks: +1 Sap. When it breaks or runs out: the hands burst, 0.8 FB to enemies within 6 m (split), threat x6.
+- Heartsap - 12 s cooldown, 20 Fury, needs Sap. The chest opens behind you: heals 5% max health + 3% per Sap used (20% at 5).
 - Awaken - 2 min cooldown. The whole giant stands behind you for 12 s: 15% less damage taken, Sap gains doubled, Vine Fist hits twice and slams the ground (0.4 FB to enemies within 6 m, split, own meter line "Giant's Slam"), Stomp reaches 12 m, Giant's Hands absorbs 50% more.
 
 ### Talents
@@ -88,7 +88,7 @@ Code: player.gd, "Nature tank: the Colossus". Numbers: balance.gd (SAP_*, VINE_F
 - Crushing Grip (3, Giant's Hands; r5c4): the burst deals 5/10/15% more per hit the Hands soaked, up to 5 hits.
 - Broad Fist (2, Vine Fist; r6c4): the splash hits 1/2 more enemies.
 - Spreading Roots (2, Stomp; r7c4): Stomp Roots last 2/4 s longer and reach 1/2 m further; same damage per second.
-- Firm Hold (2, Grasp; r9c4): Grasp holds 0.5/1 s longer and gives 5/10 Rage back.
+- Firm Hold (2, Grasp; r9c4): Grasp holds 0.5/1 s longer and gives 5/10 Fury back.
 - Wide Awake (2, Awaken; r9c1): Awaken lasts 3/6 s longer.
 - Old Growth (5; r10c4): each Sap cuts damage taken by 0.4/0.8/1.2/1.6/2% (10% at 5).
 

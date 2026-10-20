@@ -1,7 +1,7 @@
 @tool
 extends McpTestSuite
 
-# Shadow melee: the Hounds. Two demon dogs that fight beside you, on Rage: Sic
+# Shadow melee: the Hounds. Two demon dogs that fight beside you, on Fury: Sic
 # and Open Up build it, Both At Once, Run Them Down, Guard Dogs and Leeching
 # Strike spend it (and Rouse the Hounds), Off the Chain is the cooldown. The
 # Hounds have no stats of their own: their hits are the player's, dealt as
@@ -22,7 +22,7 @@ const KIT := ["sic", "openup", "bothatonce", "runthemdown", "guarddogs", "offthe
 const NAMES := {"sic": "Sic", "openup": "Open Up", "bothatonce": "Both At Once", "runthemdown": "Run Them Down",
 	"guarddogs": "Guard Dogs", "offthechain": "Off the Chain"}
 const LEVELS := {"sic": 6, "openup": 10, "bothatonce": 14, "runthemdown": 18, "guarddogs": 24, "offthechain": 40}
-# id: [cooldown, weapon damage, Rage cost, Rage gained]
+# id: [cooldown, weapon damage, Fury cost, Fury gained]
 const NUMBERS := {"sic": [0.0, 1.0, 0, 15], "openup": [6.0, 1.4, 0, 25], "bothatonce": [4.0, 1.2, 40, 0],
 	"runthemdown": [8.0, 0.6, 30, 0], "guarddogs": [30.0, 0.0, 20, 0], "offthechain": [90.0, 0.0, 0, 0]}
 const SPENDERS := ["bothatonce", "runthemdown", "guarddogs", "shadowstrike"]
@@ -108,8 +108,8 @@ func test_numbers() -> void:
 		var r := Abilities.get_resource(str(id))
 		assert_eq(float(r.cooldown), float(NUMBERS[id][0]), "%s: cooldown" % id)
 		assert_eq(float(r.weapon_damage_multiplier), float(NUMBERS[id][1]), "%s: weapon damage" % id)
-		assert_eq(int(r.resource_cost), int(NUMBERS[id][2]), "%s: Rage cost" % id)
-		assert_eq(int(r.resource_generated), int(NUMBERS[id][3]), "%s: Rage gained" % id)
+		assert_eq(int(r.resource_cost), int(NUMBERS[id][2]), "%s: Fury cost" % id)
+		assert_eq(int(r.resource_generated), int(NUMBERS[id][3]), "%s: Fury gained" % id)
 		assert_eq(float(r.damage), 0.0)
 	assert_eq(float(Abilities.get_resource("runthemdown").radius), 5.0)
 	assert_eq(Balance.HOUND_COUNT, 2)
@@ -143,25 +143,25 @@ func test_numbers() -> void:
 	for id in ["guarddogs", "offthechain"]:
 		assert_false(Abilities.has_scaling(id), "%s has nothing to scale" % id)
 
-## The kit runs on Rage: two abilities build it, the rest spend it.
-func test_it_builds_and_spends_rage() -> void:
+## The kit runs on Fury: two abilities build it, the rest spend it.
+func test_it_builds_and_spends_fury() -> void:
 	var p := _player()
 	for id in ["sic", "openup"]:
-		assert_eq(Abilities.resource_of(id), "rage", "%s builds Rage" % id)
+		assert_eq(Abilities.resource_of(id), "fury", "%s builds Fury" % id)
 		assert_true(Abilities.generated_of(id) > 0)
 		assert_eq(Abilities.cost_of(id), 0)
-		assert_contains(Abilities.tooltip(id), "Generates %d Rage" % Abilities.generated_of(id))
+		assert_contains(Abilities.tooltip(id), "Generates %d Fury" % Abilities.generated_of(id))
 		assert_false(HoundsKit.rouses(Abilities.resource_of(id), float(Abilities.cost_of(id))), "%s costs nothing: it does not Rouse" % id)
 	for id in SPENDERS:
-		assert_eq(Abilities.resource_of(id), "rage", "%s spends Rage" % id)
+		assert_eq(Abilities.resource_of(id), "fury", "%s spends Fury" % id)
 		assert_true(Abilities.cost_of(id) > 0)
 		assert_true(HoundsKit.rouses(Abilities.resource_of(id), float(Abilities.cost_of(id))), "%s Rouses the Hounds" % id)
 		assert_contains(str(_file(id).description), "Rouses your Hounds")
-	assert_contains(Abilities.tooltip("bothatonce"), "40 Rage")
+	assert_contains(Abilities.tooltip("bothatonce"), "40 Fury")
 	assert_eq(Abilities.resource_of("offthechain"), "", "Off the Chain is free")
-	# Whatever costs Rage Rouses them: other books' abilities too. Nothing else does.
-	assert_true(HoundsKit.rouses("rage", 50.0))
-	assert_false(HoundsKit.rouses("rage", 0.0))
+	# Whatever costs Fury Rouses them: other books' abilities too. Nothing else does.
+	assert_true(HoundsKit.rouses("fury", 50.0))
+	assert_false(HoundsKit.rouses("fury", 0.0))
 	assert_false(HoundsKit.rouses("energy", 40.0))
 	assert_false(HoundsKit.rouses("mana", 40.0))
 	assert_false(HoundsKit.rouses("", 0.0))
@@ -316,7 +316,7 @@ func test_roused_does_not_stack() -> void:
 	st.apply(fx)
 	assert_eq(st.stacks_of("roused"), 1)
 	var left: float = st.remaining_of("roused")
-	assert_true(left > Balance.ROUSED_TIME - 0.2, "spending Rage again starts its time over, got %s" % left)
+	assert_true(left > Balance.ROUSED_TIME - 0.2, "spending Fury again starts its time over, got %s" % left)
 
 func test_guard_dogs() -> void:
 	var p := _player()
@@ -617,7 +617,7 @@ func test_bring_it_down() -> void:
 	assert_eq(str(r.display_name), "Bring It Down")
 	assert_eq(float(r.cooldown), 10.0)
 	assert_eq(float(Abilities.get_resource("bringitdown").cooldown), 10.0)
-	assert_eq(int(r.resource_cost), 0, "it costs no Rage")
+	assert_eq(int(r.resource_cost), 0, "it costs no Fury")
 	assert_eq(int(r.resource_generated), 0, "and builds none")
 	assert_eq(Abilities.resource_of("bringitdown"), "")
 	assert_eq(int(r.weapon_requirement), 1, "a melee weapon, like the rest of the kit")
@@ -708,9 +708,9 @@ func test_talent_rules() -> void:
 	assert_eq(HoundsKit.leech_heal_mult(false, 100.0), 1.0)
 	assert_eq(HoundsKit.leech_heal_mult(true, 0.0), 1.0)
 	# Thick Blood.
-	assert_true(is_equal_approx(HoundsKit.rage_decay(Balance.RAGE_DECAY, 45.0), Balance.RAGE_DECAY * 0.55))
-	assert_eq(HoundsKit.rage_decay(5.0, 0.0), 5.0)
-	assert_eq(HoundsKit.rage_decay(5.0, 150.0), 0.0, "never a gain")
+	assert_true(is_equal_approx(HoundsKit.fury_decay(Balance.FURY_DECAY, 45.0), Balance.FURY_DECAY * 0.55))
+	assert_eq(HoundsKit.fury_decay(5.0, 0.0), 5.0)
+	assert_eq(HoundsKit.fury_decay(5.0, 150.0), 0.0, "never a gain")
 	# Again.
 	assert_true(HoundsKit.again_resets(10.0, 15.0))
 	assert_false(HoundsKit.again_resets(15.0, 15.0))
@@ -729,7 +729,7 @@ func test_talent_rules() -> void:
 	assert_false(HoundsKit.drag_kill_counts(100.0, 101.5, false), "somebody else's kill")
 	assert_false(HoundsKit.drag_kill_counts(100.0, 0.0, true), "Drag Down never hit it")
 	# Pincer's capstone and Feeding Frenzy.
-	assert_eq(Balance.PINCER_RAGE, 10.0)
+	assert_eq(Balance.PINCER_FURY, 10.0)
 	assert_eq(Balance.FEEDING_FRENZY_TIME, 8.0)
 	# Worked Up, Still Wet and Slipped Leash make an effect last longer: the game and the tooltips share this.
 	var talents := func(key: String, _field: String) -> float:
@@ -744,10 +744,10 @@ func test_talent_rules() -> void:
 	assert_contains(str(_file("openup").description), "{fx_time}")
 	# Where each one is wired in.
 	var src := PlayerSource.text()
-	for line in ["_gain(\"rage\", _talent(\"shadow_fed\"))",
+	for line in ["_gain(\"fury\", _talent(\"shadow_fed\"))",
 			"_decay_feed(foe, hole_feed(dealt, hole))",
 			"float(stand_over_heal(max_health, stand)), STAND_OVER_ID, true)",
-			"rage_decay(RAGE_DECAY, _talent(\"shadow_thick_blood\"))",
+			"fury_decay(FURY_DECAY, _talent(\"shadow_thick_blood\"))",
 			"leech_heal_mult(hounds_out(), _talent(\"shadow_share_the_kill\"))",
 			"chance += float(info.get_meta(HOUND_CRIT_META, 0.0))",
 			"add_buff(FEEDING_FRENZY_FX, Stats.HASTE, frenzy, Balance.FEEDING_FRENZY_TIME",
@@ -756,7 +756,7 @@ func test_talent_rules() -> void:
 			"info.add_bonus(Balance.STILL_WET_PCT, STILL_WET_LABEL)",
 			"_talent(\"shadow_lean_and_hungry\")",
 			"hound_hit_bonuses(id, _talent(\"shadow_pack_leader\"), _talent(\"shadow_pincer\")",
-			"_gain(\"rage\", refund)",
+			"_gain(\"fury\", refund)",
 			"if _hounds_roused_next:"]:
 		assert_contains(src, line)
 

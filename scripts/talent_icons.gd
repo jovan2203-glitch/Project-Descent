@@ -628,7 +628,7 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			for i in 5:
 				var x := -14.0 + i * 7.0
 				c.draw_polyline(_p(mid, k, [Vector2(x * 0.3, -4), Vector2(x * 0.7, 4), Vector2(x, 14)]), light if i == 2 else col.lightened(0.2), 2.0 * k, true)
-		"nature_firm_hold":   # a wooden hand closed round a red mark, Rage beside it
+		"nature_firm_hold":   # a wooden hand closed round a red mark, Fury beside it
 			c.draw_circle(mid + Vector2(-2, 2) * k, 5.0 * k, HOUND_RED)
 			c.draw_arc(mid + Vector2(-2, 2) * k, 9.0 * k, PI * 0.2, PI * 1.8, 14, WOOD.lightened(0.25), 4.0 * k, true)
 			c.draw_colored_polygon(_p(mid, k, [Vector2(12, -14), Vector2(16, -4), Vector2(13, -5), Vector2(15, 4), Vector2(9, -7), Vector2(12, -6)]), Color(1.0, 0.45, 0.2))
@@ -1945,7 +1945,7 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 				var d := Vector2(cos(a), sin(a))
 				c.draw_colored_polygon(PackedVector2Array([mid + d * 13.0 * k, mid + d * 17.0 * k + d.orthogonal() * 2.0 * k,
 					mid + d * 17.0 * k - d.orthogonal() * 2.0 * k]), light)
-		"frost_clean_break":   # Clean Break: an ice block snapped in two, a drop of rage coming back out
+		"frost_clean_break":   # Clean Break: an ice block snapped in two, a drop of fury coming back out
 			c.draw_colored_polygon(_p(mid, k, [Vector2(-16, -4), Vector2(-4, -8), Vector2(-3, 13), Vector2(-15, 13)]), Color(col, 0.75))
 			c.draw_colored_polygon(_p(mid, k, [Vector2(4, -8), Vector2(16, -4), Vector2(15, 13), Vector2(3, 13)]), Color(col, 0.75))
 			c.draw_polyline(_p(mid, k, [Vector2(-16, -4), Vector2(-4, -8), Vector2(-3, 13)]), WHITE, 1.5 * k, true)

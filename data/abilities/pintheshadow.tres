@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"pintheshadow"
+display_name = "Pin the Shadow"
+description = "Throw a knife through your target's shadow: it is Pinned (it can't move) until it has been hit {b:PIN_SHADOW_HITS} times, by anyone, or {b:PIN_SHADOW_TIME} sec pass. Damage over time doesn't count."
+tags = PackedStringArray("Ability", "Physical", "Utility", "Root")
+cast_type = 0
+cast_time = 0.0
+requires_target = true
+weapon_requirement = 1
+requires_dual_wield = false
+resource_type = 0
+damage = 0.0
+damage_type = &"physical"

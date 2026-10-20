@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"twinstab"
+display_name = "Twin Stab"
+description = "Stab with each hand for {hit} Physical damage, ripping out all your stuck daggers. Builds {b:TWIN_STAB_FLOW} Flow. In a Kill window it becomes {n:throughandthrough}."
+tags = PackedStringArray("Ability", "Physical", "Melee")
+cast_type = 0
+cast_time = 0.0
+requires_target = true
+weapon_requirement = 1
+requires_dual_wield = true
+resource_type = 2
+damage = 0.0
+damage_type = &"physical"
