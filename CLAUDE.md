@@ -25,6 +25,7 @@ The code and balance.gd are the source of truth for numbers. Design docs record 
 - Patch notes: clean, proper wording (never the user's rough phrasing), no filler, no missing details. A new talent is written as "New talent", its name, then what it does.
 - Use plan mode for anything bigger than a single ability or talent.
 - Adding or changing abilities, talents or runes: follow the descent-add-content skill.
+- Changing talents (adding, moving, removing or changing one): bump `Talents.TREE_VERSION`. Every player's talent points are then refunded on their next load. Don't write save migrations to keep talent points in place.
 
 ## Code structure
 - Enemy systems and optimizations are generic, never built for one enemy type.

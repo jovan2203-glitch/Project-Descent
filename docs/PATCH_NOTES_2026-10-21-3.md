@@ -66,7 +66,7 @@ Every Frostbitten Steel ability requires a two-handed melee weapon.
 
 The Frost tree has room for the new specs. For melee, rows 3, 6, 7, 8, 9 and 10 each have two new slots; Frostbitten Steel's talents sit left of the middle, Glacier Wall's right of it. Cold Comfort's talents take the middle of rows 1 and 2 and both edges of rows 9 and 10, so those two rows now hold 7 talents each.
 
-- Moved: Frozen Instinct (row 7) moved one column left, straight under Cold Snap. Points spent in it move with it.
+- Moved: Frozen Instinct (row 7) moved one column left, straight under Cold Snap.
 
 - New talent: Cold Fury (row 8, 3 ranks). Each of your Ice Layers that breaks gives you 2 / 4 / 6 more Fury.
 - New talent: Cold Sweep (row 3, 3 ranks, requires Hoarcleave). When Hoarcleave hits an enemy you had already Chilled, it has a 10 / 20 / 30% chance to Freeze it instead of Chilling it.
@@ -98,6 +98,7 @@ The Frost tree has room for the new specs. For melee, rows 3, 6, 7, 8, 9 and 10 
 
 ## Systems & Interface
 
+- Changed: All talent points have been refunded, because the talent trees changed. From now on, every change to the talent trees refunds all talent points.
 - Changed: Combat revives are limited. A party starts each run with no combat rez charges and gains one every 5 minutes. Unused charges stack, and the timer carries over between floors. Out-of-combat rezzes and the Training Room are not limited.
 - Changed: Party frames now appear on the right side of the screen in a party, with each member's name, health, shields, role icon and a Rime Shell / Thawing marker. Click a frame to target that ally. Point at a frame and press a heal to cast it on them, with or without mouseover casting. Allies out of range or out of sight are dimmed; downed ones are greyed out. The party's combat rez charges and the time until the next one are shown underneath.
 - Changed: Each player's role on the party frames (tank, healer or damage) is worked out from the abilities on their action bars.

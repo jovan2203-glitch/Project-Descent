@@ -27,6 +27,10 @@ const COLUMNS := 7
 const MIN_PER_ROW := 2
 const MAX_PER_ROW := 7
 const POINTS_TO_UNLOCK_NEXT := 3
+## Bump this whenever a talent is added, moved, removed or changed. A profile saved
+## with another number gets all its talent points back on its next load
+## (SaveSystem), so talent changes never need a save migration.
+const TREE_VERSION := 1
 const POINTS_AT_LEVEL_1 := 5
 const POINTS_PER_LEVEL := 1
 ## Every this many levels (2, 4, 6...) gives one extra point on top.

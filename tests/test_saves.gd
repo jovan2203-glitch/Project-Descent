@@ -62,6 +62,16 @@ func test_v11_refunds_the_folded_talents() -> void:
 			continue
 		assert_true(bool(Talents.get_talent(id).get("placeholder", false)), "%s is an empty slot now" % id)
 
+func test_changed_talent_trees_refund_every_point() -> void:
+	var id := Talents.id_for_key("frost_cold_fury")
+	var cfg := ConfigFile.new()
+	cfg.set_value("talents", "ranks", {id: 2})
+	assert_eq(_ss()._loaded_talents(cfg), {}, "saved before talent trees had a version: all refunded")
+	cfg.set_value("talents", "tree_version", Talents.TREE_VERSION - 1)
+	assert_eq(_ss()._loaded_talents(cfg), {}, "saved under older trees: all refunded")
+	cfg.set_value("talents", "tree_version", Talents.TREE_VERSION)
+	assert_eq(int(_ss()._loaded_talents(cfg).get(id, 0)), 2, "same trees: points stay")
+
 func test_a_talent_for_one_ability_needs_it_learned() -> void:
 	var id := Talents.id_for_key("nature_running_herd")
 	var knows_fawn := func(a: String) -> bool: return a == "fawn"

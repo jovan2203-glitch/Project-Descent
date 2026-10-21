@@ -103,6 +103,7 @@ func _build_config() -> ConfigFile:
 	cfg.set_value("runes", "known", Array(pd.known_runes))
 	cfg.set_value("runes", "shards", pd.rune_shards)
 	cfg.set_value("talents", "ranks", pd.talents)
+	cfg.set_value("talents", "tree_version", Talents.TREE_VERSION)
 	cfg.set_value("progress", "attribute_points", pd.attribute_points)
 	cfg.set_value("progress", "checkpoints", pd.checkpoints)
 	cfg.set_value("progress", "starter_weapons", pd.starter_weapons_given)
@@ -238,7 +239,7 @@ func load_profile() -> bool:
 	pd.pact_book = saved_book if pact_ok and Pacts.needs_book(saved_pact) else ""
 	pd.pact_broken = false
 
-	pd.talents = _valid_talents(cfg.get_value("talents", "ranks", {}), pd.has_ability)
+	pd.talents = _loaded_talents(cfg, pd.has_ability)
 	if not pd.validate_talents():
 		_log(1, "Talent points exceeded level %d budget: talents were refunded" % pd.level)
 	pd.attribute_points = {}
@@ -525,6 +526,14 @@ func _valid_equipment(saved: Variant) -> Dictionary:
 
 ## Saved talent ranks, cleaned up: unknown talents are dropped, and so is a talent whose required ability `knows` says isn't learned
 ## (its points come back). Ranks are clamped to the talent's maximum.
+## The saved talents, or none if they were saved under another Talents.TREE_VERSION:
+## when the talent trees change, every point is simply given back.
+func _loaded_talents(cfg: ConfigFile, knows: Callable = Callable()) -> Dictionary:
+	if int(cfg.get_value("talents", "tree_version", 0)) != Talents.TREE_VERSION:
+		_log(1, "Talent trees changed: talents were refunded")
+		return {}
+	return _valid_talents(cfg.get_value("talents", "ranks", {}), knows)
+
 func _valid_talents(saved: Variant, knows: Callable = Callable()) -> Dictionary:
 	var out := {}
 	if saved is Dictionary:
