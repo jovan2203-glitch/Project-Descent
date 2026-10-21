@@ -39,7 +39,7 @@ func _hit_with_threat(enemy: Node, coef: float, id: String, threat_mult: float,
 	player._combat().deal(info)
 
 ## Rime Slash: weapon frost damage in a small cone (3x threat). Rime Shell goes
-## on you; if Weakened Soul stops that, on one enemy it hit.
+## on you; if Thawing stops that, on one enemy it hit.
 func _rime_slash(w: Dictionary, res: Resource) -> void:
 	var reach := float(res.radius) + float(w.get("attack_range", 1.0)) * 0.5
 	var fwd := player._flat_forward()
@@ -67,12 +67,12 @@ func _rime_slash(w: Dictionary, res: Resource) -> void:
 	var everlasting := _has_rune("everlasting_rime")
 	var absorb: int = int(round(player._combat().heal_amount(player, float(Abilities.HEALS["rimeslash"]), "rimeslash") \
 		* player.absorb_mult() * (Balance.EVERLASTING_RIME_MULT if everlasting else 1.0)))   # Rime Ward counts here too
-	if not player.status.has("weakened_soul"):
+	if not player.status.has("thawing"):
 		player.receive_rime_shell(player, absorb, player._talent("frost_shield_armor"), not everlasting)
 		return
 	if everlasting:
 		return   # Everlasting Rime: shells never go on enemies
-	# Weakened Soul: the shell goes on an enemy we hit (the target if it was hit).
+	# Thawing: the shell goes on an enemy we hit (the target if it was hit).
 	var pick: Node = null
 	for e in hit:
 		if e.is_alive():

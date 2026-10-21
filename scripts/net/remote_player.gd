@@ -18,7 +18,7 @@ var health := 10
 var max_health := 10
 var hurt_at := -100.0   # when their health last dropped (seconds; Watchful Eye)
 ## Mirrored from the owner (Net.send_support_state): a Rime Shell is up, and
-## lockout effects (Weakened Soul...) -> time they end.
+## lockout effects (Thawing...) -> time they end.
 var has_rime_shell := false
 ## Member id of whoever cast that Rime Shell (0 = unknown / none).
 var rime_shell_by := 0

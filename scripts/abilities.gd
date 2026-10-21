@@ -592,6 +592,20 @@ static func in_category(category: String) -> Array[String]:
 ## these (CLAUDE.md; tests/test_books.gd).
 const HEALER_SPECS := ["Choir of One", "Line of Light", "Strings Attached", "Shepherd"]
 
+## Each spec's role: "dps", "tank", "healer" or "utility" (the balance sim, the
+## party frames' role icon). Healers here and in HEALER_SPECS agree (tests/test_books.gd).
+const SPEC_ROLES := {
+	"Steady Flame": "dps", "Slagforged": "tank", "Forge Heat": "dps", "Pitch and Cinder": "dps",
+	"Hard Winter": "dps", "Cold Comfort": "tank", "Frostbitten Steel": "dps", "Winter Hunt": "dps",
+	"Live Current": "dps", "Stormdancer": "dps", "Lightning Rod": "tank", "Stormstring": "dps",
+	"Clockwork": "dps", "Hall of Mirrors": "tank", "Second Act": "dps", "Aetherstring": "dps",
+	"The Breach": "dps", "Pack of Two": "dps", "Strings Attached": "healer", "Nightstring": "dps",
+	"Thornweaver": "dps", "Shepherd": "healer", "Colossus": "tank", "Venomstring": "dps",
+	"Choir of One": "healer", "Censer Bearer": "tank", "Line of Light": "healer", "Lightstring": "dps",
+	"The Wheel": "dps", "Brawler": "tank", "Rogue": "dps", "Sharpshooter": "dps",
+	"Utility": "utility",
+}
+
 ## Each book's abilities split by playstyle (visual only): book -> [[spec name, [ids]], ...].
 ## Books show their specs in this order, each under a divider. Every ability of a
 ## book sits in exactly one spec (tests/test_books.gd).
@@ -828,6 +842,8 @@ static func uses_weapon_reach(id: String) -> bool:
 	var r := get_resource(id)
 	return r != null and int(r.weapon_requirement) != 0 and not LONG_REACH.has(id)
 const CAST_LABELS := ["Instant", "Cast", "Channeled", "Cast"]
+## Spells with a cast time that are instant when they go on an ally or you (Rime Shell).
+const INSTANT_ON_ALLIES := ["rimeshell"]
 
 static var _res_cache := {}
 static var _db_cache := {}
@@ -910,7 +926,8 @@ static func _build_tip(r: Resource, desc: String = "", haste: float = 1.0) -> St
 	elif r.cast_type == 2:
 		bits.append("Channeled %s s" % secs(r.cast_time / haste))
 	else:
-		bits.append("Cast time: %s s%s" % [secs(base_cast_time(r) / haste), " (can move)" if r.can_move_while_casting else ""])
+		bits.append("Cast time: %s s%s%s" % [secs(base_cast_time(r) / haste), " (can move)" if r.can_move_while_casting else "",
+			" (instant on allies)" if INSTANT_ON_ALLIES.has(str(r.id)) else ""])
 	if r.cooldown > 0.0:
 		bits.append("%s s cooldown" % secs(cooldown_of(r)))
 	lines.append("  •  ".join(bits))
@@ -1583,7 +1600,8 @@ static func tooltip_bbcode(id: String, detailed: bool = false) -> String:
 	elif r.cast_type == 2:
 		bits.append("Channeled %s s" % secs(r.cast_time / haste))
 	else:
-		bits.append("%s s cast%s" % [secs(base_cast_time(r) / haste), " (can move)" if r.can_move_while_casting else ""])
+		bits.append("%s s cast%s%s" % [secs(base_cast_time(r) / haste), " (can move)" if r.can_move_while_casting else "",
+			" (instant on allies)" if INSTANT_ON_ALLIES.has(id) else ""])
 	if r.cooldown > 0.0:
 		bits.append("%s s cooldown" % Stats.num(cooldown_of(r)))
 	if WHEEL_ORDER.has(id):

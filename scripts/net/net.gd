@@ -1167,7 +1167,7 @@ func _sup_heal_threat(t: int, healer: int, target: int, amount: float) -> void:
 		if e.has_method("is_fighting") and (e.is_fighting(h) or (tg and e.is_fighting(tg))):
 			e.add_threat(h, amount)
 
-## My Rime Shell / Weakened Soul state for the others (they can't see my
+## My Rime Shell / Thawing state for the others (they can't see my
 ## status effects otherwise): lets their Rime Shell / Shattering Wave target me right.
 ## `shell_by` = the member who cast that Rime Shell (only its caster's
 ## Shattering Wave shatters it).

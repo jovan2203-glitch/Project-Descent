@@ -4,9 +4,9 @@
 
 [resource]
 script = ExtResource("1_s")
-id = &"weakened_soul"
-display_name = "Frostworn"
-description = "Can't be targeted by {n:rimeshell} (or anything else that applies {ne:weakened_soul})."
+id = &"thawing"
+display_name = "Thawing"
+description = "Can't be targeted by {n:rimeshell} (or anything else that applies {ne:thawing})."
 color = Color(0.75, 0.7, 0.85, 1)
 is_debuff = true
 tags = PackedStringArray("Lockout")

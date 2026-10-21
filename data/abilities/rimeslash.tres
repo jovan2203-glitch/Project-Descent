@@ -1,13 +1,13 @@
 [gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
-[ext_resource type="Resource" path="res://data/effects/weakened_soul.tres" id="2_fx"]
+[ext_resource type="Resource" path="res://data/effects/thawing.tres" id="2_fx"]
 
 [resource]
 script = ExtResource("1_s")
 id = &"rimeslash"
 display_name = "Rime Slash"
-description = "Slashes in a cone in front of you, dealing {hit} Frost damage to all enemies hit with {threat}x threat, and grants you a Rime Shell that absorbs {heal} damage. If {ne:weakened_soul} prevents this, one enemy hit receives the Rime Shell instead."
+description = "Slashes in a cone in front of you, dealing {hit} Frost damage to all enemies hit with {threat}x threat, and grants you a Rime Shell that absorbs {heal} damage. If {ne:thawing} prevents this, one enemy hit receives the Rime Shell instead."
 tags = PackedStringArray("Ability", "Frost", "Melee", "AoE", "Cone")
 cast_type = 0
 cast_time = 0.0

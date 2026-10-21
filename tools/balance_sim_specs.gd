@@ -7,17 +7,8 @@ extends RefCounted
 
 ## Spec name (Abilities.SPECS) -> "dps", "tank", "healer" or "utility" (every book's
 ## "Utility" divider: no damage or healing to simulate, left out of the report).
-const ROLES := {
-	"Steady Flame": "dps", "Slagforged": "tank", "Forge Heat": "dps", "Pitch and Cinder": "dps",
-	"Hard Winter": "dps", "Cold Comfort": "tank", "Frostbitten Steel": "dps", "Winter Hunt": "dps",
-	"Live Current": "dps", "Stormdancer": "dps", "Lightning Rod": "tank", "Stormstring": "dps",
-	"Clockwork": "dps", "Hall of Mirrors": "tank", "Second Act": "dps", "Aetherstring": "dps",
-	"The Breach": "dps", "Pack of Two": "dps", "Strings Attached": "healer", "Nightstring": "dps",
-	"Thornweaver": "dps", "Shepherd": "healer", "Colossus": "tank", "Venomstring": "dps",
-	"Choir of One": "healer", "Censer Bearer": "tank", "Line of Light": "healer", "Lightstring": "dps",
-	"The Wheel": "dps", "Brawler": "tank", "Rogue": "dps", "Sharpshooter": "dps",
-	"Utility": "utility",
-}
+## The game's own table: Abilities.SPEC_ROLES.
+const ROLES := preload("res://scripts/abilities.gd").SPEC_ROLES
 
 ## Spec name -> how it fights, where its abilities' tags say otherwise:
 ##   "kind": "caster" / "physical" (which gear profile), "weapon": "melee" / "ranged" / "" (auto-attacks).

@@ -61,7 +61,7 @@ enum WeaponRequirement { NONE, MELEE, RANGED }
 @export_group("Effects")
 ## Status effect (StatusEffectData) applied to whatever this ability hits.
 @export var on_hit_effect: Resource
-## Applied to ALLY targets (e.g. Weakened Soul). While an ally carries it, no
+## Applied to ALLY targets (e.g. Thawing). While an ally carries it, no
 ## ability that applies the same effect can target them.
 @export var ally_lockout_effect: Resource
 ## Damage type used for resistances, e.g. "physical", "frost".

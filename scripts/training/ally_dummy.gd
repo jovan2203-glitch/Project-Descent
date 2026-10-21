@@ -4,13 +4,13 @@ extends CharacterBody3D
 # Training room ally dummy: a friendly target to practise healing and shields on.
 # Click it to make it your friendly target. It slowly loses health on its own
 # (so there's always something to heal) but never drops below 1.
-# Works with Heal, Rime Shell (incl. Weakened Soul) and Shattering Wave.
+# Works with Heal, Rime Shell (incl. Thawing) and Shattering Wave.
 
 const STATUS_CONTAINER = preload("res://scripts/core/status_container.gd")
 const Stats = preload("res://scripts/core/stats.gd")
 const DUMMY = preload("res://scripts/training/dummy.gd")
 const SHIELDS = preload("res://scripts/core/shields.gd")
-const WEAKENED_SOUL_FX = preload("res://data/effects/weakened_soul.tres")
+const THAWING_FX = preload("res://data/effects/thawing.tres")
 
 var display_name := "Ally Dummy"
 var level := 1
@@ -77,7 +77,7 @@ func get_stat(stat: String) -> float:
 func combat_level() -> int:
 	return level
 
-## Weakened Soul and other lockouts (Rime Shell's targeting check).
+## Thawing and other lockouts (Rime Shell's targeting check).
 func has_lockout(effect_id: String) -> bool:
 	return status != null and status.has(effect_id)
 
@@ -94,7 +94,7 @@ func receive_rime_shell(caster: Node, amount: int, armor_pct: float = 0.0, shatt
 	SHIELDS.put_rime_shell(status, caster, amount, false, armor_pct, func():
 		if shatters and is_instance_valid(caster) and caster.has_method("shatter_at"):
 			caster.shatter_at(global_position))
-	status.apply(WEAKENED_SOUL_FX, caster)
+	status.apply(THAWING_FX, caster)
 
 ## Frozen Aegis rune shield (adds up to `cap`).
 func receive_frozen_aegis(caster: Node, amount: int, cap: int, armor_pct: float = 0.0) -> void:

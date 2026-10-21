@@ -1572,7 +1572,7 @@ const EFFECTS := {
 	"res://data/effects/stoneguard.tres": {"duration": 6.0, "damage_pct": -25.0},
 	"res://data/effects/rime_shell.tres": {"duration": 15.0, "damage_pct": -20.0},
 	"res://data/effects/rime_shell_foe.tres": {"duration": 15.0, "damage_pct": 5.0},
-	"res://data/effects/weakened_soul.tres": {"duration": 15.0},
+	"res://data/effects/thawing.tres": {"duration": 15.0},
 	"res://data/effects/lightning_rod.tres": {"duration": 8.0},   # Lightning Rod: how long a Storm Arrow stays stuck in its target
 	"res://data/effects/coldmarked.tres": {"duration": 12.0},     # Coldmark: how long the mark stays on the target
 	"res://data/effects/countdown.tres": {"duration": COUNTDOWN_TIME},   # Countdown: the mark lasts until it detonates

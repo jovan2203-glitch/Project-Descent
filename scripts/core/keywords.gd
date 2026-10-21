@@ -33,7 +33,7 @@ const KEYWORDS := {
 	"stunned": {"forms": ["Stunned", "Stunning", "Stuns"], "effect": "stunned"},
 	"withering": {"forms": ["Withering", "Withers"], "effect": "corrupted"},
 	"weakened": {"forms": ["Weakened"], "effect": "weakened"},
-	"frostworn": {"forms": ["Frostworn"], "effect": "weakened_soul"},
+	"thawing": {"forms": ["Thawing"], "effect": "thawing"},
 	"branded": {"forms": ["Branded"], "effect": "branded"},
 	"pitch": {"forms": ["Pitch"], "effect": "pitched"},
 	"heat": {"forms": ["Heat"],

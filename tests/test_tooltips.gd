@@ -143,7 +143,7 @@ func test_retired_names_are_gone() -> void:
 	assert_eq(Abilities.ability_name("blizzard"), "Whiteout")
 	assert_eq(Abilities.ability_name("immolate"), "Blaze")
 	assert_eq(str(Effects.get_effect("immolate").display_name), "Blaze")
-	assert_eq(str(Effects.get_effect("weakened_soul").display_name), "Frostworn")
+	assert_eq(str(Effects.get_effect("thawing").display_name), "Thawing")
 
 func test_talent_texts_follow_their_values() -> void:
 	var d := func(key: String) -> String: return Talents.description(Talents.id_for_key(key))

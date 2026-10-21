@@ -2152,6 +2152,8 @@ func _begin_spell(spell: String, display_name: String, duration: float, channel:
 	elif spell == DecayKit.ERODE_ID:
 		duration = StringsKit.deep_call_cast(duration, _talent("shadow_deep_call"), decay.decay_open_on(target))   # Deep Call
 	duration /= haste_mult()
+	if Abilities.INSTANT_ON_ALLIES.has(spell) and _cast_kind in ["self", "ally"]:
+		duration = 0.05   # Rime Shell: instant on an ally or me (released next frame)
 	if Abilities.is_a(spell, "frostbolt") and frost_bow.frozen_instinct_ready():
 		duration = 0.05   # Frozen Instinct: instant (released next frame)
 		frost_bow._instinct_cast = true
@@ -3301,7 +3303,7 @@ func _update_friendly_ring() -> void:
 # --- Support casts: Heal, Rime Shell, Flash Freeze ---------------------------------
 
 const RIME_SHELL_FX = preload("res://data/effects/rime_shell.tres")
-const WEAKENED_SOUL_FX = preload("res://data/effects/weakened_soul.tres")
+const THAWING_FX = preload("res://data/effects/thawing.tres")
 ## Flash Freeze cone: half of its opening angle.
 const FLASH_FREEZE_HALF_ANGLE := 45.0
 ## "Shatter" marks every shatter hit (Shatterpoint looks for it); the hit's
@@ -3323,7 +3325,16 @@ func _pick_support_target(id: String) -> Array:
 	var lock_id := str(lockout.id) if lockout else ""
 	if id == "flashfreeze" or id == "canticle" or id == "exultation":
 		return [null, ""]   # (around me: whoever my friendly target is does not matter)
+	# Mouseover casting: the ally (or me) under the mouse, if it is a legal target.
+	# It comes first, even for Rime Shell with an enemy targeted: allies are preferred.
+	if _mo_ally != null and is_instance_valid(_mo_ally) and _mo_ally.is_alive():
+		if is_same(_mo_ally, self):
+			return [self, "self"]
+		if global_position.distance_to(_mo_ally.global_position) <= float(res.cast_range) and can_see(_mo_ally) \
+				and not (lock_id != "" and _mo_ally.has_method("has_lockout") and _mo_ally.has_lockout(lock_id)):
+			return [_mo_ally, "ally"]
 	# Everlasting Rime: Rime Shell can't go on enemies (it goes on your friendly target / you).
+	# (A mouseover enemy was swapped into `target` by _mouseover_begin.)
 	if id == "rimeshell" and _has_valid_target() and not frost_melee._has_rune("everlasting_rime"):
 		if global_position.distance_to(target.global_position) > float(res.cast_range):
 			return [null, "Target out of range"]
@@ -3331,13 +3342,6 @@ func _pick_support_target(id: String) -> Array:
 		if err != "":
 			return [null, err]
 		return [target, "enemy"]
-	# Mouseover casting: the ally (or me) under the mouse, if it is a legal target.
-	if _mo_ally != null and is_instance_valid(_mo_ally) and _mo_ally.is_alive():
-		if is_same(_mo_ally, self):
-			return [self, "self"]
-		if global_position.distance_to(_mo_ally.global_position) <= float(res.cast_range) and can_see(_mo_ally) \
-				and not (lock_id != "" and _mo_ally.has_method("has_lockout") and _mo_ally.has_lockout(lock_id)):
-			return [_mo_ally, "ally"]
 	if has_friendly_target():
 		if global_position.distance_to(friendly_target.global_position) > float(res.cast_range):
 			return [null, "Target out of range"]
@@ -3414,7 +3418,7 @@ func _release_support(spell: String) -> void:
 						tgt.set("has_rime_shell", true)
 						tgt.set("rime_shell_by", int(_net().my_id()))   # mine: my Shattering Wave may shatter it
 						var locks: Dictionary = tgt.get("lockouts") if tgt.get("lockouts") is Dictionary else {}
-						locks["weakened_soul"] = Time.get_ticks_msec() / 1000.0 + float(WEAKENED_SOUL_FX.duration)
+						locks["thawing"] = Time.get_ticks_msec() / 1000.0 + float(THAWING_FX.duration)
 						tgt.set("lockouts", locks)
 						_ring_effect(1.0, Color(0.6, 0.9, 1.0), tgt.global_position)
 				_:
@@ -3431,7 +3435,7 @@ func _release_support(spell: String) -> void:
 			shepherd._shepherd_cast_heal(spell, tgt, kind)   # Nature healer: the Shepherd
 
 ## A Rime Shell lands on me (from me or a party member): 20% less damage taken,
-## a shield of `amount`, and Weakened Soul. When the shield breaks it shatters
+## a shield of `amount`, and Thawing. When the shield breaks it shatters
 ## (the caster deals the damage).
 ## `armor_pct` = the caster's Hardened Frost; `shatters` = false with the
 ## caster's Everlasting Rime (the shell breaks without damage).
@@ -3445,7 +3449,7 @@ func receive_rime_shell(caster: Node, amount: int, armor_pct: float = 0.0, shatt
 			_net().request_shatter(caster, global_position)
 		elif caster == self:
 			shatter_at(global_position))
-	status.apply(WEAKENED_SOUL_FX, caster)
+	status.apply(THAWING_FX, caster)
 	_ring_effect(1.0, Color(0.6, 0.9, 1.0))
 	_combat().float_text(self, "Rime Shell (%d)" % amount, Color(0.7, 0.92, 1.0), false)
 
@@ -3625,7 +3629,7 @@ func _net_taunt(tgt: Node, duration: float) -> void:
 		tgt.taunt(self, duration)
 
 # Party members can't see my status effects: tell them when my Rime Shell /
-# Weakened Soul changes (their Rime Shell and Shattering Wave need it).
+# Thawing changes (their Rime Shell and Shattering Wave need it).
 var _sent_support := ""
 
 func _sync_support_state() -> void:
@@ -3641,9 +3645,9 @@ func _sync_support_state() -> void:
 			shell_by = int(net.member_of(shell_src))
 	var locks := {}
 	for fx in status.list():
-		if str(fx["id"]) == "weakened_soul":
-			locks["weakened_soul"] = float(fx["remaining"])
-	var key := "%s|%s|%d" % [shell, locks.has("weakened_soul"), shell_by]
+		if str(fx["id"]) == "thawing":
+			locks["thawing"] = float(fx["remaining"])
+	var key := "%s|%s|%d" % [shell, locks.has("thawing"), shell_by]
 	if key == _sent_support:
 		return
 	_sent_support = key
@@ -3807,6 +3811,15 @@ func _mouseover_begin(id: String) -> void:
 			target = e
 	else:
 		_mo_ally = _mouseover_ally_at(at, cam)
+		# Spells that go on allies or enemies (Rime Shell): with no ally under the
+		# mouse, an enemy under it is used.
+		if _mo_ally == null and id == "rimeshell":
+			var e: Node3D = _enemy_at(at, cam)
+			if e != null and e != target and _target_error(e) == "":
+				if not _mo_swapped:
+					_mo_prev_target = target
+				_mo_swapped = true
+				target = e
 
 ## After the ability was used: forget the mouseover (a swapped enemy target is
 ## kept while the cast it started is still going: _mouseover_tick puts it back).
