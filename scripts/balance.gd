@@ -165,7 +165,7 @@ const SNOW_WARD_TIME := 10.0             # ... seconds the shields last
 const WINTER_HIDE_TIME := 8.0            # Winter Hide: seconds
 const WINTER_HIDE_PCT := 30.0            # ... % less damage taken
 const RIME_EDGE_TIME := 12.0             # Rime Edge: seconds your melee hits Chill and deal extra Frost damage
-const ICEBREAKER_FROZEN_MULT := 3.5      # Icebreaker: weapon damage x this on a target YOU have Frozen (it ends the Freeze)
+const ICEBREAKER_FROZEN_MULT := 2.5      # Icebreaker: weapon damage x this on a target YOU have Frozen (it ends the Freeze)
 
 ## Frost tank: Glacier Wall (one-handed melee weapon and a shield, Fury). Ice Layers
 ## are one absorb shield on you, cut into layers.
@@ -198,10 +198,10 @@ const HOARCLEAVE_GLAZE := 1              # ... Glaze for each enemy hit that you
 const HOARCLEAVE_MAX_GLAZE := 2          # ... up to this many in all
 const RIME_EDGE_GLAZE_CHANCE := 25.0     # Rime Edge: % chance its extra hit on a target you have Chilled gives ...
 const RIME_EDGE_GLAZE := 1               # ... this much Glaze
-const ICEBREAKER_PCT_PER_GLAZE := 10.0   # Icebreaker: % more damage for each Glaze it spends
+const ICEBREAKER_PCT_PER_GLAZE := 5.0    # Icebreaker: % more damage for each Glaze it spends
 const BITTER_EDGE_GLAZE := 1             # Bitter Edge: Glaze it gives
 const CALVING_RADIUS := 5.0              # Calving: metres around the target it also hits
-const CALVING_PCT_PER_GLAZE := 12.0      # ... % more damage for each Glaze it spends
+const CALVING_PCT_PER_GLAZE := 15.0      # ... % more damage for each Glaze it spends
 const BLACK_FROST_TIME := 12.0           # Black Frost: seconds every Winter's Bite Freezes
 const ICE_FALL_MAX_OTHERS := 4           # Ice Fall talent: other enemies hit that count, up to this many
 const HOAR_BLADE_DAMAGE := 0.25          # Rune of the Hoar Blade: Frost damage (coefficient) on each auto-attack while you hold all your Glaze
@@ -1259,7 +1259,7 @@ const ABILITIES := {
 	"blizzard": {"damage": 0.3, "cost": 4, "cast_time": 2.2, "radius": 2.5},
 	"frostnova": {"damage": 0.8, "cooldown": 10.0, "cost": 3, "radius": 3.5},
 	"icebarrier": {"cooldown": 20.0, "cost": 3},
-	"froststrike": {"weapon_mult": 1.5, "cooldown": 6.0, "generates": 20},
+	"froststrike": {"weapon_mult": 1.8, "cooldown": 6.0, "generates": 20},
 	"frostarrow": {"weapon_mult": 1.0, "cooldown": 5.0, "cost": 20},
 	"rimeshell": {"damage": 1.0, "cost": 2, "cast_time": 2.2, "radius": 5.0, "range": 40.0},
 	"shatteringwave": {"damage": 1.0, "cooldown": 8.0, "cost": 2, "radius": 20.0},
@@ -1289,7 +1289,7 @@ const ABILITIES := {
 	"hardrime": {"cooldown": 20.0, "cost": 30},
 	"glacialbulwark": {"cooldown": 90.0},
 	# Frost DPS: Frostbitten Steel (Fury; GLAZE_* and the rest above)
-	"hoarcleave": {"weapon_mult": 1.0, "cooldown": 6.0, "generates": 15},
+	"hoarcleave": {"weapon_mult": 1.2, "cooldown": 6.0, "generates": 15},
 	"bitteredge": {"weapon_mult": 0.8, "cooldown": 6.0, "cost": 15},
 	"calving": {"weapon_mult": 1.0, "cooldown": 10.0, "cost": 30},
 	"blackfrost": {"cooldown": 120.0},

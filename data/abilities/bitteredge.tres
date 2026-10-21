@@ -7,7 +7,7 @@
 script = ExtResource("1_s")
 id = &"bitteredge"
 display_name = "Bitter Edge"
-description = "A quick cut at a target you have Frozen, dealing {hit} Frost damage and Freezing it again. Gives you {b:BITTER_EDGE_GLAZE} Glaze."
+description = "A quick cut at a target you have Frozen, dealing {hit} Frost damage and Freezing it again. Gives you {bitter_glaze} Glaze."
 tags = PackedStringArray("Ability", "Frost", "Melee")
 cast_type = 0
 cast_time = 0.0

@@ -13,6 +13,7 @@ const Runes = preload("res://scripts/runes.gd")
 const Keywords = preload("res://scripts/core/keywords.gd")
 const Details = preload("res://scripts/core/details.gd")
 const StatusContainer = preload("res://scripts/core/status_container.gd")
+const SaveSystemScript = preload("res://scripts/save_system.gd")
 
 const TANK := ["rimeslash", "shatteringslam", "coldshoulder", "rimequake", "hailcoat", "hardrime", "glacialbulwark"]
 const DPS := ["froststrike", "hoarcleave", "calving", "icebreaker", "rimeedge", "bitteredge", "blackfrost"]
@@ -175,8 +176,18 @@ const TALENTS := [
 	["frost_cold_sweep", "hoarcleave", 3], ["frost_ice_fall", "calving", 3], ["frost_long_dark", "blackfrost", 3],
 	["frost_glinting_rime", "", 5], ["frost_packed_ice", "shatteringslam", 3], ["frost_turned_backs", "coldshoulder", 2],
 	["frost_cold_fury", "", 3], ["frost_regelation", "hardrime", 3], ["frost_old_ice", "glacialbulwark", 3],
-	["frost_deep_strata", "", 5],
+	["frost_deep_strata", "", 5], ["frost_long_glaze", "", 3], ["frost_biting_hold", "bitteredge", 2],
+	["frost_deep_tremor", "rimequake", 3],
 ]
+
+## Where the melee talents sit (the tree's layout comment in talents.gd says why).
+const SLOTS := {
+	"frost_cold_fury": "frost_r1c4", "frost_cold_sweep": "frost_r3c3", "frost_packed_ice": "frost_r3c5",
+	"frost_biting_hold": "frost_r6c2", "frost_deep_tremor": "frost_r6c6", "frost_long_glaze": "frost_r7c3",
+	"frost_turned_backs": "frost_r7c6", "frost_ice_fall": "frost_r8c3", "frost_regelation": "frost_r8c5",
+	"frost_long_dark": "frost_r9c3", "frost_old_ice": "frost_r9c5", "frost_glinting_rime": "frost_r10c2",
+	"frost_deep_strata": "frost_r10c6", "frost_instinct": "frost_r7c5",
+}
 
 func test_talents() -> void:
 	for t in TALENTS:
@@ -188,6 +199,21 @@ func test_talents() -> void:
 	assert_true(Talents.has_capstone(Talents.id_for_key("frost_glinting_rime")))
 	assert_true(Talents.has_capstone(Talents.id_for_key("frost_deep_strata")))
 	assert_true(bool(Talents.get_talent("frost_r8c4").get("placeholder", false)), "Thick Hide's old slot stays empty")
+	for key in SLOTS:
+		assert_eq(Talents.id_for_key(str(key)), str(SLOTS[key]), "%s sits in %s" % [key, SLOTS[key]])
+
+func test_frozen_instinct_keeps_its_points() -> void:
+	# Frozen Instinct moved from row 7 column 6 to column 5 (save version 11 -> 12);
+	# its old slot holds Turned Backs now, which must not get those points.
+	assert_eq(SaveSystemScript.VERSION, 12)
+	assert_eq(Talents.rearranged({"frost_r7c6": 3, "frost_r1c1": 2}, Talents.FROST_MELEE_MOVED, []),
+		{"frost_r7c5": 3, "frost_r1c1": 2})
+	var cfg := ConfigFile.new()
+	cfg.set_value("talents", "ranks", {"frost_r7c6": 2})
+	var ss: Node = track(SaveSystemScript.new())
+	ss._migrate_11_to_12(cfg)
+	assert_eq(cfg.get_value("talents", "ranks", {}), {"frost_r7c5": 2}, "the points follow Frozen Instinct")
+	assert_eq(Talents.get_talent("frost_r7c6").get("name", ""), "Turned Backs")
 
 func test_runes() -> void:
 	for id in ["ice_shelf", "hoar_blade", "lone_floe"]:

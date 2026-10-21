@@ -1531,6 +1531,8 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		# Frost tank (Ice Layers) and Frost DPS (Glaze), with the talents that change them.
 		"layer_pct": TextFill.num(ice_layer_pct(talent("frost_absorb"), talent("frost_deep_strata"))),   # Rime Ward, Deep Strata
 		"slam_layer": fmt_amount(Balance.SHATTER_SLAM_PER_LAYER * per * (1.0 + talent("frost_packed_ice") / 100.0)),   # Packed Ice
+		"quake_pct": TextFill.num(Balance.RIMEQUAKE_PCT_PER_LAYER + talent("frost_deep_tremor")),   # Deep Tremor
+		"bitter_glaze": str(Balance.BITTER_EDGE_GLAZE + int(round(talent("frost_biting_hold")))),   # Biting Hold
 		"glacial_time": TextFill.num(Balance.GLACIAL_BULWARK_TIME + talent("frost_old_ice")),   # Old Ice
 		"blackfrost_time": TextFill.num(Balance.BLACK_FROST_TIME + talent("frost_long_dark")),   # Long Dark
 	}

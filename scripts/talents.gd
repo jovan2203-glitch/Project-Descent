@@ -77,14 +77,14 @@ const DEFAULT_LAYOUT := [
 ##   Frost      the bow talents together on the right of rows 1-5 (columns 4-5),
 ##              shields down the right edge (column 6), Ice Shards down the
 ##              middle, Hoarfrost down column 1. The melee DPS (Frostbitten
-##              Steel, Glaze) has column 2 of rows 3, 8 and 9 and column 1 of
-##              row 10; the tank (Glacier Wall, Ice Layers) the mirror slots
-##              (column 4, and column 5 of row 10) and the middle of rows 1 and 2.
-##              Rows 3, 8, 9 and 10 got two slots each for them, rows 1 and 2 one.
-##              Rows 6 and 7 can't grow: Cold Snap's link to Frozen Instinct and
-##              the shields' line down the right edge run through their free
-##              slots. The middle of row 8 stays empty (Thick Hide was folded
-##              into Winter Hide there: SaveSystem._migrate_10_to_11).
+##              Steel, Glaze) has column 2 of rows 3, 7, 8 and 9 and column 1 of
+##              rows 6 and 10; the tank (Glacier Wall, Ice Layers) the mirror
+##              slots (column 4 of rows 3, 8 and 9, column 5 of rows 6, 7 and 10)
+##              and the middle of row 1. Frozen Instinct moved one column left in
+##              row 7, straight under Cold Snap, so their link no longer runs
+##              through the new slots of rows 6 and 7 (SaveSystem._migrate_11_to_12).
+##              The middle of row 8 stays empty (Thick Hide was folded into Winter
+##              Hide there: SaveSystem._migrate_10_to_11).
 ##   Lightning  melee down the left, the parry tank down the right (column 4 and
 ##              the right edge), the caster and the bow down the middle.
 ##   Arcane     the caster in the middle (rows 1-4 so far), the dodge tank down
@@ -123,7 +123,7 @@ const DEFAULT_LAYOUT := [
 ##              tank and caster (the bow's is in row 9).
 const LAYOUTS := {
 	"fire": [[0, 2, 3, 4, 6], [1, 2, 4, 5], [0, 3, 6], [1, 3, 5], [0, 2, 4, 6], [1, 2, 4, 5], [1, 5], [2, 3, 4], [1, 5], [1, 3, 5]],
-	"frost": [[0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [0, 2, 4, 6], [1, 2, 4, 5], [2, 3, 4], [1, 3, 5], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5]],
+	"frost": [[0, 2, 3, 4, 6], [1, 2, 4, 5], [1, 2, 3, 4, 5], [0, 2, 4, 6], [1, 2, 4, 5], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5]],
 	"lightning": [[1, 2, 3, 4, 5], [0, 2, 4, 6], [0, 2, 3, 4, 6], [2, 3, 4], [1, 3, 5], [0, 3, 6], [2, 3, 4], [1, 2, 4, 5], [1, 3, 5], [2, 3, 4]],
 	"arcane": [[0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 2, 4, 6], [0, 1, 3, 5, 6], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [0, 2, 4, 6], [1, 2, 4, 5], [0, 2, 4, 6], [1, 2, 3, 4, 5]],
 	"shadow": [[0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5]],
@@ -287,7 +287,7 @@ const TALENTS := {
 			{"key": "frost_shatterpoint", "values": [10.0, 20.0, 30.0],
 			"capstone": "Every shatter also gives you an Ice Shard charge.",
 			"capstone_requires": "iceshards"}],
-		"r7c6": ["Frozen Instinct", 3, "When you Freeze an enemy, you have a {v}% chance to make your next {n:frostbolt} within {b:FROZEN_INSTINCT_TIME} sec instant and free.",
+		"r7c5": ["Frozen Instinct", 3, "When you Freeze an enemy, you have a {v}% chance to make your next {n:frostbolt} within {b:FROZEN_INSTINCT_TIME} sec instant and free.",
 			{"key": "frost_instinct", "values": [17.0, 33.0, 50.0], "requires": "frostbolt"}],
 		"r10c3": ["Glacial Heart", 3, "Slows on you are {v}% weaker.",
 			{"key": "frost_glacial_heart", "values": [5.0, 10.0, 15.0],
@@ -323,6 +323,11 @@ const TALENTS := {
 		# Layers) right of it (scripts/player/frost_steel.gd, frost_glacier.gd).
 		"r3c3": ["Cold Sweep", 3, "When {n:hoarcleave} hits an enemy you had already Chilled, it has a {v}% chance to Freeze it instead of Chilling it.",
 			{"key": "frost_cold_sweep", "values": [10.0, 20.0, 30.0], "requires": "hoarcleave"}],
+		# (values = Glaze added to Bitter Edge's own.)
+		"r6c2": ["Biting Hold", 2, "{n:bitteredge} gives you {v} more Glaze.",
+			{"key": "frost_biting_hold", "values": [1.0, 2.0], "requires": "bitteredge"}],
+		"r7c3": ["Long Glaze", 3, "Your Glaze lasts {v} sec longer.",
+			{"key": "frost_long_glaze", "values": [2.0, 4.0, 6.0]}],
 		"r8c3": ["Ice Fall", 3, "{n:calving} deals {v}% more damage to its target for each other enemy it hits, up to {b:ICE_FALL_MAX_OTHERS}.",
 			{"key": "frost_ice_fall", "values": [4.0, 8.0, 12.0], "requires": "calving"}],
 		"r9c3": ["Long Dark", 3, "{n:blackfrost} lasts {v} sec longer.",
@@ -331,9 +336,12 @@ const TALENTS := {
 			{"key": "frost_glinting_rime", "values": [0.2, 0.4, 0.6, 0.8, 1.0],
 			"capstone": "An {n:icebreaker} that spends {b:GLAZE_MAX} Glaze always critically strikes.",
 			"capstone_requires": "icebreaker"}],
+		# (values = what is added to Rimequake's own % per Layer.)
+		"r6c6": ["Deep Tremor", 3, "{n:rimequake} deals {v+b:RIMEQUAKE_PCT_PER_LAYER}% more damage for each Ice Layer you have, instead of {b:RIMEQUAKE_PCT_PER_LAYER}%.",
+			{"key": "frost_deep_tremor", "values": [3.0, 7.0, 10.0], "requires": "rimequake"}],
 		"r3c5": ["Packed Ice", 3, "Each Ice Layer {n:shatteringslam} shatters into its target deals {v}% more damage.",
 			{"key": "frost_packed_ice", "values": [13.0, 27.0, 40.0], "requires": "shatteringslam"}],
-		"r2c4": ["Turned Backs", 2, "{n:coldshoulder} also makes the {v} enemies nearest its target attack you and Chills them.",
+		"r7c6": ["Turned Backs", 2, "{n:coldshoulder} also makes the {v} enemies nearest its target attack you and Chills them.",
 			{"key": "frost_turned_backs", "values": [1.0, 2.0], "requires": "coldshoulder"}],
 		"r1c4": ["Cold Fury", 3, "Each of your Ice Layers that breaks gives you {v} more Fury.",
 			{"key": "frost_cold_fury", "values": [2.0, 4.0, 6.0]}],
@@ -1171,6 +1179,14 @@ const LINKS_MOVED := {
 ## LINKS_MOVED this is applied once, to saves made before the change.
 const SHADOW_MIDDLE_MOVED := {
 	"shadow_r8c4": "shadow_r5c4",   # Small Change: row 8 -> row 5
+}
+
+## Frozen Instinct moved one column left in row 7, straight under Cold Snap,
+## to make room for the Frost melee talents (save version 11 -> 12,
+## SaveSystem._migrate_11_to_12). Its old slot now holds Turned Backs, so like
+## LINKS_MOVED this is applied once, to saves made before the change.
+const FROST_MELEE_MOVED := {
+	"frost_r7c6": "frost_r7c5",   # Frozen Instinct: one column left, under Cold Snap
 }
 
 ## Talents folded into their abilities (save version 10 -> 11,

@@ -32,8 +32,8 @@ const PAYOFF := {
 	# Frost DPS: Frostbitten Steel (the sim's sword, 0.45). ~3 Glaze on each finisher; about
 	# 2 Icebreakers in 5 land on a target Frozen by the 3rd Winter's Bite; Bitter Edge only
 	# has a Frozen target about 40% of the time.
-	"icebreaker": {"coef": 0.45 * (0.6 * 2.0 + 0.4 * 3.5) * (1.0 + 0.1 * 3.0)},
-	"calving": {"coef": 0.45 * 1.0 * (1.0 + 0.12 * 3.0)},
+	"icebreaker": {"coef": 0.45 * (0.6 * 2.0 + 0.4 * 2.5) * (1.0 + 0.05 * 3.0)},
+	"calving": {"coef": 0.45 * 1.0 * (1.0 + 0.15 * 3.0)},
 	"bitteredge": {"coef": 0.45 * 0.8 * 0.4},
 	"blackfrost": {"skip": true},
 	# Frost tank: Glacier Wall. ~3 Ice Layers held for Rimequake and spent by Shattering Slam.

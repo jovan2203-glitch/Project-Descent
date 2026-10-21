@@ -12,8 +12,8 @@ class_name FrostSteelKit
 # "Chilled or Frozen by me" is read BEFORE the hit (its own Chill doesn't count).
 # Numbers: balance.gd (GLAZE_*, WINTERS_BITE_GLAZE, HOARCLEAVE_*, RIME_EDGE_GLAZE_CHANCE,
 # ICEBREAKER_PCT_PER_GLAZE, BITTER_EDGE_GLAZE, CALVING_*, BLACK_FROST_TIME). Talents:
-# Cold Sweep (Hoarcleave), Ice Fall (Calving), Long Dark (Black Frost) and Glinting
-# Rime (Glaze itself). Runes: the Hoar Blade
+# Cold Sweep (Hoarcleave), Ice Fall (Calving), Biting Hold (Bitter Edge), Long Dark
+# (Black Frost), Long Glaze and Glinting Rime (Glaze itself). Runes: the Hoar Blade
 # (auto-attacks at full Glaze) and the Lone Floe (Calving on one target).
 
 const HOARCLEAVE_ID := "hoarcleave"
@@ -70,7 +70,7 @@ func cold_on(foe: Variant) -> bool:
 	var st: Node = foe.get_node_or_null("Status")
 	return st != null and (st.has_from("chilled", player) or st.has_from("frozen", player))
 
-## Gain `more` Glaze; its time starts over.
+## Gain `more` Glaze; its time starts over (Long Glaze: longer).
 func _gain_glaze(more: int) -> void:
 	if player.status == null or more <= 0 or player.is_dead():
 		return
@@ -84,7 +84,7 @@ func _gain_glaze(more: int) -> void:
 		return
 	if player.status.stacks_of(GLAZE_FX) != want:
 		player.status.set_stacks(GLAZE_FX, want)
-	player.status.set_remaining(GLAZE_FX, Balance.GLAZE_TIME)
+	player.status.set_remaining(GLAZE_FX, Balance.GLAZE_TIME + player._talent("frost_long_glaze"))   # + Long Glaze
 
 ## Use up all my Glaze. Returns how much there was.
 func _spend_glaze() -> int:
@@ -192,7 +192,7 @@ func _bitter_edge(w: Dictionary, res: Resource) -> void:
 		return
 	player.deal_damage(player.target, player._weapon_hit(w, res), BITTER_EDGE_ID)
 	player._slash_effect(Abilities.color_of(BITTER_EDGE_ID))
-	_gain_glaze(Balance.BITTER_EDGE_GLAZE)
+	_gain_glaze(Balance.BITTER_EDGE_GLAZE + int(round(player._talent("frost_biting_hold"))))   # + Biting Hold
 
 ## Icebreaker spends my Glaze (frost_more._icebreaker): the multiplier it hits with,
 ## and `_spending` holds the count while the hit is worked out.

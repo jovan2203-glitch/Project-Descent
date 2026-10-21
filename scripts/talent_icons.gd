@@ -36,8 +36,8 @@ const ICONED := ["frost_haste", "frost_cold_draw", "frost_black_ice", "frost_cle
 	"frost_slow_threat", "frost_slow_dr", "frost_glacial_heart", "frost_deep_freeze",
 	"frost_ice_floe", "frost_shatterpoint", "frost_instinct",
 	"frost_pinning_frost", "frost_third_bite", "frost_hard_freeze",
-	"frost_cold_sweep", "frost_ice_fall", "frost_long_dark", "frost_glinting_rime",
-	"frost_packed_ice", "frost_turned_backs", "frost_cold_fury", "frost_regelation", "frost_old_ice", "frost_deep_strata",
+	"frost_cold_sweep", "frost_ice_fall", "frost_long_dark", "frost_glinting_rime", "frost_biting_hold", "frost_long_glaze",
+	"frost_packed_ice", "frost_deep_tremor", "frost_turned_backs", "frost_cold_fury", "frost_regelation", "frost_old_ice", "frost_deep_strata",
 	"fire_smoldering_focus", "fire_tempered_flame", "fire_afterburn",
 	"fire_banked_coals", "fire_volley_targets", "fire_fuse_crit",
 	"fire_pressure_valve", "fire_cool_under_fire", "fire_thick_slag", "fire_hot_iron", "fire_flashover", "fire_clinker",
@@ -2068,6 +2068,20 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			c.draw_line(mid + Vector2(-15, 12) * k, mid + Vector2(14, -12) * k, Color(0.92, 0.92, 0.96), 3.4 * k, true)
 			for i in 5:
 				_flake(c, mid + Vector2(-11 + i * 5.5, 9 - i * 5) * k + Vector2(3, 3) * k, 2.6 * k, WHITE, 1.4 * k)
+		"frost_biting_hold":   # Biting Hold: two fangs closing on a frozen block
+			c.draw_rect(Rect2(mid + Vector2(-7, -5) * k, Vector2(14, 12) * k), Color(col, 0.6), true)
+			_shard(c, mid + Vector2(-4, -3) * k, Vector2(0, 1), 12.0 * k, 3.2 * k, Color(0.9, 0.95, 1.0), WHITE, k)
+			_shard(c, mid + Vector2(4, 5) * k, Vector2(0, -1), 12.0 * k, 3.2 * k, Color(0.9, 0.95, 1.0), WHITE, k)
+		"frost_long_glaze":   # Long Glaze: a blade with rime on it and an hourglass
+			c.draw_line(mid + Vector2(-15, 12) * k, mid + Vector2(2, -6) * k, Color(0.92, 0.92, 0.96), 3.0 * k, true)
+			for i in 3:
+				c.draw_circle(mid + Vector2(-11 + i * 5, 7 - i * 5) * k, 2.0 * k, light)
+			_hourglass(c, mid + Vector2(9, -1) * k, k * 0.6, Color(col, 0.6), WHITE)
+		"frost_deep_tremor":   # Deep Tremor: rings in the ground, a stack of layers above
+			for i in 3:
+				c.draw_arc(mid + Vector2(0, 12) * k, (5.0 + i * 5.0) * k, PI, TAU, 12, Color(light, 0.9 - i * 0.25), 2.0 * k, true)
+			for i in 3:
+				c.draw_rect(Rect2(mid + Vector2(-6, -14 + i * 4) * k, Vector2(12, 3) * k), Color(col, 0.6 + i * 0.1), true)
 		"frost_packed_ice":   # Packed Ice: a shield with layers pressed into one block
 			_shield(c, mid, k, Color(col, 0.4), light)
 			for i in 3:

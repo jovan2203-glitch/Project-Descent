@@ -14,7 +14,7 @@ class_name GlacierKit
 # here (Net.send_enemy_hit), my Chills and taunts go through combat / Net.
 # Numbers: balance.gd (ICE_LAYER_*, RIME_SLASH_*, SHATTER_SLAM_*, RIMEQUAKE_*,
 # COLD_SHOULDER_*, HARD_RIME_*, GLACIAL_BULWARK_*, DEEP_STRATA_*). Talents: Packed
-# Ice (Shattering Slam), Turned Backs (Cold Shoulder),
+# Ice (Shattering Slam), Deep Tremor (Rimequake), Turned Backs (Cold Shoulder),
 # Regelation (Hard Rime), Old Ice (Glacial Bulwark), Cold Fury and Deep Strata
 # (the Layers themselves). Rune of the Ice Shelf: more Layers, no Chill.
 
@@ -67,7 +67,7 @@ static func absorb_after(absorb: int, size: int, more: int, cap: int) -> int:
 static func rime_slash_layers(hits: int) -> int:
 	return Balance.RIME_SLASH_LAYERS_MANY if hits >= Balance.RIME_SLASH_MANY_HITS else Balance.RIME_SLASH_LAYERS
 
-## Rimequake's damage multiplier with `layers` held (`pct` % each).
+## Rimequake's damage multiplier with `layers` held (`pct` % each: Deep Tremor adds to it).
 static func quake_mult(layers: int, pct: float) -> float:
 	return 1.0 + maxf(pct, 0.0) / 100.0 * maxi(layers, 0)
 
@@ -289,7 +289,7 @@ func _cold_shoulder() -> void:
 func _rimequake(res: Resource) -> void:
 	var hit := player._enemies_within(float(res.radius))
 	var coef := float(res.damage) * Balance.aoe_share(hit.size()) \
-		* quake_mult(layers(), Balance.RIMEQUAKE_PCT_PER_LAYER)
+		* quake_mult(layers(), Balance.RIMEQUAKE_PCT_PER_LAYER + player._talent("frost_deep_tremor"))   # + Deep Tremor
 	for e in hit:
 		if is_instance_valid(e) and e.is_alive():
 			player.deal_damage(e, coef, RIMEQUAKE_ID)

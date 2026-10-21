@@ -47,7 +47,7 @@ func test_v10_refunds_the_old_empty_martial_slots() -> void:
 	assert_eq(int(ranks.get("nature_r1c3", 0)), 2, "other books keep their points")
 
 func test_v11_refunds_the_folded_talents() -> void:
-	assert_eq(SaveSystemScript.VERSION, 11)
+	assert_true(SaveSystemScript.VERSION >= 11)
 	var cfg := ConfigFile.new()
 	cfg.set_value("talents", "ranks", {"fire_r9c6": 2, "holy_r6c7": 1, "fire_r1c1": 3})
 	_ss()._migrate_10_to_11(cfg)

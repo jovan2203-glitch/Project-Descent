@@ -7,7 +7,7 @@
 script = ExtResource("1_s")
 id = &"rimequake"
 display_name = "Rimequake"
-description = "Stamps the ground, dealing {hit} Frost damage to every enemy within {radius} m with {threat}x threat and Chilling them. Deals {b:RIMEQUAKE_PCT_PER_LAYER}% more damage for each Ice Layer you have. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, it is split evenly between all of them."
+description = "Stamps the ground, dealing {hit} Frost damage to every enemy within {radius} m with {threat}x threat and Chilling them. Deals {quake_pct}% more damage for each Ice Layer you have. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, it is split evenly between all of them."
 tags = PackedStringArray("Ability", "Frost", "Melee", "AoE")
 cast_type = 0
 cast_time = 0.0

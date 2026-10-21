@@ -29,10 +29,10 @@ The absorb tank (Fire blocks, Lightning parries, Arcane dodges). Code: scripts/p
 ## Melee DPS: Frostbitten Steel (two-handed melee weapon, Fury) - BUILT 2026-10-21
 Chill, Freeze, break. Code: scripts/player/frost_steel.gd (+ frost_runes_talents.gd for Winter's Bite, frost_more.gd for Rime Edge / Icebreaker).
 - Glaze: buff on you, up to 5, 12 s, refreshed by gaining one. Built by Frost hits on a target you had ALREADY Chilled or Frozen (checked before the hit). Icebreaker and Calving spend all of it.
-- Winter's Bite - builder now (+20 Fury, was 30 Fury cost), 1.5 weapon, 6 s; every 3rd Freezes; +1 Glaze on a cold target.
-- Hoarcleave - 1.0 weapon to the target and within 3 m, 6 s, +15 Fury, Chills; 1 Glaze per cold enemy hit, up to 2.
-- Calving - finisher, 30 Fury, 10 s, 1.0 weapon to the target and within 5 m, Chills; needs 1 Glaze, +12% per Glaze.
-- Icebreaker - finisher, 30 Fury, 8 s, 2.0 weapon (3.5 on your Frozen target, ends it); +10% per Glaze.
+- Winter's Bite - builder now (+20 Fury, was 30 Fury cost), 1.8 weapon (was 1.5), 6 s; every 3rd Freezes; +1 Glaze on a cold target.
+- Hoarcleave - 1.2 weapon to the target and within 3 m, 6 s, +15 Fury, Chills; 1 Glaze per cold enemy hit, up to 2.
+- Calving - finisher, 30 Fury, 10 s, 1.0 weapon to the target and within 5 m, Chills; needs 1 Glaze, +15% per Glaze.
+- Icebreaker - finisher, 30 Fury, 8 s, 2.0 weapon (2.5 on your Frozen target, ends it; was 3.5); +5% per Glaze. Trimmed so a Frozen Icebreaker at 5 Glaze is ~1000 before crits (was ~1690); the damage moved to Winter's Bite, Hoarcleave and Calving.
 - Rime Edge - as before; each extra hit on a target you had Chilled: 25% for 1 Glaze.
 - Bitter Edge - off GCD, 15 Fury, 6 s, 0.8 weapon, only on a target you have Frozen: Freezes it again (its on-hit effect, so it works in a party), +1 Glaze.
 - Black Frost - 2 min: for 12 s every Winter's Bite Freezes (the 3-count is left alone).
@@ -52,8 +52,8 @@ Chill, Freeze, break. Code: scripts/player/frost_steel.gd (+ frost_runes_talents
 - Bow talents, grouped together on the right of rows 1-5: Black Ice, Thin Ice (3, requires Glacial Draw: 0.3/0.7/1 s faster on a Chilled target), Clean Shatter, Cold Harvest, Marked Prey (3, requires Coldmark: Ice Shards +10/20/30% to your Coldmark target), Cold Draw.
 - Also in the tree: Quickened Frost, Pinning Frost, Bitter Cold, Deep Hoarfrost, Third Bite.
 - Removed: Winter's Clarity, Endless Winter, Deep Chill (points refunded via save migration).
-- Melee (2026-10-21; new slots, nothing moved, no migration). DPS left of the middle: Cold Sweep (r3, Hoarcleave: 10/20/30% to Freeze an already Chilled enemy instead), Ice Fall (r8, Calving: +4/8/12% on its target per other enemy hit, up to 4), Long Dark (r9, Black Frost +1.5/2.5/4 s), Glinting Rime (r10, 5 ranks: +0.2..1% crit per Glaze for Frost abilities; capstone: an Icebreaker spending 5 Glaze always crits). Tank right of it: Cold Fury (r1 middle, +2/4/6 Fury per Layer broken), Turned Backs (r2 middle, 2 ranks, Cold Shoulder: the 1/2 nearest enemies too), Packed Ice (r3, Shattering Slam: +13/27/40% per Layer), Regelation (r8, Hard Rime: +3/7/10 Fury per Layer re-formed), Old Ice (r9, Glacial Bulwark +1.5/2.5/4 s), Deep Strata (r10, 5 ranks: Layers +2..10%; capstone: the last Layer breaking gives one back, once per 20 s). Still DPS: Honed Rime, Third Bite, Clean Break.
-- Rows 6 and 7 can't grow (Cold Snap -> Frozen Instinct and the shield line down the right edge run through their free slots); r8c4 stays empty (Thick Hide's folded slot).
+- Melee (2026-10-21). DPS left of the middle: Cold Sweep (r3c3, Hoarcleave: 10/20/30% to Freeze an already Chilled enemy instead), Biting Hold (r6c2, 2 ranks, Bitter Edge: +1/2 Glaze), Long Glaze (r7c3, Glaze +2/4/6 s), Ice Fall (r8c3, Calving: +4/8/12% on its target per other enemy hit, up to 4), Long Dark (r9c3, Black Frost +1.5/2.5/4 s), Glinting Rime (r10c2, 5 ranks: +0.2..1% crit per Glaze for Frost abilities; capstone: an Icebreaker spending 5 Glaze always crits). Tank right of it: Cold Fury (r1c4 middle, +2/4/6 Fury per Layer broken), Packed Ice (r3c5, Shattering Slam: +13/27/40% per Layer), Deep Tremor (r6c6, Rimequake: 13/17/20% per Layer instead of 10%), Turned Backs (r7c6, 2 ranks, Cold Shoulder: the 1/2 nearest enemies too), Regelation (r8c5, Hard Rime: +3/7/10 Fury per Layer re-formed), Old Ice (r9c5, Glacial Bulwark +1.5/2.5/4 s), Deep Strata (r10c6, 5 ranks: Layers +2..10%; capstone: the last Layer breaking gives one back, once per 20 s). Still DPS: Honed Rime, Third Bite, Clean Break.
+- To make room, Frozen Instinct moved from r7c6 to r7c5, straight under Cold Snap: their diagonal link ran through the free slots of rows 6 and 7. Save version 11 -> 12 (Talents.FROST_MELEE_MOVED) carries its points. r8c4 stays empty (Thick Hide's folded slot).
 
 ## Runes
 - 4 Epic Frost runes (built 2026-09-27).

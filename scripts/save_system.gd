@@ -20,7 +20,7 @@ extends Node
 const PATH := "user://profile.cfg"
 const TMP_PATH := "user://profile.cfg.tmp"
 const BAK_PATH := "user://profile.cfg.bak"
-const VERSION := 11
+const VERSION := 12
 const AUTOSAVE_DELAY := 0.5
 
 const Items = preload("res://scripts/items.gd")
@@ -303,6 +303,8 @@ func _migrate(cfg: ConfigFile, from_version: int) -> void:
 				_migrate_9_to_10(cfg)
 			10:
 				_migrate_10_to_11(cfg)
+			11:
+				_migrate_11_to_12(cfg)
 		v += 1
 		cfg.set_value("meta", "version", v)
 
@@ -426,6 +428,14 @@ func _migrate_10_to_11(cfg: ConfigFile) -> void:
 	if ranks is Dictionary:
 		cfg.set_value("talents", "ranks", Talents.rearranged(ranks, {}, Talents.FOLDED_INTO_ABILITIES))
 	_log(1, "Migrated profile to v11 (points in folded talents refunded)")
+
+# v11 -> v12: Frozen Instinct moved one column left in row 7 of the Frost book
+# (Talents.FROST_MELEE_MOVED); its old slot holds a new talent. It keeps its points.
+func _migrate_11_to_12(cfg: ConfigFile) -> void:
+	var ranks: Variant = cfg.get_value("talents", "ranks", {})
+	if ranks is Dictionary:
+		cfg.set_value("talents", "ranks", Talents.rearranged(ranks, Talents.FROST_MELEE_MOVED, []))
+	_log(1, "Migrated profile to v12 (Frozen Instinct moved)")
 
 # --- Validation --------------------------------------------------------------------
 

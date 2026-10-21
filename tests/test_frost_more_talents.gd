@@ -46,7 +46,7 @@ func test_frost_tree_stays_symmetrical() -> void:
 		assert_true(cols.size() >= Talents.MIN_PER_ROW and cols.size() <= Talents.MAX_PER_ROW)
 		for c in cols:
 			assert_true(cols.has(Talents.COLUMNS - 1 - int(c)), "column %d has its mirror" % int(c))
-	assert_eq(total, 44, "38 talents (10 of them the melee DPS's and the tank's) + the 6 bow talents")
+	assert_eq(total, 47, "41 talents (13 of them the melee DPS's and the tank's) + the 6 bow talents")
 	for id in Talents.in_tree("frost"):
 		assert_false(bool(Talents.get_talent(id)["placeholder"]) and not Talents.FOLDED_INTO_ABILITIES.has(id), "%s is designed (or was folded into its ability)" % id)
 	# Endless Winter, Winter's Clarity and Deep Chill were removed.
