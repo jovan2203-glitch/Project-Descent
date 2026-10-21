@@ -134,7 +134,7 @@ static func constants(text: String, wrap: Callable = Callable()) -> String:
 			if share is float or share is int:
 				var abilities: GDScript = load("res://scripts/abilities.gd")
 				var heal_coef: float = Balance.REFERENCE_HEAL * float(share)
-				value = str(int(round(abilities.coef_damage(heal_coef, PackedStringArray(["Spell"])) \
+				value = str(int(round(abilities.coef_damage(heal_coef, PackedStringArray(["Spell"]), true) \
 					* (1.0 + abilities.talent("frost_absorb") / 100.0))))
 		elif kind == "d" or kind == "ds":
 			# A hit that is not an ability's own (a Reflection shattering): the real

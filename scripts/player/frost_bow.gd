@@ -235,15 +235,6 @@ static func thin_ice_cast(cast: float, less: float, chilled: bool) -> float:
 static func clean_shatter_cooldown(left: float, off: float) -> float:
 	return maxf(left - maxf(off, 0.0), 0.0)
 
-## Cold Draw: one of my arrow abilities is about to hit (_on_damage_modify). If
-## the target already carries MY Chill or Freeze - before this arrow adds its
-## own - the hit is marked, and gives Energy back when it lands.
-func _cold_draw_mark(info: RefCounted, id: String) -> void:
-	if bool(info.is_proc) or bool(info.is_dot) or not is_arrow_ability(id) or player._talent("frost_cold_draw") <= 0.0:
-		return
-	if _chilled_by_me(info.target) or _frozen_by_me(info.target):
-		info.set_meta("cold_draw", true)
-
 # --- Frozen Instinct: freezes can make the next Frost Bolt instant and free ------------
 
 const INSTINCT_ID := "frozen_instinct"

@@ -58,6 +58,22 @@ func _cold_precision_fire(id: String) -> void:
 
 var _perma := {}   # enemy instance id -> {"target", "left" (damage), "ticks", "next"}
 
+var _cold_draw_ready := 0.0   # Cold Draw: when (s) it can give resources again
+
+## Cold Draw: one of my hits landed on a target I have Chilled or Frozen (the hit's
+## own Chill counts). Energy, Fury and mana back, once every COLD_DRAW_EVERY sec.
+func _cold_draw(tgt: Node) -> void:
+	var v := player._talent("frost_cold_draw")
+	if v <= 0.0:
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	if now < _cold_draw_ready or not (player.frost_bow._chilled_by_me(tgt) or player.frost_bow._frozen_by_me(tgt)):
+		return
+	_cold_draw_ready = now + Balance.COLD_DRAW_EVERY
+	player._gain("energy", v)
+	player._gain("fury", v)
+	player._gain("mana", player._talent("frost_cold_draw", "values2") * player.mana_unit())
+
 func _on_damage_dealt_frost(info: RefCounted) -> void:
 	if not is_same(info.source, player) or info.avoided() or int(info.amount) <= 0:
 		return
@@ -67,8 +83,7 @@ func _on_damage_dealt_frost(info: RefCounted) -> void:
 	if str(info.ability_id) == "icepin":
 		_note_icepin(tgt)   # Pinning Frost
 	player.frost_bow._coldmark_arrow(info)     # Coldmark: my arrows on the marked target give Ice Shard charges
-	if info.has_meta("cold_draw"):
-		player._gain("energy", player._talent("frost_cold_draw"))   # Cold Draw: the target was already Chilled or Frozen
+	_cold_draw(tgt)   # Cold Draw: Energy, Fury and mana from a target I have Chilled or Frozen
 	player.frost_bow._rimefletch_shot(info)    # Rimefletch: my auto-shots carry an extra Frost hit
 	player.frost_more._rime_edge_on_hit(info)   # Rime Edge: my melee hits carry an extra Frost hit
 	player.frost_steel._hoar_blade_on_hit(info)   # Rune of the Hoar Blade: auto-attacks at full Glaze

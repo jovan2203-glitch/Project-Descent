@@ -1279,8 +1279,23 @@ static func base_cast_time(r: Resource) -> float:
 
 ## Real damage of a hit of coefficient `coef` carrying `tags` (before crits,
 ## modifiers and resistances), with your current stats. Talent texts use it.
-static func coef_damage(coef: float, tags: PackedStringArray) -> float:
-	return coef * (unit() + Stats.power_bonus(tags, stat_source()))
+## `heal`: a heal or shield, which your role doesn't change.
+static func coef_damage(coef: float, tags: PackedStringArray, heal := false) -> float:
+	return coef * (unit() + Stats.power_bonus(tags, stat_source())) * (1.0 if heal else damage_mult())
+
+## How much of its damage a player in `role` deals: a tank TANK_DAMAGE_PCT (for
+## TANK_THREAT_MULT the threat). The game (Player.outgoing_damage_mult) and the
+## tooltips (damage_mult) share it.
+static func role_damage_mult(role: String) -> float:
+	return Balance.TANK_DAMAGE_PCT / 100.0 if role == "tank" else 1.0
+
+## role_damage_mult for your own bars (tooltips).
+static func damage_mult() -> float:
+	var tree := _tree()
+	var pd: Node = tree.root.get_node_or_null("PlayerData") if tree and tree.root else null
+	if pd == null or pd.get("action_bar") == null:
+		return 1.0
+	return role_damage_mult(role_of_bar(pd.action_bar))
 
 ## Burst coefficient when the ability's effect runs out (Hoarfrost).
 static func _expire_coef(id: String) -> float:
@@ -1367,7 +1382,7 @@ static func dot_tick(id: String, stat_of: Callable) -> float:
 	var fx := dot_effect(id)
 	if fx == null:
 		return 0.0
-	return float(fx.tick_damage) * (unit() + Stats.power_bonus(dot_tags(id), stat_of) * dot_share(fx))
+	return float(fx.tick_damage) * (unit() + Stats.power_bonus(dot_tags(id), stat_of) * dot_share(fx)) * damage_mult()
 
 ## Damage rolls round a fraction up or down at random (2.4 -> 2 or 3),
 ## so show "2-3" for those and a single number otherwise.
@@ -1387,7 +1402,8 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 	if not stat_of.is_valid():
 		stat_of = stat_source()
 		w = equipped_weapon()
-	var per := unit() + Stats.power_bonus(tags_of(id), stat_of)   # real damage of a 1.0 coefficient
+	var per := unit() + Stats.power_bonus(tags_of(id), stat_of)   # real amount of a 1.0 coefficient (heals, shields)
+	var dper := per * damage_mult()                                  # ... and of a hit (a tank deals less: role_damage_mult)
 	var base := hit_base(id, w)
 	if base < 0:
 		base = hit_base(id, basic_weapon(id))   # no fitting weapon equipped: show it with a basic one
@@ -1424,23 +1440,23 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 	hit_coef *= 1.0 + martial_hit_pct(id, talent_of) / 100.0  # Martial: Hard Break, Clean Kill, Knockout, Full Draw
 	var dot_mult := 1.0 + talent("frost_hoarfrost") / 100.0 if id == "hoarfrost" else 1.0    # Deep Hoarfrost
 	var slow_mult := 1.0   # (no talent strengthens slows right now)
-	var shatter := (SHATTER_COEF * unit() + SHATTER_COEF * Stats.power_bonus(PackedStringArray(["Frost", "Spell"]), stat_of)) * shatter_mult
+	var shatter := (SHATTER_COEF * unit() + SHATTER_COEF * Stats.power_bonus(PackedStringArray(["Frost", "Spell"]), stat_of)) * shatter_mult * damage_mult()
 	# Cadence: one press's weapon damage (with a basic weapon if none is equipped).
 	var cad_weapon: Dictionary = w if w.has("weapon") else basic_weapon(id)
-	var cad := float(cad_weapon.get("damage", 0.0)) * per
+	var cad := float(cad_weapon.get("damage", 0.0)) * dper
 	var energy_max := Balance.RESOURCE_MAX + talent("lightning_deep_reserves")   # Deep Reserves: a bigger bar to spend
 	var nums := {
 		"cad1": fmt_amount(cad * float(Balance.CADENCE_MULTS[0])),
 		"cad2": fmt_amount(cad * float(Balance.CADENCE_MULTS[1])),
 		"cad3": fmt_amount(cad * float(Balance.CADENCE_MULTS[2]) * (1.0 + talent("lightning_third_beat") / 100.0)),   # Third Beat
-		"hit": "?" if base < 0 else fmt_amount(hit_coef * per),
-		"half": "?" if base < 0 else fmt_amount(base * per * 0.5),
+		"hit": "?" if base < 0 else fmt_amount(hit_coef * dper),
+		"half": "?" if base < 0 else fmt_amount(base * dper * 0.5),
 		"dot": fmt_amount(dot_tick(id, stat_of) * dot_mult),
 		"heal": fmt_amount(float(HEALS.get(id, 0.0)) * per * absorb),
-		"flat1": fmt_amount(float(EXTRA_HITS.get(id, 0.0)) * per),
+		"flat1": fmt_amount(float(EXTRA_HITS.get(id, 0.0)) * dper),
 		"shatter": fmt_amount(shatter),
 		"shatter_frozen": fmt_amount(shatter * Balance.FROZEN_SHATTER_MULT),
-		"burst": fmt_amount(_expire_coef(id) * per * dot_mult),
+		"burst": fmt_amount(_expire_coef(id) * dper * dot_mult),
 		"slag": fmt_amount(Balance.SLAG_ARMOR * flat * (1.0 + talent("fire_thick_slag") / 100.0)),   # Thick Slag
 		# Heat (Fire melee): its numbers straight from balance.gd.
 		"heat_max": str(Balance.HEAT_MAX_STACKS),
@@ -1449,15 +1465,15 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		"searing_heat": str(Balance.SEARING_STRIKE_HEAT),
 		"quench_pct": Stats.num(Balance.QUENCH_PCT_PER_HEAT),
 		"quench_min": str(Balance.QUENCH_MIN_HEAT),
-		"quench_max": "?" if base < 0 else fmt_amount(base * per * (1.0 + Balance.QUENCH_PCT_PER_HEAT / 100.0 * Balance.HEAT_MAX_STACKS)),
+		"quench_max": "?" if base < 0 else fmt_amount(base * dper * (1.0 + Balance.QUENCH_PCT_PER_HEAT / 100.0 * Balance.HEAT_MAX_STACKS)),
 		"flare_cost": str(Balance.FLARE_HEAT_COST),
 		# Lightning caster (Energy): a returning leap, and what spending Energy buys.
-		"arc_return": fmt_amount(float(EXTRA_HITS.get("chainlightning", 0.0)) * Balance.LEAPING_ARC_RETURN_PCT / 100.0 * per),
-		"fork_solo": fmt_amount(Balance.FORKED_BOLT_SOLO * per),
+		"arc_return": fmt_amount(float(EXTRA_HITS.get("chainlightning", 0.0)) * Balance.LEAPING_ARC_RETURN_PCT / 100.0 * dper),
+		"fork_solo": fmt_amount(Balance.FORKED_BOLT_SOLO * dper),
 		# Shadow caster: what Hush adds to an open Decay when it interrupts a cast.
-		"hush_add": fmt_amount(Balance.HUSH_DECAY * per),
-		"discharge_per": fmt_amount(Balance.DISCHARGE_PER_STEP * per),
-		"discharge_max": fmt_amount(Balance.DISCHARGE_PER_STEP * energy_max / Balance.ENERGY_STEP * per),
+		"hush_add": fmt_amount(Balance.HUSH_DECAY * dper),
+		"discharge_per": fmt_amount(Balance.DISCHARGE_PER_STEP * dper),
+		"discharge_max": fmt_amount(Balance.DISCHARGE_PER_STEP * energy_max / Balance.ENERGY_STEP * dper),
 		"ground_per": fmt_amount(Balance.GROUND_OUT_PER_STEP * per * (1.0 + talent("frost_absorb") / 100.0)),   # Rime Ward
 		"ground_max": fmt_amount(Balance.GROUND_OUT_PER_STEP * energy_max / Balance.ENERGY_STEP * per * (1.0 + talent("frost_absorb") / 100.0)),
 		# Lightning tank: Energy a parry gives during Humming Blade.
@@ -1506,7 +1522,7 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 			else Balance.RIPPLE_REFLECTION_ENEMIES),
 		# Buffs in flat units, and other sizes worked out from balance.gd.
 		"barrier_armor": fmt_amount(Balance.ICE_BARRIER_ARMOR * flat),
-		"heat_sink_max": "?" if base < 0 else fmt_amount(base * per * (1.0 + Balance.HEAT_SINK_BONUS)),
+		"heat_sink_max": "?" if base < 0 else fmt_amount(base * dper * (1.0 + Balance.HEAT_SINK_BONUS)),
 		"arcane_mana": str(int(round(Balance.ARCANE_STRIKE_MANA * Stats.mana_unit(level)))),
 		"slack_mana": str(int(round(Balance.SLACK_MANA * Stats.mana_unit(level)))),   # Slack: mana back per String out
 		"slack_time": TextFill.num(maxf(Balance.SLACK_TIME - talent("shadow_give_and_take"), 0.0)),      # Give and Take
@@ -1521,17 +1537,17 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		"bulwark_time": TextFill.num(Balance.BULWARK_SONG_TIME + talent("holy_long_note")),   # Long Note
 		"prism_time": TextFill.num(Balance.PRISM_TIME + talent("holy_long_glass")),   # Long Glass
 		# Holy tank: the Censer (per stack of Incense, and a mote's heal).
-		"pour_full": fmt_amount(Balance.POUR_OUT_PER_STACK * Balance.INCENSE_MAX * per * (1.0 + talent("holy_deep_pour") / 100.0)),   # Deep Pour
+		"pour_full": fmt_amount(Balance.POUR_OUT_PER_STACK * Balance.INCENSE_MAX * dper * (1.0 + talent("holy_deep_pour") / 100.0)),   # Deep Pour
 		"pour_motes": TextFill.num(Balance.DEEP_POUR_MOTE_PCT if talent_capstone("holy_deep_pour") else Balance.MOTE_SPEND_PCT),
 		"absolve_full": fmt_amount(Balance.ABSOLVE_PER_STACK * Balance.ABSOLVE_MAX * Balance.REFERENCE_HEAL * per * (1.0 + talent("holy_absolution") / 100.0)),   # Absolution
 		# Nature caster: the finishers with the mulch I have now, and with a full set.
 		"mulch_now": str(mulch_count()),
-		"mossback_now": fmt_amount((Balance.ABILITIES["mossback"]["damage"] + Balance.MOSSBACK_PER_PATCH * rich * mulch_count()) * per),
-		"mossback_full": fmt_amount((Balance.ABILITIES["mossback"]["damage"] + Balance.MOSSBACK_PER_PATCH * rich * Balance.MULCH_MAX) * per),
-		"vipers_now": fmt_amount((Balance.ABILITIES["chokingvipers"]["damage"] + Balance.VIPERS_PER_PATCH * rich * mulch_count()) * per),
-		"vipers_full": fmt_amount((Balance.ABILITIES["chokingvipers"]["damage"] + Balance.VIPERS_PER_PATCH * rich * Balance.MULCH_MAX) * per),
+		"mossback_now": fmt_amount((Balance.ABILITIES["mossback"]["damage"] + Balance.MOSSBACK_PER_PATCH * rich * mulch_count()) * dper),
+		"mossback_full": fmt_amount((Balance.ABILITIES["mossback"]["damage"] + Balance.MOSSBACK_PER_PATCH * rich * Balance.MULCH_MAX) * dper),
+		"vipers_now": fmt_amount((Balance.ABILITIES["chokingvipers"]["damage"] + Balance.VIPERS_PER_PATCH * rich * mulch_count()) * dper),
+		"vipers_full": fmt_amount((Balance.ABILITIES["chokingvipers"]["damage"] + Balance.VIPERS_PER_PATCH * rich * Balance.MULCH_MAX) * dper),
 		"thornshot_every": TextFill.ordinal(Balance.COMPOST_PATCH_EVERY if talent("nature_compost") > 0.0 else Balance.THORNSHOT_PATCH_EVERY),   # Compost
-		"thornburst_dmg": fmt_amount(Balance.THORNBURST_DAMAGE * (1.0 + talent("nature_bramble_burst") / 100.0) * per),   # Bramble Burst
+		"thornburst_dmg": fmt_amount(Balance.THORNBURST_DAMAGE * (1.0 + talent("nature_bramble_burst") / 100.0) * dper),   # Bramble Burst
 		"thornburst_radius": TextFill.num(Balance.BRAMBLE_BURST_RADIUS if talent_capstone("nature_bramble_burst") else Balance.THORNBURST_RADIUS),   # its capstone
 		# Nature healer: the Shepherd.
 		"dewfall_per": TextFill.num(talent("nature_morning_dew") if talent("nature_morning_dew") > 0.0 else Balance.DEWFALL_PER_BLOSSOM),   # Morning Dew
@@ -1563,13 +1579,13 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		"mote_heal": fmt_amount(Balance.MOTE_HEAL_SHARE * Balance.REFERENCE_HEAL * per),
 		# Holy healer #2: a shattering prism (Wide Burst, Prismatic Burst).
 		"shatter_radius": TextFill.num(Balance.PRISM_SHATTER_RADIUS + talent("holy_wide_burst")),
-		"shatter_dmg": fmt_amount(Balance.PRISM_SHATTER_DAMAGE * per * (1.0 + talent("holy_prismatic_burst") / 100.0)),
+		"shatter_dmg": fmt_amount(Balance.PRISM_SHATTER_DAMAGE * dper * (1.0 + talent("holy_prismatic_burst") / 100.0)),
 		# Holy archer: the light a full prism holds, as damage (Deep Burn).
-		"sunlit_full": fmt_amount(Balance.PRISM_CAP_HEALS * Balance.REFERENCE_HEAL * Balance.SUNLIT_DRAIN * per * (1.0 + talent("holy_deep_burn") / 100.0)),
-		"breaker_dmg": fmt_amount(Balance.BREAKER_DAMAGE * per),
+		"sunlit_full": fmt_amount(Balance.PRISM_CAP_HEALS * Balance.REFERENCE_HEAL * Balance.SUNLIT_DRAIN * dper * (1.0 + talent("holy_deep_burn") / 100.0)),
+		"breaker_dmg": fmt_amount(Balance.BREAKER_DAMAGE * dper),
 		"breaker_radius": TextFill.num(Balance.BREAKER_RADIUS + talent("holy_wide_break")),   # Wide Break
-		"breaker_full": fmt_amount((Balance.BREAKER_DAMAGE + Balance.PRISM_CAP_HEALS * Balance.REFERENCE_HEAL * Balance.BREAKER_LIGHT) * per),
-		"volley_dmg": fmt_amount(Balance.VOLLEY_DAMAGE * per),
+		"breaker_full": fmt_amount((Balance.BREAKER_DAMAGE + Balance.PRISM_CAP_HEALS * Balance.REFERENCE_HEAL * Balance.BREAKER_LIGHT) * dper),
+		"volley_dmg": fmt_amount(Balance.VOLLEY_DAMAGE * dper),
 		"winter_time": Stats.num(Balance.DEEPWINTER_TIME),
 		"ward": fmt_amount(Balance.REFERENCE_HEAL * Balance.SNOW_WARD_SHARE * per * absorb),
 		"ward_time": Stats.num(Balance.SNOW_WARD_TIME),
@@ -1577,10 +1593,10 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		"hide_pct": Stats.num(Balance.WINTER_HIDE_PCT),
 		"edge_time": Stats.num(Balance.RIME_EDGE_TIME),
 		"ice_frozen": "?" if base < 0 or fr == null or float(fr.weapon_damage_multiplier) <= 0.0 \
-			else fmt_amount(base * per * Balance.ICEBREAKER_FROZEN_MULT / float(fr.weapon_damage_multiplier)),
+			else fmt_amount(base * dper * Balance.ICEBREAKER_FROZEN_MULT / float(fr.weapon_damage_multiplier)),
 		# Frost tank (Ice Layers) and Frost DPS (Glaze), with the talents that change them.
 		"layer_pct": TextFill.num(ice_layer_pct(talent("frost_absorb"), talent("frost_deep_strata"))),   # Rime Ward, Deep Strata
-		"slam_layer": fmt_amount(Balance.SHATTER_SLAM_PER_LAYER * per * (1.0 + talent("frost_packed_ice") / 100.0)),   # Packed Ice
+		"slam_layer": fmt_amount(Balance.SHATTER_SLAM_PER_LAYER * dper * (1.0 + talent("frost_packed_ice") / 100.0)),   # Packed Ice
 		"quake_pct": TextFill.num(Balance.RIMEQUAKE_PCT_PER_LAYER + talent("frost_deep_tremor")),   # Deep Tremor
 		"bitter_glaze": str(Balance.BITTER_EDGE_GLAZE + int(round(talent("frost_biting_hold")))),   # Biting Hold
 		"glacial_time": TextFill.num(Balance.GLACIAL_BULWARK_TIME + talent("frost_old_ice")),   # Old Ice

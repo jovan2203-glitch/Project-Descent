@@ -28,8 +28,8 @@ const PAYOFF := {
 	"bitteredge": {"coef": 0.45 * 0.8 * 0.4},
 	"blackfrost": {"skip": true},
 	# Frost tank: Glacier Wall. ~3 Ice Layers held for Rimequake and spent by Shattering Slam.
-	"shatteringslam": {"coef": 0.45 * 1.5 + 0.2 * 3.0},
-	"rimequake": {"coef": 0.5 * (1.0 + 0.1 * 3.0)},
+	"shatteringslam": {"coef": 0.45 * 1.9 + 0.2 * 3.0},
+	"rimequake": {"coef": 0.65 * (1.0 + 0.1 * 3.0)},
 	"coldshoulder": {"skip": true}, "hailcoat": {"skip": true}, "hardrime": {"skip": true}, "glacialbulwark": {"skip": true},
 	# Nature caster: finishers at an average of 3 patches; Thornburst on the target once.
 	"mossback": {"coef": 0.6 + 0.6 * 3},

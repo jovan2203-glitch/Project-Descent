@@ -34,9 +34,9 @@ Code: scripts/player/frost_healer.gd (FrostHealerKit). Numbers: balance.gd (RIME
 The absorb tank (Fire blocks, Lightning parries, Arcane dodges). Code: scripts/player/frost_glacier.gd.
 - Ice Layers: one absorb shield on you in layers, up to 5 (7 with the Rune of the Ice Shelf), each 4% of max health (Rime Ward, Deep Strata bigger), 20 s, refreshed by gaining one. A hit that breaks a Layer gives 8 Fury and Chills the attacker. Hardened Frost's armor and Ice Floe count for them. Tension: spending Layers buys threat and damage, keeping them buys defence (and Rimequake damage).
 - Rime Slash - builder, cone, 1.0 weapon, 3x threat, +20 Fury; 1 Layer, 2 if it hits 3+. No longer gives a Rime Shell.
-- Shattering Slam - shield hit, 1.5 weapon, 6 s, 3x threat, +20 Fury; shatters all Layers into the target (0.2 FB each). The old Rime Shell / Freeze shatter on the target stays.
+- Shattering Slam - shield hit, 1.9 weapon (was 1.5; tank rule pass), 6 s, 3x threat, +20 Fury; shatters all Layers into the target (0.2 FB each). The old Rime Shell / Freeze shatter on the target stays.
 - Cold Shoulder - taunt, off GCD, 8 s, 25 m: 3 s forced attack, Chills, +1 Layer.
-- Rimequake - 25 Fury, 8 s, 0.5 FB within 6 m, 4x threat, Chills; +10% per Layer held.
+- Rimequake - 25 Fury, 8 s, 0.65 FB within 6 m (was 0.5), 4x threat, Chills; +10% per Layer held.
 - Hailcoat - 25 s, fills the Layers.
 - Hard Rime - 30 Fury, 20 s: for 6 s a Layer that breaks forms again 2 s later.
 - Glacial Bulwark - 90 s, off GCD: +3 Layers; for 10 s each Layer that breaks shatters for 0.3 FB within 5 m (4x threat).
@@ -65,7 +65,8 @@ Chill, Freeze, break. Code: scripts/player/frost_steel.gd (+ frost_runes_talents
 ## Talents
 - First talents: Frozen Focus (haste 0.7/1.4/2.1%); Rime Ward (shield absorbs +5/10/15%); Splintering Cold (spells 10/15/20% chance to generate an Ice Shard, requires Ice Shards).
 - Lingering Frost (r8c1, 2026-10-21): your Chilled lasts 1/2/3 s longer, the Chilled twin of Hard Freeze. It was "Frost DoTs last 1/2/3 s longer", but Hoarfrost is Frost's only DoT and Deep Hoarfrost already lengthens it. Talents.TREE_VERSION 1 -> 2 refunds the points.
-- Bow talents, grouped together on the right of rows 1-5: Black Ice, Thin Ice (3, requires Glacial Draw: 0.3/0.7/1 s faster on a Chilled target), Clean Shatter, Cold Harvest, Marked Prey (3, requires Coldmark: Ice Shards +10/20/30% to your Coldmark target), Cold Draw.
+- Bow talents, grouped together on the right of rows 1-5: Black Ice, Thin Ice (3, requires Glacial Draw: 0.3/0.7/1 s faster on a Chilled target), Clean Shatter, Cold Harvest, Marked Prey (3, requires Coldmark: Ice Shards +10/20/30% to your Coldmark target).
+- Cold Draw (r1c5, 2026-10-21, generic): your hits on a target you have Chilled or Frozen give 2/4/6 Energy, 2/4/6 Fury and 0.1/0.2/0.3 mana points, once every 1 s (COLD_DRAW_EVERY). Was +2/4/6 Energy on arrow abilities only. Made to end Winter Hunt's Energy starvation (its rotation wants ~840 Energy a minute, regen gives 600); Talents.TREE_VERSION 2 -> 3.
 - Also in the tree: Quickened Frost, Pinning Frost, Bitter Cold, Deep Hoarfrost, Third Bite.
 - Cold Comfort's six (see the healer section) took new mirror-symmetric slots: the middle of rows 1-2, both edges of rows 9-10. New slots only: no save migration.
 - Removed: Winter's Clarity, Endless Winter, Deep Chill (points refunded via save migration).

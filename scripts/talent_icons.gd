@@ -1851,14 +1851,12 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 				c.draw_polyline(_p(mid, k, [Vector2(x - 5, -10), Vector2(x + 5, 0), Vector2(x - 5, 10)]), light if i == 1 else Color(col, 0.7), 3.5 * k, true)
 			for y in [-7.0, 0.0, 7.0]:
 				c.draw_line(mid + Vector2(-17, y) * k, mid + Vector2(-12, y) * k, Color(WHITE, 0.6), 1.5 * k, true)
-		"frost_cold_draw":   # Cold Draw: an arrow in a cold target, the Energy it gives back flowing down the shaft
-			c.draw_line(mid + Vector2(-13, 13) * k, mid + Vector2(9, -9) * k, WOOD, 2.5 * k, true)
-			c.draw_colored_polygon(_p(mid, k, [Vector2(15, -15), Vector2(5, -12), Vector2(12, -5)]), WHITE)
-			_flake(c, mid + Vector2(11, -11) * k, 7.0 * k, Color(light, 0.8), 1.6 * k)
-			c.draw_rect(Rect2(mid + Vector2(-17, -8) * k, Vector2(9, 14) * k), col.darkened(0.4), true)
-			c.draw_rect(Rect2(mid + Vector2(-17, -8) * k, Vector2(9, 14) * k), light, false, 1.5 * k)
-			c.draw_rect(Rect2(mid + Vector2(-15, -1) * k, Vector2(5, 5) * k), Color(1.0, 0.9, 0.4), true)
-			c.draw_polyline(_p(mid, k, [Vector2(-15, -11), Vector2(-12.5, -14), Vector2(-10, -11)]), Color(1.0, 0.9, 0.4), 1.8 * k, true)
+		"frost_cold_draw":   # Cold Draw: a frosted target, three drops (Energy, Fury, mana) drawn out of it
+			_ellipse(c, mid + Vector2(0, 8) * k, Vector2(14, 9) * k, col.darkened(0.4), light, 1.5 * k)
+			_flake(c, mid + Vector2(0, 8) * k, 6.0 * k, Color(light, 0.9), 1.5 * k)
+			var drops := [Color(1.0, 0.9, 0.35), Color(0.9, 0.25, 0.2), Color(0.35, 0.55, 1.0)]
+			for i in 3:
+				_drop(c, mid + Vector2(-11 + i * 11, -10 + absf(i - 1.0) * 3.0) * k, 0.42 * k, drops[i], WHITE, k * 0.7)
 		"frost_black_ice":   # Black Ice: a dark sheet of ice with a frozen block standing on it
 			var slick := PackedVector2Array()
 			for i in 18:

@@ -80,4 +80,5 @@ The code and balance.gd are the source of truth for numbers. Design docs record 
 
 ## Balance targets
 - Level 50, no gear: ~500 damage per ability; a big buffed crit ~1000; max-level geared DPS ~2000 DPS.
+- Tanks at optimal play: 30-40% of a top DPS (~600-800 geared). The tank rule (`Balance.TANK_DAMAGE_PCT`, 35%, with matching extra threat) does most of it; tune single tanks on top.
 - A 5-DPS group should only work at absolute top-end play.

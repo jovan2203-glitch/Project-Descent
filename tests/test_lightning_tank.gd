@@ -159,7 +159,7 @@ func test_return_stroke() -> void:
 	var r := Abilities.get_resource("returnstroke")
 	assert_eq(float(r.cooldown), 0.0, "no cooldown: one use per parry")
 	assert_eq(int(r.resource_cost), 15)
-	assert_eq(float(r.weapon_damage_multiplier), 1.2)
+	assert_eq(float(r.weapon_damage_multiplier), 1.0)
 	assert_eq(float(r.threat_multiplier), 4.0, "high threat")
 	assert_true(bool(r.requires_target))
 	assert_eq(Balance.RETURN_STROKE_WINDOW, 4.0)

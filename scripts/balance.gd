@@ -107,6 +107,11 @@ const MANA_OF_BASE_HEALTH := 0.8
 const MANA_REGEN := 0.5        # points per second (= 5% of base mana)
 const ENERGY_REGEN := 10.0     # Energy per second
 const FURY_DECAY := 5.0        # Fury per second lost
+## Tanks: while your bars make you a tank (Abilities.role_of_bar), all your damage is
+## TANK_DAMAGE_PCT of what it would be and makes TANK_THREAT_MULT times the threat, so
+## your threat stays the same. Target: a tank at optimal play does 30-40% of a top DPS.
+const TANK_DAMAGE_PCT := 35.0
+const TANK_THREAT_MULT := 100.0 / TANK_DAMAGE_PCT
 const AUTO_ATTACK_FURY := 10.0 # Fury per auto-attack (with a fury spender on the bar)
 ## Auto-attacks and auto-shots deal this share of the weapon's damage (weapon
 ## abilities still use all of it).
@@ -153,6 +158,7 @@ const DEEP_FREEZE_BLIZZARD_EVERY := 20   # Deep Freeze capstone: shards per free
 const DEEP_FREEZE_BLIZZARD_MULT := 0.5   # ... at this share of Whiteout's damage
 const COLD_SNAP_MIN_GCD := 0.25          # Cold Snap never shortens a GCD below this
 const ICE_FLOE_TIME := 3.0               # Ice Floe: move speed buff after a shield on you breaks
+const COLD_DRAW_EVERY := 1.0            # Cold Draw: seconds between its resource gains
 const FROZEN_INSTINCT_TIME := 8.0        # Frozen Instinct: seconds to use the instant Frost Bolt
 
 ## Frost, second batch.
@@ -1294,7 +1300,7 @@ const ABILITIES := {
 	"shatteringwave": {"damage": 1.0, "cooldown": 8.0, "cost": 2, "radius": 20.0},
 	"flashfreeze": {"cooldown": 12.0, "cost": 2, "cast_time": 1.2, "radius": 12.0},
 	"hoarfrost": {"cost": 3, "range": 30.0},
-	"shatteringslam": {"weapon_mult": 1.5, "cooldown": 6.0, "generates": 20, "threat": 3.0},   # + SHATTER_SLAM_PER_LAYER per Ice Layer
+	"shatteringslam": {"weapon_mult": 1.9, "cooldown": 6.0, "generates": 20, "threat": 3.0},   # + SHATTER_SLAM_PER_LAYER per Ice Layer
 	"rimeslash": {"weapon_mult": 1.0, "cooldown": 5.0, "generates": 20, "radius": 4.0, "threat": 3.0},
 	"iceshards": {"damage": 0.2, "range": 30.0},
 	"coldspike": {"damage": 3.0, "cooldown": 3.0, "cost": 3, "cast_time": 3.0, "range": 30.0},
@@ -1321,7 +1327,7 @@ const ABILITIES := {
 	"stillwater": {"cooldown": 90.0, "cost": 2, "range": 40.0},
 	# Frost tank: Glacier Wall (Fury; ICE_LAYER_* and the rest above)
 	"coldshoulder": {"cooldown": 8.0, "range": 25.0, "threat": 3.0},
-	"rimequake": {"damage": 0.5, "cooldown": 8.0, "cost": 25, "radius": 6.0, "threat": 4.0},   # + RIMEQUAKE_PCT_PER_LAYER per Ice Layer
+	"rimequake": {"damage": 0.65, "cooldown": 8.0, "cost": 25, "radius": 6.0, "threat": 4.0},   # + RIMEQUAKE_PCT_PER_LAYER per Ice Layer
 	"hailcoat": {"cooldown": 25.0},
 	"hardrime": {"cooldown": 20.0, "cost": 30},
 	"glacialbulwark": {"cooldown": 90.0},
@@ -1342,9 +1348,9 @@ const ABILITIES := {
 	"crucible": {"cost": 3, "cast_time": 1.5, "radius": 5.0, "range": 30.0},          # moving it is free and instant
 	"cinderstep": {"damage": 0.15, "cooldown": 15.0, "cost": 2},                       # damage = per tick of the line
 	"heatsink": {"damage": 1.0, "cooldown": 60.0, "cost": 0, "radius": 6.0},           # damage = the burst with nothing stored
-	"brand": {"damage": 0.3, "weapon_mult": 1.0, "cooldown": 6.0, "generates": 20, "threat": 3.0},
+	"brand": {"damage": 1.0, "weapon_mult": 1.0, "cooldown": 6.0, "generates": 20, "threat": 3.0},
 	"cinderguard": {"damage": 0.3, "cooldown": 12.0, "cost": 20, "threat": 3.0},        # damage = the burn on an attacker you block
-	"anvil": {"damage": 0.3, "weapon_mult": 0.5, "cooldown": 8.0, "generates": 10, "radius": 4.0, "threat": 4.0},
+	"anvil": {"damage": 0.65, "weapon_mult": 0.5, "cooldown": 8.0, "generates": 10, "radius": 4.0, "threat": 4.0},
 	"stoke": {"damage": 1.0, "cooldown": 20.0, "cost": 2, "range": 30.0},              # damage = on top of the Burning it eats
 	"immolate": {"damage": 0.0, "cost": 2, "cast_time": 1.5, "range": 30.0},          # its damage is the Blaze effect below
 	"walloffire": {"damage": 0.25, "cooldown": 20.0, "cost": 4, "cast_time": 1.5, "radius": 4.0, "range": 30.0},   # damage = per tick, radius = half its length
@@ -1390,7 +1396,7 @@ const ABILITIES := {
 	# "thunderaegis" is Humming Blade: they keep the ids they had as shield abilities.
 	"stormshield": {"damage": 0.0, "weapon_mult": 1.0, "cooldown": 6.0, "cost": 0, "generates": 25, "radius": 4.0, "threat": 4.0},   # radius = how far the charge arcs
 	"thunderaegis": {"damage": 0.0, "weapon_mult": 0.0, "cooldown": 12.0, "cost": 0, "radius": 0.0, "threat": 1.0},
-	"returnstroke": {"weapon_mult": 1.2, "cost": 15, "threat": 4.0},
+	"returnstroke": {"weapon_mult": 1.0, "cost": 15, "threat": 4.0},
 	"shockring": {"damage": 0.5, "cooldown": 8.0, "cost": 30, "radius": 6.0, "threat": 4.0},
 	"crossguard": {"cooldown": 25.0, "cost": 40},
 	"drawthestorm": {"cooldown": 90.0, "radius": 8.0},                                                     # radius = how far it pulls enemies onto you
@@ -1479,7 +1485,7 @@ const ABILITIES := {
 	"lastverse": {"cooldown": 120.0, "range": 30.0},
 	"singmercy": {}, "singchorus": {}, "singvigil": {},
 	# Holy tank: the Censer (Mana in points; INCENSE_* and the rest above)
-	"censerswing": {"damage": 0.7, "cost": 0.4, "threat": 4.0},
+	"censerswing": {"damage": 0.5, "cost": 0.4, "threat": 4.0},
 	"hallowedarc": {"damage": 0.5, "cooldown": 8.0, "cost": 1, "radius": 8.0, "threat": 4.0},
 	"beckon": {"damage": 0.4, "cooldown": 10.0, "cost": 1, "range": 25.0, "threat": 6.0},
 	"pourout": {"cooldown": 12.0, "cost": 2, "radius": 8.0, "threat": 6.0},                              # damage = POUR_OUT_PER_STACK per stack
