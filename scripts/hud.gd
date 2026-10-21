@@ -28,6 +28,7 @@ func _update_buffs() -> void:
 		_buff_icons.offset_left = -MINIMAP_W - 10.0 - 220.0
 		_buff_icons.offset_top = 16.0
 		add_child(_buff_icons)
+		_movable.call_deferred(_buff_icons, "buffs", "Buffs")
 	var status: Node = player.get("status")
 	_buff_icons.show_effects(status.list() if status else [])
 
@@ -63,6 +64,7 @@ func _build_target_frame() -> void:
 	_tf.add_theme_stylebox_override("panel", _box(Color(0, 0, 0, 0.55), 6))
 	_tf.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_tf)
+	_movable.call_deferred(_tf, "target_frame", "Target Frame", true)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 4)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -297,6 +299,7 @@ func _show_message(msg: String, color: Color) -> void:
 		_error_label.add_theme_constant_override("outline_size", 5)
 		_error_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(_error_label)
+		_movable.call_deferred(_error_label, "messages", "Messages", true)
 		_apply_bar_settings()   # (the top action bar pushes messages up)
 	_error_label.text = msg
 	_error_label.add_theme_color_override("font_color", color)
@@ -395,6 +398,11 @@ func _on_player_died() -> void:
 	add_child(info)
 	_death_nodes.append(info)
 
+## Settings > Interface > Move UI can drag this element (scripts/ui/ui_layout.gd).
+func _movable(node: Control, key: String, label: String, always := false) -> void:
+	if is_instance_valid(node):
+		UILayout.register(get_tree(), node, key, label, always)
+
 # --- Party frames (right side, under the target frame: scripts/ui/party_frames.gd) ----
 
 const PARTY_FRAMES = preload("res://scripts/ui/party_frames.gd")
@@ -407,6 +415,7 @@ func _build_party_frames() -> void:
 	_party_frames.anchor_left = 1.0
 	_party_frames.anchor_right = 1.0
 	add_child(_party_frames)
+	_movable.call_deferred(_party_frames, "party_frames", "Party Frames", true)
 	_layout_party_frames()
 
 ## Right edge, left of the right action bar when that one is on.
@@ -427,6 +436,7 @@ func _build_health_bar() -> void:
 	panel.position = Vector2(20, 20)
 	panel.add_theme_stylebox_override("panel", _box(Color(0, 0, 0, 0.55), 6))
 	add_child(panel)
+	_movable.call_deferred(panel, "health", "Health")
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
@@ -522,6 +532,7 @@ func _build_cast_bar() -> void:
 	_cast_root.offset_bottom = -120.0 + CAST_H
 	_cast_root.visible = false
 	add_child(_cast_root)
+	_movable.call_deferred(_cast_root, "cast_bar", "Cast Bar", true)
 
 	var border := Panel.new()
 	border.position = Vector2(-3, -3)
@@ -623,6 +634,7 @@ func _build_action_bar() -> void:
 	add_child(bar)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
+	_movable.call_deferred(bar, "action_bar", "Action Bar")
 	bar.add_child(row)
 	for i in range(1, ACTION_SLOTS + 1):
 		row.add_child(_make_slot(i, SLOT_SIZE))
@@ -660,6 +672,7 @@ func _build_extra_bar(b: int) -> void:
 		root.anchor_left = 1.0
 		root.anchor_right = 1.0
 	add_child(root)
+	_movable.call_deferred(root, "extra_bar_%d" % b, "Extra Bar %d" % b)
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	panel.add_theme_stylebox_override("panel", UI.box(Color(0, 0, 0, 0.55), UI.BORDER, 1, 8))
@@ -876,6 +889,7 @@ func _build_xp_bar() -> void:
 	root.offset_bottom = -SLOT_SIZE - 26 - 6
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
+	_movable.call_deferred(root, "xp_bar", "XP Bar")
 	var bg := ColorRect.new()
 	bg.color = Color(0, 0, 0, 0.6)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -925,6 +939,7 @@ func _refresh_resource_bars() -> void:
 		_res_box.position = Vector2(20, 66)
 		_res_box.add_theme_constant_override("separation", 6)
 		add_child(_res_box)
+		_movable.call_deferred(_res_box, "resources", "Resources")
 	var needed: Array[String] = []
 	var pd := get_node_or_null("/root/PlayerData")
 	if pd:
@@ -1252,6 +1267,7 @@ func _refresh_venom_bar() -> void:
 		_venom_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_venom_root.add_theme_stylebox_override("panel", _box(Color(0, 0, 0, 0.6), 4))
 		add_child(_venom_root)
+		_movable.call_deferred(_venom_root, "venom", "Venom")
 		_venom_fill = ColorRect.new()
 		_venom_fill.color = VENOM_COLOR
 		_venom_fill.position = Vector2(2, 2)
@@ -1316,6 +1332,7 @@ func _refresh_wheel_strip() -> void:
 			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
 				_turn_wheel())
 		add_child(_wheel_root)
+		_movable.call_deferred(_wheel_root, "wheel", "Wheel")
 		var box := HBoxContainer.new()
 		box.add_theme_constant_override("separation", 8)
 		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1361,6 +1378,7 @@ func _refresh_chain_strip() -> void:
 		_chain_root.add_theme_stylebox_override("panel", _box(Color(0, 0, 0, 0.55), 6))
 		_chain_root.tooltip_text = "Your Chain. The strike that ends it picks the move; three different strikes make the strong one."
 		add_child(_chain_root)
+		_movable.call_deferred(_chain_root, "chain", "Chain")
 		_chain_row = HBoxContainer.new()
 		_chain_row.add_theme_constant_override("separation", 4)
 		_chain_row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -1420,6 +1438,7 @@ func _refresh_sharp_strip() -> void:
 		_sharp_root.add_theme_stylebox_override("panel", _box(Color(0, 0, 0, 0.55), 6))
 		_sharp_root.tooltip_text = "Your shots, in the order they feed each other. Above a shot: what your ready shots would take off it. Gold: Overcut."
 		add_child(_sharp_root)
+		_movable.call_deferred(_sharp_root, "sharpshooter", "Sharpshooter")
 		_sharp_row = HBoxContainer.new()
 		_sharp_row.add_theme_constant_override("separation", 4)
 		_sharp_row.alignment = BoxContainer.ALIGNMENT_CENTER

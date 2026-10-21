@@ -116,7 +116,11 @@ var ui_opacity := 1.0   # in-game HUD only (Esc menu / Settings / map stay solid
 var mouseover_casting := false
 ## Party frames also show when you play alone (they always show in a party).
 var party_frames_solo := false
+## Moved HUD elements (Move UI): key -> {"ax", "ay", "x", "y"} (scripts/ui/ui_layout.gd).
+var ui_layout := {}
 signal interface_changed
+## The Move UI button (the game's UI opens edit mode; there is none in the main menu).
+signal move_ui_requested
 
 func apply_interface() -> void:
 	get_tree().root.content_scale_factor = ui_scale
@@ -175,6 +179,11 @@ func build_interface_ui() -> Control:
 		party_frames_solo = pressed
 		save())
 	_row(grid, "Party frames when solo", pf)
+	grid.add_child(Control.new())
+	var move := UI.button("Move UI", 14, Vector2(0, 30))
+	move.tooltip_text = "Drag any part of the in-game interface to a new place (in a dungeon, out of combat)."
+	move.pressed.connect(func(): move_ui_requested.emit())
+	_row(grid, "Layout", move)
 	grid.add_child(Control.new())
 	# Extra action bars: on / off and how see-through each one is.
 	v.add_child(UI.label("Extra action bars", 15, UI.ACCENT))
@@ -291,6 +300,11 @@ func _load() -> void:
 	var cs: Variant = cfg.get_value("ui", "chat_size", chat_size)
 	if cs is Vector2:
 		chat_size = cs
+	if cfg.has_section("ui_layout"):
+		for key in cfg.get_section_keys("ui_layout"):
+			var d: Variant = cfg.get_value("ui_layout", key)
+			if d is Dictionary:
+				ui_layout[key] = d
 	if cfg.has_section("keybinds"):
 		for action in cfg.get_section_keys("keybinds"):
 			if InputMap.has_action(action):
@@ -315,6 +329,8 @@ func save() -> void:
 	cfg.set_value("ui", "party_frames_solo", party_frames_solo)
 	cfg.set_value("ui", "extra_bars", extra_bars)
 	cfg.set_value("ui", "extra_bar_opacity", extra_bar_opacity)
+	for key in ui_layout:
+		cfg.set_value("ui_layout", key, ui_layout[key])
 	cfg.save(PATH)
 
 func apply() -> void:

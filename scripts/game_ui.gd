@@ -42,6 +42,11 @@ func _ready() -> void:
 	for c in get_children():
 		fade.call(c)
 	child_entered_tree.connect(fade)
+	# Settings > Interface > Move UI: these can be dragged too.
+	settings.move_ui_requested.connect(_start_move_ui)
+	for m in [[chat_box, "chat", "Chat"], [minimap, "minimap", "Minimap"], [_menu_bar, "menu_bar", "Menu Bar"]]:
+		if m[0] != null:
+			UILayout.register.call_deferred(get_tree(), m[0], m[1], m[2])
 
 # --- Items: inventory <-> equipment ---------------------------------------------
 
@@ -199,6 +204,8 @@ func _update_runes_panel() -> void:
 # Detect an inventory drag that was released over nothing (the game world):
 # that drops the item on the floor in front of the player.
 func _process(_delta: float) -> void:
+	if _map_hint and minimap:   # (the hint stays under the minimap when Move UI moves it)
+		_map_hint.global_position = minimap.global_position + Vector2(0, MINIMAP_SIZE + 2)
 	_fit_menu_bar()
 	_update_runes_panel()
 	if _book_dirty and windows.has("Talents") and windows["Talents"].visible:
@@ -587,6 +594,8 @@ var minimap: Control
 var map_panel: PanelContainer
 var _map_title: Label
 
+var _map_hint: Label
+
 func _build_maps() -> void:
 	map_data = MAP_DATA.new()
 	add_child(map_data)
@@ -610,6 +619,7 @@ func _build_maps() -> void:
 	hint.offset_bottom = 16 + MINIMAP_SIZE + 18
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	add_child(hint)
+	_map_hint = hint
 	var set_hint := func(): hint.text = "Map (%s)" % get_node("/root/Settings").key_text("open_map")
 	set_hint.call()
 	get_node("/root/Settings").keybinds_changed.connect(set_hint)
@@ -831,6 +841,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			esc_menu.visible = true
 			esc_menu.move_to_front()
+
+## Settings > Interface > Move UI: close the menus and let the HUD be dragged around.
+func _start_move_ui() -> void:
+	if _in_combat():
+		get_node("/root/SignalBus").action_error.emit("Can't move the interface in combat")
+		return
+	_hide_esc()
+	UILayout.of(get_tree()).start_edit()
 
 func _hide_esc() -> void:
 	esc_menu.visible = false
