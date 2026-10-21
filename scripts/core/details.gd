@@ -466,6 +466,7 @@ func player_color(pd: Dictionary, kind: String) -> Color:
 ## spell (a Frozen enemy shattering is "Frozen Shatter", not "Rime Shell").
 const HIT_NAMES := {
 	"frozen_shatter": "Frozen Shatter",
+	"hoar_blade": "Hoar Blade",   # (Frost DPS: the Rune of the Hoar Blade)
 	"afterglow": "Afterglow",
 	"slag_shatter": "Slag Shatter",
 	"dot_smoldering_debris": "Smoldering Debris",
@@ -577,7 +578,7 @@ static func spell_color(id: String) -> Color:
 			return Color(0.75, 0.72, 0.66)
 		"burning", "afterglow", "slag_mending", "slag_shatter", "smoldering_debris":
 			return Abilities.color_of("fireball")
-		"chilled", "frozen", "frozen_shatter", "splintering", "permafrost", "deepfreeze", "icefloe":
+		"chilled", "frozen", "frozen_shatter", "splintering", "permafrost", "deepfreeze", "icefloe", "hoar_blade":
 			return Abilities.color_of("frostbolt")
 		"overload", "earth_return", "parting_spark", "lightning_rod", "spillover":
 			return Abilities.color_of("lightningbolt")

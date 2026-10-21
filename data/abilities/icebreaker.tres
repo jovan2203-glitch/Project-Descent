@@ -6,13 +6,14 @@
 script = ExtResource("1_s")
 id = &"icebreaker"
 display_name = "Icebreaker"
-description = "A heavy finishing blow that deals {hit} Frost damage. On a target you have Frozen it deals {ice_frozen} instead and ends the Freeze."
+description = "A heavy finishing blow that deals {hit} Frost damage. On a target you have Frozen it deals {ice_frozen} instead and ends the Freeze. Spends all your Glaze: {b:ICEBREAKER_PCT_PER_GLAZE}% more damage for each."
 tags = PackedStringArray("Ability", "Frost", "Melee")
 cast_type = 0
 cast_time = 0.0
 cooldown = 8.0
 requires_target = true
 weapon_requirement = 1
+requires_two_hand = true
 resource_type = 3
 resource_cost = 30
 damage = 0

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+[ext_resource type="Resource" path="res://data/effects/chilled.tres" id="2_fx"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"calving"
+display_name = "Calving"
+description = "Splits the ice off your blade onto the target, dealing {hit} Frost damage to it and every enemy within {b:CALVING_RADIUS} m of it and Chilling them. Spends all your Glaze: {b:CALVING_PCT_PER_GLAZE}% more damage for each. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, it is split evenly between all of them."
+tags = PackedStringArray("Ability", "Frost", "Melee", "AoE")
+cast_type = 0
+cast_time = 0.0
+requires_target = true
+weapon_requirement = 1
+requires_two_hand = true
+resource_type = 3
+resource_cost = 30
+damage = 0.0
+weapon_damage_multiplier = 1.0
+on_hit_effect = ExtResource("2_fx")
+damage_type = &"frost"

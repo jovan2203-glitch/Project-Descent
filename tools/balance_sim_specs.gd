@@ -9,7 +9,7 @@ extends RefCounted
 ## "Utility" divider: no damage or healing to simulate, left out of the report).
 const ROLES := {
 	"Steady Flame": "dps", "Slagforged": "tank", "Forge Heat": "dps", "Pitch and Cinder": "dps",
-	"Hard Winter": "dps", "Cold Comfort": "tank", "Frostbitten Steel": "dps", "Winter Hunt": "dps",
+	"Hard Winter": "dps", "Cold Comfort": "tank", "Frostbitten Steel": "dps", "Glacier Wall": "tank", "Winter Hunt": "dps",
 	"Live Current": "dps", "Stormdancer": "dps", "Lightning Rod": "tank", "Stormstring": "dps",
 	"Clockwork": "dps", "Hall of Mirrors": "tank", "Second Act": "dps", "Aetherstring": "dps",
 	"The Breach": "dps", "Pack of Two": "dps", "Strings Attached": "healer", "Nightstring": "dps",
@@ -29,6 +29,17 @@ const FIGHTS := {}
 ##   "self_heal_pct": % of max health healed on yourself, "skip": not a damage / heal button.
 ##   "last": usable only in this last share of the fight (an execute below 20% health).
 const PAYOFF := {
+	# Frost DPS: Frostbitten Steel (the sim's sword, 0.45). ~3 Glaze on each finisher; about
+	# 2 Icebreakers in 5 land on a target Frozen by the 3rd Winter's Bite; Bitter Edge only
+	# has a Frozen target about 40% of the time.
+	"icebreaker": {"coef": 0.45 * (0.6 * 2.0 + 0.4 * 3.5) * (1.0 + 0.1 * 3.0)},
+	"calving": {"coef": 0.45 * 1.0 * (1.0 + 0.12 * 3.0)},
+	"bitteredge": {"coef": 0.45 * 0.8 * 0.4},
+	"blackfrost": {"skip": true},
+	# Frost tank: Glacier Wall. ~3 Ice Layers held for Rimequake and spent by Shattering Slam.
+	"shatteringslam": {"coef": 0.45 * 1.5 + 0.2 * 3.0},
+	"rimequake": {"coef": 0.5 * (1.0 + 0.1 * 3.0)},
+	"coldshoulder": {"skip": true}, "hailcoat": {"skip": true}, "hardrime": {"skip": true}, "glacialbulwark": {"skip": true},
 	# Nature caster: finishers at an average of 3 patches; Thornburst on the target once.
 	"mossback": {"coef": 0.6 + 0.6 * 3},
 	"chokingvipers": {"coef": 0.0, "dot": 0.4 + 0.4 * 3, "dot_time": 3.0},

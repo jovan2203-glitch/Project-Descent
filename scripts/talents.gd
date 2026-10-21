@@ -76,7 +76,15 @@ const DEFAULT_LAYOUT := [
 ##              (column 5), the caster in the middle.
 ##   Frost      the bow talents together on the right of rows 1-5 (columns 4-5),
 ##              shields down the right edge (column 6), Ice Shards down the
-##              middle, Hoarfrost down column 1.
+##              middle, Hoarfrost down column 1. The melee DPS (Frostbitten
+##              Steel, Glaze) has column 2 of rows 3, 8 and 9 and column 1 of
+##              row 10; the tank (Glacier Wall, Ice Layers) the mirror slots
+##              (column 4, and column 5 of row 10) and the middle of rows 1 and 2.
+##              Rows 3, 8, 9 and 10 got two slots each for them, rows 1 and 2 one.
+##              Rows 6 and 7 can't grow: Cold Snap's link to Frozen Instinct and
+##              the shields' line down the right edge run through their free
+##              slots. The middle of row 8 stays empty (Thick Hide was folded
+##              into Winter Hide there: SaveSystem._migrate_10_to_11).
 ##   Lightning  melee down the left, the parry tank down the right (column 4 and
 ##              the right edge), the caster and the bow down the middle.
 ##   Arcane     the caster in the middle (rows 1-4 so far), the dodge tank down
@@ -115,7 +123,7 @@ const DEFAULT_LAYOUT := [
 ##              tank and caster (the bow's is in row 9).
 const LAYOUTS := {
 	"fire": [[0, 2, 3, 4, 6], [1, 2, 4, 5], [0, 3, 6], [1, 3, 5], [0, 2, 4, 6], [1, 2, 4, 5], [1, 5], [2, 3, 4], [1, 5], [1, 3, 5]],
-	"frost": [[0, 2, 4, 6], [1, 2, 4, 5], [1, 3, 5], [0, 2, 4, 6], [1, 2, 4, 5], [2, 3, 4], [1, 3, 5], [0, 3, 6], [1, 3, 5], [2, 3, 4]],
+	"frost": [[0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [0, 2, 4, 6], [1, 2, 4, 5], [2, 3, 4], [1, 3, 5], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5]],
 	"lightning": [[1, 2, 3, 4, 5], [0, 2, 4, 6], [0, 2, 3, 4, 6], [2, 3, 4], [1, 3, 5], [0, 3, 6], [2, 3, 4], [1, 2, 4, 5], [1, 3, 5], [2, 3, 4]],
 	"arcane": [[0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 2, 4, 6], [0, 1, 3, 5, 6], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [0, 2, 4, 6], [1, 2, 4, 5], [0, 2, 4, 6], [1, 2, 3, 4, 5]],
 	"shadow": [[0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5]],
@@ -305,13 +313,37 @@ const TALENTS := {
 			{"key": "frost_pinning_frost", "values": [13.0, 27.0, 40.0], "requires": "icepin"}],
 		"r5c3": ["Third Bite", 3, "The {n:froststrike} that Freezes its target deals {v}% more damage.",
 			{"key": "frost_third_bite", "values": [27.0, 53.0, 80.0], "requires": "froststrike"}],
-		# (r8c4 is empty: Thick Hide was folded into Winter Hide's cooldown.)
 		"r10c4": ["Hard Freeze", 3, "Your Frozen lasts {v} sec longer.",
 			{"key": "frost_hard_freeze", "values": [0.5, 1.0, 1.5]}],
 		"r10c5": ["Deep Freeze", 5, "Your Frost spells and abilities have a {v}% chance to Freeze the target.",
 			{"key": "frost_deep_freeze", "values": [1.0, 2.0, 3.0, 4.0, 5.0],
 			"capstone": "Every {bth:DEEP_FREEZE_BLIZZARD_EVERY} Ice Shard you fire also casts a {n:blizzard} at its target at {b%:DEEP_FREEZE_BLIZZARD_MULT}% effectiveness.",
 			"capstone_requires": "blizzard"}],
+		# Frost melee: Frostbitten Steel (Glaze) left of the middle, Glacier Wall (Ice
+		# Layers) right of it (scripts/player/frost_steel.gd, frost_glacier.gd).
+		"r3c3": ["Cold Sweep", 3, "When {n:hoarcleave} hits an enemy you had already Chilled, it has a {v}% chance to Freeze it instead of Chilling it.",
+			{"key": "frost_cold_sweep", "values": [10.0, 20.0, 30.0], "requires": "hoarcleave"}],
+		"r8c3": ["Ice Fall", 3, "{n:calving} deals {v}% more damage to its target for each other enemy it hits, up to {b:ICE_FALL_MAX_OTHERS}.",
+			{"key": "frost_ice_fall", "values": [4.0, 8.0, 12.0], "requires": "calving"}],
+		"r9c3": ["Long Dark", 3, "{n:blackfrost} lasts {v} sec longer.",
+			{"key": "frost_long_dark", "values": [1.5, 2.5, 4.0], "requires": "blackfrost"}],
+		"r10c2": ["Glinting Rime", 5, "Each Glaze you hold gives your Frost abilities {v}% more critical strike chance.",
+			{"key": "frost_glinting_rime", "values": [0.2, 0.4, 0.6, 0.8, 1.0],
+			"capstone": "An {n:icebreaker} that spends {b:GLAZE_MAX} Glaze always critically strikes.",
+			"capstone_requires": "icebreaker"}],
+		"r3c5": ["Packed Ice", 3, "Each Ice Layer {n:shatteringslam} shatters into its target deals {v}% more damage.",
+			{"key": "frost_packed_ice", "values": [13.0, 27.0, 40.0], "requires": "shatteringslam"}],
+		"r2c4": ["Turned Backs", 2, "{n:coldshoulder} also makes the {v} enemies nearest its target attack you and Chills them.",
+			{"key": "frost_turned_backs", "values": [1.0, 2.0], "requires": "coldshoulder"}],
+		"r1c4": ["Cold Fury", 3, "Each of your Ice Layers that breaks gives you {v} more Fury.",
+			{"key": "frost_cold_fury", "values": [2.0, 4.0, 6.0]}],
+		"r8c5": ["Regelation", 3, "Each Ice Layer that forms again during {n:hardrime} gives you {v} Fury.",
+			{"key": "frost_regelation", "values": [3.0, 7.0, 10.0], "requires": "hardrime"}],
+		"r9c5": ["Old Ice", 3, "{n:glacialbulwark} lasts {v} sec longer.",
+			{"key": "frost_old_ice", "values": [1.5, 2.5, 4.0], "requires": "glacialbulwark"}],
+		"r10c6": ["Deep Strata", 5, "Your Ice Layers absorb {v}% more damage.",
+			{"key": "frost_deep_strata", "values": [2.0, 4.0, 6.0, 8.0, 10.0],
+			"capstone": "When your last Ice Layer breaks, you gain one back at once. This can happen once every {b:DEEP_STRATA_COOLDOWN} sec."}],
 	},
 	"lightning": {
 		# Open talents: themed to the book (jumping on, tempo, standing your ground)

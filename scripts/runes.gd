@@ -16,6 +16,10 @@ const PATHS := {
 	"cold_precision": "res://data/runes/cold_precision.tres",
 	"frozen_aegis": "res://data/runes/frozen_aegis.tres",
 	"everlasting_rime": "res://data/runes/everlasting_rime.tres",
+	# Frost melee runes (PASSIVE: checked in frost_glacier.gd / frost_steel.gd with has_rune)
+	"ice_shelf": "res://data/runes/ice_shelf.tres",
+	"hoar_blade": "res://data/runes/hoar_blade.tres",
+	"lone_floe": "res://data/runes/lone_floe.tres",
 	# Epic Fire runes (PASSIVE: checked in player.gd with has_rune)
 	"dull_edge": "res://data/runes/dull_edge.tres",
 	"dull_mind": "res://data/runes/dull_mind.tres",
@@ -64,7 +68,7 @@ const PATHS := {
 	"fourth_facet": "res://data/runes/fourth_facet.tres",
 }
 const ALL := ["frost", "fury", "swiftness", "warding", "stormfire", "frostbound_insight",
-	"permafrost", "cold_precision", "frozen_aegis", "everlasting_rime",
+	"permafrost", "cold_precision", "frozen_aegis", "everlasting_rime", "ice_shelf", "hoar_blade", "lone_floe",
 	"dull_edge", "dull_mind", "hair_trigger", "level_head", "frostfire_bolt", "polarity", "resonance", "bottled_lightning", "afterimage", "momentum", "carried_sigil", "two_way_mirror", "open_wound", "rot", "long_fall", "overload", "dusk_till_dawn", "resounding", "overture", "bright_burst", "fourth_facet",
 	"menace_physical", "menace_fire", "menace_frost", "menace_lightning", "menace_arcane",
 	"menace_shadow", "menace_nature", "menace_holy"]
@@ -426,6 +430,20 @@ static func draw_glyph(c: CanvasItem, center: Vector2, r: float, id: String) -> 
 			# Closed ring with an inner ring (a shell that never breaks)
 			c.draw_arc(center, r * 0.42, 0, TAU, 14, col, w)
 			c.draw_arc(center, r * 0.2, 0, TAU, 10, Color(0.9, 0.98, 1.0), w)
+		"ice_shelf":
+			# Thin layers stacked into a wide shelf
+			for i in 4:
+				var y := -r * 0.36 + i * r * 0.24
+				c.draw_line(center + Vector2(-r * (0.42 - i * 0.04), y), center + Vector2(r * (0.42 - i * 0.04), y), col, w)
+		"hoar_blade":
+			# A blade with a frost star at its tip
+			c.draw_line(center + Vector2(-r * 0.35, r * 0.4), center + Vector2(r * 0.25, -r * 0.3), col, w * 1.2)
+			c.draw_line(center + Vector2(r * 0.25, -r * 0.5), center + Vector2(r * 0.25, -r * 0.1), Color(0.9, 0.98, 1.0), w)
+			c.draw_line(center + Vector2(r * 0.05, -r * 0.3), center + Vector2(r * 0.45, -r * 0.3), Color(0.9, 0.98, 1.0), w)
+		"lone_floe":
+			# One floe alone on a wave line
+			c.draw_rect(Rect2(center + Vector2(-r * 0.2, -r * 0.3), Vector2(r * 0.4, r * 0.3)), col, false, w)
+			c.draw_line(center + Vector2(-r * 0.4, r * 0.2), center + Vector2(r * 0.4, r * 0.2), Color(0.9, 0.98, 1.0), w)
 		_:
 			if id.begins_with("menace_"):
 				# Exclamation mark (threat)

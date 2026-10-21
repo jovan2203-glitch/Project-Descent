@@ -42,3 +42,5 @@ brawler BrawlerKit martial_brawler.gd
 rogue RogueKit martial_rogue.gd
 sharp SharpshooterKit martial_sharpshooter.gd
 martial_talents MartialTalentsKit martial_talents_open.gd
+glacier GlacierKit frost_glacier.gd
+frost_steel FrostSteelKit frost_steel.gd

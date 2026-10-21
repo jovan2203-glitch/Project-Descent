@@ -71,6 +71,7 @@ func _on_damage_dealt_frost(info: RefCounted) -> void:
 		player._gain("energy", player._talent("frost_cold_draw"))   # Cold Draw: the target was already Chilled or Frozen
 	player.frost_bow._rimefletch_shot(info)    # Rimefletch: my auto-shots carry an extra Frost hit
 	player.frost_more._rime_edge_on_hit(info)   # Rime Edge: my melee hits carry an extra Frost hit
+	player.frost_steel._hoar_blade_on_hit(info)   # Rune of the Hoar Blade: auto-attacks at full Glaze
 	if not is_instance_valid(tgt) or not tgt.is_alive():
 		return   # (that extra hit can be the killing blow)
 	if info.has_meta("permafrost_pct"):
@@ -266,11 +267,14 @@ static func winters_bite_freezes(stacks: int) -> bool:
 func _winters_bite(tgt: Node, coef: float) -> void:
 	if tgt == null or not is_instance_valid(tgt) or not tgt.is_alive():
 		return
-	var freeze := winters_bite_freezes(int(player.status.stacks_of(WINTERS_BITE_ID)))
-	if freeze:
+	# Black Frost: every one Freezes (the counter is left as it is).
+	var black := player.frost_steel.black_frost_on()
+	var freeze := black or winters_bite_freezes(int(player.status.stacks_of(WINTERS_BITE_ID)))
+	if freeze and not black:
 		player.status.remove(WINTERS_BITE_ID)
-	else:
+	elif not freeze:
 		player.status.apply(_winters_bite_fx(), player)
+	var was_cold := player.frost_steel.cold_on(tgt)   # (before its own Chill)
 	var at: Vector3 = tgt.global_position
 	var info = player._combat().ability_hit_info(player, tgt, coef, "froststrike")
 	if freeze:
@@ -280,6 +284,7 @@ func _winters_bite(tgt: Node, coef: float) -> void:
 	_bite_freezing = false
 	if not info.avoided():
 		player.frostfire_kit._on_hit_extra(tgt, at, "froststrike")
+		player.frost_steel._bite_landed(was_cold)   # Frost DPS: Glaze
 
 # --- Ice Floe & Shatterpoint -----------------------------------------------------------
 

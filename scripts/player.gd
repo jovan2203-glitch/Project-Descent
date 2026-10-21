@@ -25,6 +25,8 @@ const BLIZZARD_RADIUS = 2.5
 var frostfire_kit: FrostfireKit = _kit(FrostfireKit) as FrostfireKit
 var ice_shards_kit: IceShardsKit = _kit(IceShardsKit) as IceShardsKit
 var frost_melee: FrostMeleeKit = _kit(FrostMeleeKit) as FrostMeleeKit
+var glacier: GlacierKit = _kit(GlacierKit) as GlacierKit
+var frost_steel: FrostSteelKit = _kit(FrostSteelKit) as FrostSteelKit
 var pacts_kit: PactsKit = _kit(PactsKit) as PactsKit
 var dusk_till_dawn: DuskTillDawnKit = _kit(DuskTillDawnKit) as DuskTillDawnKit
 var frost_runes: FrostRunesKit = _kit(FrostRunesKit) as FrostRunesKit
@@ -2431,6 +2433,7 @@ func _process(_delta: float) -> void:
 	weaver._tick_weaver()
 	shepherd._tick_shepherd()
 	colossus._tick_colossus()
+	glacier._tick_glacier()
 	wheel._tick_wheel()
 	brawler._tick_brawler(_delta)
 	rogue._tick_rogue(_delta)
@@ -2708,6 +2711,11 @@ func _use_drafted(id: String) -> void:
 			shepherd._shepherd_use(id, res)   # Nature healer: the Shepherd
 		ColossusKit.VINE_FIST_ID, ColossusKit.GRASP_ID, ColossusKit.STOMP_ID, ColossusKit.GIANTS_HANDS_ID, ColossusKit.HEARTSAP_ID, ColossusKit.AWAKEN_ID:
 			colossus._colossus_use(id, res)   # Nature tank: the Colossus
+		GlacierKit.RIME_SLASH_ID, GlacierKit.SHATTER_SLAM_ID, GlacierKit.COLD_SHOULDER_ID, GlacierKit.RIMEQUAKE_ID, \
+				GlacierKit.HAILCOAT_ID, GlacierKit.HARD_RIME_ID, GlacierKit.BULWARK_ID:
+			glacier._glacier_use(id, res, w)   # Frost tank: Glacier Wall
+		FrostSteelKit.HOARCLEAVE_ID, FrostSteelKit.CALVING_ID, FrostSteelKit.BITTER_EDGE_ID, FrostSteelKit.BLACK_FROST_ID:
+			frost_steel._steel_use(id, res, w)   # Frost DPS: Frostbitten Steel
 		"hack", "chop", "rush", "shrapnel", "slash", "lunge", "bladeguard", "shardlance", \
 				"jab", "hook", "dragin", "flyinghead", "thud", "crush", "earthshake", "faultline":
 			wheel._wheel_use(id, res)   # Martial warrior: the Wheel
@@ -2728,10 +2736,6 @@ func _use_drafted(id: String) -> void:
 			FROST_BOLT.spawn(get_tree().current_scene, muzzle, target, self, false, id, 0.0)   # Hoarfrost is its on-hit effect
 		"iceshards":
 			ice_shards_kit._fire_ice_shards(float(res.damage))
-		"shatteringslam":
-			frost_melee._shattering_slam(target, w, res)
-		"rimeslash":
-			frost_melee._rime_slash(w, res)
 		"frostnova":
 			for e in _enemies_within(float(res.radius)):
 				deal_damage(e, float(res.damage), "frostnova")   # Frozen comes from the ability's on-hit effect
@@ -3081,6 +3085,10 @@ func _drafted_precheck(id: String, _res: Resource, w: Dictionary) -> String:
 		return shepherd._shepherd_precheck(id)   # Nature healer
 	if ColossusKit.COLOSSUS_IDS.has(id):
 		return colossus._colossus_precheck(id)   # Nature tank
+	if GlacierKit.GLACIER_IDS.has(id):
+		return glacier._glacier_precheck(id)   # Frost tank
+	if FrostSteelKit.STEEL_PRECHECKS.has(id):
+		return frost_steel._steel_precheck(id)   # Frost DPS
 	if Abilities.CATEGORY_OF.get(id, "") == "martial" and (Abilities.wheel_weapon_of(id) != "" \
 			or Abilities.WHEEL_SLOTS.has(id) or Abilities.WHEEL_ORDER.has(id)):
 		return wheel._wheel_precheck(id)   # Martial warrior: the Wheel
@@ -3724,6 +3732,7 @@ func adjust_crit(info: RefCounted, chance: float) -> float:
 		chance = float(fire[0])
 	chance = rogue.adjust_crit(info, chance)   # Over the Shoulder (Martial Utility): a sure crit
 	chance = sharp.adjust_crit(info, chance)   # Sharpshooter: Heavy Draw at full Streak, a sure crit
+	chance = frost_steel.adjust_crit(info, chance)   # Frost DPS: Glinting Rime
 	var tags: PackedStringArray = info.tags
 	if fire_cooldowns.cool_head_active() and FireCooldownsKit.is_fire_action(tags):
 		return 0.0                               # Cool Head: no Fire crits at all (ticks and Vent Flames included)

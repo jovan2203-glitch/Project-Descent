@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+[ext_resource type="Resource" path="res://data/effects/frozen.tres" id="2_fx"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"bitteredge"
+display_name = "Bitter Edge"
+description = "A quick cut at a target you have Frozen, dealing {hit} Frost damage and Freezing it again. Gives you {b:BITTER_EDGE_GLAZE} Glaze."
+tags = PackedStringArray("Ability", "Frost", "Melee")
+cast_type = 0
+cast_time = 0.0
+requires_target = true
+weapon_requirement = 1
+requires_two_hand = true
+resource_type = 3
+resource_cost = 15
+damage = 0.0
+weapon_damage_multiplier = 0.8
+on_hit_effect = ExtResource("2_fx")
+damage_type = &"frost"
