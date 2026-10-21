@@ -8,7 +8,7 @@ const Runes = preload("res://scripts/runes.gd")
 const Shields = preload("res://scripts/core/shields.gd")
 const StatusContainer = preload("res://scripts/core/status_container.gd")
 
-const NEW_KEYS := ["frost_clean_break", "frost_piercing_cold", "frost_dot_duration",
+const NEW_KEYS := ["frost_clean_break", "frost_piercing_cold", "frost_long_chill",
 	"frost_cold_snap", "frost_splinter", "frost_shardstorm", "frost_shield_armor",
 	"frost_slow_threat", "frost_slow_dr", "frost_glacial_heart", "frost_deep_freeze",
 	"frost_ice_floe", "frost_shatterpoint", "frost_instinct"]

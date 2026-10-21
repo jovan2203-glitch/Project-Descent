@@ -1170,6 +1170,27 @@ func heal(amount: float, ability_id: String = "") -> void:
 	amount *= holy_talents._holy_heal_mult(ability_id)   # Radiance
 	_combat().heal(self, self, amount * pacts_kit._pact_heal_mult(), ability_id)   # (my Pact: Shepherd)
 
+var _bar_role := "dps"      # my role from my bars (Abilities.role_of_bar), worked out again when they change
+var _bar_role_hash := 0
+
+func _my_role() -> String:
+	var pd := get_node_or_null("/root/PlayerData")
+	if pd == null:
+		return "dps"
+	var h: int = pd.action_bar.hash()
+	if h != _bar_role_hash:
+		_bar_role_hash = h
+		_bar_role = Abilities.role_of_bar(pd.action_bar)
+	return _bar_role
+
+## The share of their damage my hits deal, and the threat it makes (CombatSystem):
+## a tank deals Balance.TANK_DAMAGE_PCT of it for TANK_THREAT_MULT the threat.
+func outgoing_damage_mult() -> float:
+	return Abilities.role_damage_mult(_my_role())
+
+func outgoing_threat_mult() -> float:
+	return Abilities.role_threat_mult(_my_role())
+
 ## Real damage of a 1.0 coefficient for me: my level's standard hit (CombatSystem).
 func damage_unit() -> float:
 	return Stats.level_hit(combat_level())
@@ -1556,7 +1577,7 @@ func blizzard_radius() -> float:
 
 ## Extra seconds on effects you apply (StatusContainer asks). Deep Hoarfrost.
 func effect_duration_bonus(res: Resource) -> float:
-	# (Deep Hoarfrost, Long Burn, Lingering Frost: one list, shared
+	# (Deep Hoarfrost, Long Burn, Lingering Frost, Hard Freeze: one list, shared
 	# with the tooltips, so what they say is what happens.)
 	return Abilities.effect_time_bonus(res, _talent) + utility.duration_bonus(res)   # (Fixed Point: per Arcane cooldown)
 
@@ -1726,7 +1747,6 @@ func _on_damage_modify(info: RefCounted) -> void:
 	# Shatter Shot: more damage to a target I have Frozen (own only).
 	if id == FrostBowKit.SHATTER_SHOT_ID:
 		frost_bow._shatter_shot_modify(info)
-	frost_bow._cold_draw_mark(info, id)   # Cold Draw: arrows into a target I already Chilled or Froze
 	# Marked Prey: my Ice Shards hit the target carrying MY Coldmark harder.
 	if id == "iceshards" and info.target and is_instance_valid(info.target):
 		var prey := _talent("frost_marked_prey")

@@ -200,7 +200,7 @@ func test_ability_texts_follow_the_data() -> void:
 ## What a talent changes shows in the ability's tooltip, and the game uses the
 ## same maths (Abilities.effect_time_bonus / radius_bonus / base_cast_time).
 func test_talent_maths_shared_with_the_game() -> void:
-	var ranks := {"fire_long_burn": 3.0, "frost_hoarfrost": 4.0, "frost_dot_duration": 2.0}
+	var ranks := {"fire_long_burn": 3.0, "frost_hoarfrost": 4.0, "frost_long_chill": 2.0}
 	var talent_of := func(key: String, field: String) -> float:
 		if key == "frost_hoarfrost":
 			return float(ranks[key]) if field == "values2" else 25.0
@@ -212,8 +212,8 @@ func test_talent_maths_shared_with_the_game() -> void:
 	var chilled: Resource = Effects.get_effect("chilled")
 	assert_eq(Abilities.effect_time_bonus(immolate, talent_of), 3.0, "Long Burn")
 	assert_eq(Abilities.effect_time_bonus(pitched, talent_of), 0.0, "nothing lengthens the pitch (Thick Pitch was folded into it)")
-	assert_eq(Abilities.effect_time_bonus(hoarfrost, talent_of), 6.0, "Deep Hoarfrost's seconds + Lingering Frost (a Frost damage over time effect)")
-	assert_eq(Abilities.effect_time_bonus(chilled, talent_of), 0.0, "not a damage over time effect")
+	assert_eq(Abilities.effect_time_bonus(hoarfrost, talent_of), 4.0, "Deep Hoarfrost's seconds")
+	assert_eq(Abilities.effect_time_bonus(chilled, talent_of), 2.0, "Lingering Frost")
 	assert_eq(Abilities.effect_time_bonus(immolate, none), 0.0)
 	assert_eq(Abilities.effect_time_bonus(null, talent_of), 0.0)
 	# Without talents (the editor has no character) the bonuses are zero.

@@ -269,6 +269,14 @@ func combat_level() -> int:
 func damage_unit() -> float:
 	return preload("res://scripts/core/stats.gd").level_hit(combat_level())
 
+## Their role's damage share and threat (CombatSystem; the DoTs they put on enemies
+## here tick with it, like on their own machine: Player.outgoing_damage_mult).
+func outgoing_damage_mult() -> float:
+	return preload("res://scripts/abilities.gd").role_damage_mult(role)
+
+func outgoing_threat_mult() -> float:
+	return preload("res://scripts/abilities.gd").role_threat_mult(role)
+
 ## Projectiles / Blizzards spawned for this puppet are visuals only: the real
 ## damage is dealt on its owner's machine and reported to the host from there.
 func deal_damage(_enemy: Node, _base: float, _ability_id: String, _is_proc: bool = false,

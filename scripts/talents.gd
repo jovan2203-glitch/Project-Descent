@@ -21,6 +21,7 @@ extends RefCounted
 # Usage: const Talents = preload("res://scripts/talents.gd")
 
 const Categories = preload("res://scripts/categories.gd")
+const Stats = preload("res://scripts/core/stats.gd")
 
 const ROWS := 10
 const COLUMNS := 7
@@ -30,7 +31,7 @@ const POINTS_TO_UNLOCK_NEXT := 3
 ## Bump this whenever a talent is added, moved, removed or changed. A profile saved
 ## with another number gets all its talent points back on its next load
 ## (SaveSystem), so talent changes never need a save migration.
-const TREE_VERSION := 2
+const TREE_VERSION := 4
 const POINTS_AT_LEVEL_1 := 5
 const POINTS_PER_LEVEL := 1
 ## Every this many levels (2, 4, 6...) gives one extra point on top.
@@ -296,8 +297,8 @@ const TALENTS := {
 		# (values = what is added to Coldspike's 25%.)
 		"r6c3": ["Piercing Cold", 3, "{n:coldspike} deals {v+b:COLDSPIKE_FROZEN_PCT}% more damage to a target you have Frozen, instead of {b:COLDSPIKE_FROZEN_PCT}%.",
 			{"key": "frost_piercing_cold", "values": [7.0, 13.0, 20.0], "requires": "coldspike"}],
-		"r8c1": ["Lingering Frost", 3, "Your Frost damage over time effects last {v} sec longer.",
-			{"key": "frost_dot_duration", "values": [1.0, 2.0, 3.0]}],
+		"r8c1": ["Lingering Frost", 3, "Your Chilled lasts {v} sec longer.",
+			{"key": "frost_long_chill", "values": [1.0, 2.0, 3.0]}],
 		"r6c5": ["Cold Snap", 3, "Freezing a target reduces your next global cooldown by {v} sec.",
 			{"key": "frost_cold_snap", "values": [0.1, 0.2, 0.3]}],
 		"r7c4": ["Splintering", 1, "Your Ice Shards that hit a target you have Frozen or Rime Shelled splinter, hitting one random other enemy within {b:SPLINTER_RANGE} m for {vdmg:iceshards} Frost damage.",
@@ -322,10 +323,10 @@ const TALENTS := {
 			{"key": "frost_glacial_heart", "values": [5.0, 10.0, 15.0],
 			"capstone": "You gain {b:GLACIAL_HEART_HASTE}% Haste for every slow you have on an enemy, per target and per slow (Chilled and Frozen count separately)."}],
 		# The Frost bow: its talents sit together on the right of rows 1-5 (columns 5-6)
-		# (player.gd, "Frost, the bow"). Cold Draw is generic; the others each work
-		# with one arrow ability.
-		"r1c5": ["Cold Draw", 3, "Your arrow abilities that hit a target you have already Chilled or Frozen give you {v} Energy.",
-			{"key": "frost_cold_draw", "values": [2.0, 4.0, 6.0]}],
+		# (player.gd, "Frost, the bow"). Cold Draw is generic (any hit, any resource:
+		# values2 = mana points); the others each work with one arrow ability.
+		"r1c5": ["Cold Draw", 3, "Your hits on a target you have Chilled or Frozen give you {v} Energy, {v} Fury and {v2mana} mana. This can happen once every {b:COLD_DRAW_EVERY} sec.",
+			{"key": "frost_cold_draw", "values": [2.0, 4.0, 6.0], "values2": [0.1, 0.2, 0.3]}],
 		"r2c6": ["Black Ice", 3, "The first Chill the ice of your {n:icyretreat} puts on each enemy has a {v}% chance to be a Freeze instead.",
 			{"key": "frost_black_ice", "values": [33.0, 67.0, 100.0], "requires": "icyretreat"}],
 		"r3c6": ["Clean Shatter", 3, "When {n:shattershot} breaks your Freeze, it refunds {v} Energy and takes {v2} sec off its own cooldown.",
@@ -1484,6 +1485,11 @@ static func fill(text: String, t: Dictionary) -> String:
 		return text
 	var vals: Array = t.get("values", [])
 	text = text.replace("{v}", _join(vals)).replace("{v2}", _join(t.get("values2", [])))
+	if text.contains("{v2mana}"):   # values2 as mana points, shown as real mana at your level
+		var mana: Array[String] = []
+		for v in t.get("values2", []):
+			mana.append(str(int(round(float(v) * Stats.mana_unit(Stats._player_level())))))
+		text = text.replace("{v2mana}", " / ".join(mana))
 	if _fill_re == null:
 		_fill_re = RegEx.create_from_string("\\{(v\\+b|vdmg|v\\+dmg|dmg|bdmg):([A-Za-z0-9_]+)\\}")
 	var out := ""

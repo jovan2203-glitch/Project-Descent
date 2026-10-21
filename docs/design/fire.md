@@ -20,9 +20,9 @@ Built around critical strikes, specifically around trying to AVOID crits: non-cr
 
 ## Tank (Slag, shield)
 - Slag Skin (tank version) - instant, 15 s duration, 13 s cooldown (must be maintained). Melee hits that don't crit add armor stacks; a crit shatters them for Fire damage around you.
-- Brand - fury-building high-threat strike; branded enemy deals less damage to you.
+- Brand - fury-building high-threat strike (weapon + 1.0 FB, was 0.3: tank rule pass; 5x threat, was 3x); branded enemy deals less damage to you.
 - Cinder Guard - fury spender: 6 s more block; each block burns the attacker and extends Slag Skin.
-- Anvil - shield slam, AoE Fire threat, never crits (always adds Slag).
+- Anvil - shield slam (half weapon + 0.65 FB, was 0.3; 6x threat, was 4x), AoE Fire threat, never crits (always adds Slag).
 
 ## Melee DPS (Heat)
 - Immolate the target, then weapon hits build Heat: +4% Fire damage to abilities (not spells) per stack. Crit has no interaction with Heat. Heat falls off after 3 s without a new stack.

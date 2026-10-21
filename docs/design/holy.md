@@ -123,10 +123,10 @@ Code: player.gd, "Holy tank: the Censer". Numbers: balance.gd (INCENSE_*, MOTE_*
 - Own-only: only the owner picks them up; bright for the owner, faint for the party.
 
 ### Kit (FB; mana in points)
-- Censer Swing - filler, 0.7 FB, 4x threat, +3 Incense, knocks 1 mote loose. 0.4 mana.
+- Censer Swing - filler, 0.5 FB (was 0.7; tank rule pass), 3x threat (was 4x), +3 Incense, knocks 1 mote loose. 0.4 mana.
 - Hallowed Arc - 8 s cd, 0.5 FB within 8 m, 4x threat, +1 Incense per enemy, 1 mote per enemy (max 3). 1 mana.
 - Guiding Ray - 10 s cd, 25 m, 0.4 FB, 6x threat, +3 Incense, a mote at the enemy. The ranged pull. 1 mana.
-- Pour Out - 12 s cd, needs 30 Incense, spends all: 0.03 FB per stack within 8 m (3.0 FB at 100), 6x threat. 2 mana.
+- Pour Out - 12 s cd, needs 30 Incense, spends all: 0.03 FB per stack within 8 m (3.0 FB at 100), 4x threat (was 6x). 2 mana.
 - Absolve - 10 s cd, spends up to 40 Incense, heals 0.05 old Heals per stack (2.0 at 40). 1.5 mana.
 - Aureole - off GCD, 20 s cd, spends 30 Incense: +25% Block for 5 s.
 - Gather the Light - off GCD, 30 s cd: picks up every mote at once.
