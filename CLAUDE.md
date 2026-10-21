@@ -9,7 +9,7 @@ Godot 4.7 3D co-op action-RPG (dungeons, ability books, talents, runes, Pacts). 
 - `scripts/main_menu.gd` - the main menu's shared core (scene, pages, nav bar, XP bar, input callbacks, toasts). Each tab's code is a part in `scripts/menu/` (see `menu_part.gd`): a new tab or overlay gets its own part, never a new section in main_menu.gd. Tests that check menu code text read `MenuSource.text()`.
 - `scripts/net/` - networking. `scripts/dungeon/` - dungeons. `scripts/ui/` - interface.
 - `tests/test_*.gd` - test suites. Run them headless with `tools/test.sh [suite] [test]` (no editor, no stale caches), or with the godot-ai `test_run` tool (open `res://scenes/main_menu.tscn` first). Tests that check player code text read `PlayerSource.text()`.
-- `tools/balance_sim.tscn` - approximate per-spec DPS / HPS at level 50; writes `docs/BALANCE_REPORT.md` (`godot --headless --path . res://tools/balance_sim.tscn`). Rerun it after balance changes.
+- `tools/balance_sim.tscn` - approximate per-spec DPS / HPS at level 50; writes `docs/BALANCE_REPORT.md` (`godot --headless --path . res://tools/balance_sim.tscn`). Rerun it after balance changes. Specs with only one ability are incomplete: marked in the report and never counted in any average or calculation.
 - `tools/release.sh X.Y.Z` - publishes a release: tags it; GitHub Actions (`.github/workflows/`) tests, builds, zips and publishes it with the newest patch notes. Every push also runs the tests on GitHub.
 - `docs/design/` - one design file per book plus `systems.md`. Read only the file the task needs.
 - `docs/INTERACTIONS.md`, `docs/DUNGEONS.md` - interaction and dungeon reference.

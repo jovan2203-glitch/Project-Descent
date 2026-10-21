@@ -40,6 +40,9 @@ const WEAPONS := {"melee": "sword", "ranged": "bow"}
 const TARGET_HIT := 500.0          # level 50, no gear: about this much per ability use
 const TARGET_DPS_GEARED := 2000.0  # max level geared DPS
 const TARGET_TANK_SHARE := [0.3, 0.4]   # a tank at optimal play: this share of TARGET_DPS_GEARED
+## A spec with this many abilities or fewer is incomplete: marked in the report and
+## left out of every average and calculation (spec_averages).
+const INCOMPLETE_MAX_ABILITIES := 1
 const TARGET_TANK_THREAT := [1.3, 1.7]  # ... and this many times its threat (a big spike can still take aggro)
 
 func _ready() -> void:
@@ -281,6 +284,7 @@ static func report() -> String:
 	lines.append("")
 	lines.append("| Book | Spec | Role | Avg use (no gear) | No gear | Geared | Top sources (geared) | Flags | Not simulated |")
 	lines.append("|---|---|---|---|---|---|---|---|---|")
+	var rows := []   # [role, geared result, complete?]
 	for book in Abilities.SPECS:
 		var utility := utility_of(book)
 		for spec in Abilities.SPECS[book]:
@@ -291,10 +295,56 @@ static func report() -> String:
 			var ids: Array = spec[1]
 			var bare := simulate(ids, role, "no gear", name, utility)
 			var full := simulate(ids, role, "geared", name, utility)
+			var flags := _flags(bare, full, role)
+			if is_incomplete(ids):
+				flags = PackedStringArray(["INCOMPLETE (%d ability, not in averages)" % ids.size()]) + flags
+			rows.append([role, full, not is_incomplete(ids)])
 			lines.append("| %s | %s | %s | %d | %s | %s | %s | %s | %s |" % [book.capitalize(), name, role, int(bare["avg_hit"]),
-				_rate(bare, role), _rate(full, role), _top(full["sources"]), ", ".join(_flags(bare, full, role)),
+				_rate(bare, role), _rate(full, role), _top(full["sources"]), ", ".join(flags),
 				", ".join(full["unsimulated"])])
+	lines.append("")
+	lines.append("## Averages (geared, complete specs only)")
+	lines.append("")
+	for role in ["dps", "tank", "healer"]:
+		var a := spec_averages(rows, role)
+		if int(a["count"]) == 0:
+			continue
+		var key := "hps" if role == "healer" else "dps"
+		var line := "- %s: average %d %s, median %d (%d specs; %d incomplete left out)" % [{"dps": "DPS", "tank": "Tanks", "healer": "Healers"}[role], int(a["avg"]), key.to_upper(),
+			int(a["median"]), int(a["count"]), int(a["left_out"])]
+		if role == "tank":
+			line += ", average %d TPS" % int(a["avg_tps"])
+		lines.append(line)
 	return "\n".join(lines) + "\n"
+
+## Too few abilities to judge (INCOMPLETE_MAX_ABILITIES): never counted in averages.
+static func is_incomplete(ids: Array) -> bool:
+	return ids.size() <= INCOMPLETE_MAX_ABILITIES
+
+## Average and median of `role`'s geared DPS (HPS for healers) over `rows`
+## ([role, geared result, complete?]), incomplete specs left out.
+static func spec_averages(rows: Array, role: String) -> Dictionary:
+	var key := "hps" if role == "healer" else "dps"
+	var vals: Array[float] = []
+	var tps := 0.0
+	var left_out := 0
+	for r in rows:
+		if r[0] != role:
+			continue
+		if not bool(r[2]):
+			left_out += 1
+			continue
+		vals.append(float(r[1][key]))
+		tps += float(r[1].get("tps", 0.0))
+	vals.sort()
+	var n := vals.size()
+	var total := 0.0
+	for v in vals:
+		total += v
+	var median := 0.0
+	if n > 0:
+		median = vals[n / 2] if n % 2 == 1 else (vals[n / 2 - 1] + vals[n / 2]) / 2.0
+	return {"count": n, "left_out": left_out, "avg": total / maxf(n, 1), "median": median, "avg_tps": tps / maxf(n, 1)}
 
 ## A book's "Utility" divider (its ids; [] if it has none).
 static func utility_of(book: String) -> Array:

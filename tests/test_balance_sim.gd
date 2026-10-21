@@ -48,3 +48,16 @@ func test_a_plain_hit_is_the_level_hit() -> void:
 	var coef := Abilities.hit_base("frostbolt", {})
 	var crit := 1.0 + Sim.Stats.crit_chance(Abilities.get_resource("frostbolt").tags, stat_of) / 100.0
 	assert_true(absf(float(b["dmg"]) - coef * 460.0 * crit) < 1.0, "frostbolt: %s" % str(b["dmg"]))
+
+## Specs with one ability are incomplete: marked, and left out of every average.
+func test_incomplete_specs_stay_out_of_averages() -> void:
+	assert_true(Sim.is_incomplete(["stormarrow"]))
+	assert_false(Sim.is_incomplete(["frostbolt", "blizzard"]))
+	var rows := [["dps", {"dps": 1000.0}, true], ["dps", {"dps": 3000.0}, true], ["dps", {"dps": 100.0}, false],
+		["tank", {"dps": 700.0, "tps": 3000.0}, true]]
+	var a := Sim.spec_averages(rows, "dps")
+	assert_eq(int(a["count"]), 2)
+	assert_eq(int(a["left_out"]), 1)
+	assert_eq(float(a["avg"]), 2000.0)
+	assert_eq(float(a["median"]), 2000.0)
+	assert_eq(float(Sim.spec_averages(rows, "tank")["avg_tps"]), 3000.0)

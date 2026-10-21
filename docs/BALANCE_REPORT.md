@@ -18,15 +18,15 @@ Idle = time with nothing to press: "waiting on cooldowns" when every button was 
 | Lightning | Live Current | dps | 637 | 393 DPS | 2402 DPS | Lightning Bolt 48%, Leaping Arc 29%, Live Wire 23% |  | Discharge, Grounding Surge, Capacitor, Static Snare, Jolt, Storm Front, Flicker, Static Step, Thunder Strike, Faraday Guard, Ground Out, Recharge |
 | Lightning | Stormdancer | dps | 199 | 240 DPS | 1488 DPS | Auto Attack 46%, Charged Edge 24%, Thunder Strike 8% | geared DPS low, hits small | Twin Current, Split Second, Static Snare, Jolt, Storm Front, Flicker, Static Step, Faraday Guard, Ground Out, Recharge |
 | Lightning | Lightning Rod | tank | 76 | 125 DPS, 540 TPS, 0 self-HPS | 752 DPS, 3210 TPS, 0 self-HPS | Return Stroke 58%, Auto Attack 32%, Stormbreak 10% | idle 65% (resource-starved) | Humming Blade, Crossguard, Draw the Storm, Reel In, Static Snare, Jolt, Storm Front, Flicker, Static Step, Faraday Guard, Ground Out, Recharge |
-| Lightning | Stormstring | dps | 217 | 161 DPS | 989 DPS | Auto Attack 69%, Storm Arrow 19%, Thunder Strike 12% | geared DPS low, hits small, idle 65% (waiting on cooldowns) | Static Snare, Jolt, Storm Front, Flicker, Static Step, Faraday Guard, Ground Out, Recharge |
+| Lightning | Stormstring | dps | 217 | 161 DPS | 989 DPS | Auto Attack 69%, Storm Arrow 19%, Thunder Strike 12% | INCOMPLETE (1 ability, not in averages), geared DPS low, hits small, idle 65% (waiting on cooldowns) | Static Snare, Jolt, Storm Front, Flicker, Static Step, Faraday Guard, Ground Out, Recharge |
 | Arcane | Clockwork | dps | 538 | 272 DPS | 1713 DPS | Unravel 70%, Aether Burst 12%, Collapse 8% |  | Scatter, Mirror Sigil, Rewind, Lapse, Fixed Point, Unweave, Phase Step |
 | Arcane | Hall of Mirrors | tank | 120 | 114 DPS, 483 TPS, 0 self-HPS | 691 DPS, 2870 TPS, 0 self-HPS | Missed Beat 35%, Auto Attack 34%, Double Up 21% | idle 49% (waiting on cooldowns) | Full Set, Stand-In, Trade Places, Crowd of One, Fixed Point, Unweave, Phase Step |
 | Arcane | Second Act | dps | 528 | 460 DPS | 2707 DPS | Swift Cut 33%, Auto Attack 25%, Arcane Strike 21% | geared DPS high | Encore, Double Time, Fixed Point, Unweave, Phase Step |
-| Arcane | Aetherstring | dps | 700 | 287 DPS | 1712 DPS | Aether Arrow 60%, Auto Attack 40% | idle 63% (waiting on cooldowns) | Fixed Point, Unweave, Phase Step |
+| Arcane | Aetherstring | dps | 700 | 287 DPS | 1712 DPS | Aether Arrow 60%, Auto Attack 40% | INCOMPLETE (1 ability, not in averages), idle 63% (waiting on cooldowns) | Fixed Point, Unweave, Phase Step |
 | Shadow | The Breach | dps | 519 | 265 DPS | 1905 DPS | Beckon 64%, Wither 36% |  | Call Due, Widen, Take It Back, Bottomless, Tangle, Climb the String, String Up |
 | Shadow | Pack of Two | dps | 260 | 281 DPS | 1709 DPS | Auto Attack 40%, Sic 20%, Open Up 15% |  | Guard Dogs, Bring It Down, Off the Chain, Tangle, Climb the String, String Up |
 | Shadow | Strings Attached | healer | 0 | 206 HPS | 1157 HPS | Hoist 55%, Patch Up 34%, Tug 11% | idle 33% (resource-starved) | String, Pull Taut, Cupped Hands, Restring, Knot, Yank, Double Thread, Behind Its Back, Slack, Still Standing, Cut the Strings, Not Finished With You, Back on Your Feet, Tangle, Climb the String, String Up |
-| Shadow | Nightstring | dps | 196 | 143 DPS | 868 DPS | Auto Attack 79%, Shadow Arrow 19%, Hush 2% | geared DPS low, hits small, idle 74% (waiting on cooldowns) | Tangle, Climb the String, String Up |
+| Shadow | Nightstring | dps | 196 | 143 DPS | 868 DPS | Auto Attack 79%, Shadow Arrow 19%, Hush 2% | INCOMPLETE (1 ability, not in averages), geared DPS low, hits small, idle 74% (waiting on cooldowns) | Tangle, Climb the String, String Up |
 | Nature | Thornweaver | dps | 712 | 368 DPS | 2782 DPS | Mossback 53%, Thornshot 47% | geared DPS high | Rootsnare, Deep Roots, Spore Sleep, Leaf Cloak |
 | Nature | Shepherd | healer | 0 | 420 HPS | 2281 HPS | Dewfall 42%, Rootguard 16%, Heartwood Elk 15% | idle 46% (resource-starved) | Return to Bloom, Rootsnare, Deep Roots, Spore Sleep, Leaf Cloak |
 | Nature | Colossus | tank | 181 | 127 DPS, 571 TPS, 34 self-HPS | 740 DPS, 3251 TPS, 93 self-HPS | Vine Fist 40%, Auto Attack 32%, Stomp 23% |  | Grasp, Awaken, Rootsnare, Deep Roots, Spore Sleep, Leaf Cloak |
@@ -39,3 +39,9 @@ Idle = time with nothing to press: "waiting on cooldowns" when every button was 
 | Martial | Brawler | tank | 131 | 125 DPS, 542 TPS, 0 self-HPS | 771 DPS, 3315 TPS, 0 self-HPS | Punch 69%, Auto Attack 31% |  | Catch, Come On, Tough It Out, Fighting Style, Rapid Fists, Haymaker, Sweep, Roundhouse, Clinch, Shake Off, Turn It Around, Throw, Takedown, Pin the Shadow, Over the Shoulder, Play Dead |
 | Martial | Rogue | dps | 444 | 370 DPS | 2222 DPS | Cut 33%, Auto Attack 31%, Kick Off 13% |  | Go In, Close It Out, Hit Your Stride, Roll With It, Gut, Through and Through, Red Whirl, Back Flip, Drive Through, Pin the Shadow, Over the Shoulder, Play Dead |
 | Martial | Sharpshooter | dps | 390 | 368 DPS | 2221 DPS | Auto Attack 31%, Heavy Draw 15%, Spread 13% |  | Breathe, Fast Hands, Pin the Shadow, Over the Shoulder, Play Dead |
+
+## Averages (geared, complete specs only)
+
+- DPS: average 2124 DPS, median 1919 (18 specs; 3 incomplete left out)
+- Tanks: average 716 DPS, median 740 (7 specs; 0 incomplete left out), average 3048 TPS
+- Healers: average 1620 HPS, median 1508 (5 specs; 0 incomplete left out)
