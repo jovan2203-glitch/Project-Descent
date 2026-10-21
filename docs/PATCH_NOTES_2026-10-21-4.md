@@ -1,4 +1,4 @@
-# Patch notes — 21 October 2026 (0.0.19)
+# Patch notes — 21 October 2026
 
 Damage is given at level 50 before gear.
 
