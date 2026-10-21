@@ -360,6 +360,9 @@ func _peer_address(peer: int) -> String:
 func _send_meta() -> void:
 	if not is_host() or not _connected():
 		return
+	if not run.is_empty():
+		run["rez_elapsed"] = _now() - _rez_t0
+		run["rez_used"] = _rez_used
 	rpc("_meta", members, order, host_member, queue_path, run)
 
 @rpc("authority", "call_remote", "reliable")
@@ -373,6 +376,7 @@ func _meta(m: Dictionary, o: Array, host: int, q: String, r: Dictionary) -> void
 		members[host]["addr"] = _connect_addr
 	queue_path = q
 	run = r
+	_rez_take(r)
 	_online().on_party_queue(q)
 	for id in puppets.keys():
 		if not members.has(id):
@@ -397,6 +401,39 @@ func merge_into(lobby: int) -> void:
 func _merge(lobby: int) -> void:
 	_online().move_to_lobby(lobby)
 
+# --- Combat rez charges (the party's, host-owned; rules: RezKit) -------------------------
+# Every machine keeps the run's start (on its own clock) and the charges used, so
+# the HUD can count down and a new host after a migration carries on. The host's
+# numbers win: they ride along with the party info (_send_meta).
+
+var _rez_t0 := 0.0   # when this run started (this machine's clock)
+var _rez_used := 0
+
+func combat_rez_charges() -> int:
+	return RezKit.charges(_now() - _rez_t0, _rez_used)
+
+func combat_rez_next_in() -> float:
+	return RezKit.next_charge_in(_now() - _rez_t0)
+
+## A revive in combat went off: one charge is used (the host keeps the count).
+func spend_combat_rez() -> void:
+	_rez_used += 1
+	if is_host():
+		_send_meta()
+	elif _connected():
+		rpc_id(1, "_rez_spend", token)
+
+@rpc("any_peer", "call_remote", "reliable")
+func _rez_spend(t: int) -> void:
+	if is_host() and t == token:
+		_rez_used += 1
+		_send_meta()
+
+func _rez_take(r: Dictionary) -> void:
+	if r.has("rez_elapsed"):
+		_rez_t0 = _now() - float(r["rez_elapsed"])
+		_rez_used = int(r.get("rez_used", 0))
+
 # --- Chat ------------------------------------------------------------------------------
 
 func _on_local_chat(sender: String, text: String) -> void:
@@ -415,6 +452,8 @@ func start_game(path: String, start_floor: int = 1, extra: Dictionary = {}) -> v
 		return
 	queue_path = ""
 	_online().on_run_started()
+	_rez_t0 = _now()   # a new run: no combat rez charges yet
+	_rez_used = 0
 	run = {"path": path, "depth": maxi(start_floor, 1), "seed": randi(),
 		"diff": str(get_node("/root/GameManager").difficulty), "extra": extra}
 	_broadcast_load()

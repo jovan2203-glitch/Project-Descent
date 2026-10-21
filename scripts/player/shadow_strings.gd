@@ -442,7 +442,9 @@ func _string_precheck(id: String) -> String:
 			return "" if strings_out() > 0 else NO_STRINGS_OUT
 		NOT_FINISHED_ID:
 			var res := Abilities.get_resource(id)
-			return "" if _fallen_ally(float(res.cast_range)) != null else "No downed ally in range"
+			if _fallen_ally(float(res.cast_range)) == null:
+				return "No downed ally in range"
+			return player.rez_kit.combat_rez_error()
 		RESTRING_ID:
 			return _restring_error()
 	return ""
@@ -1045,6 +1047,7 @@ func _not_finished(res: Resource) -> void:
 		return
 	if player._net():
 		player._net().revive_ally(ally, player)
+	player.rez_kit.spend_combat_rez()
 	var now := _str_now()
 	var key := ally.get_instance_id()
 	var e := _string_entry(ally, false)

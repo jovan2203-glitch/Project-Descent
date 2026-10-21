@@ -897,6 +897,10 @@ const DOWNED_REPEAT_PENALTY := 10.0 # each extra time you go down on the same fl
 const DOWNED_MIN_BLEED_OUT := 10.0
 const DOWNED_RING_RADIUS := 6.0    # metres: the pulsing circle under a downed ally (easy to find)
 const REVIVE_HEALTH_PCT := 30.0    # revived with this % of max health
+## Combat rez charges: the party gets one every this many seconds of a run (none at
+## the start; unused ones stack). A revive in combat (Last Verse, Not Finished With
+## You) spends one. Out-of-combat rezzes and the Training Room are free.
+const COMBAT_REZ_INTERVAL := 300.0
 const RAISE_HEALTH_PCT := 50.0     # healers' out-of-combat rez (Hymn of Waking, Relight, Back on Your Feet, Return to Bloom): health back
 const RAISE_MANA_PCT := 50.0       # ... and mana back
 

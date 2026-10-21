@@ -263,6 +263,9 @@ func _hymn_precheck(id: String) -> String:
 				return "Not enough Verses"
 			if player.strings._fallen_ally(float(Abilities.get_resource(id).cast_range)) == null:
 				return "No downed ally in range"
+			var rez_err := player.rez_kit.combat_rez_error()
+			if rez_err != "":
+				return rez_err
 	return ""
 
 func _hymn_use(id: String, res: Resource) -> void:
@@ -308,6 +311,7 @@ func _hymn_use(id: String, res: Resource) -> void:
 			var ally := player.strings._fallen_ally(float(res.cast_range))
 			if ally and player._net():
 				player._net().revive_ally(ally, player)
+				player.rez_kit.spend_combat_rez()
 				player._ring_effect(1.4, HOLY_LIGHT, ally.global_position)
 			verses.clear()
 	_gain_verses(id)

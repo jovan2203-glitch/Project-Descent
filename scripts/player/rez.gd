@@ -25,6 +25,39 @@ const COLORS := {
 const IN_COMBAT_ERROR := "Can't do that in combat"
 const NO_TARGET_ERROR := "No fallen ally in range"
 
+const NO_COMBAT_REZ_ERROR := "No combat rez available"
+
+# --- The party's combat rez charges -------------------------------------------------------
+# A revive in combat (abilities tagged "Revive": Last Verse, Not Finished With You)
+# spends one of the party's charges. One comes every Balance.COMBAT_REZ_INTERVAL
+# sec of the run, none at the start, and unused ones stack. The host keeps the
+# count (Net: combat_rez_charges / spend_combat_rez). Free in the Training Room.
+
+## Charges the party has `elapsed` sec into a run after spending `used`.
+static func charges(elapsed: float, used: int) -> int:
+	return maxi(int(floor(maxf(elapsed, 0.0) / Balance.COMBAT_REZ_INTERVAL)) - used, 0)
+
+## Seconds until the next charge, `elapsed` sec into a run.
+static func next_charge_in(elapsed: float) -> float:
+	return Balance.COMBAT_REZ_INTERVAL - fmod(maxf(elapsed, 0.0), Balance.COMBAT_REZ_INTERVAL)
+
+## Do combat rez charges apply here? (Not in the Training Room, nor offline.)
+func charges_apply() -> bool:
+	var net := player._net()
+	var gm := player.get_node_or_null("/root/GameManager")
+	return net != null and bool(net.online) and not (gm != null and gm.in_training())
+
+## Can a revive in combat go off now? ("" = yes.) Checked before it is paid for.
+func combat_rez_error() -> String:
+	if charges_apply() and int(player._net().combat_rez_charges()) <= 0:
+		return NO_COMBAT_REZ_ERROR
+	return ""
+
+## A revive in combat went off: it uses one of the party's charges.
+func spend_combat_rez() -> void:
+	if charges_apply():
+		player._net().spend_combat_rez()
+
 ## Who the rez being cast will bring back.
 var target: Node3D = null
 
