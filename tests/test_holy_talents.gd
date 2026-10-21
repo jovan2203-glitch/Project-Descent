@@ -16,7 +16,7 @@ const NEW := {"r1c1": "holy_grace", "r1c7": "holy_burnished", "r2c4": "holy_stea
 	"r2c2": "holy_clear_mind", "r2c6": "holy_sheltering_light", "r5c4": "holy_long_glass", "r10c6": "holy_second_breath",
 	"r4c1": "holy_heavy_chain", "r5c1": "holy_absolution", "r10c2": "holy_unbroken", "r3c4": "holy_glimmering",
 	"r7c4": "holy_steady_aim", "r4c7": "holy_swelling_chorus", "r5c7": "holy_quick_lance",
-	"r8c4": "holy_full_quiver", "r9c4": "holy_wide_break", "r6c1": "holy_watchful_eye", "r6c7": "holy_last_rites",
+	"r8c4": "holy_full_quiver", "r9c4": "holy_wide_break", "r6c1": "holy_watchful_eye",
 	"r7c3": "holy_bright_motes", "r7c5": "holy_steady_ray"}
 
 func suite_name() -> String:
@@ -79,7 +79,7 @@ func test_hooks_are_in_place() -> void:
 
 func test_no_empty_slots() -> void:
 	for id in Talents.in_tree("holy"):
-		assert_false(bool(Talents.get_talent(id).get("placeholder", false)), "%s is filled" % id)
+		assert_false(bool(Talents.get_talent(id).get("placeholder", false)) and not Talents.FOLDED_INTO_ABILITIES.has(id), "%s is filled (or was folded into its ability)" % id)
 	# Single-ability talents need their ability.
 	var req := {"holy_heavy_chain": "censerswing", "holy_absolution": "absolve", "holy_unbroken": "unfallen",
 		"holy_glimmering": "glimmershot", "holy_steady_aim": "refractingshot", "holy_swelling_chorus": "singchorus",
@@ -117,12 +117,12 @@ func test_fourth_facet_rune() -> void:
 
 func test_the_tree_is_full() -> void:
 	assert_eq(Talents.in_tree("holy").size(), Talents.ROWS * Talents.MAX_PER_ROW, "every slot of a full tree")
-	var req := {"holy_full_quiver": "prismarrow", "holy_wide_break": "prismbreaker", "holy_last_rites": "lastverse",
+	var req := {"holy_full_quiver": "prismarrow", "holy_wide_break": "prismbreaker",
 		"holy_bright_motes": "censerswing", "holy_steady_ray": "mendingray"}
 	for key in req:
 		assert_eq(str(Talents.get_talent(Talents.id_for_key(key)).get("requires", "")), str(req[key]), "%s requires its ability" % key)
 	assert_eq(Abilities.COOLDOWN_TALENTS.get("prismarrow", ""), "holy_full_quiver")
-	assert_eq(Abilities.COOLDOWN_TALENTS.get("lastverse", ""), "holy_last_rites")
+	assert_false(Abilities.COOLDOWN_TALENTS.has("lastverse"), "Last Rites was folded into Last Verse")
 
 func test_watchful_eye() -> void:
 	var src := PlayerSource.text()

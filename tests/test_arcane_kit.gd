@@ -210,7 +210,7 @@ func test_collapse() -> void:
 	assert_eq(float(r.damage), 1.4)
 	assert_eq(float(r.radius), 6.0)
 	assert_eq(Balance.COLLAPSE_DELAY, 1.5)
-	assert_eq(Balance.COLLAPSE_PULL, 3.0)
+	assert_eq(Balance.COLLAPSE_PULL, 5.0)
 	var p := _player()
 	var c := Vector3(0, 0, 0)
 	var far: Vector3 = ArcaneCasterKit.collapse_point(Vector3(6, 2, 0), c, 3.0, 0.6)

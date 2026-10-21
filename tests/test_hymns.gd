@@ -54,7 +54,7 @@ func test_numbers() -> void:
 	var want := {"psalm": [0.0, 2, 2.0], "outpour": [0.0, 4, 3.0], "lift": [8.0, 1, 0.0], "refrain": [0.0, 2, 0.0],
 		"canticle": [12.0, 3, 2.5], "exultation": [0.0, 4, 2.0], "antiphon": [15.0, 2, 0.0], "shelter": [12.0, 2, 0.0],
 		"steadyvoice": [30.0, 2, 0.0], "highnote": [0.0, 2, 1.5], "swell": [60.0, 0, 0.0], "rest": [60.0, 0, 0.0],
-		"lastverse": [180.0, 0, 0.0]}
+		"lastverse": [120.0, 0, 0.0]}
 	for id in want:
 		var r := Abilities.get_resource(id)
 		assert_eq(float(r.cooldown), float(want[id][0]), "%s cooldown" % id)

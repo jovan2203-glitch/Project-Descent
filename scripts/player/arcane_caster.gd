@@ -493,7 +493,7 @@ func _collapse_implode(at: Vector3, r: float, coef: float) -> void:
 		if not is_instance_valid(e) or not e.is_alive() or str(e.get("rank")) == "boss":
 			continue   # (bosses are too heavy to pull)
 		var from: Vector3 = e.global_position
-		var to := collapse_point(from, at, Balance.COLLAPSE_PULL + player._talent("arcane_deep_well"), Balance.COLLAPSE_CORE)   # Deep Well
+		var to := collapse_point(from, at, Balance.COLLAPSE_PULL, Balance.COLLAPSE_CORE)
 		if to.is_equal_approx(from) \
 				or not Combat.line_of_sight(player.get_world_3d(), from + Vector3(0, 0.3, 0), to + Vector3(0, 0.3, 0)):
 			continue

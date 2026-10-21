@@ -18,13 +18,13 @@ const TREE := {
 	"nature_running_herd": [4, "fawn"], "nature_hunting_party": [4, "briartiger"],
 	"nature_thick_sap": [4, "heartsap"], "nature_lingering_venom": [4, "venomburst"],
 	"nature_rough_bark": [3, ""], "nature_green_thumb": [3, ""], "nature_undergrowth": [3, ""], "nature_clinging_vines": [2, ""],
-	"nature_long_fangs": [2, "fangarrow"], "nature_hungry_venom": [2, ""], "nature_spring_trap": [2, "coilback"], "nature_soaked_through": [5, ""],
-	"nature_old_bark": [3, "rootguard"], "nature_morning_dew": [2, "dewfall"], "nature_return_flight": [2, "owl"],
-	"nature_deep_bloom": [2, "heartwoodelk"], "nature_big_herd": [2, "wildherd"], "nature_quick_return": [2, "returntobloom"], "nature_evergreen": [5, ""],
+	"nature_long_fangs": [3, "fangarrow"], "nature_hungry_venom": [2, ""], "nature_spring_trap": [2, "coilback"], "nature_soaked_through": [5, ""],
+	"nature_old_bark": [3, "rootguard"], "nature_morning_dew": [3, "dewfall"], "nature_return_flight": [3, "owl"],
+	"nature_deep_bloom": [3, "heartwoodelk"], "nature_evergreen": [5, ""],
 	"nature_rising_sap": [3, ""], "nature_crushing_grip": [3, "giantshands"], "nature_broad_fist": [2, "vinefist"],
-	"nature_spreading_roots": [2, "stomp"], "nature_firm_hold": [2, "grasp"], "nature_wide_awake": [2, "awaken"], "nature_old_growth": [5, ""],
-	"nature_rich_soil": [3, ""], "nature_compost": [1, "thornshot"], "nature_bramble_burst": [3, "thornshot"], "nature_fertile_ground": [2, "chokingvipers"],
-	"nature_second_growth": [2, "mossback"], "nature_circling_hawk": [2, "thornwing"], "nature_overgrown": [5, ""],
+	"nature_spreading_roots": [3, "stomp"], "nature_firm_hold": [3, "grasp"], "nature_wide_awake": [3, "awaken"], "nature_old_growth": [5, ""],
+	"nature_rich_soil": [3, ""], "nature_compost": [1, "thornshot"], "nature_bramble_burst": [3, "thornshot"], "nature_fertile_ground": [3, "chokingvipers"],
+	"nature_second_growth": [3, "mossback"], "nature_circling_hawk": [3, "thornwing"], "nature_overgrown": [5, ""],
 }
 
 func suite_name() -> String:
@@ -40,9 +40,9 @@ func _near(a: float, b: float, msg: String = "") -> void:
 
 func test_the_whole_book_is_designed() -> void:
 	var ids := Talents.in_tree("nature")
-	assert_eq(ids.size(), TREE.size(), "every slot of the Nature book holds a talent")
+	assert_eq(ids.size(), TREE.size() + 2, "every slot of the Nature book holds a talent, but the two folded into their abilities")
 	for id in ids:
-		assert_false(bool(Talents.get_talent(id).get("placeholder", true)), "%s is designed" % id)
+		assert_false(bool(Talents.get_talent(id).get("placeholder", true)) and not Talents.FOLDED_INTO_ABILITIES.has(id), "%s is designed (or was folded into its ability)" % id)
 	for key in TREE:
 		var id := Talents.id_for_key(key)
 		assert_ne(id, "", "%s exists" % key)
@@ -103,9 +103,11 @@ func test_shepherd_rules() -> void:
 	_near(ShepherdKit.owl_dive_mult(true, 60.0), 0.6, "Return Flight's second dive")
 
 func test_cooldown_and_cast_time_talents() -> void:
-	assert_eq(str(Abilities.COOLDOWN_TALENTS.get("wildherd", "")), "nature_big_herd", "Big Herd")
-	assert_contains(FileAccess.get_file_as_string("res://scripts/abilities.gd"), "talent(\"nature_quick_return\")")
-	assert_contains(_src(), "_talent(\"nature_quick_return\"), 0.2)   # Quick Return")
+	# Big Herd and Quick Return were folded into Wild Herd and Return to Bloom.
+	assert_eq(float(Abilities.get_resource("wildherd").cooldown), 90.0)
+	assert_eq(float(Abilities.get_resource("returntobloom").cast_time), 4.0)
+	assert_eq(Talents.id_for_key("nature_big_herd"), "")
+	assert_eq(Talents.id_for_key("nature_quick_return"), "")
 
 func test_shepherd_hooks() -> void:
 	var src := _src()

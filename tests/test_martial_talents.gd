@@ -15,17 +15,17 @@ const TalentIcons = preload("res://scripts/talent_icons.gd")
 ## Every talent of the book: key -> [ranks, the ability it needs ("" = none)].
 const TREE := {
 	"martial_hard_break": [4, "wheelgreataxe"], "martial_well_drilled": [2, "wheelgreataxe"],
-	"martial_wide_cleave": [2, "wheelgreataxe"], "martial_keen_edge": [2, "wheelgreatsword"],
-	"martial_twice_over": [2, "wheelhalberd"], "martial_rattled": [2, "wheelmaul"], "martial_turning_wheel": [5, ""],
-	"martial_clean_kill": [4, "goin"], "martial_in_and_out": [2, "cut"], "martial_barbed": [3, "cut"],
-	"martial_steady_pace": [2, "cut"], "martial_mix_it_up": [2, "goin"], "martial_deep_pockets": [2, "snatch"],
+	"martial_wide_cleave": [2, "wheelgreataxe"], "martial_keen_edge": [3, "wheelgreatsword"],
+	"martial_twice_over": [3, "wheelhalberd"], "martial_rattled": [3, "wheelmaul"], "martial_turning_wheel": [5, ""],
+	"martial_clean_kill": [4, "goin"], "martial_in_and_out": [2, ""], "martial_barbed": [3, "cut"],
+	"martial_steady_pace": [3, ""], "martial_mix_it_up": [3, "goin"],
 	"martial_in_the_zone": [5, ""],
 	"martial_conditioning": [3, ""], "martial_catch_your_breath": [2, ""], "martial_pinned_down": [2, "pintheshadow"],
-	"martial_soak_it_up": [4, "punch"], "martial_tight_clinch": [2, "elbow"], "martial_soft_catch": [2, "catch"],
-	"martial_knockout": [3, "punch"], "martial_wide_stance": [2, "brawlkick"], "martial_round_two": [2, "onemore"],
+	"martial_soak_it_up": [4, "punch"], "martial_tight_clinch": [3, "elbow"], "martial_soft_catch": [3, "catch"],
+	"martial_knockout": [3, "punch"], "martial_wide_stance": [3, "brawlkick"],
 	"martial_scar_tissue": [5, ""],
-	"martial_full_draw": [4, "heavydraw"], "martial_broadhead": [2, "pierce"], "martial_patience": [3, "quickshot"],
-	"martial_extra_arrows": [2, "spread"], "martial_no_letup": [2, "quickshot"], "martial_easy_release": [2, "loose"],
+	"martial_full_draw": [4, "heavydraw"], "martial_broadhead": [3, "pierce"], "martial_patience": [3, "quickshot"],
+	"martial_extra_arrows": [2, "spread"], "martial_no_letup": [3, ""], "martial_easy_release": [2, "loose"],
 	"martial_keen_eye": [5, ""],
 }
 
@@ -42,9 +42,9 @@ func _near(a: float, b: float, msg: String = "") -> void:
 
 func test_the_whole_book_is_designed() -> void:
 	var ids := Talents.in_tree("martial")
-	assert_eq(ids.size(), TREE.size(), "every slot of the Martial book holds a talent")
+	assert_eq(ids.size(), TREE.size() + 2, "every slot of the Martial book holds a talent, but the two folded into their abilities")
 	for id in ids:
-		assert_false(bool(Talents.get_talent(id).get("placeholder", true)), "%s is designed" % id)
+		assert_false(bool(Talents.get_talent(id).get("placeholder", true)) and not Talents.FOLDED_INTO_ABILITIES.has(id), "%s is designed (or was folded into its ability)" % id)
 	for key in TREE:
 		var id := Talents.id_for_key(key)
 		assert_ne(id, "", "%s exists" % key)
@@ -105,7 +105,7 @@ func test_rogue_hooks() -> void:
 	assert_contains(src, "Balance.FLOW_HOLD + _talent(\"martial_steady_pace\")")
 	assert_contains(src, "_set_flow(Balance.CLEAN_KILL_FLOW)")
 	assert_contains(src, "in_the_zone_crit(_kill_flow if in_kill() else _flow, zone)")
-	assert_eq(str(Abilities.COOLDOWN_TALENTS.get("snatch", "")), "martial_deep_pockets", "Deep Pockets")
+	assert_eq(float(Abilities.get_resource("snatch").cooldown), 10.0, "Deep Pockets was folded into Snatch")
 
 # --- The Brawler -------------------------------------------------------------------------
 
@@ -124,7 +124,7 @@ func test_brawler_hooks() -> void:
 	assert_contains(src, "float(res.radius) + Abilities.radius_bonus(move)   # + Wide Stance")
 	assert_eq(str(Abilities.RADIUS_TALENTS["sweep"][0]), "martial_wide_stance")
 	assert_eq(str(Abilities.RADIUS_TALENTS["roundhouse"][0]), "martial_wide_stance")
-	assert_eq(str(Abilities.COOLDOWN_TALENTS.get("onemore", "")), "martial_round_two", "Round Two")
+	assert_eq(float(Abilities.get_resource("onemore").cooldown), 9.0, "Round Two was folded into One More")
 
 # --- The Sharpshooter --------------------------------------------------------------------
 

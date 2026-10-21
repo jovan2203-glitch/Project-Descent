@@ -38,7 +38,7 @@ func test_energy_and_fury_are_bars_of_100() -> void:
 			assert_true(v == 0 or (v >= 10 and v <= 100), "%s: %d %s is on the 100 scale" % [id, v, res])
 			seen += 1 if v > 0 else 0
 	assert_true(seen > 30, "the fury and energy abilities were checked (%d numbers)" % seen)
-	assert_eq(int(Abilities.get_resource("cinderguard").resource_cost), 40)
+	assert_eq(int(Abilities.get_resource("cinderguard").resource_cost), 20)
 	assert_eq(int(Abilities.get_resource("brand").resource_generated), 20)
 	assert_eq(int(Abilities.get_resource("stormarrow").resource_cost), 30)
 

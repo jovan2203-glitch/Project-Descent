@@ -37,7 +37,7 @@ func test_v9_refunds_every_other_old_nature_slot() -> void:
 	assert_eq(int(ranks.get("frost_r1c1", 0)), 2, "other books keep their points")
 
 func test_v10_refunds_the_old_empty_martial_slots() -> void:
-	assert_eq(SaveSystemScript.VERSION, 10)
+	assert_true(SaveSystemScript.VERSION >= 10)
 	var cfg := ConfigFile.new()
 	cfg.set_value("talents", "ranks", {"martial_r1c2": 2, "martial_r10c4": 1, "nature_r1c3": 2})
 	_ss()._migrate_9_to_10(cfg)
@@ -45,6 +45,19 @@ func test_v10_refunds_the_old_empty_martial_slots() -> void:
 	assert_false(ranks.has("martial_r1c2"), "an old empty Martial slot is refunded")
 	assert_false(ranks.has("martial_r10c4"), "an old empty Martial slot is refunded")
 	assert_eq(int(ranks.get("nature_r1c3", 0)), 2, "other books keep their points")
+
+func test_v11_refunds_the_folded_talents() -> void:
+	assert_eq(SaveSystemScript.VERSION, 11)
+	var cfg := ConfigFile.new()
+	cfg.set_value("talents", "ranks", {"fire_r9c6": 2, "holy_r6c7": 1, "fire_r1c1": 3})
+	_ss()._migrate_10_to_11(cfg)
+	var ranks: Dictionary = cfg.get_value("talents", "ranks", {})
+	assert_false(ranks.has("fire_r9c6"), "Furnace Heart's points are refunded")
+	assert_false(ranks.has("holy_r6c7"), "Last Rites' points are refunded")
+	assert_eq(int(ranks.get("fire_r1c1", 0)), 3, "other talents keep their points")
+	assert_eq(Talents.FOLDED_INTO_ABILITIES.size(), 13)
+	for id in Talents.FOLDED_INTO_ABILITIES:
+		assert_true(bool(Talents.get_talent(id).get("placeholder", false)), "%s is an empty slot now" % id)
 
 func test_a_talent_for_one_ability_needs_it_learned() -> void:
 	var id := Talents.id_for_key("nature_running_herd")

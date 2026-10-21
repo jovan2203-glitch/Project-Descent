@@ -31,6 +31,12 @@ Bold = in the book's Utility divider; the rest sits in a spec (it needs that spe
 
 Open gaps: Arcane has no party tool; Holy's only crowd control is Binding Ring and Circle of Silence; Nature has no interrupt (on purpose); Martial has no interrupt or party tool yet.
 
+## Talents (2026-10-21)
+- Goal: about 65 of the 80 points fully build one spec; hybrids give up a little in one spec to gain a little in another. Taking talents from other books is normal. Most talents should key off a resource, keyword or damage type (they reach every build using it); at most about a quarter are "Requires X" talents, and those change how the ability works. Runes connect specs; talents never reference another book's content.
+- Pass 1 (done): 2-rank "Requires X" talents became 3 ranks with the same max (rank 3 = the old rank 2), except the ones whose steps are whole numbers (extra targets, darts, Reflections, Cracks, Flow, arrows, Incense, Energy per zap, Pin hits, Easy Release). In and Out, Steady Pace, No Letup and Long Memory no longer require one ability (they work off Flow, Streak and Traces).
+- Folded into their abilities (slots left empty for new keyword talents; their icons are kept in TalentIcons.SPARE): Furnace Heart (Cinder Guard costs 20 Fury), Thick Pitch (pitch lasts 12 s), Thick Hide (Winter Hide 40 s cooldown), Honed Edge (Charged Edge gives 30 Energy), Deep Well (Collapse pulls 5 m), Cut Short (Hush: 4 s off when it interrupts), Quick Return (Return to Bloom 4 s cast), Big Herd (Wild Herd 90 s), Deep Pockets (Snatch 10 s), Round Two (One More 9 s), Last Rites (Last Verse 2 min), Swift Light (Step of Light 10 s), High Censer (Raise the Censer 1 min, cost 1.3 mana points).
+- Next: new keyword talents per spec, and the layout (each book on one screen, specs as column groups with faint lines between them, capstones need 25 points in their spec).
+
 ## Abilities, spellbook, action bars
 - Level-up draft offers new abilities. Skill Cards are equipped as a loadout in their own main-menu tab.
 - No action bar in the main menu: learning just learns; abilities go on bars in game, dragged from the spellbook.

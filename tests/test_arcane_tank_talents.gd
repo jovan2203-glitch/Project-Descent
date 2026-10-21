@@ -23,16 +23,16 @@ const TALENTS := [
 	["arcane_sharp_edges", "Sharp Edges", 3, "", "arcane_r2c1", [10.0, 20.0, 30.0]],
 	["arcane_clockwork", "Clockwork", 2, "", "arcane_r3c1", [0.25, 0.5]],
 	["arcane_spare_copy", "Spare Copy", 2, "", "arcane_r4c1", [10.0, 20.0]],
-	["arcane_second_self", "Second Self", 2, "doubleup", "arcane_r5c2", [15.0, 30.0]],
-	["arcane_wide_rings", "Wide Rings", 2, "ripple", "arcane_r7c1", [1.0, 2.0]],
+	["arcane_second_self", "Second Self", 3, "doubleup", "arcane_r5c2", [10.0, 20.0, 30.0]],
+	["arcane_wide_rings", "Wide Rings", 3, "ripple", "arcane_r7c1", [0.7, 1.3, 2.0]],
 	["arcane_on_the_beat", "On the Beat", 3, "missedbeat", "arcane_r8c2", [10.0, 20.0, 30.0]],
-	["arcane_head_count", "Head Count", 2, "fullset", "arcane_r9c1", [2.0, 4.0]],
+	["arcane_head_count", "Head Count", 3, "fullset", "arcane_r9c1", [1.5, 2.5, 4.0]],
 	["arcane_light_feet", "Light Feet", 3, "", "arcane_r2c7", [1.0, 2.0, 3.0]],
 	["arcane_empty_room", "Empty Room", 3, "", "arcane_r3c7", [4.0, 8.0, 12.0]],
 	["arcane_bent_light", "Bent Light", 2, "", "arcane_r4c7", [1.0, 2.0]],
-	["arcane_understudy", "Understudy", 2, "standin", "arcane_r5c6", [2.0, 4.0]],
+	["arcane_understudy", "Understudy", 3, "standin", "arcane_r5c6", [1.5, 2.5, 4.0]],
 	["arcane_loud_exit", "Loud Exit", 1, "tradeplaces", "arcane_r7c7", [1.0]],
-	["arcane_good_likeness", "Good Likeness", 2, "decoy", "arcane_r8c6", [1.0, 2.0]],
+	["arcane_good_likeness", "Good Likeness", 3, "decoy", "arcane_r8c6", [0.7, 1.3, 2.0]],
 ]
 const CAPSTONES := ["arcane_sharp_edges", "arcane_wide_rings", "arcane_on_the_beat", "arcane_good_likeness"]
 const SHATTER_TAGS := ["Arcane", "Ability", "AoE"]
@@ -157,7 +157,7 @@ func test_second_self() -> void:
 	assert_eq(ArcaneTankKit.double_up_reflections(30.0, 29.0), 2)
 	assert_eq(ArcaneTankKit.double_up_reflections(30.0, 30.0), 1)
 	assert_eq(ArcaneTankKit.double_up_reflections(15.0, 14.0), 2)
-	assert_contains(_desc("arcane_second_self"), "15 / 30% chance to create 2 Reflections")
+	assert_contains(_desc("arcane_second_self"), "10 / 20 / 30% chance to create 2 Reflections")
 
 func test_wide_rings() -> void:
 	assert_eq(Balance.WIDE_RINGS_ENEMIES, 2)
@@ -169,7 +169,7 @@ func test_wide_rings() -> void:
 	assert_true(ArcaneTankKit.ripple_makes_reflection(2, true), "the capstone: two enemies are enough")
 	assert_false(ArcaneTankKit.ripple_makes_reflection(1, true))
 	assert_true(ArcaneTankKit.ripple_makes_reflection(3, false))
-	assert_contains(_desc("arcane_wide_rings"), "1 / 2 m further")
+	assert_contains(_desc("arcane_wide_rings"), "0.7 / 1.3 / 2 m further")
 	assert_contains(Talents.capstone_text(_id("arcane_wide_rings")), "2 or more enemies")
 	# Ripple's tooltip counts the enemies with the capstone.
 	assert_false(str(Abilities.get_resource("ripple").description).contains("RIPPLE_REFLECTION_ENEMIES"))
@@ -189,7 +189,7 @@ func test_head_count() -> void:
 	assert_eq(ArcaneTankKit.head_count_heal(1000, 0.0, 4), 0)
 	assert_eq(Details.spell_name("head_count"), "Head Count", "its own line on the meter")
 	assert_true(_has_method("res://scripts/player.gd", "_full_set"))
-	assert_contains(_desc("arcane_head_count"), "2 / 4% of your maximum health")
+	assert_contains(_desc("arcane_head_count"), "1.5 / 2.5 / 4% of your maximum health")
 
 # --- Right edge: staying alive ------------------------------------------------------------
 
@@ -240,7 +240,7 @@ func test_bent_light() -> void:
 	assert_contains(_desc("arcane_bent_light"), "1 / 2% less non-Physical damage")
 
 func test_understudy() -> void:
-	assert_contains(_desc("arcane_understudy"), "2 / 4 sec off its cooldown")
+	assert_contains(_desc("arcane_understudy"), "1.5 / 2.5 / 4 sec off its cooldown")
 	assert_contains(_desc("arcane_understudy"), Abilities.ability_name("standin"))
 
 func test_loud_exit() -> void:
@@ -255,7 +255,7 @@ func test_good_likeness() -> void:
 	assert_eq(ArcaneTankKit.decoy_time(0.0), 3.0)
 	assert_eq(ArcaneTankKit.decoy_time(1.0), 4.0)
 	assert_eq(ArcaneTankKit.decoy_time(2.0), 5.0)
-	assert_contains(_desc("arcane_good_likeness"), "1 / 2 sec longer")
+	assert_contains(_desc("arcane_good_likeness"), "0.7 / 1.3 / 2 sec longer")
 	assert_contains(Talents.capstone_text(_id("arcane_good_likeness")), "no longer needs or uses up a Reflection")
 	assert_true(_has_method("res://scripts/player.gd", "decoy_needs_reflection"))
 	# Decoy's tooltip counts its time with the talent.

@@ -200,35 +200,35 @@ Numbers are drafts (talents.gd, balance.gd). Layout: the Wheel down the left edg
 - Hard Break (4, needs the Greataxe; r1c1): finishers deal 5/10/15% more. Capstone: a finisher that breaks a weapon with 6+ Cracks gives 20 Fury.
 - Well Drilled (2; r2c2): Weapon Arts add 1/2 Cracks.
 - Wide Cleave (2, Greataxe; r4c1): Axe Cleave hits 1/2 more enemies.
-- Keen Edge (2, Greatsword; r5c2): while it is held, crits deal 10/20% more.
-- Twice Over (2, Halberd; r7c1): Second Hit chance 25/30% (from 20%).
-- Rattled (2, Maul; r8c2): hits build 25/50% more Stagger.
+- Keen Edge (3, Greatsword; r5c2): while it is held, crits deal 7/13/20% more.
+- Twice Over (3, Halberd; r7c1): Second Hit chance 23/27/30% (from 20%).
+- Rattled (3, Maul; r8c2): hits build 17/33/50% more Stagger.
 - Turning Wheel (5; r10c1): each weapon that breaks gives a stack for 15 s (one per weapon, up to 4): 0.5/1/1.5/2/2.5% more damage each (10% with all four).
 
 ### Rogue
 - Clean Kill (4, Go In; r1c3): Kill forms deal 5/10/15% more. Capstone: Close It Out leaves 3 Flow.
-- In and Out (2, Cut; r3c3): a range switch gives 2/3 extra Flow (from 1).
+- In and Out (2, any Rogue; r3c3): a range switch gives 2/3 extra Flow (from 1).
 - Barbed (3, Cut; r4c3): Ripped Out deals 20/40/60% more.
-- Steady Pace (2, Cut; r6c3): Flow holds 4/5 s before it drops (from 3).
-- Mix It Up (2, Go In; r7c3): Variety adds 0.75/1 s per different Kill form (cap stays 5 s).
-- Deep Pockets (2, Snatch; r9c3): Snatch's cooldown is 5/10 s shorter.
+- Steady Pace (3, any Rogue; r6c3): Flow holds 3.7/4.3/5 s before it drops (from 3).
+- Mix It Up (3, Go In; r7c3): Variety adds 0.65/0.85/1 s per different Kill form (cap stays 5 s).
+- Deep Pockets (r9c3): folded into Snatch (10 s cooldown); the slot is empty.
 - In the Zone (5; r10c3): each Flow stack gives 0.1/0.2/0.3/0.4/0.5% crit chance (5% at 10); in a Kill window the Flow spent on it counts.
 
 ### Brawler
 - Soak It Up (4, Punch; r1c5): Bruise takes 42/44/46% of each hit (from 40%). Capstone: Shake Off clears 40% (from 30%).
-- Tight Clinch (2, Elbow; r3c5): Clinch lasts 5/6 s (from 4).
-- Soft Catch (2, Catch; r4c5): 25/50% of a caught hit still goes into Bruise. Turn It Around and Takedown still count the whole hit.
+- Tight Clinch (3, Elbow; r3c5): Clinch lasts 4.7/5.3/6 s (from 4).
+- Soft Catch (3, Catch; r4c5): 17/33/50% of a caught hit still goes into Bruise. Turn It Around and Takedown still count the whole hit.
 - Knockout (3, Punch; r6c5): Haymaker deals 10/20/30% more.
-- Wide Stance (2, Kick; r7c5): Sweep and Roundhouse reach 1/2 m further.
-- Round Two (2, One More; r9c5): One More's cooldown is 3/6 s shorter.
+- Wide Stance (3, Kick; r7c5): Sweep and Roundhouse reach 0.7/1.3/2 m further.
+- Round Two (r9c5): folded into One More (9 s cooldown); the slot is empty.
 - Scar Tissue (5; r10c5): Bruise deals 2/4/6/8/10% less damage (its Fury stays the same).
 
 ### Sharpshooter
 - Full Draw (4, Heavy Draw; r1c7): Heavy Draw deals 5/10/15% more. Capstone: its cuts are 3 s (from 2).
-- Broadhead (2, Pierce; r2c6): Pierce's line is 0.75/1.5 m wider.
+- Broadhead (3, Pierce; r2c6): Pierce's line is 0.5/1/1.5 m wider.
 - Patience (3, Quick Shot; r4c7): Overcut gives 9/10/11% per second (from 8%), still up to 12.5 s.
 - Extra Arrows (2, Spread; r5c6): Spread shoots 1/2 more arrows, across as many enemies; each cuts Heavy Draw.
-- No Letup (2, Quick Shot; r7c7): the Streak lasts 5/6 s without a shot (from 4).
+- No Letup (3, any Sharpshooter; r7c7): the Streak lasts 4.7/5.3/6 s without a shot (from 4).
 - Easy Release (2, Loose; r8c6): Loose takes a third / a quarter of the Streak (rounded up) instead of half.
 - Keen Eye (5; r10c7): Sharpshooter shots have 1/2/3/4/5% more crit chance.
 

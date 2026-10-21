@@ -84,10 +84,6 @@ func crucible_duration() -> float:
 static func slag_mending_heal(max_hp: int, stacks: int, pct: float) -> int:
 	return int(round(float(max_hp) * pct / 100.0 * maxi(stacks, 0)))
 
-## Fury Cinder Guard costs with Furnace Heart taking `less` off it (never below 0).
-static func furnace_heart_cost(cost: float, less: float) -> float:
-	return maxf(cost - less, 0.0)
-
 ## Something hit me (or I blocked it).
 func _on_hit_taken(info: RefCounted) -> void:
 	if not is_same(info.target, player) or player.status == null or player.is_dead():

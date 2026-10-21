@@ -33,15 +33,15 @@ Built around critical strikes, specifically around trying to AVOID crits: non-cr
 ## Talents
 - Fireball talent (row 1, 2 ranks): Fireball gains 40/60% less of your crit chance but deals bonus damage equal to 10/20% of your crit chance.
 - Generic rows 1-2: Flash Point, Forge-Hardened, Lingering Embers, Controlled Burn.
-- Cool Under Fire (row 3, 2): 10/20% less damage during Cool Head.
-- Pressure Valve (2): non-crit Fire spells take 0.25/0.5 s off Vent Flames' cooldown.
+- Cool Under Fire (row 3, 3): 7/13/20% less damage during Cool Head.
+- Pressure Valve (3): non-crit Fire spells take 0.15/0.35/0.5 s off Vent Flames' cooldown.
 - Flashover (3): Slow Fuse explosion spreads Immolate, 10/20/30% per enemy.
 - Ember Volley talent: hits 1/2 more targets.
 - Smoldering Focus (bottom row, 5 ranks; was a rune, damage bonus lowered 10% and split across ranks).
 - Opposite of Smoldering Focus (to its right): crits give bonus damage on your next non-critical spell, scaling from 100 minus your crit chance.
 - Banked Coals (bottom row, middle slot).
-- Tank: Thick Slag (3), Smoldering Debris (2, was Clinker): shattered Slag leaves a burning patch, 10/20%, uses normal crit chance; Hot Iron (4): blocks deal more retaliation damage.
-- Melee: Kindling (2): Searing Strike 15/30% chance for 1 extra Heat. Afterglow (2): for 4 s after Quench auto-swings deal 10/20% more Fire damage. A 3-rank talent: abilities 10/20/30% chance to add 1 s to your active Immolate, capstone 2 s, up to its base duration.
+- Tank: Thick Slag (3), Smoldering Debris (3, was Clinker): shattered Slag leaves a burning patch, 7/13/20%, uses normal crit chance; Hot Iron (4): blocks deal more retaliation damage.
+- Melee: Kindling (3): Searing Strike 10/20/30% chance for 1 extra Heat. Afterglow (3): for 4 s after Quench auto-swings deal 7/13/20% more Fire damage. A 3-rank talent: abilities 10/20/30% chance to add 1 s to your active Immolate, capstone 2 s, up to its base duration.
 
 ## Runes
 - Epic Dull Edge: crit chance capped at 10%, the excess becomes Attack Power.

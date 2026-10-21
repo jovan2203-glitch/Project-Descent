@@ -15,12 +15,12 @@ const Details = preload("res://scripts/core/details.gd")
 # [key, name, ranks, the ability it needs, slot, values]
 const TALENTS := [
 	["arcane_practiced_hand", "Practiced Hand", 3, "swiftcut", "arcane_r5c3", [3.0, 6.0, 9.0]],
-	["arcane_heavy_hand", "Heavy Hand", 2, "deepcut", "arcane_r5c5", [10.0, 20.0]],
-	["arcane_curtain_call", "Curtain Call", 2, "encore", "arcane_r7c3", [10.0, 20.0]],
-	["arcane_no_loose_ends", "No Loose Ends", 2, "latecut", "arcane_r8c3", [0.5, 1.0]],
-	["arcane_time_signature", "Time Signature", 2, "encore", "arcane_r8c5", [0.25, 0.5]],
+	["arcane_heavy_hand", "Heavy Hand", 3, "deepcut", "arcane_r5c5", [7.0, 13.0, 20.0]],
+	["arcane_curtain_call", "Curtain Call", 3, "encore", "arcane_r7c3", [7.0, 13.0, 20.0]],
+	["arcane_no_loose_ends", "No Loose Ends", 3, "latecut", "arcane_r8c3", [0.3, 0.7, 1.0]],
+	["arcane_time_signature", "Time Signature", 3, "encore", "arcane_r8c5", [0.15, 0.35, 0.5]],
 	["arcane_full_house", "Full House", 2, "widecut", "arcane_r9c3", [1.0, 2.0]],
-	["arcane_dress_rehearsal", "Dress Rehearsal", 2, "doubletime", "arcane_r9c5", [2.0, 4.0]],
+	["arcane_dress_rehearsal", "Dress Rehearsal", 3, "doubletime", "arcane_r9c5", [1.5, 2.5, 4.0]],
 	["arcane_silvered", "Silvered", 5, "", "arcane_r10c2", [0.3, 0.6, 0.9, 1.2, 1.5]],
 	["arcane_running_clock", "Running Clock", 5, "", "arcane_r10c4", [2.0, 4.0, 6.0, 8.0, 10.0]],
 	["arcane_fine_edge", "Fine Edge", 5, "", "arcane_r10c6", [2.0, 4.0, 6.0, 8.0, 10.0]],
@@ -83,14 +83,14 @@ func test_where_they_sit() -> void:
 	assert_true(Talents.targets_of(showing).has(signature))
 	assert_true(Talents.tier_of(showing) < Talents.tier_of(signature))
 	assert_eq(Talents.col_of(showing), Talents.col_of(signature))
-	# One slot of the book is still empty.
+	# Two slots of the book are empty: the bottom row's, and Deep Well's (folded into Collapse).
 	var empty := 0
 	for id in Talents.in_tree("arcane"):
 		var placeholder := bool(Talents.get_talent(id).get("placeholder", true))
 		assert_eq(TalentIcons.has_icon(id), not placeholder, "%s: designed talents have an icon, empty ones don't" % id)
 		if placeholder:
 			empty += 1
-	assert_eq(empty, 1)
+	assert_eq(empty, 2)
 
 func test_practiced_hand() -> void:
 	var p := _player()
@@ -108,7 +108,7 @@ func test_heavy_hand() -> void:
 	assert_eq(ArcaneMeleeKit.trace_amount("deepcut", 1000, 0.0), 1000)
 	assert_eq(ArcaneMeleeKit.trace_amount("swiftcut", 1000, 20.0), 1000, "only Deep Cut's Trace")
 	assert_eq(ArcaneMeleeKit.trace_amount("latecut", 1000, 20.0), 1000)
-	assert_contains(_desc("arcane_heavy_hand"), "10 / 20% more damage than the strike dealt")
+	assert_contains(_desc("arcane_heavy_hand"), "7 / 13 / 20% more damage than the strike dealt")
 
 func test_curtain_call() -> void:
 	assert_eq(Balance.CURTAIN_CALL_TRACES, 3)
@@ -120,7 +120,7 @@ func test_curtain_call() -> void:
 	assert_eq(ArcaneMeleeKit.curtain_call_pct(20.0, 2), 0.0, "fewer than three Traces: nothing")
 	assert_eq(ArcaneMeleeKit.curtain_call_pct(0.0, 3), 0.0)
 	assert_contains(_desc("arcane_curtain_call"), "replays 3 or more Traces")
-	assert_contains(_desc("arcane_curtain_call"), "each replay deals 10 / 20% more damage")
+	assert_contains(_desc("arcane_curtain_call"), "each replay deals 7 / 13 / 20% more damage")
 	# What it adds is a line of its own on the damage meter.
 	var rows: Array = Details.split_amount("encore", 720, false, [[ArcaneMeleeKit.CURTAIN_CALL_LABEL, 20.0]])
 	assert_eq(rows.size(), 2)
@@ -137,7 +137,7 @@ func test_no_loose_ends() -> void:
 	assert_eq(ArcaneMeleeKit.late_cut_delay(0.0), 3.0)
 	assert_eq(ArcaneMeleeKit.late_cut_delay(0.5), 2.5)
 	assert_eq(ArcaneMeleeKit.late_cut_delay(1.0), 2.0)
-	assert_contains(_desc("arcane_no_loose_ends"), "0.5 / 1 sec sooner")
+	assert_contains(_desc("arcane_no_loose_ends"), "0.3 / 0.7 / 1 sec sooner")
 	assert_contains(Talents.capstone_text(_id("arcane_no_loose_ends")), "leaves a Trace of its own")
 	# Is the first hit's Trace still there when the second lands?
 	var t := [_trace("latecut", 4, 200), _trace("swiftcut", 5, 100)]
@@ -155,7 +155,7 @@ func test_time_signature() -> void:
 	assert_eq(ArcaneMeleeKit.time_signature_cut(0.5, 6), 3.0)
 	assert_eq(ArcaneMeleeKit.time_signature_cut(0.5, 0), 0.0)
 	assert_eq(ArcaneMeleeKit.time_signature_cut(0.0, 3), 0.0)
-	assert_contains(_desc("arcane_time_signature"), "0.25 / 0.5 sec off the cooldowns of your other Arcane spells and abilities")
+	assert_contains(_desc("arcane_time_signature"), "0.15 / 0.35 / 0.5 sec off the cooldowns of your other Arcane spells and abilities")
 	assert_contains(_desc("arcane_time_signature"), "Interrupts are not affected")
 	# What it reaches: everything in the Arcane book, never an interrupt.
 	assert_true(ArcaneTankKit.shatter_cuts("arcane", false))
@@ -200,7 +200,7 @@ func test_dress_rehearsal() -> void:
 	assert_eq(ArcaneMeleeKit.double_time_time(0.0), 10.0)
 	assert_eq(ArcaneMeleeKit.double_time_time(2.0), 12.0)
 	assert_eq(ArcaneMeleeKit.double_time_time(4.0), 14.0)
-	assert_contains(_desc("arcane_dress_rehearsal"), "2 / 4 sec longer")
+	assert_contains(_desc("arcane_dress_rehearsal"), "1.5 / 2.5 / 4 sec longer")
 	var cap := Talents.capstone_text(_id("arcane_dress_rehearsal"))
 	assert_contains(cap, "The first %s during %s does not use up your Traces" % [Abilities.ability_name("encore"), Abilities.ability_name("doubletime")])
 	assert_eq(str(Talents.get_talent(_id("arcane_dress_rehearsal")).get("capstone_requires", "")), "encore", "without Encore it does nothing")

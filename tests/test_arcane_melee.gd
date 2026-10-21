@@ -22,10 +22,10 @@ const LEVELS := {"swiftcut": 6, "deepcut": 14, "encore": 18, "latecut": 24, "wid
 const STRIKES := ["swiftcut", "deepcut", "latecut", "widecut"]
 # [key, name, ranks, the ability it needs, slot, values]
 const TALENTS := [
-	["arcane_long_memory", "Long Memory", 2, "encore", "arcane_r6c3", [2.0, 4.0]],
-	["arcane_clean_lines", "Clean Lines", 2, "deepcut", "arcane_r6c4", [0.5, 1.0]],
+	["arcane_long_memory", "Long Memory", 3, "", "arcane_r6c3", [1.5, 2.5, 4.0]],
+	["arcane_clean_lines", "Clean Lines", 3, "deepcut", "arcane_r6c4", [0.3, 0.7, 1.0]],
 	["arcane_standing_ovation", "Standing Ovation", 3, "encore", "arcane_r6c5", [5.0, 10.0, 15.0]],
-	["arcane_second_showing", "Second Showing", 2, "encore", "arcane_r7c5", [10.0, 20.0]],
+	["arcane_second_showing", "Second Showing", 3, "encore", "arcane_r7c5", [7.0, 13.0, 20.0]],
 ]
 const MELEE := ["Ability", "Arcane", "Melee"]
 
@@ -356,11 +356,11 @@ func test_talent_numbers() -> void:
 	assert_eq(ArcaneMeleeKit.encore_amount(1000, ArcaneMeleeKit.encore_pct(15.0)), 750)
 	assert_eq(Balance.STANDING_OVATION_TRACES, 1)
 	assert_contains(Talents.capstone_text(Talents.id_for_key("arcane_standing_ovation")), "1 more Trace")
-	assert_contains(d.call("arcane_long_memory"), "2 / 4 sec longer")
-	assert_contains(d.call("arcane_clean_lines"), "0.5 / 1 sec off the cooldown")
+	assert_contains(d.call("arcane_long_memory"), "1.5 / 2.5 / 4 sec longer")
+	assert_contains(d.call("arcane_clean_lines"), "0.3 / 0.7 / 1 sec off the cooldown")
 	assert_contains(d.call("arcane_clean_lines"), Abilities.ability_name("swiftcut"))
 	assert_contains(d.call("arcane_clean_lines"), Abilities.ability_name("deepcut"))
-	assert_contains(d.call("arcane_second_showing"), "10 / 20% chance")
+	assert_contains(d.call("arcane_second_showing"), "7 / 13 / 20% chance")
 	assert_false(ArcaneMeleeKit.encore_uses_traces(20.0, 19.9), "the chance came up: the Traces stay")
 	assert_true(ArcaneMeleeKit.encore_uses_traces(20.0, 20.0))
 	assert_true(ArcaneMeleeKit.encore_uses_traces(10.0, 50.0))

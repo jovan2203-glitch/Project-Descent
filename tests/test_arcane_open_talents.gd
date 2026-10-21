@@ -26,7 +26,7 @@ const TALENTS := [
 	["arcane_light_touch", "Light Touch", 3, "", "arcane_r5c4", [5.0, 10.0, 15.0]],
 	["arcane_slipstream", "Slipstream", 2, "", "arcane_r6c2", [10.0, 20.0]],
 	["arcane_borrowed_time", "Borrowed Time", 5, "", "arcane_r10c3", [3.0, 6.0, 9.0, 12.0, 15.0]],
-	["arcane_keep_moving", "Keep Moving", 2, "glint", "arcane_r6c6", [2.0, 4.0]],
+	["arcane_keep_moving", "Keep Moving", 3, "glint", "arcane_r6c6", [1.5, 2.5, 4.0]],
 	["arcane_full_crowd", "Full Crowd", 2, "crowdofone", "arcane_r9c7", [1.0, 2.0]],
 ]
 ## The ones any build can take: no ability of the book is needed.
@@ -238,7 +238,7 @@ func test_keep_moving() -> void:
 	var p := _player()
 	assert_eq(ArcaneOpenTalentsKit.glint_time(0.0), Balance.GLINT_TIME)
 	assert_eq(ArcaneOpenTalentsKit.glint_time(4.0), Balance.GLINT_TIME + 4.0)
-	assert_contains(_desc("arcane_keep_moving"), "2 / 4 sec longer")
+	assert_contains(_desc("arcane_keep_moving"), "1.5 / 2.5 / 4 sec longer")
 	assert_contains(Talents.capstone_text(_id("arcane_keep_moving")), "2 casts on the move")
 	assert_false(str(Abilities.get_resource("glint").description).contains("{b:GLINT_TIME}"), "Glint's tooltip counts the talent")
 	assert_contains(Abilities.tooltip("glint"), "within 4 sec")

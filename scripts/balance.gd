@@ -125,6 +125,7 @@ const INTERRUPT_LOCKOUT := {"counterspell": 4.0, "furnacebreath": 3.0, "rimelock
 ## book) on at least this many seconds of cooldown, and no interrupt's own
 ## cooldown may be shorter than this (a test checks it; longer is fine).
 const INTERRUPT_SHARED_COOLDOWN := 15.0
+const HUSH_INTERRUPT_REFUND := 4.0        # Hush: seconds taken off its cooldown when it stops a cast (never under the shared cooldown)
 
 ## Buffs from abilities: amount in flat units (Stats.flat_unit) and seconds.
 const ICE_BARRIER_ARMOR := 3.0
@@ -391,7 +392,7 @@ const LAPSE_RATE_PCT := 100.0            # ... % faster your Arcane spells' cool
 const MIRROR_SIGIL_TIME := 12.0          # Mirror Sigil: seconds it stays on the ground
 const MIRROR_SIGIL_PCT := 35.0           # ... % of each Arcane spell hit it repeats
 const COLLAPSE_DELAY := 1.5              # Collapse: seconds between the cast and the implosion
-const COLLAPSE_PULL := 3.0               # ... metres it pulls enemies toward its centre
+const COLLAPSE_PULL := 5.0               # ... metres it pulls enemies toward its centre
 const COLLAPSE_DRAG_TIME := 0.25         # ... seconds the pull takes
 const COLLAPSE_CORE := 0.6               # ... nobody is pulled closer to the centre than this (metres)
 const MIRROR_SIGIL_RADIUS := 1.5         # Mirror Sigil: size of the circle on the ground (a picture; it has no area)
@@ -1231,7 +1232,7 @@ const ABILITIES := {
 	"deepwinter": {"cooldown": 120.0},                    # lasts DEEPWINTER_TIME
 	"rimelock": {"cooldown": 20.0, "cost": 2, "range": 25.0},                        # interrupt: see INTERRUPT_LOCKOUT
 	"snowward": {"cooldown": 60.0, "radius": 20.0},       # radius = allies within this many metres
-	"winterhide": {"cooldown": 60.0},                     # lasts WINTER_HIDE_TIME
+	"winterhide": {"cooldown": 40.0},                     # lasts WINTER_HIDE_TIME
 	"rimeedge": {"damage": 0.15, "cooldown": 20.0},       # damage = the extra Frost hit on each melee hit
 	"icebreaker": {"weapon_mult": 2.0, "cooldown": 8.0, "cost": 30},                  # ICEBREAKER_FROZEN_MULT on a target you have Frozen
 	"icepin": {"weapon_mult": 1.0, "cooldown": 15.0, "cost": 30},
@@ -1253,7 +1254,7 @@ const ABILITIES := {
 	"cinderstep": {"damage": 0.15, "cooldown": 15.0, "cost": 2},                       # damage = per tick of the line
 	"heatsink": {"damage": 1.0, "cooldown": 60.0, "cost": 0, "radius": 6.0},           # damage = the burst with nothing stored
 	"brand": {"damage": 0.3, "weapon_mult": 1.0, "cooldown": 6.0, "generates": 20, "threat": 3.0},
-	"cinderguard": {"damage": 0.3, "cooldown": 12.0, "cost": 40, "threat": 3.0},        # damage = the burn on an attacker you block
+	"cinderguard": {"damage": 0.3, "cooldown": 12.0, "cost": 20, "threat": 3.0},        # damage = the burn on an attacker you block
 	"anvil": {"damage": 0.3, "weapon_mult": 0.5, "cooldown": 8.0, "generates": 10, "radius": 4.0, "threat": 4.0},
 	"stoke": {"damage": 1.0, "cooldown": 20.0, "cost": 2, "range": 30.0},              # damage = on top of the Burning it eats
 	"immolate": {"damage": 0.0, "cost": 2, "cast_time": 1.5, "range": 30.0},          # its damage is the Blaze effect below
@@ -1283,7 +1284,7 @@ const ABILITIES := {
 	"capacitor": {"cooldown": 30.0},
 	"thunderstrike": {"weapon_mult": 1.0, "cooldown": 10.0, "cost": 30},                                   # cost = Energy
 	# Lightning melee (Energy)
-	"chargededge": {"weapon_mult": 1.2, "cooldown": 4.0, "generates": 20},
+	"chargededge": {"weapon_mult": 1.2, "cooldown": 4.0, "generates": 30},
 	"arccleave": {"weapon_mult": 0.8, "cooldown": 6.0, "cost": 35, "radius": 4.0},
 	"overdrive": {"damage": 0.1, "cooldown": 45.0},                                                        # damage = the zap on each auto-attack
 	"twincurrent": {"cooldown": 20.0, "cost": 20},
@@ -1386,7 +1387,7 @@ const ABILITIES := {
 	"reprise": {},
 	"swell": {"cooldown": 60.0},
 	"rest": {"cooldown": 60.0},
-	"lastverse": {"cooldown": 180.0, "range": 30.0},
+	"lastverse": {"cooldown": 120.0, "range": 30.0},
 	"singmercy": {}, "singchorus": {}, "singvigil": {},
 	# Holy tank: the Censer (Mana in points; INCENSE_* and the rest above)
 	"censerswing": {"damage": 0.7, "cost": 0.4, "threat": 4.0},
@@ -1396,7 +1397,7 @@ const ABILITIES := {
 	"absolve": {"cooldown": 10.0, "cost": 1.5},                                                           # heal = ABSOLVE_PER_STACK per stack
 	"aureole": {"cooldown": 20.0},
 	"gatherthelight": {"cooldown": 30.0},
-	"raisethecenser": {"cooldown": 90.0, "cost": 2, "radius": 10.0, "range": 30.0},                        # radius = how far from it enemies are grabbed
+	"raisethecenser": {"cooldown": 60.0, "cost": 1.3, "radius": 10.0, "range": 30.0},                        # radius = how far from it enemies are grabbed
 	"unfallen": {"cooldown": 120.0},
 	# Holy healer #2: the Prisms (PRISM_* above; heals in HEALS)
 	"setprism": {"cooldown": 8.0, "cost": 0.5, "range": 30.0},
@@ -1417,7 +1418,7 @@ const ABILITIES := {
 	"refractingshot": {"weapon_mult": 2.0, "cooldown": 8.0, "cost": 30, "cast_time": 2.0},
 	"sunlitarrow": {"weapon_mult": 1.2, "cooldown": 12.0, "cost": 30},
 	"prismbreaker": {"cooldown": 15.0, "cost": 25, "range": 40.0},
-	"stepoflight": {"cooldown": 20.0, "range": 40.0},
+	"stepoflight": {"cooldown": 10.0, "range": 40.0},
 	"spectrumvolley": {"cooldown": 120.0},
 	"behinditsback": {"cooldown": 60.0},
 	"slack": {"cooldown": 60.0},
@@ -1441,7 +1442,7 @@ const ABILITIES := {
 	"rootguard": {"cooldown": 15.0, "cost": 2, "range": 40.0},
 	"owl": {"damage": 0.5, "cooldown": 12.0, "cost": 2, "range": 40.0},
 	"heartwoodelk": {"cooldown": 15.0, "cost": 3, "radius": 10.0},
-	"wildherd": {"cooldown": 120.0, "cost": 3, "radius": 40.0},
+	"wildherd": {"cooldown": 90.0, "cost": 3, "radius": 40.0},
 	# Nature tank: the Colossus (Fury; SAP_* and the rest above)
 	"vinefist": {"damage": 1.0, "cooldown": 3.0, "generates": 20, "threat": 4.0},
 	"grasp": {"cooldown": 10.0, "cost": 15, "range": 25.0, "threat": 6.0},
@@ -1490,7 +1491,7 @@ const ABILITIES := {
 	"roundhouse": {"damage": 0.5, "radius": 6.0, "threat": 5.0},
 	"throw": {"damage": 0.6, "threat": 4.0},
 	"turnitaround": {"threat": 4.0},
-	"onemore": {"cooldown": 15.0, "cost": 25},
+	"onemore": {"cooldown": 9.0, "cost": 25},
 	"toughitout": {"cooldown": 30.0, "cost": 40},
 	"comeon": {"cooldown": 8.0, "range": 25.0, "threat": 6.0},
 	# Martial DPS: the Rogue (FLOW_*, KILL_*, DAGGER_* and the rest above). Kill forms
@@ -1504,7 +1505,7 @@ const ABILITIES := {
 	"closeitout": {"cost": 20},
 	"hityourstride": {"cooldown": 120.0},
 	"rollwithit": {"cooldown": 25.0},
-	"snatch": {"cost": 15, "cooldown": 20.0},
+	"snatch": {"cost": 15, "cooldown": 10.0},
 	"gut": {"damage": 1.0, "cost": 20, "range": THROW_RANGE},
 	"throughandthrough": {"damage": 0.9, "cost": 30},
 	"redwhirl": {"damage": 0.6, "cost": 35, "radius": 5.0, "range": THROW_RANGE},
@@ -1540,7 +1541,7 @@ const ABILITIES := {
 	"hymnofwaking": {"cost": 4, "cast_time": 8.0, "range": 30.0},
 	"relight": {"cost": 4, "cast_time": 8.0, "range": 30.0},
 	"backonyourfeet": {"cost": 4, "cast_time": 8.0, "range": 30.0},
-	"returntobloom": {"cost": 4, "cast_time": 8.0, "range": 30.0},
+	"returntobloom": {"cost": 4, "cast_time": 4.0, "range": 30.0},
 }
 
 # --- Status effects ----------------------------------------------------------------
@@ -1556,6 +1557,7 @@ const EFFECTS := {
 	"res://data/effects/asp_venom.tres": {"duration": POISON_TIME, "slow": -ASP_SLOW},   # Asp Arrow (Nature archer)
 	"res://data/effects/coiled.tres": {"duration": COIL_HOLD},   # Coil Back
 	"res://data/effects/snagged.tres": {"duration": CLINGING_VINES_TIME, "slow": -CLINGING_VINES_SLOW_STEP},   # Clinging Vines (Nature open talent; one stack per rank)
+	"res://data/effects/pitched.tres": {"duration": 12.0},   # Pitch Arrow (Fire archer)
 	"res://data/effects/burning.tres": {"duration": 4.0, "tick_damage": 0.1, "tick_every": 1.0},
 	"res://data/effects/immolate.tres": {"duration": 12.0, "tick_damage": 0.2, "tick_every": 1.0},
 	"res://data/effects/live_wire.tres": {"duration": 10.0, "tick_damage": 0.2, "tick_every": 1.0},

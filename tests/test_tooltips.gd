@@ -152,10 +152,10 @@ func test_talent_texts_follow_their_values() -> void:
 	assert_contains(d.call("frost_discipline"), "2 / 3 / 4%")
 	assert_contains(d.call("frost_discipline"), "5 / 10 / 15%")
 	# A value added to a base from balance.gd.
-	assert_contains(d.call("fire_stoked_kiln"), "%s / %s%%" % [TextFill.num(Balance.KILN_BLAST_IMMOLATE_PCT + 10.0), TextFill.num(Balance.KILN_BLAST_IMMOLATE_PCT + 20.0)])
+	assert_contains(d.call("fire_stoked_kiln"), "%s / %s / %s%%" % [TextFill.num(Balance.KILN_BLAST_IMMOLATE_PCT + 7.0), TextFill.num(Balance.KILN_BLAST_IMMOLATE_PCT + 13.0), TextFill.num(Balance.KILN_BLAST_IMMOLATE_PCT + 20.0)])
 	assert_contains(d.call("fire_stoked_kiln"), "instead of %s%%" % TextFill.num(Balance.KILN_BLAST_IMMOLATE_PCT))
-	assert_contains(d.call("fire_deep_brand"), "%s / %s%%" % [TextFill.num(Balance.BRAND_PCT + 3.0), TextFill.num(Balance.BRAND_PCT + 6.0)])
-	assert_contains(d.call("frost_piercing_cold"), "%s / %s%%" % [TextFill.num(Balance.COLDSPIKE_FROZEN_PCT + 10.0), TextFill.num(Balance.COLDSPIKE_FROZEN_PCT + 20.0)])
+	assert_contains(d.call("fire_deep_brand"), "%s / %s / %s%%" % [TextFill.num(Balance.BRAND_PCT + 2.0), TextFill.num(Balance.BRAND_PCT + 4.0), TextFill.num(Balance.BRAND_PCT + 6.0)])
+	assert_contains(d.call("frost_piercing_cold"), "%s / %s / %s%%" % [TextFill.num(Balance.COLDSPIKE_FROZEN_PCT + 7.0), TextFill.num(Balance.COLDSPIKE_FROZEN_PCT + 13.0), TextFill.num(Balance.COLDSPIKE_FROZEN_PCT + 20.0)])
 	# Damage is shown as real numbers: Honed Rime's three ranks and what it replaces.
 	var tags := Abilities.tags_of("rimeedge")
 	var base := float(Abilities.get_resource("rimeedge").damage)
@@ -200,7 +200,7 @@ func test_ability_texts_follow_the_data() -> void:
 ## What a talent changes shows in the ability's tooltip, and the game uses the
 ## same maths (Abilities.effect_time_bonus / radius_bonus / base_cast_time).
 func test_talent_maths_shared_with_the_game() -> void:
-	var ranks := {"fire_long_burn": 3.0, "fire_thick_pitch": 4.0, "frost_hoarfrost": 4.0, "frost_dot_duration": 2.0}
+	var ranks := {"fire_long_burn": 3.0, "frost_hoarfrost": 4.0, "frost_dot_duration": 2.0}
 	var talent_of := func(key: String, field: String) -> float:
 		if key == "frost_hoarfrost":
 			return float(ranks[key]) if field == "values2" else 25.0
@@ -211,7 +211,7 @@ func test_talent_maths_shared_with_the_game() -> void:
 	var pitched: Resource = Effects.get_effect("pitched")
 	var chilled: Resource = Effects.get_effect("chilled")
 	assert_eq(Abilities.effect_time_bonus(immolate, talent_of), 3.0, "Long Burn")
-	assert_eq(Abilities.effect_time_bonus(pitched, talent_of), 4.0, "Thick Pitch")
+	assert_eq(Abilities.effect_time_bonus(pitched, talent_of), 0.0, "nothing lengthens the pitch (Thick Pitch was folded into it)")
 	assert_eq(Abilities.effect_time_bonus(hoarfrost, talent_of), 6.0, "Deep Hoarfrost's seconds + Lingering Frost (a Frost damage over time effect)")
 	assert_eq(Abilities.effect_time_bonus(chilled, talent_of), 0.0, "not a damage over time effect")
 	assert_eq(Abilities.effect_time_bonus(immolate, none), 0.0)

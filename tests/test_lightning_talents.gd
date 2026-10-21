@@ -18,23 +18,22 @@ const WANT := {
 	"lightning_conductive": ["lightning_r1c6", 3, [1.0, 2.0, 3.0], ""],
 	"lightning_deep_reserves": ["lightning_r2c3", 2, [10.0, 20.0], ""],
 	"lightning_running_on_empty": ["lightning_r2c5", 3, [3.0, 6.0, 9.0], ""],
-	"lightning_honed_edge": ["lightning_r3c1", 2, [5.0, 10.0], "chargededge"],
-	"lightning_running_start": ["lightning_r4c3", 2, [10.0, 20.0], "staticstep"],
+	"lightning_running_start": ["lightning_r4c3", 3, [7.0, 13.0, 20.0], "staticstep"],
 	"lightning_third_beat": ["lightning_r5c2", 3, [10.0, 20.0, 30.0], "cadence"],
-	"lightning_redline": ["lightning_r6c1", 2, [0.5, 1.0], "overdrive"],
+	"lightning_redline": ["lightning_r6c1", 3, [0.3, 0.7, 1.0], "overdrive"],
 }
 
 ## Second batch: two caster talents down the middle (Quick Fuse, Tight Coil),
 ## Earth Return for the parry tank, and the bottom row (Conductor, High Voltage).
 const WANT_MORE := {
-	"lightning_quick_fuse": ["lightning_r6c4", 2, [0.1, 0.2], "lightningbolt"],   # swapped with Tight Coil (Talents.LINKS_MOVED)
+	"lightning_quick_fuse": ["lightning_r6c4", 3, [0.1, 0.15, 0.2], "lightningbolt"],   # swapped with Tight Coil (Talents.LINKS_MOVED)
 	"lightning_tight_coil": ["lightning_r5c4", 2, [1.0, 2.0], "balllightning"],
 	"lightning_earth_return": ["lightning_r7c5", 2, [0.5, 1.0], ""],
 	"lightning_conductor": ["lightning_r10c3", 5, [2.0, 4.0, 6.0, 8.0, 10.0], ""],
 	"lightning_high_voltage": ["lightning_r10c5", 5, [2.0, 4.0, 6.0, 8.0, 10.0], ""],
 	# Third batch.
 	"lightning_standing_charge": ["lightning_r7c3", 3, [2.0, 4.0, 6.0], "groundingsurge"],
-	"lightning_whip_crack": ["lightning_r8c2", 2, [10.0, 20.0], "whiplash"],
+	"lightning_whip_crack": ["lightning_r8c2", 3, [7.0, 13.0, 20.0], "whiplash"],
 	"lightning_storm_cycle": ["lightning_r10c4", 5, [200.0, 180.0, 160.0, 140.0, 120.0], ""],
 }
 
@@ -46,10 +45,10 @@ const WANT_FOURTH := {
 	"lightning_storm_tempered": ["lightning_r2c1", 3, [2.0, 4.0, 6.0], ""],
 	"lightning_quick_step": ["lightning_r2c7", 3, [1.0, 2.0, 3.0], ""],
 	"lightning_calm_current": ["lightning_r3c3", 3, [5.0, 10.0, 15.0], ""],
-	"lightning_overflow": ["lightning_r8c3", 2, [0.1, 0.2], "capacitor"],
-	"lightning_parting_spark": ["lightning_r8c6", 2, [0.4, 0.8], "flicker"],   # one column right (Talents.LINKS_MOVED)
-	"lightning_second_stroke": ["lightning_r6c7", 2, [15.0, 30.0], "returnstroke"],   # up under Counter-Charge
-	"lightning_hot_wire": ["lightning_r9c2", 2, [25.0, 50.0], "twincurrent"],
+	"lightning_overflow": ["lightning_r8c3", 3, [0.07, 0.13, 0.2], "capacitor"],
+	"lightning_parting_spark": ["lightning_r8c6", 3, [0.25, 0.55, 0.8], "flicker"],   # one column right (Talents.LINKS_MOVED)
+	"lightning_second_stroke": ["lightning_r6c7", 3, [10.0, 20.0, 30.0], "returnstroke"],   # up under Counter-Charge
+	"lightning_hot_wire": ["lightning_r9c2", 3, [17.0, 33.0, 50.0], "twincurrent"],
 }
 
 func suite_name() -> String:
@@ -147,8 +146,8 @@ func test_parting_spark() -> void:
 
 ## Fifth batch: three talents for Storm Arrow (the Lightning bow), each tied to a spell.
 const WANT_BOW := {
-	"lightning_snap_shot": ["lightning_r9c4", 2, [15.0, 30.0], "stormarrow"],   # swapped with Lightning Rod (Talents.LINKS_MOVED)
-	"lightning_rod": ["lightning_r7c4", 2, [20.0, 40.0], "stormarrow"],
+	"lightning_snap_shot": ["lightning_r9c4", 3, [10.0, 20.0, 30.0], "stormarrow"],   # swapped with Lightning Rod (Talents.LINKS_MOVED)
+	"lightning_rod": ["lightning_r7c4", 3, [13.0, 27.0, 40.0], "stormarrow"],
 	"lightning_loaded_quiver": ["lightning_r9c6", 2, [1.0, 2.0], "stormarrow"],
 }
 
@@ -169,7 +168,7 @@ func test_the_bow_talents_are_in_the_tree() -> void:
 		assert_false(tip.contains("?"), "%s: %s" % [key, tip])
 	# Every Lightning slot now holds a designed talent.
 	for id in Talents.in_tree("lightning"):
-		assert_false(bool(Talents.get_talent(id).get("placeholder", true)), "%s is designed" % id)
+		assert_false(bool(Talents.get_talent(id).get("placeholder", true)) and not Talents.FOLDED_INTO_ABILITIES.has(id), "%s is designed (or was folded into its ability)" % id)
 	assert_eq(Talents.in_tree("lightning").size(), 36)   # (33 and the three open talents: tests/test_open_talents.gd)
 
 func test_snap_shot_and_loaded_quiver_costs() -> void:
@@ -187,7 +186,7 @@ func test_snap_shot_and_loaded_quiver_costs() -> void:
 	assert_eq(LightningCasterKit.STORM_ARROW_ID, "stormarrow")
 	var d := func(key: String) -> String: return Talents.description(Talents.id_for_key(key))
 	assert_contains(d.call("lightning_snap_shot"), Abilities.ability_name("flicker"))
-	assert_contains(d.call("lightning_snap_shot"), "within 5 sec cost 15 / 30 less Energy")
+	assert_contains(d.call("lightning_snap_shot"), "within 5 sec cost 10 / 20 / 30 less Energy")
 	assert_contains(d.call("lightning_loaded_quiver"), Abilities.ability_name("capacitor"))
 	assert_contains(d.call("lightning_loaded_quiver"), "loads 1 / 2 %s for 10 sec" % Abilities.ability_name("stormarrow"))
 
@@ -213,7 +212,7 @@ func test_lightning_rod() -> void:
 	var d := Talents.description(Talents.id_for_key("lightning_rod"))
 	assert_contains(d, "for 8 sec")
 	assert_contains(d, "within 4 m")
-	assert_contains(d, "20 / 40% of the damage")
+	assert_contains(d, "13 / 27 / 40% of the damage")
 	assert_contains(d, Abilities.ability_name("lightningbolt"))
 	# Own only, on a real status container.
 	const StatusContainer = preload("res://scripts/core/status_container.gd")
@@ -231,15 +230,15 @@ func test_lightning_rod() -> void:
 
 func test_hot_wire_and_second_stroke() -> void:
 	var d := func(key: String) -> String: return Talents.description(Talents.id_for_key(key))
-	assert_contains(d.call("lightning_hot_wire"), "25 / 50% chance")
+	assert_contains(d.call("lightning_hot_wire"), "17 / 33 / 50% chance")
 	assert_contains(d.call("lightning_hot_wire"), Abilities.ability_name("twincurrent"))
-	assert_contains(d.call("lightning_second_stroke"), "15 / 30% chance")
+	assert_contains(d.call("lightning_second_stroke"), "10 / 20 / 30% chance")
 	assert_contains(d.call("lightning_second_stroke"), Abilities.ability_name("returnstroke"))
 	# They do nothing until their ability is learned.
 	var pd = PlayerDataScript.new()
 	pd.level = 50
 	pd.learned_abilities.clear()
-	pd.talents = {Talents.id_for_key("lightning_hot_wire"): 2, Talents.id_for_key("lightning_second_stroke"): 2,
+	pd.talents = {Talents.id_for_key("lightning_hot_wire"): 3, Talents.id_for_key("lightning_second_stroke"): 3,
 		Talents.id_for_key("lightning_charged_strikes"): 3, Talents.id_for_key("lightning_calm_current"): 3}
 	assert_eq(pd.talent_value("lightning_hot_wire"), 0.0, "Twin Current is not learned")
 	assert_eq(pd.talent_value("lightning_second_stroke"), 0.0, "Return Stroke is not learned")
@@ -297,7 +296,7 @@ func test_whip_crack() -> void:
 	assert_true(float(Abilities.get_resource("whiplash").cast_range) > Balance.WHIP_CRACK_DISTANCE, "Whiplash reaches that far")
 	var d := Talents.description(Talents.id_for_key("lightning_whip_crack"))
 	assert_contains(d, "more than 10 m away")
-	assert_contains(d, "10 / 20 less Energy")
+	assert_contains(d, "7 / 13 / 20 less Energy")
 	assert_contains(d, Abilities.ability_name("staticstep"))
 
 func test_storm_cycle() -> void:
@@ -335,7 +334,7 @@ func test_rune_of_bottled_lightning() -> void:
 func test_quick_fuse() -> void:
 	var d := Talents.description(Talents.id_for_key("lightning_quick_fuse"))
 	assert_contains(d, Abilities.ability_name("lightningbolt"))
-	assert_contains(d, "0.1 / 0.2 sec faster")
+	assert_contains(d, "0.1 / 0.15 / 0.2 sec faster")
 	# Without the talent (the editor has no character) the cast time is the ability's own.
 	var bolt := Abilities.get_resource("lightningbolt")
 	assert_eq(Abilities.base_cast_time(bolt), float(bolt.cast_time))
@@ -408,9 +407,9 @@ func test_texts() -> void:
 	assert_contains(d.call("lightning_quick_charge"), "5 / 10 / 15% faster")
 	assert_contains(d.call("lightning_deep_reserves"), "by 10 / 20")
 	assert_contains(d.call("lightning_running_on_empty"), "less than %s Energy" % TextFill.num(Balance.RUNNING_ON_EMPTY_ENERGY))
-	assert_contains(d.call("lightning_honed_edge"), Abilities.ability_name("chargededge"))
+	assert_eq(Talents.id_for_key("lightning_honed_edge"), "", "Honed Edge was folded into Charged Edge")
 	assert_contains(d.call("lightning_running_start"), "at least %s m" % TextFill.num(Balance.RUNNING_START_DISTANCE))
-	assert_contains(d.call("lightning_redline"), "0.5 / 1 sec")
+	assert_contains(d.call("lightning_redline"), "0.3 / 0.7 / 1 sec")
 	assert_contains(d.call("lightning_redline"), "up to %s sec" % TextFill.num(Balance.REDLINE_MAX))
 	var beat := Talents.id_for_key("lightning_third_beat")
 	assert_true(Talents.has_capstone(beat), "Third Beat has a capstone")
@@ -464,27 +463,27 @@ func test_redline() -> void:
 
 ## Without talents (the editor has no character) the tooltips quote the base numbers.
 func test_tooltips_without_talents() -> void:
-	assert_eq(Abilities.generated_of("chargededge"), 20)
+	assert_eq(Abilities.generated_of("chargededge"), 30)
 	assert_eq(Abilities.generated_of("whiplash"), 15)
 	assert_eq(Abilities.generated_of("lightningbolt"), 0)
-	assert_contains(Abilities.tooltip("chargededge"), "Generates 20 Energy")
+	assert_contains(Abilities.tooltip("chargededge"), "Generates 30 Energy")
 
 ## A talent of one ability does nothing until that ability is learned.
 func test_ability_talents_need_their_ability() -> void:
 	var pd = PlayerDataScript.new()
 	pd.level = 50
 	pd.learned_abilities.clear()
-	var honed := Talents.id_for_key("lightning_honed_edge")
+	var start := Talents.id_for_key("lightning_running_start")
 	var beat := Talents.id_for_key("lightning_third_beat")
-	pd.talents = {honed: 2, beat: 3, Talents.id_for_key("lightning_deep_reserves"): 2,
+	pd.talents = {start: 3, beat: 3, Talents.id_for_key("lightning_deep_reserves"): 2,
 		Talents.id_for_key("lightning_quick_charge"): 3}
 	assert_eq(pd.talent_value("lightning_deep_reserves"), 20.0, "generic talents just work")
 	assert_eq(pd.talent_value("lightning_quick_charge"), 15.0)
-	assert_eq(pd.talent_value("lightning_honed_edge"), 0.0, "Charged Edge is not learned")
+	assert_eq(pd.talent_value("lightning_running_start"), 0.0, "Static Step is not learned")
 	assert_false(pd.talent_capstone("lightning_third_beat"), "Cadence is not learned")
-	pd.learned_abilities.append("chargededge")
+	pd.learned_abilities.append("staticstep")
 	pd.learned_abilities.append("cadence")
-	assert_eq(pd.talent_value("lightning_honed_edge"), 10.0)
+	assert_eq(pd.talent_value("lightning_running_start"), 20.0)
 	assert_eq(pd.talent_value("lightning_third_beat"), 30.0)
 	assert_true(pd.talent_capstone("lightning_third_beat"), "maxed: the capstone is on")
 	pd.talents[beat] = 2

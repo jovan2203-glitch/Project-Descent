@@ -1038,13 +1038,12 @@ static func _trinket_tooltip(id: String) -> String:
 static func resource_of(id: String) -> String:
 	return info(id).get("resource", "")
 
-## Resource ability `id` gives when used, with your talents (Honed Edge: Charged Edge gives more).
+## Resource ability `id` gives when used.
 static func generated_of(id: String) -> int:
 	var r := get_resource(id)
 	if r == null:
 		return 0
-	var extra := talent("lightning_honed_edge") if id == "chargededge" else 0.0
-	return int(r.resource_generated) + int(round(extra))
+	return int(r.resource_generated)
 
 ## Base cost (Mana in points, which may be fractions; Energy / Fury whole).
 static func cost_of(id: String) -> float:
@@ -1132,8 +1131,6 @@ static func effect_time_bonus(res: Resource, talent_of: Callable) -> float:
 		bonus += float(talent_of.call("frost_hoarfrost", "values2"))   # Deep Hoarfrost
 	if id == "immolate":
 		bonus += float(talent_of.call("fire_long_burn", "values"))     # Long Burn
-	if id == "pitched":
-		bonus += float(talent_of.call("fire_thick_pitch", "values"))   # Thick Pitch
 	if id == "frozen":
 		bonus += float(talent_of.call("frost_hard_freeze", "values"))  # Hard Freeze
 	if id == "grasped":
@@ -1182,12 +1179,10 @@ const HEAL_OVER_TIME_IDS := ["sap", "evergreen", "puppetstring", "refrain", "cat
 
 ## Talents that shorten an ability's cooldown: ability id -> talent key (its
 ## value = seconds taken off).
-const COOLDOWN_TALENTS := {"winterhide": "frost_thick_hide", "raisethecenser": "holy_high_censer", "realign": "holy_quick_realign", "stepoflight": "holy_swift_light",
-	"prismarrow": "holy_full_quiver", "lastverse": "holy_last_rites", "wildherd": "nature_big_herd",
-	"snatch": "martial_deep_pockets", "onemore": "martial_round_two"}
+const COOLDOWN_TALENTS := {"realign": "holy_quick_realign", "prismarrow": "holy_full_quiver"}
 
 ## Ability `r`'s cooldown in seconds with your talents (the game and the
-## tooltips both use this). Thick Hide shortens Winter Hide's.
+## tooltips both use this). Quick Realign shortens Realign's.
 static func cooldown_of(r: Resource) -> float:
 	if r == null:
 		return 0.0
@@ -1210,8 +1205,6 @@ static func base_cast_time(r: Resource) -> float:
 		t = maxf(t - talent("holy_steady_aim"), 0.2)   # Steady Aim
 	elif str(r.id) == "brightlance":
 		t = maxf(t - talent("holy_quick_lance"), 0.2)   # Quick Lance
-	elif str(r.id) == "returntobloom":
-		t = maxf(t - talent("nature_quick_return"), 0.2)   # Quick Return
 	return t
 
 ## Real damage of a hit of coefficient `coef` carrying `tags` (before crits,
@@ -1427,7 +1420,7 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		"crucible_time": TextFill.num(Balance.CRUCIBLE_TIME + talent("fire_deep_crucible", "values2")),  # Deep Crucible
 		"darts": str(Balance.ARCANE_MISSILES_COUNT + int(round(talent("arcane_seventh_sigil")))),         # Seventh Sigil
 		"mirror_pct": TextFill.num(Balance.MIRROR_SIGIL_PCT + talent("arcane_polished_glass")),          # Polished Glass
-		"collapse_pull": TextFill.num(Balance.COLLAPSE_PULL + talent("arcane_deep_well")),               # Deep Well
+		"collapse_pull": TextFill.num(Balance.COLLAPSE_PULL),
 		"blink_dist": TextFill.num(Balance.BLINK_DISTANCE + talent("arcane_long_step")),                 # Long Step
 		"flicker_dist": TextFill.num(Balance.FLICKER_DISTANCE + talent("arcane_long_step")),
 		"glint_time": TextFill.num(Balance.GLINT_TIME + talent("arcane_keep_moving")),                   # Keep Moving

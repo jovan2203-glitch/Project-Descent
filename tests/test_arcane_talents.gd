@@ -16,12 +16,11 @@ const Details = preload("res://scripts/core/details.gd")
 const TALENTS := [
 	["arcane_seventh_sigil", "Seventh Sigil", 2, "arcanemissiles", "arcane_r1c3"],
 	["arcane_long_step", "Long Step", 2, "", "arcane_r1c4"],
-	["arcane_frayed", "Frayed", 2, "unravel", "arcane_r1c5"],
+	["arcane_frayed", "Frayed", 3, "unravel", "arcane_r1c5"],
 	["arcane_etched_darts", "Etched Darts", 3, "arcanemissiles", "arcane_r2c2"],
 	["arcane_chain_reaction", "Chain Reaction", 3, "countdown", "arcane_r2c6"],
 	["arcane_polished_glass", "Polished Glass", 3, "mirrorsigil", "arcane_r3c3"],
-	["arcane_deep_well", "Deep Well", 2, "collapse", "arcane_r3c5"],
-	["arcane_aftershock", "Aftershock", 2, "collapse", "arcane_r4c4"],
+	["arcane_aftershock", "Aftershock", 3, "collapse", "arcane_r4c4"],
 ]
 
 func suite_name() -> String:
@@ -49,10 +48,8 @@ func test_they_are_in_the_tree() -> void:
 
 func test_links() -> void:
 	assert_true(Talents.targets_of(_id("arcane_seventh_sigil")).has(_id("arcane_etched_darts")), "Sigil Darts' two are joined")
-	assert_true(Talents.targets_of(_id("arcane_deep_well")).has(_id("arcane_aftershock")), "so are Collapse's")
 	# The more important one of each pair is the higher one.
 	assert_true(Talents.tier_of(_id("arcane_seventh_sigil")) < Talents.tier_of(_id("arcane_etched_darts")))
-	assert_true(Talents.tier_of(_id("arcane_deep_well")) < Talents.tier_of(_id("arcane_aftershock")))
 
 func test_seventh_sigil() -> void:
 	var id := _id("arcane_seventh_sigil")
@@ -72,8 +69,8 @@ func test_etched_darts_and_frayed() -> void:
 	assert_eq(Talents.value_at(etched, 3), 30.0)
 	assert_eq(Balance.ETCHED_DARTS_SECONDS, 0.5)
 	var frayed := _id("arcane_frayed")
-	assert_eq(Talents.value_at(frayed, 1), 50.0)
-	assert_eq(Talents.value_at(frayed, 2), 100.0, "at max rank every Unravel crit takes its time off twice")
+	assert_eq(Talents.value_at(frayed, 1), 33.0)
+	assert_eq(Talents.value_at(frayed, 3), 100.0, "at max rank every Unravel crit takes its time off twice")
 
 func test_chain_reaction() -> void:
 	var id := _id("arcane_chain_reaction")
@@ -97,23 +94,21 @@ func test_polished_glass() -> void:
 	assert_contains(Talents.description(id), "38 / 41 / 45")
 
 func test_deep_well_and_aftershock() -> void:
-	var well := _id("arcane_deep_well")
-	assert_eq(Balance.COLLAPSE_PULL + Talents.value_at(well, 1), 4.0)
-	assert_eq(Balance.COLLAPSE_PULL + Talents.value_at(well, 2), 5.0)
-	assert_contains(Talents.description(well), "4 / 5")
+	assert_eq(Talents.id_for_key("arcane_deep_well"), "", "Deep Well was folded into Collapse")
+	assert_eq(Balance.COLLAPSE_PULL, 5.0)
 	var p := _player()
 	var pulled: Vector3 = ArcaneCasterKit.collapse_point(Vector3(6, 0, 0), Vector3.ZERO, 5.0, Balance.COLLAPSE_CORE)
 	assert_true(pulled.is_equal_approx(Vector3(1, 0, 0)), "5 m toward the centre")
 	var shock := _id("arcane_aftershock")
-	assert_eq(Talents.value_at(shock, 1), 20.0)
-	assert_eq(Talents.value_at(shock, 2), 40.0)
+	assert_eq(Talents.value_at(shock, 1), 13.0)
+	assert_eq(Talents.value_at(shock, 3), 40.0)
 	assert_eq(Balance.AFTERSHOCK_TIME, 3.0)
 	var fx: Resource = Effects.get_effect("aftershock")
 	assert_true(fx != null and bool(fx.is_debuff))
 	assert_eq(float(fx.duration), 3.0)
 	assert_eq(float(fx.stat_modifiers.get("move_speed", 0.0)), -20.0, "the effect is rank 1's slow")
 	assert_eq(ArcaneCasterKit.aftershock_mult(20.0), 1.0)
-	assert_eq(ArcaneCasterKit.aftershock_mult(40.0), 2.0, "rank 2 doubles it: 40%")
+	assert_eq(ArcaneCasterKit.aftershock_mult(40.0), 2.0, "max rank doubles it: 40%")
 	assert_eq(ArcaneCasterKit.aftershock_mult(0.0), 0.0)
 
 func test_long_step() -> void:

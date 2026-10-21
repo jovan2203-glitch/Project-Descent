@@ -1302,8 +1302,6 @@ func resource_cost(id: String, with_storm_cycle: bool = true) -> float:
 	if id == FireCooldownsKit.CRUCIBLE_ID and fire_cooldowns._crucible_standing():
 		return 0.0   # moving a Crucible that still stands is free
 	var cost := float(Abilities.cost_of(id))
-	if id == "cinderguard":
-		cost = FireCooldownsKit.furnace_heart_cost(cost, _talent("fire_furnace_heart"))   # Furnace Heart
 	if id == LightningTankKit.RETURN_STROKE_ID:   # Rune of Resonance: dearer without a parry behind it
 		cost = LightningTankKit.return_stroke_cost(cost, status != null and status.has(LightningTankKit.RETURN_STROKE_FX), frost_melee._has_rune(LightningTankKit.RESONANCE_RUNE))
 	if id == LightningMeleeKit.STATIC_STEP_ID and status != null and status.has(BottledLightningKit.WHIP_CRACK_FX):
@@ -1552,7 +1550,7 @@ func blizzard_radius() -> float:
 
 ## Extra seconds on effects you apply (StatusContainer asks). Deep Hoarfrost.
 func effect_duration_bonus(res: Resource) -> float:
-	# (Deep Hoarfrost, Long Burn, Thick Pitch, Lingering Frost: one list, shared
+	# (Deep Hoarfrost, Long Burn, Lingering Frost: one list, shared
 	# with the tooltips, so what they say is what happens.)
 	return Abilities.effect_time_bonus(res, _talent) + utility.duration_bonus(res)   # (Fixed Point: per Arcane cooldown)
 
@@ -2147,8 +2145,6 @@ func _begin_spell(spell: String, display_name: String, duration: float, channel:
 		duration = maxf(duration - _talent("holy_steady_aim"), 0.2)   # Steady Aim
 	elif spell == PrismsKit.BRIGHT_LANCE_ID:
 		duration = maxf(duration - _talent("holy_quick_lance"), 0.2)   # Quick Lance
-	elif spell == "returntobloom":
-		duration = maxf(duration - _talent("nature_quick_return"), 0.2)   # Quick Return
 	elif spell == FrostBowKit.GLACIAL_DRAW_ID:
 		duration = FrostBowKit.thin_ice_cast(duration, _talent("frost_thin_ice"), frost_bow._chilled_by_me(target))   # Thin Ice
 	elif spell == StringsKit.HOIST_ID:
@@ -2679,7 +2675,7 @@ func _use_drafted(id: String) -> void:
 		return
 	hounds._hounds_on_ability(id)   # Shadow melee: with no Hounds out, its abilities call them
 	var cd_before := float(cooldowns.get(id, 0.0))
-	cooldowns[id] = Abilities.cooldown_of(res)   # (with talents: Thick Hide)
+	cooldowns[id] = Abilities.cooldown_of(res)   # (with talents: Quick Realign)
 	if id == LightningCasterKit.STORM_ARROW_ID:
 		storm_arrow_kit._storm_arrow_fired(cd_before)   # Loaded Quiver, Snap Shot
 	if INTERRUPT_LOCKOUT.has(id):
@@ -2689,7 +2685,7 @@ func _use_drafted(id: String) -> void:
 	if id == FireCasterKit.VENT_ID:
 		fire_caster._vent_charge_used(float(res.cooldown))   # Hair Trigger: charges instead of one cooldown
 	if res.resource_generated > 0:
-		_gain(Abilities.resource_of(id), float(Abilities.generated_of(id)))   # (with talents: Honed Edge)
+		_gain(Abilities.resource_of(id), float(Abilities.generated_of(id)))
 	if res.requires_target and _has_valid_target():
 		var dir := target.global_position - global_position
 		rotation.y = atan2(-dir.x, -dir.z)

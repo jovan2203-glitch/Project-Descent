@@ -175,10 +175,10 @@ static func spill_open_until(open_until: float, now: float, at_least: bool) -> f
 static func bite_down_crit(fast: bool, pct: float) -> float:
 	return maxf(pct, 0.0) if fast else 0.0
 
-## Cut Short: what Hush's cooldown is after it interrupted a cast, when it had
-## `left` to go and the talent takes `cut` seconds off. Never under what all
-## interrupts share (or what it already was, if that is less).
-static func cut_short_cooldown(left: float, cut: float) -> float:
+## What Hush's cooldown is after it interrupted a cast, when it had `left` to go
+## and stopping the cast takes `cut` seconds off (Balance.HUSH_INTERRUPT_REFUND).
+## Never under what all interrupts share (or what it already was, if that is less).
+static func hush_stop_cooldown(left: float, cut: float) -> float:
 	return maxf(left - maxf(cut, 0.0), minf(left, Balance.INTERRUPT_SHARED_COOLDOWN))
 
 ## Why Spill can't be used on a target with `amount` of my Decay and `others`
@@ -644,9 +644,9 @@ func _start_bottomless() -> void:
 
 ## Hush's own hit, and what it adds to an open Decay when there was a cast to stop.
 func _hush(foe: Node3D, coef: float, stopped: bool) -> void:
-	# Cut Short: stopping a cast takes time off its cooldown (which was just set).
+	# Stopping a cast takes time off its cooldown (which was just set).
 	if stopped and player.cooldowns.has(HUSH_ID):
-		player.cooldowns[HUSH_ID] = cut_short_cooldown(float(player.cooldowns[HUSH_ID]), player._talent("shadow_cut_short"))
+		player.cooldowns[HUSH_ID] = hush_stop_cooldown(float(player.cooldowns[HUSH_ID]), Balance.HUSH_INTERRUPT_REFUND)
 	if not is_instance_valid(foe) or not foe.is_alive():
 		return
 	player.deal_damage(foe, coef, HUSH_ID)

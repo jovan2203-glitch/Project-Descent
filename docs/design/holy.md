@@ -80,9 +80,9 @@ Code: player.gd, "Holy healer: the Prisms". Numbers: balance.gd (PRISM_*, HEALS)
 - r3 Clear Glass (2): beam catches prisms 0.5/1 m further from the line.
 - r4 Deep Crystal (3): prisms hold 20/40/60% more light.
 - r5 Sharp Facets (2): +5/10% amplify per prism.
-- r6 Wide Burst (2, requires Shatter All): shatter radius +2/4 m. Maxing it opens Prismatic Burst.
+- r6 Wide Burst (3, requires Shatter All): shatter radius +1.5/2.5/4 m. Maxing it opens Prismatic Burst.
 - r7 Prismatic Burst (3, requires Shatter All): shatter damage +20/40/60%.
-- r8 Quick Realign (2, requires Realign): cooldown -5/10 s.
+- r8 Quick Realign (3, requires Realign): cooldown -3/7/10 s.
 
 ## Archer (Lightstring, bow, Energy) - spec "Lightstring" - BUILT 2026-10-16
 Code: player.gd, "Holy archer: Lightstring". Numbers: balance.gd (REFRACT_*, GOLD_*, SUNLIT_*, BREAKER_*, VOLLEY_*).
@@ -103,8 +103,8 @@ Code: player.gd, "Holy archer: Lightstring". Numbers: balance.gd (REFRACT_*, GOL
 - r6 Split Light (3): refracted arrows +10/20/30%.
 - r8 Bright Quiver (2): auto-shots charge 50/100% more.
 - r8 Deep Burn (3, requires Sunlit Arrow): +10/20/30% from drained light; capstone: leaves 25% of the light. Maxing it opens Long Volley.
-- r9 Swift Light (2, requires Step of Light): cooldown -5/10 s.
-- r9 Long Volley (2, requires Spectrum Volley): +2/4 s.
+- r9 Swift Light: folded into Step of Light (10 s cooldown); the slot is empty.
+- r9 Long Volley (3, requires Spectrum Volley): +1.5/2.5/4 s.
 
 ## Tank (the Censer) - spec "Censer Bearer" - BUILT 2026-10-16
 Code: player.gd, "Holy tank: the Censer". Numbers: balance.gd (INCENSE_*, MOTE_*, ...). Pictures: scripts/censer.gd, scripts/light_mote.gd.
@@ -137,9 +137,9 @@ Code: player.gd, "Holy tank: the Censer". Numbers: balance.gd (INCENSE_*, MOTE_*
 - r3 Mote Magnet (2): pick up motes 1/2 m further away.
 - r4 Bright Barrier (3): +0.02/0.04/0.06% Block per stack.
 - r5 Lingering Light (2): motes last 3/6 s longer.
-- r6 Wide Arc (2, requires Hallowed Arc): +1/2 m. Maxing it opens Deep Pour.
+- r6 Wide Arc (3, requires Hallowed Arc): +0.7/1.3/2 m. Maxing it opens Deep Pour.
 - r7 Deep Pour (3, requires Pour Out): +10/20/30% damage; capstone: its motes are worth 80%.
-- r8 High Censer (2, requires Raise the Censer): cooldown -15/30 s.
+- r8 High Censer: folded into Raise the Censer (1 min cooldown, cost 1.3 mana points so a minute still costs the same); the slot is empty.
 
 ### Rune (Epic)
 - Bright Burst: picking up a mote deals 0.15 FB Holy within 5 m, 4x threat, own meter line.
@@ -179,8 +179,8 @@ Code: player.gd, "Holy: the open talents and the bottom row" and "Holy: talents 
 - Hymns: Long Note (r3, under Key Change, 3: Bulwark of Song +1/2/3 s).
 - Bottom row (5 ranks): Censer's Weight (tank: censer abilities, Incense, Bright Burst +3-15%), Sunsteel (archer: Lightstring shots, refracted and volley arrows +3-15%), Radiance (both healers: Holy heals +2-10%).
 - Shared by several specs: Clear Mind (r2, 3: both healers' Holy heals cost 3/6/9% less mana), Sheltering Light (r2, 3: Holy shields absorb +10/20/30%: Shelter, Vigil's Ward, Prism Ward, Overflowing), Long Glass (r5 middle, 2: prisms of both colours last +15/30 s), Second Breath (r10, 2: a heal lifting an ally from below 30% to above 50% gives 1/2% max mana back).
-- More per spec: Heavy Chain (r4, tank, 2: Censer Swing +1/2 Incense), Absolution (r5, tank, 3: Absolve +10/20/30%), Unbroken (r10, tank, 2: Unfallen +1/2 s), Glimmering (r3 middle, archer, 3: Glimmer Shot +5/10/15%), Steady Aim (r7 middle, archer, 2: Refracting Shot cast -0.25/0.5 s), Swelling Chorus (r4, Hymns, 3: Chorus's extra heals +10/20/30%), Quick Lance (r5, Prisms, 2: Bright Lance cast -0.25/0.5 s).
-- The last six: Full Quiver (r8 middle, archer, 2: Prism Arrow recharges 2/4 s faster), Wide Break (r9 middle, archer, 2: Prism Breaker +2/4 m), Watchful Eye (r6, both healers, 2: heals on an ally hit in the last 2 s +10/20%), Last Rites (r6, Hymns, 2: Last Verse cooldown -30/60 s), Bright Motes (r7, tank, 2: motes heal +25/50%), Steady Ray (r7, Prisms, 2: Mending Ray +10/20%).
+- More per spec: Heavy Chain (r4, tank, 2: Censer Swing +1/2 Incense), Absolution (r5, tank, 3: Absolve +10/20/30%), Unbroken (r10, tank, 3: Unfallen +0.7/1.3/2 s), Glimmering (r3 middle, archer, 3: Glimmer Shot +5/10/15%), Steady Aim (r7 middle, archer, 3: Refracting Shot cast -0.15/0.35/0.5 s), Swelling Chorus (r4, Hymns, 3: Chorus's extra heals +10/20/30%), Quick Lance (r5, Prisms, 3: Bright Lance cast -0.15/0.35/0.5 s).
+- The last six: Full Quiver (r8 middle, archer, 3: Prism Arrow recharges 1.5/2.5/4 s faster), Wide Break (r9 middle, archer, 3: Prism Breaker +1.5/2.5/4 m), Watchful Eye (r6, both healers, 2: heals on an ally hit in the last 2 s +10/20%), Last Rites (r6, Hymns: folded into Last Verse, 2 min cooldown; slot empty), Bright Motes (r7, tank, 3: motes heal +17/33/50%), Steady Ray (r7, Prisms, 3: Mending Ray +7/13/20%).
 - The tree is FULL: 50 of 50 slots. Anything new for Holy now has to replace a talent, or wait for taller trees (12 rows).
 - The melee (Daylight) and caster (Herald) are NOT planned soon; their room went to the four built specs. If they come, the trees grow to 12 rows or they lean on shared talents.
 

@@ -116,7 +116,7 @@ func test_snow_ward() -> void:
 
 func test_winter_hide() -> void:
 	var r := Abilities.get_resource("winterhide")
-	assert_eq(float(r.cooldown), 60.0, "1 min cooldown")
+	assert_eq(float(r.cooldown), 40.0, "40 sec cooldown (Thick Hide was folded into it)")
 	var p := _player()
 	var fx: Resource = FrostMoreKit.make_winter_hide_fx()
 	assert_eq(float(fx.duration), 8.0)
@@ -175,8 +175,8 @@ func test_new_talents() -> void:
 	const TalentIcons = preload("res://scripts/talent_icons.gd")
 	var want := {
 		"frost_honed_rime": ["frost_r4c3", [0.05, 0.1, 0.15], "rimeedge"],
-		"frost_clean_break": ["frost_r7c2", [10.0, 20.0], "icebreaker"],   # moved down two rows (Talents.LINKS_MOVED)
-		"frost_piercing_cold": ["frost_r6c3", [10.0, 20.0], "coldspike"],
+		"frost_clean_break": ["frost_r7c2", [7.0, 13.0, 20.0], "icebreaker"],   # moved down two rows (Talents.LINKS_MOVED)
+		"frost_piercing_cold": ["frost_r6c3", [7.0, 13.0, 20.0], "coldspike"],
 	}
 	for key in want:
 		var id := Talents.id_for_key(key)
@@ -194,13 +194,13 @@ func test_new_talents() -> void:
 	var honed := Talents.id_for_key("frost_honed_rime")
 	for i in 3:
 		assert_true(absf(edge + Talents.value_at(honed, i + 1) - [0.2, 0.25, 0.3][i]) < 0.0001, "Honed Rime rank %d" % (i + 1))
-	# Piercing Cold: 25% -> 35 / 45%.
+	# Piercing Cold: 25% -> 32 / 38 / 45%.
 	var pierce := Talents.id_for_key("frost_piercing_cold")
-	assert_eq(Balance.COLDSPIKE_FROZEN_PCT + Talents.value_at(pierce, 1), 35.0)
-	assert_eq(Balance.COLDSPIKE_FROZEN_PCT + Talents.value_at(pierce, 2), 45.0)
+	assert_eq(Balance.COLDSPIKE_FROZEN_PCT + Talents.value_at(pierce, 1), 32.0)
+	assert_eq(Balance.COLDSPIKE_FROZEN_PCT + Talents.value_at(pierce, 3), 45.0)
 	# Clean Break gives back Fury, which is what Icebreaker costs (never more than it cost).
 	assert_eq(Abilities.resource_of("icebreaker"), "fury")
-	assert_true(Talents.value_at(Talents.id_for_key("frost_clean_break"), 2) <= float(Abilities.get_resource("icebreaker").resource_cost))
+	assert_true(Talents.value_at(Talents.id_for_key("frost_clean_break"), 3) <= float(Abilities.get_resource("icebreaker").resource_cost))
 
 func test_interrupts_share_a_cooldown() -> void:
 	var p := _player()

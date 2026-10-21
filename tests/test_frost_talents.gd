@@ -40,7 +40,7 @@ func test_splintering_cold_links() -> void:
 func test_links_dont_skip_rows() -> void:
 	var PD = load("res://scripts/player_data.gd")
 	var ranks := {"frost_r1c3": 3, "frost_r2c2": 3, "frost_r3c4": 3,
-		Talents.id_for_key("frost_shardstorm"): 2, Talents.id_for_key("frost_splinter"): 1}
+		Talents.id_for_key("frost_shardstorm"): 3, Talents.id_for_key("frost_splinter"): 1}
 	assert_true(PD.talents_valid(ranks), "maxed Splintering Cold opens Shardstorm, and maxed Shardstorm opens Splintering")
 	ranks[Talents.id_for_key("frost_piercing_cold")] = 1   # row 6, next to Shardstorm, not linked
 	assert_false(PD.talents_valid(ranks), "points in link-opened talents don't open their rows")

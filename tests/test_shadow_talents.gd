@@ -20,16 +20,15 @@ const WANT := [
 	["shadow_spite", "Spite", "shadow_r2c3", 3, [3.0, 6.0, 9.0], ""],
 	["shadow_carrion", "Carrion", "shadow_r2c5", 2, [1.0, 2.0], ""],
 	["shadow_inevitable", "Inevitable", "shadow_r10c5", 5, [2.0, 4.0, 6.0, 8.0, 10.0], ""],
-	["shadow_seep", "Lure", "shadow_r4c3", 2, [25.0, 50.0], "corruption"],
+	["shadow_seep", "Lure", "shadow_r4c3", 3, [17.0, 33.0, 50.0], "corruption"],
 	["shadow_interest", "Interest", "shadow_r4c4", 3, [5.0, 10.0, 15.0], "calldue"],
 	["shadow_next_of_kin", "Next of Kin", "shadow_r6c3", 3, [10.0, 20.0, 30.0], "blight"],
-	["shadow_bitter_end", "Bitter End", "shadow_r6c5", 2, [50.0, 100.0], "blight"],
-	["shadow_no_floor", "No Floor", "shadow_r7c3", 2, [2.0, 4.0], "bottomless"],
-	["shadow_small_change", "Small Change", "shadow_r5c4", 2, [10.0, 20.0], "calldue"],
+	["shadow_bitter_end", "Bitter End", "shadow_r6c5", 3, [33.0, 67.0, 100.0], "blight"],
+	["shadow_no_floor", "No Floor", "shadow_r7c3", 3, [1.5, 2.5, 4.0], "bottomless"],
+	["shadow_small_change", "Small Change", "shadow_r5c4", 3, [7.0, 13.0, 20.0], "calldue"],
 	["shadow_rot_through", "Hooked Claws", "shadow_r10c3", 5, [2.0, 4.0, 6.0, 8.0, 10.0], "blight"],
-	["shadow_cut_short", "Cut Short", "shadow_r5c2", 2, [2.0, 4.0], "hush"],
-	["shadow_running_over", "Wider Still", "shadow_r5c6", 2, [10.0, 20.0], "spill"],
-	["shadow_bite_down", "Bite Down", "shadow_r7c5", 2, [10.0, 20.0], "gnaw"],
+	["shadow_running_over", "Wider Still", "shadow_r5c6", 3, [7.0, 13.0, 20.0], "spill"],
+	["shadow_bite_down", "Bite Down", "shadow_r7c5", 3, [7.0, 13.0, 20.0], "gnaw"],
 	# Two more open talents, on the edges of row 2.
 	["shadow_thick_blood", "Thick Blood", "shadow_r2c1", 3, [15.0, 30.0, 45.0], ""],
 	["shadow_feeding_frenzy", "Feeding Frenzy", "shadow_r2c7", 3, [2.0, 4.0, 6.0], ""],
@@ -37,17 +36,17 @@ const WANT := [
 	["shadow_lean_and_hungry", "Lean and Hungry", "shadow_r4c1", 3, [4.0, 8.0, 12.0], ""],
 	["shadow_fed", "Fed", "shadow_r5c1", 2, [2.0, 4.0], ""],
 	["shadow_worked_up", "Worked Up", "shadow_r6c1", 2, [2.0, 4.0], ""],
-	["shadow_out_of_the_hole", "Out of the Hole", "shadow_r7c1", 2, [25.0, 50.0], "blight"],
+	["shadow_out_of_the_hole", "Out of the Hole", "shadow_r7c1", 3, [17.0, 33.0, 50.0], "blight"],
 	["shadow_long_night", "Long Night", "shadow_r8c2", 2, [3.0, 6.0], ""],
 	["shadow_take_it_with_you", "Take It With You", "shadow_r9c1", 2, [25.0, 50.0], ""],
 	["shadow_pack_leader", "Pack Leader", "shadow_r10c4", 5, [3.0, 6.0, 9.0, 12.0, 15.0], ""],
 	# ... and one ability's talents each down the right edge.
-	["shadow_still_wet", "Still Wet", "shadow_r3c7", 2, [2.0, 4.0], "openup"],
-	["shadow_share_the_kill", "Share the Kill", "shadow_r4c7", 2, [50.0, 100.0], "shadowstrike"],
+	["shadow_still_wet", "Still Wet", "shadow_r3c7", 3, [1.5, 2.5, 4.0], "openup"],
+	["shadow_share_the_kill", "Share the Kill", "shadow_r4c7", 3, [33.0, 67.0, 100.0], "shadowstrike"],
 	["shadow_pincer", "Pincer", "shadow_r5c7", 3, [10.0, 20.0, 30.0], "bothatonce"],
-	["shadow_again", "Again", "shadow_r6c7", 2, [15.0, 30.0], "bothatonce"],
-	["shadow_stand_over", "Stand Over", "shadow_r7c7", 2, [1.0, 2.0], "guarddogs"],
-	["shadow_slipped_leash", "Slipped Leash", "shadow_r9c7", 2, [2.0, 4.0], "offthechain"],
+	["shadow_again", "Again", "shadow_r6c7", 3, [10.0, 20.0, 30.0], "bothatonce"],
+	["shadow_stand_over", "Stand Over", "shadow_r7c7", 3, [0.7, 1.3, 2.0], "guarddogs"],
+	["shadow_slipped_leash", "Slipped Leash", "shadow_r9c7", 3, [1.5, 2.5, 4.0], "offthechain"],
 	# The healer (the Strings): the Strings themselves ...
 	["shadow_first_stitch", "First Stitch", "shadow_r3c3", 2, [2.0, 4.0], ""],
 	["shadow_long_thread", "Long Thread", "shadow_r3c5", 2, [2.0, 4.0], ""],
@@ -56,18 +55,18 @@ const WANT := [
 	["shadow_taking_the_weight", "Taking the Weight", "shadow_r8c5", 2, [5.0, 7.0], ""],
 	["shadow_steady_hands", "Steady Hands", "shadow_r10c2", 5, [3.0, 6.0, 9.0, 12.0, 15.0], ""],
 	# ... and one ability's talent each.
-	["shadow_heave", "Heave", "shadow_r3c4", 2, [5.0, 10.0], "hoist"],
-	["shadow_long_drop", "Long Drop", "shadow_r8c6", 2, [0.5, 1.0], "stringup"],
-	["shadow_snap_back", "Snap Back", "shadow_r9c3", 2, [25.0, 50.0], "pulltaut"],
+	["shadow_heave", "Heave", "shadow_r3c4", 3, [3.0, 7.0, 10.0], "hoist"],
+	["shadow_long_drop", "Long Drop", "shadow_r8c6", 3, [0.3, 0.7, 1.0], "stringup"],
+	["shadow_snap_back", "Snap Back", "shadow_r9c3", 3, [17.0, 33.0, 50.0], "pulltaut"],
 	["shadow_give_and_take", "Give and Take", "shadow_r9c5", 3, [1.0, 2.0, 3.0], "slack"],
 	# Three more open talents, with the healer's theme.
 	["shadow_many_hands", "Helping Hands", "shadow_r1c1", 3, [2.0, 4.0, 6.0], ""],
 	["shadow_lean_on_me", "Lean On Me", "shadow_r1c7", 3, [2.0, 4.0, 6.0], ""],
 	["shadow_left_hanging", "Left Hanging", "shadow_r2c4", 2, [10.0, 20.0], ""],
 	# Down the middle column under Small Change: caster, open, healer, melee.
-	["shadow_deep_call", "Deep Call", "shadow_r6c4", 2, [0.25, 0.5], "erode"],
+	["shadow_deep_call", "Deep Call", "shadow_r6c4", 3, [0.15, 0.35, 0.5], "erode"],
 	["shadow_ill_will", "Ill Will", "shadow_r7c4", 3, [5.0, 10.0, 15.0], ""],
-	["shadow_hard_pull", "Hard Pull", "shadow_r8c4", 2, [1.0, 2.0], "tug"],
+	["shadow_hard_pull", "Hard Pull", "shadow_r8c4", 3, [0.7, 1.3, 2.0], "tug"],
 	["shadow_wide_pack", "Wide Pack", "shadow_r9c4", 2, [1.0, 2.0], "runthemdown"],
 ]
 const CAPSTONES := ["shadow_interest", "shadow_next_of_kin", "shadow_no_floor", "shadow_running_over",
@@ -131,14 +130,14 @@ func test_the_books_talents_and_empty_slots() -> void:
 		else:
 			designed += 1
 	assert_eq(designed, WANT.size() + 1, "these, and Tainted Steel")
-	assert_eq(empty, 1, "the bottom row's mirror of Steady Hands (the healer took the two that were empty before)")
+	assert_eq(empty, 2, "the bottom row's mirror of Steady Hands (the healer took the two that were empty before), and Cut Short's (folded into Hush)")
 	# ... on an edge: the caster's talents keep to the middle.
 	for id in Talents.in_tree("shadow"):
 		if bool(Talents.get_talent(id).get("placeholder", true)):
 			var col := int(id.get_slice("c", 1))   # "shadow_r8c2" -> 2 (columns 1 to 7)
 			assert_true(col <= 2 or col >= 6 or id == "shadow_r4c5", "%s is on an edge" % id)
 
-func test_running_over_bite_down_and_cut_short() -> void:
+func test_running_over_bite_down_and_hush() -> void:
 	var p := _player()
 	# Running Over: bigger copies, and (capstone) each one open for a while at least.
 	assert_eq(DecayKit.spill_amount(600.0), 300.0)
@@ -157,14 +156,13 @@ func test_running_over_bite_down_and_cut_short() -> void:
 	assert_eq(DecayKit.bite_down_crit(true, 20.0), 20.0)
 	assert_eq(DecayKit.bite_down_crit(false, 20.0), 0.0, "no Gnaw on it")
 	assert_eq(DecayKit.bite_down_crit(true, 0.0), 0.0)
-	# Cut Short: off Hush's cooldown, never under what the interrupts share.
-	assert_eq(DecayKit.cut_short_cooldown(20.0, 4.0), 16.0)
-	assert_eq(DecayKit.cut_short_cooldown(20.0, 0.0), 20.0, "not without the talent")
-	assert_eq(DecayKit.cut_short_cooldown(17.0, 4.0), Balance.INTERRUPT_SHARED_COOLDOWN, "never under the shared cooldown")
-	assert_eq(DecayKit.cut_short_cooldown(12.0, 4.0), 12.0, "nor does it add any")
-	var hush_cd := float(Abilities.get_resource("hush").cooldown)
-	for v in Talents.get_talent(Talents.id_for_key("shadow_cut_short")).get("values", []):
-		assert_true(hush_cd - float(v) >= Balance.INTERRUPT_SHARED_COOLDOWN, "every rank does something, all of it counts")
+	# Stopping a cast takes time off Hush's cooldown (Cut Short was folded into it), never under what the interrupts share.
+	assert_eq(DecayKit.hush_stop_cooldown(20.0, 4.0), 16.0)
+	assert_eq(DecayKit.hush_stop_cooldown(20.0, 0.0), 20.0)
+	assert_eq(DecayKit.hush_stop_cooldown(17.0, 4.0), Balance.INTERRUPT_SHARED_COOLDOWN, "never under the shared cooldown")
+	assert_eq(DecayKit.hush_stop_cooldown(12.0, 4.0), 12.0, "nor does it add any")
+	assert_true(float(Abilities.get_resource("hush").cooldown) - Balance.HUSH_INTERRUPT_REFUND >= Balance.INTERRUPT_SHARED_COOLDOWN, "all of it counts")
+	assert_eq(Talents.id_for_key("shadow_cut_short"), "", "Cut Short is gone")
 
 func test_capstones() -> void:
 	for row in WANT:
@@ -250,7 +248,7 @@ func test_the_healers_talents() -> void:
 	assert_contains(Talents.tooltip(Talents.id_for_key("shadow_full_harness"), 1), "has 3 of your Strings")
 	assert_contains(Talents.capstone_text(Talents.id_for_key("shadow_heave")), "0.5 sec")
 	assert_contains(Talents.tooltip(Talents.id_for_key("shadow_give_and_take"), 3), "1 / 2 / 3 sec")
-	assert_contains(Talents.tooltip(Talents.id_for_key("shadow_snap_back"), 1), "25 / 50%")
+	assert_contains(Talents.tooltip(Talents.id_for_key("shadow_snap_back"), 1), "17 / 33 / 50%")
 	assert_contains(Talents.tooltip(Talents.id_for_key("shadow_lean_on_me"), 1), "for 4 sec")
 	assert_contains(Talents.tooltip(Talents.id_for_key("shadow_left_hanging"), 1), "10 / 20%")
 	assert_false(Talents.tooltip(Talents.id_for_key("shadow_long_drop"), 1).contains("Frost Bolt"), "real damage numbers")

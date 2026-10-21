@@ -89,8 +89,8 @@ func test_where_they_sit() -> void:
 	# Every slot of both books still holds a designed talent, each with an icon.
 	for book in ["fire", "lightning"]:
 		for id in Talents.in_tree(book):
-			assert_false(bool(Talents.get_talent(id).get("placeholder", true)), "%s is designed" % id)
-			assert_true(TalentIcons.has_icon(id), "%s has an icon" % id)
+			assert_false(bool(Talents.get_talent(id).get("placeholder", true)) and not Talents.FOLDED_INTO_ABILITIES.has(id), "%s is designed (or was folded into its ability)" % id)
+			assert_true(TalentIcons.has_icon(id) or Talents.FOLDED_INTO_ABILITIES.has(id), "%s has an icon" % id)
 
 # --- Fire -------------------------------------------------------------------------------
 

@@ -19,8 +19,7 @@ class_name ShepherdKit
 # Own only: only my rooted creatures use my Blossoms. Numbers: balance.gd
 # (BLOSSOM_*, FAWN_*, ...; heals in HEALS). Talents: Running Herd (Fawn), Morning
 # Dew (Dewfall), Old Bark (Rootguard), Return Flight (Owl), Deep Bloom (Full
-# Bloom), Evergreen (my Blossoms heal); Big Herd and Quick Return change a
-# cooldown and a cast time (Abilities.cooldown_of, base_cast_time).
+# Bloom), Evergreen (my Blossoms heal).
 
 const DEWFALL_ID := "dewfall"
 const FAWN_ID := "fawn"

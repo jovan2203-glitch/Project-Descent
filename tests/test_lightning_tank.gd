@@ -27,8 +27,8 @@ const Runes = preload("res://scripts/runes.gd")
 const WANT := {
 	"lightning_long_reach": ["lightning_r3c5", 3, [1.0, 2.0, 3.0], ""],   # moved down a row (Talents.MOVED)
 	"lightning_counter_charge": ["lightning_r3c7", 3, [10.0, 20.0, 30.0], "returnstroke"],
-	"lightning_closed_circuit": ["lightning_r4c5", 2, [3.0, 6.0], "thunderaegis"],
-	"lightning_quick_wrists": ["lightning_r5c6", 2, [0.5, 1.0], "crossguard"],
+	"lightning_closed_circuit": ["lightning_r4c5", 3, [2.0, 4.0, 6.0], "thunderaegis"],
+	"lightning_quick_wrists": ["lightning_r5c6", 3, [0.3, 0.7, 1.0], "crossguard"],
 	"lightning_tempo": ["lightning_r8c5", 3, [2.0, 4.0, 6.0], ""],   # moved down under Earth Return (Talents.LINKS_MOVED)
 }
 
@@ -336,8 +336,8 @@ func test_talent_texts() -> void:
 	assert_contains(d.call("lightning_long_reach"), "by 1 / 2 / 3%")
 	assert_contains(d.call("lightning_long_reach"), "two-handed weapon")
 	assert_contains(d.call("lightning_counter_charge"), "10 / 20 / 30% more damage")
-	assert_contains(d.call("lightning_closed_circuit"), "3 / 6 more Energy")
-	assert_contains(d.call("lightning_quick_wrists"), "0.5 / 1 sec")
+	assert_contains(d.call("lightning_closed_circuit"), "2 / 4 / 6 more Energy")
+	assert_contains(d.call("lightning_quick_wrists"), "0.3 / 0.7 / 1 sec")
 	var counter := Talents.id_for_key("lightning_counter_charge")
 	assert_true(Talents.has_capstone(counter), "Counter-Charge has a capstone")
 	assert_contains(Talents.capstone_text(counter), "up to %d nearby enemies" % Balance.COUNTER_CHARGE_JUMPS)
@@ -359,7 +359,7 @@ func test_ability_talents_need_their_ability() -> void:
 	var pd = PlayerDataScript.new()
 	pd.level = 50
 	pd.learned_abilities.clear()
-	pd.talents = {Talents.id_for_key("lightning_closed_circuit"): 2, Talents.id_for_key("lightning_quick_wrists"): 2,
+	pd.talents = {Talents.id_for_key("lightning_closed_circuit"): 3, Talents.id_for_key("lightning_quick_wrists"): 3,
 		Talents.id_for_key("lightning_counter_charge"): 3}
 	assert_eq(pd.talent_value("lightning_closed_circuit"), 0.0, "Humming Blade is not learned")
 	assert_eq(pd.talent_value("lightning_quick_wrists"), 0.0, "Crossguard is not learned")

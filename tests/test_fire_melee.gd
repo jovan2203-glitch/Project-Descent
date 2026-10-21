@@ -198,9 +198,9 @@ func test_afterglow_damage() -> void:
 
 func test_melee_talents() -> void:
 	var want := {
-		"fire_kindling": ["fire_r3c1", [15.0, 30.0], "searingstrike"],
+		"fire_kindling": ["fire_r3c1", [10.0, 20.0, 30.0], "searingstrike"],
 		"fire_fresh_tinder": ["fire_r4c2", [10.0, 20.0, 30.0], "immolate"],
-		"fire_afterglow": ["fire_r6c2", [10.0, 20.0], "quench"],
+		"fire_afterglow": ["fire_r6c2", [7.0, 13.0, 20.0], "quench"],
 	}
 	for key in want:
 		var id := Talents.id_for_key(key)

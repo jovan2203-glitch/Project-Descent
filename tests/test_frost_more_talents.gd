@@ -14,9 +14,8 @@ func suite_name() -> String:
 	return "frost_more_talents"
 
 const NEW := {
-	"frost_pinning_frost": ["frost_r2c5", "Pinning Frost", [20.0, 40.0], "icepin"],     # off the middle since rows 2 and 5 were widened
-	"frost_third_bite": ["frost_r5c3", "Third Bite", [40.0, 80.0], "froststrike"],
-	"frost_thick_hide": ["frost_r8c4", "Thick Hide", [10.0, 20.0], "winterhide"],
+	"frost_pinning_frost": ["frost_r2c5", "Pinning Frost", [13.0, 27.0, 40.0], "icepin"],     # off the middle since rows 2 and 5 were widened
+	"frost_third_bite": ["frost_r5c3", "Third Bite", [27.0, 53.0, 80.0], "froststrike"],
 	"frost_hard_freeze": ["frost_r10c4", "Hard Freeze", [0.5, 1.0, 1.5], ""],
 }
 
@@ -29,7 +28,7 @@ func test_they_sit_in_the_middle_of_the_short_rows() -> void:
 		assert_eq(t["values"], NEW[key][2])
 		assert_eq(int(t["max_rank"]), (NEW[key][2] as Array).size())
 		assert_eq(str(t.get("requires", "")), str(NEW[key][3]))
-		if key == "frost_thick_hide" or key == "frost_hard_freeze":
+		if key == "frost_hard_freeze":
 			assert_eq(Talents.col_of(id), 3, "the middle column")
 		assert_true(TalentIcons.has_icon(id), "%s has an icon" % key)
 		assert_eq(TextFillLeft.leftover(Talents.description(id)), "", "no placeholder left in its text")
@@ -49,7 +48,7 @@ func test_frost_tree_stays_symmetrical() -> void:
 			assert_true(cols.has(Talents.COLUMNS - 1 - int(c)), "column %d has its mirror" % int(c))
 	assert_eq(total, 34, "28 talents + the 6 bow talents")
 	for id in Talents.in_tree("frost"):
-		assert_false(bool(Talents.get_talent(id)["placeholder"]), "%s is designed" % id)
+		assert_false(bool(Talents.get_talent(id)["placeholder"]) and not Talents.FOLDED_INTO_ABILITIES.has(id), "%s is designed (or was folded into its ability)" % id)
 	# Endless Winter, Winter's Clarity and Deep Chill were removed.
 	for gone in ["frost_blizzard_radius", "frost_mana_cost", "frost_slow"]:
 		assert_eq(Talents.id_for_key(gone), "", "%s is gone" % gone)
@@ -66,17 +65,10 @@ func test_hard_freeze_lengthens_frozen() -> void:
 	assert_eq(Abilities.effect_time_bonus(frozen, with_rank.call(3)), 1.5)
 	assert_eq(Abilities.effect_time_bonus(Effects.get_effect("chilled"), with_rank.call(3)), 0.0, "only Frozen")
 
-## Thick Hide is the talent that shortens Winter Hide's cooldown, and needs it learned.
-func test_thick_hide_is_wired_to_winter_hide() -> void:
-	assert_eq(str(Abilities.COOLDOWN_TALENTS.get("winterhide", "")), "frost_thick_hide")
+## Thick Hide was folded into Winter Hide: its cooldown is 40 sec, and nothing else shortens it.
+func test_thick_hide_was_folded_into_winter_hide() -> void:
+	assert_eq(Talents.id_for_key("frost_thick_hide"), "", "Thick Hide is gone")
+	assert_false(Abilities.COOLDOWN_TALENTS.has("winterhide"))
 	var res := Abilities.get_resource("winterhide")
-	assert_eq(Abilities.cooldown_of(res), float(res.cooldown), "no talent: the full cooldown")
-	assert_eq(Abilities.cooldown_of(Abilities.get_resource("frostnova")), float(Abilities.get_resource("frostnova").cooldown))
-	var pd = track(PlayerDataScript.new())
-	pd.level = 50
-	pd.talents = {"frost_r1c3": 3, "frost_r2c2": 3, "frost_r3c2": 3, "frost_r4c1": 3, "frost_r5c2": 2, "frost_r5c6": 1,
-		"frost_r6c4": 3, "frost_r7c4": 3}
-	var id := Talents.id_for_key("frost_thick_hide")
-	assert_eq(pd.can_invest(id), "Requires Winter Hide to be learned")
-	pd.learned_abilities.append("winterhide")
-	assert_eq(pd.can_invest(id), "")
+	assert_eq(float(res.cooldown), 40.0)
+	assert_eq(Abilities.cooldown_of(res), 40.0)

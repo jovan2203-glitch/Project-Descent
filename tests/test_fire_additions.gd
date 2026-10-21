@@ -56,7 +56,7 @@ func test_pitch_is_one_per_archer_and_speeds_up_their_burns() -> void:
 	var fx: Resource = Abilities.get_resource("pitcharrow").on_hit_effect
 	assert_true(fx != null, "Pitch Arrow leaves pitch on the target")
 	assert_eq(str(fx.id), "pitched")
-	assert_eq(float(fx.get("duration")), 8.0)
+	assert_eq(float(fx.get("duration")), 12.0)
 	assert_true(bool(fx.get("per_caster")), "each archer has their own pitch (own only)")
 	var p := _player()
 	assert_eq(Balance.PITCH_TICK_SPEED_PCT, 25.0)
@@ -123,12 +123,10 @@ func test_new_talents() -> void:
 	var want := {
 		"fire_forge_heat": ["fire_r7c2", [0.5, 1.0, 1.5, 2.0]],
 		"fire_long_burn": ["fire_r5c3", [1.0, 2.0, 3.0]],   # moved up under Lingering Embers (Talents.LINKS_MOVED)
-		"fire_deep_crucible": ["fire_r8c4", [1.0, 2.0]],
-		"fire_stoked_kiln": ["fire_r8c5", [10.0, 20.0]],
-		"fire_slag_mending": ["fire_r7c6", [1.0, 2.0]],
-		"fire_furnace_heart": ["fire_r9c6", [10.0, 20.0]],
-		"fire_deep_brand": ["fire_r3c7", [3.0, 6.0]],
-		"fire_thick_pitch": ["fire_r8c3", [2.0, 4.0]],   # moved down to make room (Talents.LINKS_MOVED)
+		"fire_deep_crucible": ["fire_r8c4", [0.7, 1.3, 2.0]],
+		"fire_stoked_kiln": ["fire_r8c5", [7.0, 13.0, 20.0]],
+		"fire_slag_mending": ["fire_r7c6", [0.7, 1.3, 2.0]],
+		"fire_deep_brand": ["fire_r3c7", [2.0, 4.0, 6.0]],
 		"fire_banked_mana": ["fire_r1c5", [5.0, 10.0]],
 		"fire_warm_blood": ["fire_r4c4", [2.0, 4.0, 6.0]],
 		"fire_white_heat": ["fire_r9c2", [5.0, 10.0, 15.0]],
@@ -143,8 +141,8 @@ func test_new_talents() -> void:
 		assert_true(TalentIcons.has_icon(id), "%s has an icon" % key)
 		assert_true(bool(Talents.get_talent(id).get("implemented", false)), "%s does something" % key)
 	var crucible := Talents.id_for_key("fire_deep_crucible")
-	assert_eq(Talents.value_at(crucible, 1, "values2"), 2.0, "+2 s")
-	assert_eq(Talents.value_at(crucible, 2, "values2"), 4.0, "+4 s")
+	assert_eq(Talents.value_at(crucible, 1, "values2"), 1.5, "+1.5 s")
+	assert_eq(Talents.value_at(crucible, 3, "values2"), 4.0, "+4 s")
 
 func test_talent_maths() -> void:
 	var p := _player()
@@ -153,21 +151,18 @@ func test_talent_maths() -> void:
 	assert_eq(float(FireMeleeKit.make_heat_fx(Balance.HEAT_TIME + 2.0).duration), 5.0, "4 / 4: 3 s + 2 s")
 	# Long Burn raises what Fresh Tinder can fill up to.
 	assert_eq(FireMeleeKit.tinder_time(14.0, 2.0, 12.0 + 3.0), 15.0)
-	# Stoked Kiln: 20% -> 30 / 40%.
+	# Stoked Kiln: 20% -> 27 / 33 / 40%.
 	var kiln := Talents.id_for_key("fire_stoked_kiln")
-	assert_eq(Balance.KILN_BLAST_IMMOLATE_PCT + Talents.value_at(kiln, 1), 30.0)
-	assert_eq(Balance.KILN_BLAST_IMMOLATE_PCT + Talents.value_at(kiln, 2), 40.0)
-	# Deep Brand: 10% -> 13 / 16% less damage from the enemy I Branded.
+	assert_eq(Balance.KILN_BLAST_IMMOLATE_PCT + Talents.value_at(kiln, 1), 27.0)
+	assert_eq(Balance.KILN_BLAST_IMMOLATE_PCT + Talents.value_at(kiln, 3), 40.0)
+	# Deep Brand: 10% -> 12 / 14 / 16% less damage from the enemy I Branded.
 	var brand := Talents.id_for_key("fire_deep_brand")
-	assert_eq(Balance.BRAND_PCT + Talents.value_at(brand, 1), 13.0)
-	assert_eq(Balance.BRAND_PCT + Talents.value_at(brand, 2), 16.0)
+	assert_eq(Balance.BRAND_PCT + Talents.value_at(brand, 1), 12.0)
+	assert_eq(Balance.BRAND_PCT + Talents.value_at(brand, 3), 16.0)
 	assert_eq(str(Talents.get_talent(brand).get("requires", "")), "brand")
-	# Thick Pitch: 8 s -> 10 / 12 s (rank 2 = Pitch Arrow's cooldown: it can be kept up).
-	var pitch := Talents.id_for_key("fire_thick_pitch")
-	var pitch_time := float(Abilities.get_resource("pitcharrow").on_hit_effect.get("duration"))
-	assert_eq(pitch_time + Talents.value_at(pitch, 1), 10.0)
-	assert_eq(pitch_time + Talents.value_at(pitch, 2), float(Abilities.get_resource("pitcharrow").cooldown))
-	assert_eq(str(Talents.get_talent(pitch).get("requires", "")), "pitcharrow")
+	# Pitch Arrow's pitch lasts as long as its cooldown (Thick Pitch was folded into it): it can be kept up.
+	assert_eq(float(Abilities.get_resource("pitcharrow").on_hit_effect.get("duration")), float(Abilities.get_resource("pitcharrow").cooldown))
+	assert_eq(Talents.id_for_key("fire_thick_pitch"), "", "Thick Pitch is gone")
 	# Banked Mana: part of the mana cost comes back.
 	assert_eq(FireCasterKit.banked_mana_refund(200.0, 5.0), 10.0)
 	assert_eq(FireCasterKit.banked_mana_refund(200.0, 10.0), 20.0)
@@ -183,14 +178,10 @@ func test_talent_maths() -> void:
 	assert_eq(FireMeleeKit.white_heat_bonus(Balance.HEAT_MAX_STACKS, 0.0), 0.0, "nothing without the talent")
 	assert_contains(Talents.description(Talents.id_for_key("fire_white_heat")), "maximum %d Heat" % Balance.HEAT_MAX_STACKS)
 	for id in Talents.in_tree("fire"):
-		assert_false(bool(Talents.get_talent(id).get("placeholder", true)), "%s: every Fire slot holds a talent" % id)
+		assert_false(bool(Talents.get_talent(id).get("placeholder", true)) and not Talents.FOLDED_INTO_ABILITIES.has(id), "%s: every Fire slot holds a talent, or was folded" % id)
 	# Slag Mending: % of max health per stack.
 	assert_eq(FireCooldownsKit.slag_mending_heal(1000, 6, 2.0), 120)
 	assert_eq(FireCooldownsKit.slag_mending_heal(1000, 3, 1.0), 30)
 	assert_eq(FireCooldownsKit.slag_mending_heal(1000, 6, 0.0), 0, "nothing without the talent")
-	# Furnace Heart: Cinder Guard's 40 Fury -> 30 / 20.
-	var guard_cost := float(Abilities.get_resource("cinderguard").resource_cost)
-	assert_eq(guard_cost, 40.0)
-	assert_eq(FireCooldownsKit.furnace_heart_cost(guard_cost, 10.0), 30.0)
-	assert_eq(FireCooldownsKit.furnace_heart_cost(guard_cost, 20.0), 20.0)
-	assert_eq(FireCooldownsKit.furnace_heart_cost(10.0, 20.0), 0.0, "never below 0")
+	# Cinder Guard costs 20 Fury (Furnace Heart was folded into it).
+	assert_eq(float(Abilities.get_resource("cinderguard").resource_cost), 20.0)

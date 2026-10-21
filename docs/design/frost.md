@@ -27,7 +27,7 @@ Values in Frost Bolts (FB) are conversation shorthand; real numbers live in bala
 
 ## Talents
 - First talents: haste 1/2/3%; Frost spell slows +5/10/15%; shield absorbs +5/10/15%; spells 10/15/20% chance to generate an Ice Shard (requires Ice Shards).
-- Bow talents, grouped together on the right of rows 1-5: Black Ice, Thin Ice (2, requires Glacial Draw: 0.5/1 s faster on a Chilled target), Clean Shatter, Cold Harvest, Marked Prey (2, requires Coldmark: Ice Shards +15/30% to your Coldmark target), Cold Draw.
+- Bow talents, grouped together on the right of rows 1-5: Black Ice, Thin Ice (3, requires Glacial Draw: 0.3/0.7/1 s faster on a Chilled target), Clean Shatter, Cold Harvest, Marked Prey (3, requires Coldmark: Ice Shards +10/20/30% to your Coldmark target), Cold Draw.
 - Also in the tree: Quickened Frost, Pinning Frost, Bitter Cold, Deep Hoarfrost, Third Bite.
 - Removed: Winter's Clarity, Endless Winter, Deep Chill (points refunded via save migration).
 

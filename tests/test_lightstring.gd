@@ -55,7 +55,7 @@ func test_the_kit_is_a_holy_bow_spec() -> void:
 func test_numbers() -> void:
 	# id: [cooldown, energy, weapon multiplier]
 	var want := {"prismarrow": [12.0, 15, 0.0], "glimmershot": [0.0, 20, 1.0], "refractingshot": [8.0, 30, 2.0],
-		"sunlitarrow": [12.0, 30, 1.2], "prismbreaker": [15.0, 25, 0.0], "stepoflight": [20.0, 0, 0.0],
+		"sunlitarrow": [12.0, 30, 1.2], "prismbreaker": [15.0, 25, 0.0], "stepoflight": [10.0, 0, 0.0],
 		"spectrumvolley": [120.0, 0, 0.0]}
 	for id in want:
 		var r := Abilities.get_resource(id)
@@ -132,10 +132,10 @@ func test_picking_a_prism_by_colour() -> void:
 
 func test_talents() -> void:
 	var src := FileAccess.get_file_as_string("res://scripts/talents.gd")
-	for key in ["holy_wide_fan", "holy_split_light", "holy_bright_quiver", "holy_deep_burn", "holy_swift_light", "holy_long_volley"]:
+	for key in ["holy_wide_fan", "holy_split_light", "holy_bright_quiver", "holy_deep_burn", "holy_long_volley"]:
 		assert_contains(src, "\"key\": \"%s\"" % key)
 	assert_true(Talents.LINKS.has(["holy_deep_burn", "holy_long_volley"]), "Deep Burn opens Long Volley")
-	assert_eq(Abilities.COOLDOWN_TALENTS.get("stepoflight", ""), "holy_swift_light")
+	assert_false(Abilities.COOLDOWN_TALENTS.has("stepoflight"), "Swift Light was folded into Step of Light")
 
 func test_keywords() -> void:
 	var r := Keywords.keyword_text("refraction")

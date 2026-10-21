@@ -66,11 +66,11 @@ func test_charged_edge() -> void:
 	var r := Abilities.get_resource("chargededge")
 	assert_eq(float(r.cooldown), 4.0)
 	assert_eq(int(r.resource_cost), 0, "no cost")
-	assert_eq(int(r.resource_generated), 20, "gives 20 Energy")
+	assert_eq(int(r.resource_generated), 30, "gives 30 Energy")
 	assert_eq(float(r.weapon_damage_multiplier), 1.2)
 	assert_eq(int(r.weapon_requirement), 1)
 	assert_true(bool(r.requires_target))
-	assert_contains(Abilities.tooltip("chargededge"), "Generates 20 Energy")
+	assert_contains(Abilities.tooltip("chargededge"), "Generates 30 Energy")
 
 func test_arc_cleave() -> void:
 	var r := Abilities.get_resource("arccleave")

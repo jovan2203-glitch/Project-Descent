@@ -33,9 +33,9 @@ Code: player.gd, "Nature caster: the Weaver". Numbers: balance.gd (MULCH_*, THOR
 - Rich Soil (3; r3c5): each patch adds 10/20/30% more to Mossback and Choking Vipers (only the per-patch part).
 - Compost (1, Thornshot; r5c5): every 2nd Thornshot that lands leaves a patch, instead of every 3rd. Maxing it opens Bramble Burst.
 - Bramble Burst (3, Thornshot; r6c5): Thornburst deals 10/20/30% more; capstone: it reaches 5 m from each patch instead of 4.
-- Fertile Ground (2, Choking Vipers; r7c6): an enemy that dies with my Vipers on it leaves a patch where it fell: 50/100% chance.
-- Second Growth (2, Mossback; r8c5): 15/30% chance Mossback leaves a patch where it strikes.
-- Circling Hawk (2, Thornwing; r8c6): a finisher that uses 4+ patches cuts Thornwing's cooldown by 3/6 s.
+- Fertile Ground (3, Choking Vipers; r7c6): an enemy that dies with my Vipers on it leaves a patch where it fell: 33/67/100% chance.
+- Second Growth (3, Mossback; r8c5): 10/20/30% chance Mossback leaves a patch where it strikes.
+- Circling Hawk (3, Thornwing; r8c6): a finisher that uses 4+ patches cuts Thornwing's cooldown by 2/4/6 s.
 - Overgrown (5; r10c5): my Nature spells deal 0.4/0.8/1.2/1.6/2% more per patch I have (10% at 5).
 
 ## Healer (the Shepherd) - spec "Shepherd" - BUILT 2026-10-16
@@ -58,11 +58,11 @@ Code: player.gd, "Nature healer: the Shepherd". Numbers: balance.gd (BLOSSOM_*, 
 ### Talents
 - Running Herd (4, requires Fawn; row 1, column 3): Fawn heals 5/10/15% more; capstone: every second Fawn bounces 2 more times.
 - Old Bark (3, Rootguard; r3c3): Rootguard's shield absorbs 10/20/30% more.
-- Morning Dew (2, Dewfall; r5c3): Dewfall heals 15/20% more per Blossom instead of 10%.
-- Return Flight (2, Owl; r6c3): after its dive the Owl keeps watching for the time it had left and can dive once more at 30/60% strength (heal and strike); the second watch leaves no Blossom when it lands.
-- Deep Bloom (2, Heartwood Elk; r7c2): Full Bloom lasts 2/4 s longer.
-- Quick Return (2, Return to Bloom; r8c2): its cast is 2/4 s shorter.
-- Big Herd (2, Wild Herd; r8c3): its cooldown is 15/30 s shorter.
+- Morning Dew (3, Dewfall; r5c3): Dewfall heals 15/18/20% more per Blossom instead of 10%.
+- Return Flight (3, Owl; r6c3): after its dive the Owl keeps watching for the time it had left and can dive once more at 20/40/60% strength (heal and strike); the second watch leaves no Blossom when it lands.
+- Deep Bloom (3, Heartwood Elk; r7c2): Full Bloom lasts 1.5/2.5/4 s longer.
+- Quick Return (r8c2): folded into Return to Bloom (4 s cast); the slot is empty.
+- Big Herd (r8c3): folded into Wild Herd (90 s cooldown); the slot is empty.
 - Evergreen (5; r10c3): each of my Blossoms heals its ally 0.05/0.1/0.15/0.2/0.25% of their max health every second (own meter line "Evergreen"; a heal over time).
 
 ## Tank (the Colossus) - spec "Colossus" - BUILT 2026-10-16
@@ -87,9 +87,9 @@ Code: player.gd, "Nature tank: the Colossus". Numbers: balance.gd (SAP_*, VINE_F
 - Rising Sap (3; r4c4): each Sap heals 0.5/0.6/0.7% of max health per second instead of 0.4% (Deep Roots' Sap too).
 - Crushing Grip (3, Giant's Hands; r5c4): the burst deals 5/10/15% more per hit the Hands soaked, up to 5 hits.
 - Broad Fist (2, Vine Fist; r6c4): the splash hits 1/2 more enemies.
-- Spreading Roots (2, Stomp; r7c4): Stomp Roots last 2/4 s longer and reach 1/2 m further; same damage per second.
-- Firm Hold (2, Grasp; r9c4): Grasp holds 0.5/1 s longer and gives 5/10 Fury back.
-- Wide Awake (2, Awaken; r9c1): Awaken lasts 3/6 s longer.
+- Spreading Roots (3, Stomp; r7c4): Stomp Roots last 1.5/2.5/4 s longer and reach 0.7/1.3/2 m further; same damage per second.
+- Firm Hold (3, Grasp; r9c4): Grasp holds 0.3/0.7/1 s longer and gives 3/7/10 Fury back.
+- Wide Awake (3, Awaken; r9c1): Awaken lasts 2/4/6 s longer.
 - Old Growth (5; r10c4): each Sap cuts damage taken by 0.4/0.8/1.2/1.6/2% (10% at 5).
 
 ## Archer (Venomstring) - spec "Venomstring" - BUILT 2026-10-16
@@ -119,7 +119,7 @@ Code: player.gd, "Nature archer: Venomstring". Numbers: balance.gd (VENOM_*, POI
 
 ### Talents
 - Lingering Venom (4, requires Venom Burst; row 2, column 7): Venom Burst deals 5/10/15% more; capstone: each poison Venom Burst would remove has a 40% chance to stay (rolled separately).
-- Long Fangs (2, Fang Arrow; r1c7): Fang Arrow adds 3/4 s to my poisons instead of 2.
+- Long Fangs (3, Fang Arrow; r1c7): Fang Arrow adds 2.7/3.3/4 s to my poisons instead of 2.
 - Hungry Venom (2; r3c7): poisons jump up to 15/20 m on a death (instead of 10) and deal 10/20% more after jumping (once, however often they jump).
 - Spring Trap (2, Coil Back; r4c7): the trap catches up to 2/3 enemies at once.
 - Soaked Through (5; r9c7): Steeped gives 32/34/36/38/40% instead of 30%.

@@ -11,7 +11,7 @@ const PlayerDataScript = preload("res://scripts/player_data.gd")
 ## Every link, as talent keys: [from, to].
 const WANT := [
 	["fire_thick_slag", "fire_hot_iron"], ["fire_hot_iron", "fire_clinker"],
-	["fire_clinker", "fire_slag_mending"], ["fire_slag_mending", "fire_furnace_heart"],
+	["fire_clinker", "fire_slag_mending"],
 	["fire_kindling", "fire_fresh_tinder"], ["fire_fresh_tinder", "fire_afterglow"],
 	["fire_afterglow", "fire_forge_heat"], ["fire_forge_heat", "fire_white_heat"],
 	["fire_lingering_embers", "fire_long_burn"], ["fire_long_burn", "fire_flashover"],
@@ -23,7 +23,7 @@ const WANT := [
 	["lightning_earth_return", "lightning_tempo"], ["lightning_counter_charge", "lightning_second_stroke"],
 	["lightning_running_start", "lightning_whip_crack"], ["lightning_quick_fuse", "lightning_rod"],
 	["lightning_rod", "lightning_snap_shot"], ["lightning_snap_shot", "lightning_loaded_quiver"],
-	["arcane_seventh_sigil", "arcane_etched_darts"], ["arcane_deep_well", "arcane_aftershock"],
+	["arcane_seventh_sigil", "arcane_etched_darts"],
 	["arcane_sharp_edges", "arcane_clockwork"], ["arcane_clockwork", "arcane_spare_copy"],
 	["arcane_light_feet", "arcane_empty_room"], ["arcane_empty_room", "arcane_bent_light"],
 	["arcane_standing_ovation", "arcane_second_showing"], ["arcane_second_showing", "arcane_time_signature"],
@@ -39,7 +39,7 @@ const WANT := [
 
 ## Where every talent that changed slot sits now: key -> id.
 const MOVED_TO := {
-	"fire_long_burn": "fire_r5c3", "fire_volley_targets": "fire_r6c3", "fire_thick_pitch": "fire_r8c3",
+	"fire_long_burn": "fire_r5c3", "fire_volley_targets": "fire_r6c3",
 	"frost_chilled_dmg": "frost_r1c1", "frost_cold_draw": "frost_r1c5", "frost_absorb": "frost_r1c7",
 	"frost_shield_armor": "frost_r4c7", "frost_ice_floe": "frost_r8c7", "frost_hoarfrost_burst": "frost_r5c2",
 	"frost_clean_break": "frost_r7c2", "frost_shardstorm": "frost_r6c4", "frost_splinter": "frost_r7c4",
@@ -158,7 +158,7 @@ func test_a_linked_talent_opens_before_its_row() -> void:
 func test_moved_talents_and_old_saves() -> void:
 	const SaveSystemScript = preload("res://scripts/save_system.gd")
 	assert_true(SaveSystemScript.VERSION >= 6)
-	assert_eq(Talents.LINKS_MOVED.size(), MOVED_TO.size())
+	assert_eq(Talents.LINKS_MOVED.size(), MOVED_TO.size() + 1, "and Thick Pitch, since folded into Pitch Arrow")
 	var news: Array = Talents.LINKS_MOVED.values()
 	for key in MOVED_TO:
 		assert_eq(_id(str(key)), str(MOVED_TO[key]), "%s has its new slot" % key)

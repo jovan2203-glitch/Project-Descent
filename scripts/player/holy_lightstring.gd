@@ -14,7 +14,7 @@ class_name LightstringKit
 # prism into the enemies around it, Step of Light takes me to a prism, and
 # Spectrum Volley makes the gold prisms shoot by themselves. Numbers are in
 # balance.gd; the talents (Wide Fan, Split Light, Bright Quiver, Deep Burn,
-# Swift Light, Long Volley) in talents.gd.
+# Long Volley) in talents.gd.
 
 const PRISM_ARROW_ID := "prismarrow"
 const GLIMMER_SHOT_ID := "glimmershot"

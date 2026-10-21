@@ -66,7 +66,7 @@ func test_every_icon_is_its_own() -> void:
 func test_numbers() -> void:
 	# id: [cooldown, mana points]
 	var want := {"censerswing": [0.0, 0.4], "hallowedarc": [8.0, 1.0], "beckon": [10.0, 1.0], "pourout": [12.0, 2.0],
-		"absolve": [10.0, 1.5], "aureole": [20.0, 0.0], "gatherthelight": [30.0, 0.0], "raisethecenser": [90.0, 2.0],
+		"absolve": [10.0, 1.5], "aureole": [20.0, 0.0], "gatherthelight": [30.0, 0.0], "raisethecenser": [60.0, 1.3],
 		"unfallen": [120.0, 0.0]}
 	for id in want:
 		var r := Abilities.get_resource(id)
@@ -82,9 +82,9 @@ func test_numbers() -> void:
 ## Nonstop tanking runs you out of mana eventually: 4 to 8 minutes on base mana.
 func test_mana_runs_out_in_minutes() -> void:
 	# Uses per minute of a busy rotation: every cooldown on time, the filler in between.
-	var per_min := {"hallowedarc": 7.0, "beckon": 3.0, "pourout": 3.0, "absolve": 4.0, "raisethecenser": 0.67}
+	var per_min := {"hallowedarc": 7.0, "beckon": 3.0, "pourout": 3.0, "absolve": 4.0, "raisethecenser": 1.0}
 	var gcds := 60.0 / 1.5
-	var filler := gcds - 7.0 - 3.0 - 3.0 - 4.0 - 0.67
+	var filler := gcds - 7.0 - 3.0 - 3.0 - 4.0 - 1.0
 	var spend := filler * Abilities.cost_of("censerswing")
 	for id in per_min:
 		spend += float(per_min[id]) * Abilities.cost_of(id)
@@ -166,7 +166,7 @@ func test_raise_the_censer() -> void:
 	assert_eq(int(Balance.RAISE_CENSER_TIME / Balance.RAISE_CENSER_SHED_EVERY), 8, "8 motes over its time")
 	assert_contains(Abilities.tooltip("raisethecenser"), "no Block and no aura")
 	# High Censer shortens its cooldown.
-	assert_eq(Abilities.COOLDOWN_TALENTS.get("raisethecenser", ""), "holy_high_censer")
+	assert_false(Abilities.COOLDOWN_TALENTS.has("raisethecenser"), "High Censer was folded into Raise the Censer")
 
 func test_unfallen() -> void:
 	var p := _p()
@@ -181,7 +181,7 @@ func test_unfallen() -> void:
 
 func test_talents() -> void:
 	for key in ["holy_mote_magnet", "holy_bright_barrier", "holy_lingering_light", "holy_wide_arc",
-			"holy_deep_pour", "holy_high_censer"]:
+			"holy_deep_pour"]:
 		assert_contains(FileAccess.get_file_as_string("res://scripts/talents.gd"), "\"key\": \"%s\"" % key)
 	assert_true(Talents.LINKS.has(["holy_wide_arc", "holy_deep_pour"]), "Wide Arc opens Deep Pour")
 	assert_eq(Abilities.RADIUS_TALENTS.get("hallowedarc", [""])[0], "holy_wide_arc")

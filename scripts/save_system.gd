@@ -20,7 +20,7 @@ extends Node
 const PATH := "user://profile.cfg"
 const TMP_PATH := "user://profile.cfg.tmp"
 const BAK_PATH := "user://profile.cfg.bak"
-const VERSION := 10
+const VERSION := 11
 const AUTOSAVE_DELAY := 0.5
 
 const Items = preload("res://scripts/items.gd")
@@ -301,6 +301,8 @@ func _migrate(cfg: ConfigFile, from_version: int) -> void:
 				_migrate_8_to_9(cfg)
 			9:
 				_migrate_9_to_10(cfg)
+			10:
+				_migrate_10_to_11(cfg)
 		v += 1
 		cfg.set_value("meta", "version", v)
 
@@ -416,6 +418,14 @@ func _migrate_9_to_10(cfg: ConfigFile) -> void:
 				(ranks as Dictionary).erase(id)
 		cfg.set_value("talents", "ranks", ranks)
 	_log(1, "Migrated profile to v10 (points in old empty Martial talents refunded)")
+
+# v10 -> v11: thirteen talents were folded into their abilities
+# (Talents.FOLDED_INTO_ABILITIES); points saved in them are refunded.
+func _migrate_10_to_11(cfg: ConfigFile) -> void:
+	var ranks: Variant = cfg.get_value("talents", "ranks", {})
+	if ranks is Dictionary:
+		cfg.set_value("talents", "ranks", Talents.rearranged(ranks, {}, Talents.FOLDED_INTO_ABILITIES))
+	_log(1, "Migrated profile to v11 (points in folded talents refunded)")
 
 # --- Validation --------------------------------------------------------------------
 

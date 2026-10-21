@@ -17,7 +17,7 @@ class_name CenserKit
 # Raise the Censer sends it over the enemies for a while (a mass grab that sheds
 # motes); while it is away my Incense gives no Block and no aura. Numbers are in
 # balance.gd; the talents (Mote Magnet, Bright Barrier, Lingering Light, Wide Arc,
-# Deep Pour, High Censer) in talents.gd.
+# Deep Pour) in talents.gd.
 
 const CENSER = preload("res://scripts/censer.gd")
 const LIGHT_MOTE = preload("res://scripts/light_mote.gd")

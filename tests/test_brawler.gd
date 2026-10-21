@@ -111,7 +111,7 @@ func test_one_more_repeats_with_the_same_caught_hit() -> void:
 	assert_eq(BrawlerKit.one_more_extra("haymaker"), Balance.HAYMAKER_FURY, "a repeated Haymaker spends its own Fury too")
 	assert_eq(BrawlerKit.one_more_extra("sweep"), 0.0)
 	assert_eq(Abilities.cost_of("onemore"), 25.0)
-	assert_eq(float(Abilities.get_resource("onemore").cooldown), 15.0)
+	assert_eq(float(Abilities.get_resource("onemore").cooldown), 9.0)
 
 func test_bosses_are_never_thrown_or_put_down() -> void:
 	var src := PlayerSource.text()

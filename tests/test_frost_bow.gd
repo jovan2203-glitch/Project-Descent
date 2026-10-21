@@ -185,12 +185,12 @@ const PlayerDataScript = preload("res://scripts/player_data.gd")
 ## key -> [slot, ranks, values, required ability]. They sit together on the right of rows 1-5.
 const BOW_TALENTS := {
 	"frost_cold_draw": ["frost_r1c5", 3, [2.0, 4.0, 6.0], ""],
-	"frost_pinning_frost": ["frost_r2c5", 2, [20.0, 40.0], "icepin"],
-	"frost_black_ice": ["frost_r2c6", 2, [50.0, 100.0], "icyretreat"],
-	"frost_clean_shatter": ["frost_r3c6", 2, [10.0, 20.0], "shattershot"],
-	"frost_cold_harvest": ["frost_r4c5", 2, [5.0, 10.0], "rimefletch"],
-	"frost_thin_ice": ["frost_r5c5", 2, [0.5, 1.0], "glacialdraw"],
-	"frost_marked_prey": ["frost_r5c6", 2, [15.0, 30.0], "coldmark"],
+	"frost_pinning_frost": ["frost_r2c5", 3, [13.0, 27.0, 40.0], "icepin"],
+	"frost_black_ice": ["frost_r2c6", 3, [33.0, 67.0, 100.0], "icyretreat"],
+	"frost_clean_shatter": ["frost_r3c6", 3, [7.0, 13.0, 20.0], "shattershot"],
+	"frost_cold_harvest": ["frost_r4c5", 3, [3.0, 7.0, 10.0], "rimefletch"],
+	"frost_thin_ice": ["frost_r5c5", 3, [0.3, 0.7, 1.0], "glacialdraw"],
+	"frost_marked_prey": ["frost_r5c6", 3, [10.0, 20.0, 30.0], "coldmark"],
 }
 
 func test_the_bow_talents_sit_together() -> void:
@@ -211,15 +211,15 @@ func test_the_bow_talents_sit_together() -> void:
 		# The same area: the right half of the book, in the top five rows.
 		assert_true(Talents.col_of(id) >= 4, "%s is on the right" % key)
 		assert_true(Talents.tier_of(id) <= 4, "%s is in rows 1-5" % key)
-	assert_eq(Talents.get_talent(Talents.id_for_key("frost_clean_shatter")).get("values2", []), [2.0, 4.0])
+	assert_eq(Talents.get_talent(Talents.id_for_key("frost_clean_shatter")).get("values2", []), [1.5, 2.5, 4.0])
 	var d := func(key: String) -> String: return Talents.description(Talents.id_for_key(key))
 	assert_contains(d.call("frost_cold_draw"), "2 / 4 / 6 Energy")
-	assert_contains(d.call("frost_black_ice"), "50 / 100% chance")
-	assert_contains(d.call("frost_clean_shatter"), "refunds 10 / 20 Energy")
-	assert_contains(d.call("frost_clean_shatter"), "2 / 4 sec")
-	assert_contains(d.call("frost_cold_harvest"), "5 / 10 Energy")
-	assert_contains(d.call("frost_thin_ice"), "0.5 / 1 sec faster")
-	assert_contains(d.call("frost_marked_prey"), "15 / 30% more damage")
+	assert_contains(d.call("frost_black_ice"), "33 / 67 / 100% chance")
+	assert_contains(d.call("frost_clean_shatter"), "refunds 7 / 13 / 20 Energy")
+	assert_contains(d.call("frost_clean_shatter"), "1.5 / 2.5 / 4 sec")
+	assert_contains(d.call("frost_cold_harvest"), "3 / 7 / 10 Energy")
+	assert_contains(d.call("frost_thin_ice"), "0.3 / 0.7 / 1 sec faster")
+	assert_contains(d.call("frost_marked_prey"), "10 / 20 / 30% more damage")
 	assert_contains(d.call("frost_marked_prey"), Abilities.ability_name("iceshards"))
 
 func test_talent_maths() -> void:
@@ -236,8 +236,8 @@ func test_talent_maths() -> void:
 	var pd = PlayerDataScript.new()
 	pd.level = 50
 	pd.learned_abilities.clear()
-	pd.talents = {Talents.id_for_key("frost_cold_draw"): 3, Talents.id_for_key("frost_thin_ice"): 2,
-		Talents.id_for_key("frost_marked_prey"): 2}
+	pd.talents = {Talents.id_for_key("frost_cold_draw"): 3, Talents.id_for_key("frost_thin_ice"): 3,
+		Talents.id_for_key("frost_marked_prey"): 3}
 	assert_eq(pd.talent_value("frost_cold_draw"), 6.0)
 	assert_eq(pd.talent_value("frost_thin_ice"), 0.0, "Glacial Draw is not learned")
 	assert_eq(pd.talent_value("frost_marked_prey"), 0.0, "Coldmark is not learned")

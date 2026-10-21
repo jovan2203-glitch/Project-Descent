@@ -31,7 +31,7 @@ Values in Frost Bolts (FB) are conversation shorthand; real numbers live in bala
 - Lightning melee kit exists (tests: test_lightning_melee). Not recorded in detail here; check the code.
 
 ## Talents
-- Tank: Counter-Charge (3): Return Stroke +10/20/30%, capstone arcs to 2 enemies for 0.3 FB. Closed Circuit (2): parries during Humming Blade give 3/6 more energy. Quick Wrists (2): each parry takes 0.5/1 s off Crossguard. Long Reach (3, generic): +1/2/3% Parry with a two-handed weapon.
+- Tank: Counter-Charge (3): Return Stroke +10/20/30%, capstone arcs to 2 enemies for 0.3 FB. Closed Circuit (3): parries during Humming Blade give 2/4/6 more energy. Quick Wrists (3): each parry takes 0.3/0.7/1 s off Crossguard. Long Reach (3, generic): +1/2/3% Parry with a two-handed weapon.
 
 ## Runes
 - Epic Static/Overload: Lightning builds Static, up to 15 stacks at 2.5% damage each; reaching the cap Overloads. Not casting Lightning for 3 s makes you immune to overloading for the next 10 s (Lightning 10 s, something else 3 s, Lightning again, keeping stacks).
