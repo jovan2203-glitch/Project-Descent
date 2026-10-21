@@ -80,5 +80,6 @@ The code and balance.gd are the source of truth for numbers. Design docs record 
 
 ## Balance targets
 - Level 50, no gear: ~500 damage per ability; a big buffed crit ~1000; max-level geared DPS ~2000 DPS.
-- Tanks at optimal play: 30-40% of a top DPS (~600-800 geared). The tank rule (`Balance.TANK_DAMAGE_PCT`, 35%, with matching extra threat) does most of it; tune single tanks on top.
+- Tanks at optimal play: 30-40% of a top DPS (~600-800 geared) and 1.3-1.7x its threat (~2600-3400 TPS). The tank rule (`Balance.TANK_DAMAGE_PCT` 35%, `TANK_THREAT_MULT` x1.4) does most of it; tune single tanks on top.
+- Losing aggro is a mechanic: a big burst, a crit spike or an early opener from a DPS should be able to pull, and the tank has to work (or taunt) to win it back. Never give tanks so much threat that nobody can pull.
 - A 5-DPS group should only work at absolute top-end play.

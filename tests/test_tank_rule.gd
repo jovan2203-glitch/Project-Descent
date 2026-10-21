@@ -2,9 +2,9 @@
 extends McpTestSuite
 
 # The tank rule: while your bars make you a tank you deal Balance.TANK_DAMAGE_PCT
-# of your damage for TANK_THREAT_MULT the threat (CombatSystem.deal asks the
+# of your damage for TANK_THREAT_MULT more threat (CombatSystem.deal asks the
 # attacker: Player / RemotePlayer.outgoing_damage_mult / outgoing_threat_mult).
-# Target (CLAUDE.md): a tank at optimal play does 30-40% of a top DPS.
+# Targets (CLAUDE.md): a tank at optimal play does 30-40% of a top DPS, and 1.3-1.7x its threat.
 
 const Abilities = preload("res://scripts/abilities.gd")
 const Balance = preload("res://scripts/balance.gd")
@@ -14,12 +14,12 @@ const SpecsInfo = preload("res://tools/balance_sim_specs.gd")
 func suite_name() -> String:
 	return "tank_rule"
 
-func test_tanks_deal_less_for_the_same_threat() -> void:
+func test_tanks_deal_less_for_more_threat() -> void:
 	assert_eq(Abilities.role_damage_mult("tank"), Balance.TANK_DAMAGE_PCT / 100.0)
 	assert_eq(Abilities.role_damage_mult("dps"), 1.0)
 	assert_eq(Abilities.role_damage_mult("healer"), 1.0)
-	assert_true(is_equal_approx(Abilities.role_damage_mult("tank") * Balance.TANK_THREAT_MULT, 1.0),
-		"a tank's threat per hit stays what it was")
+	assert_eq(Abilities.role_threat_mult("tank"), Balance.TANK_THREAT_MULT)
+	assert_eq(Abilities.role_threat_mult("dps"), 1.0)
 
 func test_the_role_comes_from_the_bars() -> void:
 	var glacier: Array = []
@@ -49,6 +49,12 @@ func test_every_tank_lands_in_its_target() -> void:
 			if SpecsInfo.ROLES.get(spec[0], "dps") != "tank":
 				continue
 			tanks += 1
-			var dps := float(Sim.simulate(spec[1], "tank", "geared", spec[0], Sim.utility_of(book))["dps"])
+			var r: Dictionary = Sim.simulate(spec[1], "tank", "geared", spec[0], Sim.utility_of(book))
+			var dps := float(r["dps"])
 			assert_true(dps >= lo and dps <= hi, "%s: %d geared DPS, target %d-%d" % [spec[0], int(dps), int(lo), int(hi)])
+			# Threat: ahead of a top DPS's steady damage, but not so far that a spike can't pull.
+			var tlo := Sim.TARGET_DPS_GEARED * float(Sim.TARGET_TANK_THREAT[0])
+			var thi := Sim.TARGET_DPS_GEARED * float(Sim.TARGET_TANK_THREAT[1])
+			var tps := float(r["tps"])
+			assert_true(tps >= tlo and tps <= thi, "%s: %d TPS, target %d-%d" % [spec[0], int(tps), int(tlo), int(thi)])
 	assert_true(tanks >= 7, "every book's tank is checked")

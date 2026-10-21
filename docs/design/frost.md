@@ -34,7 +34,7 @@ Code: scripts/player/frost_healer.gd (FrostHealerKit). Numbers: balance.gd (RIME
 The absorb tank (Fire blocks, Lightning parries, Arcane dodges). Code: scripts/player/frost_glacier.gd.
 - Ice Layers: one absorb shield on you in layers, up to 5 (7 with the Rune of the Ice Shelf), each 4% of max health (Rime Ward, Deep Strata bigger), 20 s, refreshed by gaining one. A hit that breaks a Layer gives 8 Fury and Chills the attacker. Hardened Frost's armor and Ice Floe count for them. Tension: spending Layers buys threat and damage, keeping them buys defence (and Rimequake damage).
 - Rime Slash - builder, cone, 1.0 weapon, 3x threat, +20 Fury; 1 Layer, 2 if it hits 3+. No longer gives a Rime Shell.
-- Shattering Slam - shield hit, 1.9 weapon (was 1.5; tank rule pass), 6 s, 3x threat, +20 Fury; shatters all Layers into the target (0.2 FB each). The old Rime Shell / Freeze shatter on the target stays.
+- Shattering Slam - shield hit, 1.9 weapon (was 1.5; tank rule pass), 6 s, 5x threat (was 3x), +20 Fury; shatters all Layers into the target (0.2 FB each). The old Rime Shell / Freeze shatter on the target stays.
 - Cold Shoulder - taunt, off GCD, 8 s, 25 m: 3 s forced attack, Chills, +1 Layer.
 - Rimequake - 25 Fury, 8 s, 0.65 FB within 6 m (was 0.5), 4x threat, Chills; +10% per Layer held.
 - Hailcoat - 25 s, fills the Layers.

@@ -275,7 +275,7 @@ func outgoing_damage_mult() -> float:
 	return preload("res://scripts/abilities.gd").role_damage_mult(role)
 
 func outgoing_threat_mult() -> float:
-	return preload("res://scripts/balance.gd").TANK_THREAT_MULT if role == "tank" else 1.0
+	return preload("res://scripts/abilities.gd").role_threat_mult(role)
 
 ## Projectiles / Blizzards spawned for this puppet are visuals only: the real
 ## damage is dealt on its owner's machine and reported to the host from there.

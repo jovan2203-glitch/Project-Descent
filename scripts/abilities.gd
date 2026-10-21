@@ -1289,13 +1289,24 @@ static func coef_damage(coef: float, tags: PackedStringArray, heal := false) -> 
 static func role_damage_mult(role: String) -> float:
 	return Balance.TANK_DAMAGE_PCT / 100.0 if role == "tank" else 1.0
 
-## role_damage_mult for your own bars (tooltips).
-static func damage_mult() -> float:
+## A player in `role`'s threat multiplier on top of each hit's own (a tank's TANK_THREAT_MULT).
+static func role_threat_mult(role: String) -> float:
+	return Balance.TANK_THREAT_MULT if role == "tank" else 1.0
+
+## Your role from your own bars (tooltips; "dps" with no character).
+static func my_bar_role() -> String:
 	var tree := _tree()
 	var pd: Node = tree.root.get_node_or_null("PlayerData") if tree and tree.root else null
 	if pd == null or pd.get("action_bar") == null:
-		return 1.0
-	return role_damage_mult(role_of_bar(pd.action_bar))
+		return "dps"
+	return role_of_bar(pd.action_bar)
+
+## role_damage_mult / role_threat_mult for your own bars (tooltips).
+static func damage_mult() -> float:
+	return role_damage_mult(my_bar_role())
+
+static func threat_mult() -> float:
+	return role_threat_mult(my_bar_role())
 
 ## Burst coefficient when the ability's effect runs out (Hoarfrost).
 static func _expire_coef(id: String) -> float:
@@ -1492,7 +1503,7 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		"width": TextFill.num(radius * 2.0),
 		"range": TextFill.num(float(fr.cast_range)) if fr else "?",
 		"cast": TextFill.num(float(fr.cast_time)) if fr else "?",
-		"threat": TextFill.num(float(fr.get("threat_multiplier"))) if fr and fr.get("threat_multiplier") != null else "1",
+		"threat": TextFill.num(float(fr.get("threat_multiplier")) * threat_mult()) if fr and fr.get("threat_multiplier") != null else TextFill.num(threat_mult()),
 		"lockout": TextFill.num(float(Balance.INTERRUPT_LOCKOUT.get(id, 0.0))),
 		# Its on-hit effect.
 		"fx_time": TextFill.num(float(fx_res.duration) + effect_time_bonus(fx_res, talent_of)) if fx_res else "?",

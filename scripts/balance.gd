@@ -108,10 +108,12 @@ const MANA_REGEN := 0.5        # points per second (= 5% of base mana)
 const ENERGY_REGEN := 10.0     # Energy per second
 const FURY_DECAY := 5.0        # Fury per second lost
 ## Tanks: while your bars make you a tank (Abilities.role_of_bar), all your damage is
-## TANK_DAMAGE_PCT of what it would be and makes TANK_THREAT_MULT times the threat, so
-## your threat stays the same. Target: a tank at optimal play does 30-40% of a top DPS.
+## TANK_DAMAGE_PCT of what it would be and makes TANK_THREAT_MULT times the threat.
+## Targets: a tank at optimal play does 30-40% of a top DPS, and makes about 1.3-1.7x
+## that DPS's threat: steady damage stays under it, but a big burst, a crit spike or
+## an early opener can take aggro, and the tank has to taunt or work to win it back.
 const TANK_DAMAGE_PCT := 35.0
-const TANK_THREAT_MULT := 100.0 / TANK_DAMAGE_PCT
+const TANK_THREAT_MULT := 1.4
 const AUTO_ATTACK_FURY := 10.0 # Fury per auto-attack (with a fury spender on the bar)
 ## Auto-attacks and auto-shots deal this share of the weapon's damage (weapon
 ## abilities still use all of it).
@@ -1300,7 +1302,7 @@ const ABILITIES := {
 	"shatteringwave": {"damage": 1.0, "cooldown": 8.0, "cost": 2, "radius": 20.0},
 	"flashfreeze": {"cooldown": 12.0, "cost": 2, "cast_time": 1.2, "radius": 12.0},
 	"hoarfrost": {"cost": 3, "range": 30.0},
-	"shatteringslam": {"weapon_mult": 1.9, "cooldown": 6.0, "generates": 20, "threat": 3.0},   # + SHATTER_SLAM_PER_LAYER per Ice Layer
+	"shatteringslam": {"weapon_mult": 1.9, "cooldown": 6.0, "generates": 20, "threat": 5.0},   # + SHATTER_SLAM_PER_LAYER per Ice Layer
 	"rimeslash": {"weapon_mult": 1.0, "cooldown": 5.0, "generates": 20, "radius": 4.0, "threat": 3.0},
 	"iceshards": {"damage": 0.2, "range": 30.0},
 	"coldspike": {"damage": 3.0, "cooldown": 3.0, "cost": 3, "cast_time": 3.0, "range": 30.0},
@@ -1348,9 +1350,9 @@ const ABILITIES := {
 	"crucible": {"cost": 3, "cast_time": 1.5, "radius": 5.0, "range": 30.0},          # moving it is free and instant
 	"cinderstep": {"damage": 0.15, "cooldown": 15.0, "cost": 2},                       # damage = per tick of the line
 	"heatsink": {"damage": 1.0, "cooldown": 60.0, "cost": 0, "radius": 6.0},           # damage = the burst with nothing stored
-	"brand": {"damage": 1.0, "weapon_mult": 1.0, "cooldown": 6.0, "generates": 20, "threat": 3.0},
+	"brand": {"damage": 1.0, "weapon_mult": 1.0, "cooldown": 6.0, "generates": 20, "threat": 5.0},
 	"cinderguard": {"damage": 0.3, "cooldown": 12.0, "cost": 20, "threat": 3.0},        # damage = the burn on an attacker you block
-	"anvil": {"damage": 0.65, "weapon_mult": 0.5, "cooldown": 8.0, "generates": 10, "radius": 4.0, "threat": 4.0},
+	"anvil": {"damage": 0.65, "weapon_mult": 0.5, "cooldown": 8.0, "generates": 10, "radius": 4.0, "threat": 6.0},
 	"stoke": {"damage": 1.0, "cooldown": 20.0, "cost": 2, "range": 30.0},              # damage = on top of the Burning it eats
 	"immolate": {"damage": 0.0, "cost": 2, "cast_time": 1.5, "range": 30.0},          # its damage is the Blaze effect below
 	"walloffire": {"damage": 0.25, "cooldown": 20.0, "cost": 4, "cast_time": 1.5, "radius": 4.0, "range": 30.0},   # damage = per tick, radius = half its length
@@ -1485,10 +1487,10 @@ const ABILITIES := {
 	"lastverse": {"cooldown": 120.0, "range": 30.0},
 	"singmercy": {}, "singchorus": {}, "singvigil": {},
 	# Holy tank: the Censer (Mana in points; INCENSE_* and the rest above)
-	"censerswing": {"damage": 0.5, "cost": 0.4, "threat": 4.0},
+	"censerswing": {"damage": 0.5, "cost": 0.4, "threat": 3.0},
 	"hallowedarc": {"damage": 0.5, "cooldown": 8.0, "cost": 1, "radius": 8.0, "threat": 4.0},
 	"beckon": {"damage": 0.4, "cooldown": 10.0, "cost": 1, "range": 25.0, "threat": 6.0},
-	"pourout": {"cooldown": 12.0, "cost": 2, "radius": 8.0, "threat": 6.0},                              # damage = POUR_OUT_PER_STACK per stack
+	"pourout": {"cooldown": 12.0, "cost": 2, "radius": 8.0, "threat": 4.0},                              # damage = POUR_OUT_PER_STACK per stack
 	"absolve": {"cooldown": 10.0, "cost": 1.5},                                                           # heal = ABSOLVE_PER_STACK per stack
 	"aureole": {"cooldown": 20.0},
 	"gatherthelight": {"cooldown": 30.0},

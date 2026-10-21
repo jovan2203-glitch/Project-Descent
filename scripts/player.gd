@@ -1189,7 +1189,7 @@ func outgoing_damage_mult() -> float:
 	return Abilities.role_damage_mult(_my_role())
 
 func outgoing_threat_mult() -> float:
-	return Balance.TANK_THREAT_MULT if _my_role() == "tank" else 1.0
+	return Abilities.role_threat_mult(_my_role())
 
 ## Real damage of a 1.0 coefficient for me: my level's standard hit (CombatSystem).
 func damage_unit() -> float:
