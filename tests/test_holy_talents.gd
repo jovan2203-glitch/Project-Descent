@@ -116,7 +116,7 @@ func test_fourth_facet_rune() -> void:
 # --- The tree is full ------------------------------------------------------------------------
 
 func test_the_tree_is_full() -> void:
-	assert_eq(Talents.in_tree("holy").size(), Talents.ROWS * Talents.MAX_PER_ROW, "every slot of a full tree")
+	assert_eq(Talents.in_tree("holy").size(), Talents.ROWS * 5, "every slot of a full tree")
 	var req := {"holy_full_quiver": "prismarrow", "holy_wide_break": "prismbreaker",
 		"holy_bright_motes": "censerswing", "holy_steady_ray": "mendingray"}
 	for key in req:

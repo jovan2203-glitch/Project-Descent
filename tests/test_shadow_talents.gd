@@ -119,7 +119,7 @@ func test_the_books_talents_and_empty_slots() -> void:
 	assert_eq(Talents.layout("shadow"), [[0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6],
 		[0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5]])
 	for row in Talents.layout("shadow"):
-		assert_true(row.size() >= Talents.MIN_PER_ROW and row.size() <= Talents.MAX_PER_ROW, "%s: two to five in a row" % [row])
+		assert_true(row.size() >= Talents.MIN_PER_ROW and row.size() <= Talents.MAX_PER_ROW, "%s: two to seven in a row" % [row])
 		for col in row:
 			assert_true(row.has(Talents.COLUMNS - 1 - int(col)), "%s is mirrored around the middle" % [row])
 	var designed := 0

@@ -92,6 +92,7 @@ func _on_hit_taken(info: RefCounted) -> void:
 	player.hymns._vigil_taken(info)     # Watchful: a big hit while I stand in a healer's Vigil
 	player.shepherd._owl_taken(info)       # a Nature healer's Owl watching over me dives
 	player.colossus._colossus_hit_taken(info)   # Nature tank: hits on my Giant's Hands give Sap
+	player.glacier._glacier_hit_taken(info)   # Frost tank: hits that break my Ice Layers
 	# Heat Sink: what it spared me is stored for the burst.
 	if _heat_on and player.status.has(HEAT_SINK_ID) and not info.blocked and int(info.amount) > 0:
 		_heat_stored += heat_sink_stored(float(info.amount), float(info.bonus_pct), Balance.HEAT_SINK_PCT)

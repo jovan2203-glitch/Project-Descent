@@ -165,7 +165,48 @@ const SNOW_WARD_TIME := 10.0             # ... seconds the shields last
 const WINTER_HIDE_TIME := 8.0            # Winter Hide: seconds
 const WINTER_HIDE_PCT := 30.0            # ... % less damage taken
 const RIME_EDGE_TIME := 12.0             # Rime Edge: seconds your melee hits Chill and deal extra Frost damage
-const ICEBREAKER_FROZEN_MULT := 3.5      # Icebreaker: weapon damage x this on a target YOU have Frozen (it ends the Freeze)
+const ICEBREAKER_FROZEN_MULT := 2.5      # Icebreaker: weapon damage x this on a target YOU have Frozen (it ends the Freeze)
+
+## Frost tank: Glacier Wall (one-handed melee weapon and a shield, Fury). Ice Layers
+## are one absorb shield on you, cut into layers.
+const ICE_LAYERS_MAX := 5                # Ice Layers you can hold
+const ICE_LAYER_PCT := 4.0               # ... each absorbs this % of your maximum health
+const ICE_LAYERS_TIME := 20.0            # ... seconds they last (gaining one starts the time over)
+const ICE_LAYER_FURY := 8.0              # ... Fury each Layer gives you when a hit breaks it (it also Chills the attacker)
+const RIME_SLASH_LAYERS := 1             # Rime Slash: Layers it gives ...
+const RIME_SLASH_LAYERS_MANY := 2        # ... or this many when it hits ...
+const RIME_SLASH_MANY_HITS := 3          # ... at least this many enemies
+const SHATTER_SLAM_PER_LAYER := 0.2      # Shattering Slam: Frost damage (coefficient) for each Layer it shatters into the target
+const RIMEQUAKE_PCT_PER_LAYER := 10.0    # Rimequake: % more damage for each Ice Layer you have
+const COLD_SHOULDER_TAUNT := 3.0         # Cold Shoulder: seconds the target must attack you
+const COLD_SHOULDER_LAYERS := 1          # ... Ice Layers it gives you
+const HARD_RIME_TIME := 6.0              # Hard Rime: seconds it lasts ...
+const HARD_RIME_REFORM := 2.0            # ... a Layer that breaks forms again this many seconds later
+const GLACIAL_BULWARK_TIME := 10.0       # Glacial Bulwark: seconds it lasts
+const GLACIAL_BULWARK_LAYERS := 3        # ... Ice Layers it gives you at once
+const GLACIAL_BULWARK_SHATTER := 0.3     # ... each Layer that breaks shatters for this much Frost damage (coefficient) ...
+const GLACIAL_BULWARK_RADIUS := 5.0      # ... to enemies within this many metres
+const GLACIAL_BULWARK_THREAT := 4.0      # ... with this much threat
+const DEEP_STRATA_COOLDOWN := 20.0       # Deep Strata capstone: your last Layer breaking gives one back, once every this many seconds
+
+## Frost DPS: Frostbitten Steel (two-handed melee weapon, Fury). Glaze is a buff on you.
+const GLAZE_MAX := 5                     # Glaze you can hold
+const GLAZE_TIME := 12.0                 # ... seconds it lasts (gaining one starts the time over)
+const WINTERS_BITE_GLAZE := 1            # Winter's Bite: Glaze on a target you have Chilled or Frozen
+const HOARCLEAVE_RADIUS := 3.0           # Hoarcleave: metres around the target it also hits
+const HOARCLEAVE_GLAZE := 1              # ... Glaze for each enemy hit that you had already Chilled or Frozen ...
+const HOARCLEAVE_MAX_GLAZE := 2          # ... up to this many in all
+const RIME_EDGE_GLAZE_CHANCE := 25.0     # Rime Edge: % chance its extra hit on a target you have Chilled gives ...
+const RIME_EDGE_GLAZE := 1               # ... this much Glaze
+const ICEBREAKER_PCT_PER_GLAZE := 5.0    # Icebreaker: % more damage for each Glaze it spends
+const BITTER_EDGE_GLAZE := 1             # Bitter Edge: Glaze it gives
+const CALVING_RADIUS := 5.0              # Calving: metres around the target it also hits
+const CALVING_PCT_PER_GLAZE := 15.0      # ... % more damage for each Glaze it spends
+const BLACK_FROST_TIME := 12.0           # Black Frost: seconds every Winter's Bite Freezes
+const ICE_FALL_MAX_OTHERS := 4           # Ice Fall talent: other enemies hit that count, up to this many
+const HOAR_BLADE_DAMAGE := 0.25          # Rune of the Hoar Blade: Frost damage (coefficient) on each auto-attack while you hold all your Glaze
+const ICE_SHELF_LAYERS := 7              # Rune of the Ice Shelf: Ice Layers you can hold
+const LONE_FLOE_PCT := 40.0              # Rune of the Lone Floe: Calving hits only its target, for this % more
 
 ## Frost, the bow.
 const SHATTER_SHOT_FROZEN_PCT := 50.0    # Shatter Shot: % more damage to a target YOU have Frozen (it ends the Freeze; the burst is EXTRA_HITS)
@@ -822,9 +863,9 @@ const RUNOFF_PCT := 50.0                 # a Rime Shell of yours that runs out o
 const RUNOFF_TIME := 4.0                 # ... over this many seconds (one tick a second)
 const MELTWATER_THAWING_PCT := 30.0      # Meltwater heals this % more on an ally with your Thawing
 const BREAK_ICE_PCT := 80.0              # Break the Ice: this % of the shell's remaining shield heals allies near them
-const GLAZE_SHARE := 0.2                 # Glaze: a shield this share of a heal ...
-const GLAZE_EVERY := 3.0                 # ... refilled every this many seconds ...
-const GLAZE_TIME := 12.0                 # ... for this long
+const RIME_VEIL_SHARE := 0.2             # Rime Veil: a shield this share of a heal ...
+const RIME_VEIL_EVERY := 3.0                 # ... refilled every this many seconds ...
+const RIME_VEIL_TIME := 12.0             # ... for this long
 const LATTICE_LINKS := 3                 # Frost Lattice: your target and the nearest allies with your Rime Shell, this many in all ...
 const LATTICE_TIME := 20.0               # ... for this long: a hit on one linked shell is taken from all of them evenly
 const RIMEFALL_SHARE := 0.3              # Rimefall: a shield this share of a heal on every ally near you ...
@@ -843,7 +884,7 @@ const SHARD_SPRAY_TIME := 3.0            # Shard Spray (talent): the little shie
 const REFERENCE_HEAL := 2.2
 
 ## Heal / absorb coefficients (1.0 = a standard hit's worth of health).
-const HEALS := {"rimeshell": 1.1, "rimeslash": 1.1,
+const HEALS := {"rimeshell": 1.1,
 	"cinderwing": 1.1,   # each of the phoenix's heals (half a Heal spell)
 	"intervalward": 1.5, # Interval Ward's shield
 	# Holy healer (the Hymns), in old Heals (REFERENCE_HEAL 2.2): Psalm 1, Outpour 2.2, Lift 0.5,
@@ -1247,13 +1288,13 @@ const ABILITIES := {
 	"blizzard": {"damage": 0.3, "cost": 4, "cast_time": 2.2, "radius": 2.5},
 	"frostnova": {"damage": 0.8, "cooldown": 10.0, "cost": 3, "radius": 3.5},
 	"icebarrier": {"cooldown": 20.0, "cost": 3},
-	"froststrike": {"weapon_mult": 1.5, "cooldown": 6.0, "cost": 30},
+	"froststrike": {"weapon_mult": 1.8, "cooldown": 6.0, "generates": 20},
 	"frostarrow": {"weapon_mult": 1.0, "cooldown": 5.0, "cost": 20},
 	"rimeshell": {"damage": 1.0, "cost": 2, "cast_time": 2.2, "radius": 5.0, "range": 40.0},
 	"shatteringwave": {"damage": 1.0, "cooldown": 8.0, "cost": 2, "radius": 20.0},
 	"flashfreeze": {"cooldown": 12.0, "cost": 2, "cast_time": 1.2, "radius": 12.0},
 	"hoarfrost": {"cost": 3, "range": 30.0},
-	"shatteringslam": {"weapon_mult": 1.5, "cooldown": 5.0, "generates": 20},
+	"shatteringslam": {"weapon_mult": 1.5, "cooldown": 6.0, "generates": 20, "threat": 3.0},   # + SHATTER_SLAM_PER_LAYER per Ice Layer
 	"rimeslash": {"weapon_mult": 1.0, "cooldown": 5.0, "generates": 20, "radius": 4.0, "threat": 3.0},
 	"iceshards": {"damage": 0.2, "range": 30.0},
 	"coldspike": {"damage": 3.0, "cooldown": 3.0, "cost": 3, "cast_time": 3.0, "range": 30.0},
@@ -1270,14 +1311,25 @@ const ABILITIES := {
 	"rimefletch": {"cooldown": 30.0, "cost": 20},                                       # RIMEFLETCH_SHOTS / _TIME / _PCT
 	"coldmark": {"cooldown": 20.0, "cost": 0},                                          # lasts as long as its effect (EFFECTS)
 	"icyretreat": {"cooldown": 15.0, "cost": 15, "radius": 4.0},                        # radius = the ice it leaves; ICY_RETREAT_DISTANCE / _TIME
-	# Frost healer: Cold Comfort (RIME_SHARDS_* and the rest below; heals in HEALS)
+	# Frost healer: Cold Comfort (RIME_SHARDS_*, RIME_VEIL_* and the rest below; heals in HEALS)
 	"meltwater": {"cost": 2, "cast_time": 1.5, "range": 40.0},
-	"glaze": {"cost": 2, "range": 40.0},                                                 # GLAZE_SHARE every GLAZE_EVERY sec for GLAZE_TIME
+	"rimeveil": {"cost": 2, "range": 40.0},                                              # RIME_VEIL_SHARE every RIME_VEIL_EVERY sec for RIME_VEIL_TIME
 	"breaktheice": {"cooldown": 10.0, "cost": 1, "radius": 8.0, "range": 40.0},          # radius = who its heal reaches (+ Cold Spread)
 	"frostlattice": {"cooldown": 30.0, "cost": 3, "range": 40.0},                        # LATTICE_LINKS allies for LATTICE_TIME
 	"rimefall": {"cooldown": 15.0, "cost": 4, "cast_time": 2.5, "radius": 20.0},
 	"frosttide": {"cooldown": 120.0},                                                    # lasts FROST_TIDE_TIME
 	"stillwater": {"cooldown": 90.0, "cost": 2, "range": 40.0},
+	# Frost tank: Glacier Wall (Fury; ICE_LAYER_* and the rest above)
+	"coldshoulder": {"cooldown": 8.0, "range": 25.0, "threat": 3.0},
+	"rimequake": {"damage": 0.5, "cooldown": 8.0, "cost": 25, "radius": 6.0, "threat": 4.0},   # + RIMEQUAKE_PCT_PER_LAYER per Ice Layer
+	"hailcoat": {"cooldown": 25.0},
+	"hardrime": {"cooldown": 20.0, "cost": 30},
+	"glacialbulwark": {"cooldown": 90.0},
+	# Frost DPS: Frostbitten Steel (Fury; GLAZE_* and the rest above)
+	"hoarcleave": {"weapon_mult": 1.2, "cooldown": 6.0, "generates": 15},
+	"bitteredge": {"weapon_mult": 0.8, "cooldown": 6.0, "cost": 15},
+	"calving": {"weapon_mult": 1.0, "cooldown": 10.0, "cost": 30},
+	"blackfrost": {"cooldown": 120.0},
 	# Fire
 	"fireball": {"damage": 1.25, "cost": 1, "cast_time": 2.2, "range": 20.0},
 	"searingstrike": {"weapon_mult": 1.5, "cooldown": 6.0, "cost": 30},

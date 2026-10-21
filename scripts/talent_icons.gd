@@ -37,6 +37,8 @@ const ICONED := ["frost_deep_cracks", "frost_cold_spread", "frost_slow_runoff", 
 	"frost_slow_threat", "frost_slow_dr", "frost_glacial_heart", "frost_deep_freeze",
 	"frost_ice_floe", "frost_shatterpoint", "frost_instinct",
 	"frost_pinning_frost", "frost_third_bite", "frost_hard_freeze",
+	"frost_cold_sweep", "frost_ice_fall", "frost_long_dark", "frost_glinting_rime", "frost_biting_hold", "frost_long_glaze",
+	"frost_packed_ice", "frost_deep_tremor", "frost_turned_backs", "frost_cold_fury", "frost_regelation", "frost_old_ice", "frost_deep_strata",
 	"fire_smoldering_focus", "fire_tempered_flame", "fire_afterburn",
 	"fire_banked_coals", "fire_volley_targets", "fire_fuse_crit",
 	"fire_pressure_valve", "fire_cool_under_fire", "fire_thick_slag", "fire_hot_iron", "fire_flashover", "fire_clinker",
@@ -2078,6 +2080,65 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			c.draw_line(mid + Vector2(12, -17) * k, mid + Vector2(16, -11) * k, light, 2.0 * k, true)
 			c.draw_line(mid + Vector2(12, -17) * k, mid + Vector2(6, -14) * k, light, 2.0 * k, true)
 			_flake(c, mid + Vector2(-11, -6) * k, 5.0 * k, WHITE, 1.4 * k)
+		# --- Frost melee: Frostbitten Steel (Glaze) and Glacier Wall (Ice Layers) ---
+		"frost_cold_sweep":   # Cold Sweep: a wide arc turning a chilled shape into a block of ice
+			c.draw_arc(mid + Vector2(0, 8) * k, 15.0 * k, PI * 1.1, PI * 1.9, 14, WHITE, 2.4 * k, true)
+			c.draw_circle(mid + Vector2(-8, -2) * k, 4.5 * k, Color(light, 0.5))
+			c.draw_rect(Rect2(mid + Vector2(3, -7) * k, Vector2(10, 10) * k), Color(col, 0.8), true)
+			c.draw_rect(Rect2(mid + Vector2(3, -7) * k, Vector2(10, 10) * k), WHITE, false, 1.4 * k)
+		"frost_ice_fall":   # Ice Fall: one big slab falling with small chunks around it
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-7, -13), Vector2(7, -13), Vector2(9, 5), Vector2(-6, 8)]), Color(col, 0.85))
+			for p in [Vector2(-14, 10), Vector2(13, 9), Vector2(0, 15)]:
+				_shard(c, mid + (p as Vector2) * k, Vector2(0, 1), 7.0 * k, 2.2 * k, Color(light, 0.8), WHITE, k)
+		"frost_long_dark":   # Long Dark: a dark snowflake with a clock in its middle
+			c.draw_circle(mid, 14.0 * k, Color(0.05, 0.08, 0.16))
+			_flake(c, mid, 12.0 * k, col, 2.0 * k)
+			_clock(c, mid, 6.0 * k, WHITE, k)
+		"frost_glinting_rime":   # Glinting Rime: a blade edge with five glints on it
+			c.draw_line(mid + Vector2(-15, 12) * k, mid + Vector2(14, -12) * k, Color(0.92, 0.92, 0.96), 3.4 * k, true)
+			for i in 5:
+				_flake(c, mid + Vector2(-11 + i * 5.5, 9 - i * 5) * k + Vector2(3, 3) * k, 2.6 * k, WHITE, 1.4 * k)
+		"frost_biting_hold":   # Biting Hold: two fangs closing on a frozen block
+			c.draw_rect(Rect2(mid + Vector2(-7, -5) * k, Vector2(14, 12) * k), Color(col, 0.6), true)
+			_shard(c, mid + Vector2(-4, -3) * k, Vector2(0, 1), 12.0 * k, 3.2 * k, Color(0.9, 0.95, 1.0), WHITE, k)
+			_shard(c, mid + Vector2(4, 5) * k, Vector2(0, -1), 12.0 * k, 3.2 * k, Color(0.9, 0.95, 1.0), WHITE, k)
+		"frost_long_glaze":   # Long Glaze: a blade with rime on it and an hourglass
+			c.draw_line(mid + Vector2(-15, 12) * k, mid + Vector2(2, -6) * k, Color(0.92, 0.92, 0.96), 3.0 * k, true)
+			for i in 3:
+				c.draw_circle(mid + Vector2(-11 + i * 5, 7 - i * 5) * k, 2.0 * k, light)
+			_hourglass(c, mid + Vector2(9, -1) * k, k * 0.6, Color(col, 0.6), WHITE)
+		"frost_deep_tremor":   # Deep Tremor: rings in the ground, a stack of layers above
+			for i in 3:
+				c.draw_arc(mid + Vector2(0, 12) * k, (5.0 + i * 5.0) * k, PI, TAU, 12, Color(light, 0.9 - i * 0.25), 2.0 * k, true)
+			for i in 3:
+				c.draw_rect(Rect2(mid + Vector2(-6, -14 + i * 4) * k, Vector2(12, 3) * k), Color(col, 0.6 + i * 0.1), true)
+		"frost_packed_ice":   # Packed Ice: a shield with layers pressed into one block
+			_shield(c, mid, k, Color(col, 0.4), light)
+			for i in 3:
+				c.draw_line(mid + Vector2(-8, -6 + i * 5) * k, mid + Vector2(8, -6 + i * 5) * k, WHITE, 2.0 * k, true)
+		"frost_turned_backs":   # Turned Backs: three red glares turned toward a shield
+			_shield(c, mid + Vector2(8, 0) * k, k * 0.7, Color(col, 0.6), WHITE)
+			for p in [Vector2(-12, -10), Vector2(-14, 0), Vector2(-12, 10)]:
+				c.draw_circle(mid + (p as Vector2) * k, 2.4 * k, Color(1.0, 0.35, 0.25))
+				c.draw_line(mid + (p as Vector2) * k + Vector2(3, 0) * k, mid + Vector2(-1, 0) * k, Color(1.0, 0.35, 0.25, 0.5), 1.2 * k, true)
+		"frost_cold_fury":   # Cold Fury: a cracked layer with a drop of fury coming out
+			c.draw_rect(Rect2(mid + Vector2(-14, 2) * k, Vector2(28, 10) * k), Color(col, 0.6), true)
+			c.draw_polyline(_p(mid, k, [Vector2(-2, 2), Vector2(2, 6), Vector2(-1, 12)]), WHITE, 1.6 * k, true)
+			_drop(c, mid + Vector2(0, -6) * k, 0.55 * k, Color(0.85, 0.2, 0.15), WHITE, k)
+		"frost_regelation":   # Regelation: two halves of a layer drawn back together by arrows
+			c.draw_rect(Rect2(mid + Vector2(-14, -4) * k, Vector2(12, 10) * k), Color(col, 0.7), true)
+			c.draw_rect(Rect2(mid + Vector2(2, -4) * k, Vector2(12, 10) * k), Color(col, 0.7), true)
+			for s in [-1.0, 1.0]:
+				c.draw_line(mid + Vector2(s * 12, -10) * k, mid + Vector2(s * 3, -10) * k, WHITE, 1.8 * k, true)
+				c.draw_line(mid + Vector2(s * 3, -10) * k, mid + Vector2(s * 6, -13) * k, WHITE, 1.8 * k, true)
+			_drop(c, mid + Vector2(0, 12) * k, 0.4 * k, Color(0.85, 0.2, 0.15), WHITE, k)
+		"frost_old_ice":   # Old Ice: a tall glacier wall with an hourglass on it
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-13, 15), Vector2(-13, -10), Vector2(-4, -15), Vector2(6, -12), Vector2(13, -15), Vector2(13, 15)]), Color(col, 0.65))
+			_hourglass(c, mid + Vector2(0, 1) * k, k * 0.6, Color(light, 0.8), WHITE)
+		"frost_deep_strata":   # Deep Strata: five thick layers, the bottom one darkest
+			for i in 5:
+				c.draw_rect(Rect2(mid + Vector2(-14, -14 + i * 6) * k, Vector2(28, 5) * k), Color(col.darkened(0.12 * i), 0.85), true)
+				c.draw_line(mid + Vector2(-14, -14 + i * 6) * k, mid + Vector2(14, -14 + i * 6) * k, light, 1.0 * k, true)
 		"frost_third_bite":   # Third Bite: three fangs of ice, the third the biggest
 			_shard(c, mid + Vector2(-12, 6) * k, Vector2(0, 1), 12.0 * k, 3.0 * k, Color(col, 0.7), light, k)
 			_shard(c, mid + Vector2(-2, 9) * k, Vector2(0, 1), 16.0 * k, 3.5 * k, Color(col, 0.85), light, k)

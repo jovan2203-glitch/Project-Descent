@@ -4,9 +4,9 @@
 
 [resource]
 script = ExtResource("1_s")
-id = &"glaze"
-display_name = "Glaze"
-description = "Glazes an ally in thin ice that absorbs {h:GLAZE_SHARE} damage. Every {b:GLAZE_EVERY} sec for {b:GLAZE_TIME} sec the ice forms again, back to its full size. Does not give {ne:thawing}."
+id = &"rimeveil"
+display_name = "Rime Veil"
+description = "Veils an ally in thin ice that absorbs {h:RIME_VEIL_SHARE} damage. Every {b:RIME_VEIL_EVERY} sec for {b:RIME_VEIL_TIME} sec the ice forms again, back to its full size. Does not give {ne:thawing}."
 tags = PackedStringArray("Frost", "Spell", "Defensive")
 cast_type = 0
 cast_time = 0.0

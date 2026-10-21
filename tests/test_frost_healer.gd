@@ -2,7 +2,7 @@
 extends McpTestSuite
 
 # The Frost healer, Cold Comfort (scripts/player/frost_healer.gd): Rime Shell
-# plus Meltwater, Glaze, Break the Ice, Frost Lattice, Rimefall, Frost Tide,
+# plus Meltwater, Rime Veil, Break the Ice, Frost Lattice, Rimefall, Frost Tide,
 # Stillwater and the Spring Thaw rez. A Rime Shell of yours on an ally sends out
 # Rime Shards when it breaks and melts into Runoff when it runs out.
 
@@ -12,7 +12,7 @@ const SkillCards = preload("res://scripts/skill_cards.gd")
 const Talents = preload("res://scripts/talents.gd")
 const Kit = preload("res://scripts/player/frost_healer.gd")
 
-const KIT := ["rimeshell", "meltwater", "glaze", "breaktheice", "frostlattice", "rimefall", "frosttide", "stillwater", "springthaw"]
+const KIT := ["rimeshell", "meltwater", "rimeveil", "breaktheice", "frostlattice", "rimefall", "frosttide", "stillwater", "springthaw"]
 
 func suite_name() -> String:
 	return "frost_healer"
@@ -111,16 +111,16 @@ func test_frost_tide_lifts_thawing() -> void:
 	assert_true(src.contains("Frost Tide: Rime Shell ignores Thawing"))
 	assert_true(src.contains("or (spell == \"rimeshell\" and frost_tide_on())"), "instant on enemies too")
 
-func test_glaze_and_rimefall_refill_never_stack() -> void:
+func test_rime_veil_and_rimefall_refill_never_stack() -> void:
 	var holder := Node.new()   # (a status container asks its owner about itself)
 	var st: Node = Node.new()
 	st.set_script(load("res://scripts/core/status_container.gd"))
 	holder.add_child(st)
-	Kit.frost_shield_on(st, null, Kit.GLAZE_FX, 100, 5.0)
-	Kit.frost_shield_on(st, null, Kit.GLAZE_FX, 60, 5.0)
-	assert_eq(st.absorb_left(Kit.GLAZE_FX), 100, "a smaller refill keeps what is there")
-	Kit.frost_shield_on(st, null, Kit.GLAZE_FX, 150, 5.0)
-	assert_eq(st.absorb_left(Kit.GLAZE_FX), 150)
+	Kit.frost_shield_on(st, null, Kit.RIME_VEIL_FX, 100, 5.0)
+	Kit.frost_shield_on(st, null, Kit.RIME_VEIL_FX, 60, 5.0)
+	assert_eq(st.absorb_left(Kit.RIME_VEIL_FX), 100, "a smaller refill keeps what is there")
+	Kit.frost_shield_on(st, null, Kit.RIME_VEIL_FX, 150, 5.0)
+	assert_eq(st.absorb_left(Kit.RIME_VEIL_FX), 150)
 	holder.free()
 
 func test_every_message_has_a_handler() -> void:
@@ -151,12 +151,12 @@ func _status() -> Array:   # [holder, status]: a status container asks its owner
 func test_a_linked_shell_pays_only_its_share() -> void:
 	var hs := _status()
 	var st: Node = hs[1]
-	Kit.frost_shield_on(st, null, Kit.GLAZE_FX, 300, 10.0)   # (any shield works the same)
-	st.set_share(Kit.GLAZE_FX, 3, st._now() + 10.0)
+	Kit.frost_shield_on(st, null, Kit.RIME_VEIL_FX, 300, 10.0)   # (any shield works the same)
+	st.set_share(Kit.RIME_VEIL_FX, 3, st._now() + 10.0)
 	var billed := [0]
 	st.shield_shared.connect(func(_id, b, _src): billed[0] += b)
 	assert_eq(st.absorb_damage(300), 0, "the whole hit is soaked")
-	assert_eq(st.absorb_left(Kit.GLAZE_FX), 200, "it loses a third")
+	assert_eq(st.absorb_left(Kit.RIME_VEIL_FX), 200, "it loses a third")
 	assert_eq(billed[0], 200, "the other two thirds go to the other linked shells")
 	# A linked shell can soak up to n times its own shield.
 	assert_eq(st.absorb_damage(700), 100, "200 left x 3 = 600 soaked")
@@ -165,23 +165,23 @@ func test_a_linked_shell_pays_only_its_share() -> void:
 func test_the_others_are_drained_and_can_break() -> void:
 	var hs := _status()
 	var st: Node = hs[1]
-	Kit.frost_shield_on(st, null, Kit.GLAZE_FX, 100, 10.0)
-	st.drain_absorb(Kit.GLAZE_FX, 40)
-	assert_eq(st.absorb_left(Kit.GLAZE_FX), 60)
+	Kit.frost_shield_on(st, null, Kit.RIME_VEIL_FX, 100, 10.0)
+	st.drain_absorb(Kit.RIME_VEIL_FX, 40)
+	assert_eq(st.absorb_left(Kit.RIME_VEIL_FX), 60)
 	var broke := [false]
 	st.shield_broken.connect(func(_id): broke[0] = true)
-	st.drain_absorb(Kit.GLAZE_FX, 80)
-	assert_true(broke[0] and st.absorb_left(Kit.GLAZE_FX) == 0, "drained to nothing: it breaks")
+	st.drain_absorb(Kit.RIME_VEIL_FX, 80)
+	assert_true(broke[0] and st.absorb_left(Kit.RIME_VEIL_FX) == 0, "drained to nothing: it breaks")
 	hs[0].free()
 
 func test_sharing_ends_with_the_lattice() -> void:
 	var hs := _status()
 	var st: Node = hs[1]
-	Kit.frost_shield_on(st, null, Kit.GLAZE_FX, 300, 10.0)
-	st.set_share(Kit.GLAZE_FX, 3, st._now() - 1.0)
-	assert_eq(st.share_of(Kit.GLAZE_FX), 1, "past its time: not shared")
+	Kit.frost_shield_on(st, null, Kit.RIME_VEIL_FX, 300, 10.0)
+	st.set_share(Kit.RIME_VEIL_FX, 3, st._now() - 1.0)
+	assert_eq(st.share_of(Kit.RIME_VEIL_FX), 1, "past its time: not shared")
 	assert_eq(st.absorb_damage(90), 0)
-	assert_eq(st.absorb_left(Kit.GLAZE_FX), 210)
+	assert_eq(st.absorb_left(Kit.RIME_VEIL_FX), 210)
 	hs[0].free()
 
 func test_lattice_bill_is_split_evenly() -> void:
@@ -201,9 +201,9 @@ func test_the_shell_cracks_as_it_soaks() -> void:
 	assert_eq(RimeShellFx.cracks_for(0.3), 2, "two thirds gone")
 	var hs := _status()
 	var st: Node = hs[1]
-	Kit.frost_shield_on(st, null, Kit.GLAZE_FX, 300, 10.0)
+	Kit.frost_shield_on(st, null, Kit.RIME_VEIL_FX, 300, 10.0)
 	st.absorb_damage(150)
-	assert_eq(st.absorb_fraction(Kit.GLAZE_FX), 0.5)
+	assert_eq(st.absorb_fraction(Kit.RIME_VEIL_FX), 0.5)
 	hs[0].free()
 
 func test_the_cracked_shell_shows_on_everyone() -> void:

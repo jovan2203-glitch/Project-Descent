@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"ice_shelf"
+display_name = "Rune of the Ice Shelf"
+description = "You can hold up to {b:ICE_SHELF_LAYERS} Ice Layers, but the Layers that break no longer Chill the attacker."
+color = Color(0.75, 0.93, 1, 1)
+rarity = 2
+unlock_level = 20
+trigger = 6

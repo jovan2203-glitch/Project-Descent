@@ -4,27 +4,7 @@ class_name FrostMeleeKit
 # Moved out of scripts/player.gd as it was (player = the player node). Hooked up from
 # player.gd through its var "frost_melee".
 # --- Frost weapon abilities ----------------------------------------------------------
-
-## Shattering Slam: weapon hit. On a Rime Shelled or Frozen target the ice
-## shatters on it alone (no splash): bonus damage + the shatter's damage, 3x threat.
-const SHATTER_SLAM_THREAT := Balance.SHATTER_SLAM_THREAT
-
-func _shattering_slam(tgt: Node3D, w: Dictionary, res: Resource) -> void:
-	if tgt == null or not is_instance_valid(tgt) or not tgt.is_alive():
-		return
-	# Taken off first, so the hits below don't break the shell again.
-	var iced := player._strip_ice(tgt)   # own only: my whole shell, my freeze
-	var at := tgt.global_position
-	_hit_with_threat(tgt, player._weapon_hit(w, res), "shatteringslam", SHATTER_SLAM_THREAT if not iced.is_empty() else 1.0)
-	player._slash_effect(Abilities.color_of("shatteringslam"))
-	if iced.is_empty():
-		return
-	_hit_with_threat(tgt, float(Abilities.EXTRA_HITS["shatteringslam"]), "shatteringslam", SHATTER_SLAM_THREAT,
-		"frost", PackedStringArray(["Ability", "Frost", "Melee"]))
-	# The shatter itself, on the target alone: the same routine as every other
-	# shatter (under the slam's name, with the slam's threat).
-	for i in iced.size():
-		player.shatter_at(at, "shatteringslam", 1.0, tgt, SHATTER_SLAM_THREAT)
+# (Rime Slash and Shattering Slam are Glacier Wall's now: scripts/player/frost_glacier.gd.)
 
 ## A hit with its own threat multiplier (for bonus threat on top of the ability's data).
 func _hit_with_threat(enemy: Node, coef: float, id: String, threat_mult: float,
@@ -38,52 +18,6 @@ func _hit_with_threat(enemy: Node, coef: float, id: String, threat_mult: float,
 	info.threat_multiplier = threat_mult
 	player._combat().deal(info)
 
-## Rime Slash: weapon frost damage in a small cone (3x threat). Rime Shell goes
-## on you; if Thawing stops that, on one enemy it hit.
-func _rime_slash(w: Dictionary, res: Resource) -> void:
-	var reach := float(res.radius) + float(w.get("attack_range", 1.0)) * 0.5
-	var fwd := player._flat_forward()
-	var cos_limit := cos(deg_to_rad(RIME_SLASH_HALF_ANGLE))
-	var hit: Array = []
-	for e in player.get_tree().get_nodes_in_group("enemies"):
-		if not (e is Node3D) or not e.is_alive():
-			continue
-		var to: Vector3 = e.global_position - player.global_position
-		to.y = 0.0
-		var d := to.length()
-		if d - Combat.hitbox_radius(e) > reach:
-			continue
-		if d > 0.6 and fwd.dot(to / d) < cos_limit:
-			continue
-		if not player.can_see(e):
-			continue
-		hit.append(e)
-	var coef := player._weapon_hit(w, res)
-	for e in hit:
-		player.deal_damage(e, coef, "rimeslash")
-	for i in 2:
-		player._slash_effect(Abilities.color_of("rimeslash"))
-	player._cone_effect(reach, RIME_SLASH_HALF_ANGLE, Color(0.6, 0.9, 1.0))
-	var everlasting := _has_rune("everlasting_rime")
-	var absorb: int = int(round(player._combat().heal_amount(player, float(Abilities.HEALS["rimeslash"]), "rimeslash") \
-		* player.absorb_mult() * (Balance.EVERLASTING_RIME_MULT if everlasting else 1.0)))   # Rime Ward counts here too
-	if not player.status.has("thawing"):
-		player.receive_rime_shell(player, absorb, player._talent("frost_shield_armor"), not everlasting)
-		return
-	if everlasting:
-		return   # Everlasting Rime: shells never go on enemies
-	# Thawing: the shell goes on an enemy we hit (the target if it was hit).
-	var pick: Node = null
-	for e in hit:
-		if e.is_alive():
-			pick = e
-			if e == player.target:
-				break
-	if pick and player._net():
-		player._net().shell_enemy(pick, player, absorb)
-		player._ring_effect(1.0, Color(0.6, 0.9, 1.0), pick.global_position)
-
-const RIME_SLASH_HALF_ANGLE := 50.0
 
 # --- Frost talents & runes: slows / freezes I apply ------------------------------------
 # Scanned once per frame from the enemies' status effects whose source is me.

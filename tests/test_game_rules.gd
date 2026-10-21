@@ -89,7 +89,7 @@ func test_every_category_has_a_full_tree() -> void:
 	for cat in preload("res://scripts/categories.gd").ORDER:
 		for r in Talents.ROWS:
 			var n := Talents.in_row(cat, r).size()
-			assert_true(n >= Talents.MIN_PER_ROW and n <= Talents.MAX_PER_ROW, "%s row %d has 2-4 talents" % [cat, r + 1])
+			assert_true(n >= Talents.MIN_PER_ROW and n <= Talents.MAX_PER_ROW, "%s row %d has 2-7 talents" % [cat, r + 1])
 			var cols: Array = Talents.layout(cat)[r].duplicate()
 			var mirrored: Array = cols.map(func(c): return Talents.COLUMNS - 1 - int(c))
 			mirrored.sort()

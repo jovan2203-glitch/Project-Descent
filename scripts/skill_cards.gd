@@ -10,7 +10,7 @@ extends RefCounted
 const DIR := "res://data/skill_cards/"
 const MAX_EQUIPPED := 5
 const ALL := ["frostnova", "icebarrier", "blink",
-	"rimeshell", "meltwater", "glaze", "breaktheice", "frostlattice", "rimefall", "frosttide", "stillwater", "springthaw", "shatteringwave", "flashfreeze", "hoarfrost", "shatteringslam", "rimeslash", "iceshards",
+	"rimeshell", "meltwater", "rimeveil", "breaktheice", "frostlattice", "rimefall", "frosttide", "stillwater", "springthaw", "shatteringwave", "flashfreeze", "hoarfrost", "shatteringslam", "rimeslash", "iceshards",
 	"searingstrike", "flamingarrow", "flamenova", "ventflames", "coolhead", "furnacebreath", "slagskin", "stoke", "embervolley", "immolate", "walloffire",
 	"kilnblast", "slowfuse", "rekindle",
 	"brand", "anvil", "cinderstep", "cinderguard", "crucible", "heatsink", "quench", "flare",
@@ -36,6 +36,7 @@ const ALL := ["frostnova", "icebarrier", "blink",
 	"prismarrow", "glimmershot", "refractingshot", "sunlitarrow", "prismbreaker", "stepoflight", "spectrumvolley",
 	"froststrike", "frostarrow",
 	"coldspike", "sleetwave", "deepwinter", "rimelock", "snowward", "winterhide", "rimeedge", "icebreaker", "icepin",
+	"coldshoulder", "rimequake", "hailcoat", "hardrime", "glacialbulwark", "hoarcleave", "calving", "bitteredge", "blackfrost",
 	"shattershot", "glacialdraw", "rimefletch", "coldmark", "icyretreat",
 	"thornshot", "briartiger", "mossback", "thornwing", "chokingvipers", "greenwoodstag",
 	"dewfall", "fawn", "rootguard", "owl", "heartwoodelk", "wildherd", "returntobloom",

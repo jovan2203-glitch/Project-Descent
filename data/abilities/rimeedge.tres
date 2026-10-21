@@ -7,13 +7,14 @@
 script = ExtResource("1_s")
 id = &"rimeedge"
 display_name = "Rime Edge"
-description = "Coats your weapon in rime. For {edge_time} sec your melee hits Chill the target and deal an extra {hit} Frost damage."
+description = "Coats your weapon in rime. For {edge_time} sec your melee hits Chill the target and deal an extra {hit} Frost damage. Each extra hit on a target you had already Chilled has a {b:RIME_EDGE_GLAZE_CHANCE}% chance to give you {b:RIME_EDGE_GLAZE} Glaze."
 tags = PackedStringArray("Ability", "Frost", "Melee")
 cast_type = 0
 cast_time = 0.0
 cooldown = 20.0
 requires_target = false
 weapon_requirement = 1
+requires_two_hand = true
 resource_type = 0
 resource_cost = 0
 damage = 0.15

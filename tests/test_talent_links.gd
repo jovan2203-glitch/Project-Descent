@@ -37,14 +37,15 @@ const WANT := [
 	["nature_compost", "nature_bramble_burst"],
 ]
 
-## Where every talent that changed slot sits now: key -> id.
+## Where every talent that changed slot landed in LINKS_MOVED: key -> id (a later
+## move, Talents.FROST_MELEE_MOVED, can take it on from there).
 const MOVED_TO := {
 	"fire_long_burn": "fire_r5c3", "fire_volley_targets": "fire_r6c3",
 	"frost_chilled_dmg": "frost_r1c1", "frost_cold_draw": "frost_r1c5", "frost_absorb": "frost_r1c7",
 	"frost_shield_armor": "frost_r4c7", "frost_ice_floe": "frost_r8c7", "frost_hoarfrost_burst": "frost_r5c2",
 	"frost_clean_break": "frost_r7c2", "frost_shardstorm": "frost_r6c4", "frost_splinter": "frost_r7c4",
 	"frost_dot_duration": "frost_r8c1", "frost_slow_threat": "frost_r9c2", "frost_slow_dr": "frost_r9c6",
-	"frost_instinct": "frost_r7c6",
+	"frost_instinct": "frost_r7c6",   # (then one column left: Talents.FROST_MELEE_MOVED)
 	"lightning_quick_fuse": "lightning_r6c4", "lightning_tight_coil": "lightning_r5c4",
 	"lightning_rod": "lightning_r7c4", "lightning_snap_shot": "lightning_r9c4",
 	"lightning_second_stroke": "lightning_r6c7", "lightning_tempo": "lightning_r8c5",
@@ -161,7 +162,8 @@ func test_moved_talents_and_old_saves() -> void:
 	assert_eq(Talents.LINKS_MOVED.size(), MOVED_TO.size() + 1, "and Thick Pitch, since folded into Pitch Arrow")
 	var news: Array = Talents.LINKS_MOVED.values()
 	for key in MOVED_TO:
-		assert_eq(_id(str(key)), str(MOVED_TO[key]), "%s has its new slot" % key)
+		var later := str(Talents.FROST_MELEE_MOVED.get(MOVED_TO[key], MOVED_TO[key]))
+		assert_eq(_id(str(key)), later, "%s has its new slot" % key)
 		assert_true(news.has(MOVED_TO[key]), "%s is a destination of LINKS_MOVED" % MOVED_TO[key])
 	for old in Talents.LINKS_MOVED:
 		assert_true(Talents.exists(str(Talents.LINKS_MOVED[old])), "%s is a slot of today's book" % Talents.LINKS_MOVED[old])

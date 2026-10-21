@@ -79,7 +79,7 @@ func test_they_are_in_the_tree() -> void:
 
 ## A row may hold five talents now; the Arcane book's fifth slots went to these.
 func test_five_to_a_row() -> void:
-	assert_eq(Talents.MAX_PER_ROW, 5)
+	assert_eq(Talents.MAX_PER_ROW, 7)
 	var layout: Array = Talents.layout("arcane")
 	assert_eq(layout[0], [0, 2, 3, 4, 6])
 	assert_eq(layout[1], [0, 1, 3, 5, 6])

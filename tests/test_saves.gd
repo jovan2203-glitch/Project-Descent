@@ -47,7 +47,7 @@ func test_v10_refunds_the_old_empty_martial_slots() -> void:
 	assert_eq(int(ranks.get("nature_r1c3", 0)), 2, "other books keep their points")
 
 func test_v11_refunds_the_folded_talents() -> void:
-	assert_eq(SaveSystemScript.VERSION, 11)
+	assert_true(SaveSystemScript.VERSION >= 11)
 	var cfg := ConfigFile.new()
 	cfg.set_value("talents", "ranks", {"fire_r9c6": 2, "holy_r6c7": 1, "fire_r1c1": 3})
 	_ss()._migrate_10_to_11(cfg)
@@ -57,6 +57,9 @@ func test_v11_refunds_the_folded_talents() -> void:
 	assert_eq(int(ranks.get("fire_r1c1", 0)), 3, "other talents keep their points")
 	assert_eq(Talents.FOLDED_INTO_ABILITIES.size(), 13)
 	for id in Talents.FOLDED_INTO_ABILITIES:
+		if id == "frost_r8c4":   # Cold Fury took Thick Hide's slot later (save version 12+); old points were refunded here
+			assert_eq(Talents.id_for_key("frost_cold_fury"), id)
+			continue
 		assert_true(bool(Talents.get_talent(id).get("placeholder", false)), "%s is an empty slot now" % id)
 
 func test_a_talent_for_one_ability_needs_it_learned() -> void:

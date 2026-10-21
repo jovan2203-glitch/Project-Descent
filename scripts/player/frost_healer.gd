@@ -8,7 +8,7 @@ class_name FrostHealerKit
 # near it for a share of the shield); one that RUNS OUT unbroken melts into
 # Runoff (a heal over time for a share of what was left). Meltwater is the
 # filler (stronger on an ally with my Thawing), Break the Ice breaks a shell on
-# purpose for a burst heal, Glaze is a shield that keeps forming again, Frost
+# purpose for a burst heal, Rime Veil is a shield that keeps forming again, Frost
 # Lattice links shells so a hit on one is taken from all of them, Rimefall shields the
 # whole group (more for each of my shells out), Frost Tide lifts Thawing for a
 # while, Stillwater saves an ally about to die. Spring Thaw is its rez (RezKit).
@@ -23,7 +23,7 @@ class_name FrostHealerKit
 # loses only 1/n of it (StatusContainer.set_share); the rest is billed here and
 # taken evenly from the other linked shells.
 # Own only: only my shells count and only my Thawing makes Meltwater stronger.
-# Numbers: balance.gd (RIME_SHARDS_*, RUNOFF_*, GLAZE_*, ...; Meltwater in HEALS).
+# Numbers: balance.gd (RIME_SHARDS_*, RUNOFF_*, RIME_VEIL_*, ...; Meltwater in HEALS).
 # Talents: Deep Cracks, Slow Runoff, Shard Spray (Rime Shards / Runoff),
 # Splinterheal (my shatters heal), Wide Lattice, Cold Spread (Break the Ice).
 
@@ -32,25 +32,25 @@ const THAWING_FX = preload("res://data/effects/thawing.tres")
 const StatusEffectScript = preload("res://scripts/data/status_effect_data.gd")
 
 const MELTWATER_ID := "meltwater"
-const GLAZE_ID := "glaze"
+const RIME_VEIL_ID := "rimeveil"
 const BREAK_ICE_ID := "breaktheice"
 const LATTICE_ID := "frostlattice"
 const RIMEFALL_ID := "rimefall"
 const FROST_TIDE_ID := "frosttide"
 const STILLWATER_ID := "stillwater"
 ## The instants of the kit (_use_drafted -> _frost_healer_use). Meltwater and Rimefall are cast: SUPPORT_CASTS.
-const INSTANTS := [GLAZE_ID, BREAK_ICE_ID, LATTICE_ID, FROST_TIDE_ID, STILLWATER_ID]
+const INSTANTS := [RIME_VEIL_ID, BREAK_ICE_ID, LATTICE_ID, FROST_TIDE_ID, STILLWATER_ID]
 ## Meter / log ids of the heals that are not an ability's own (Details.HIT_NAMES).
 const RIME_SHARDS_ID := "rimeshards"
 const RUNOFF_ID := "runoff"
 const SPLINTERHEAL_ID := "splinterheal"
 ## Effects: shields (by id), Frost Tide on me, Stillwater on an ally.
-const GLAZE_FX := "glaze"
+const RIME_VEIL_FX := "rimeveil"
 const RIMEFALL_FX := "rimefall"
 const SHARD_SPRAY_FX := "shard_spray"
 const FROST_TIDE_FX := "frost_tide"
 const STILLWATER_FX := "stillwater"
-const SHIELD_NAMES := {GLAZE_FX: "Glaze", RIMEFALL_FX: "Rimefall", SHARD_SPRAY_FX: "Shard Spray"}
+const SHIELD_NAMES := {RIME_VEIL_FX: "Rime Veil", RIMEFALL_FX: "Rimefall", SHARD_SPRAY_FX: "Shard Spray"}
 const ICE := Color(0.6, 0.9, 1.0)
 const RIME_SHELL_KEY := "rime_shell"
 const NO_SHELL := "That ally has none of your Rime Shells"
@@ -60,7 +60,7 @@ const STILLWATER_GRACE := 0.25
 
 var _shells := {}      # ally instance id -> {"who", "amount", "at"}: my Rime Shells on allies (and me)
 var _thawed := {}      # ally instance id -> when my last Rime Shell went on them (my Thawing)
-var _glazes := {}      # ally instance id -> {"who", "amount", "until", "next"}
+var _veils := {}      # ally instance id -> {"who", "amount", "until", "next"}
 var _lattice: Array = []
 var _lattice_until := 0.0
 var _runoffs: Array = []   # {"who", "per", "left", "next"}: Runoff heals still to come
@@ -235,7 +235,7 @@ func _drain_shell(who: Node3D, amount: int) -> void:
 func _shield_amount(share: float, id: String) -> int:
 	return int(round(player._combat().heal_amount(player, Balance.REFERENCE_HEAL * share, id) * player.absorb_mult()))
 
-## A shield of mine (`fx_id`: Glaze, Rimefall, Shard Spray) of `amount` on `who` for `time` sec.
+## A shield of mine (`fx_id`: Rime Veil, Rimefall, Shard Spray) of `amount` on `who` for `time` sec.
 func _frost_shield(who: Node3D, fx_id: String, amount: int, time: float) -> void:
 	if who == null or not is_instance_valid(who) or amount <= 0 or time <= 0.0:
 		return
@@ -317,11 +317,11 @@ func _frost_healer_use(id: String, res: Resource) -> void:
 	if who == null:
 		return
 	match id:
-		GLAZE_ID:
-			var amount := _shield_amount(Balance.GLAZE_SHARE, GLAZE_ID)
-			_glazes[who.get_instance_id()] = {"who": who, "amount": amount, "until": _now() + Balance.GLAZE_TIME, "next": _now() + Balance.GLAZE_EVERY}
-			_frost_shield(who, GLAZE_FX, amount, Balance.GLAZE_TIME)
-			player._combat().float_text(who, "%s (%d)" % [Abilities.ability_name(GLAZE_ID), amount], ICE, false)
+		RIME_VEIL_ID:
+			var amount := _shield_amount(Balance.RIME_VEIL_SHARE, RIME_VEIL_ID)
+			_veils[who.get_instance_id()] = {"who": who, "amount": amount, "until": _now() + Balance.RIME_VEIL_TIME, "next": _now() + Balance.RIME_VEIL_EVERY}
+			_frost_shield(who, RIME_VEIL_FX, amount, Balance.RIME_VEIL_TIME)
+			player._combat().float_text(who, "%s (%d)" % [Abilities.ability_name(RIME_VEIL_ID), amount], ICE, false)
 		BREAK_ICE_ID:
 			_break_the_ice(who)
 		LATTICE_ID:
@@ -436,16 +436,16 @@ func _tick_frost_healer() -> void:
 		var now0 := _now()
 		if now0 >= _still_until or (now0 - _still_at > STILLWATER_GRACE and _moving()):
 			_melt()
-	if _glazes.is_empty() and _runoffs.is_empty() and _stills.is_empty():
+	if _veils.is_empty() and _runoffs.is_empty() and _stills.is_empty():
 		return
 	var now := _now()
-	for key in _glazes.keys():
-		var g: Dictionary = _glazes[key]
+	for key in _veils.keys():
+		var g: Dictionary = _veils[key]
 		if now >= float(g["until"]) or not is_instance_valid(g["who"]) or not g["who"].is_alive():
-			_glazes.erase(key)
+			_veils.erase(key)
 		elif now >= float(g["next"]):
-			g["next"] = float(g["next"]) + Balance.GLAZE_EVERY
-			_frost_shield(g["who"], GLAZE_FX, int(g["amount"]), float(g["until"]) - now)   # the ice forms again
+			g["next"] = float(g["next"]) + Balance.RIME_VEIL_EVERY
+			_frost_shield(g["who"], RIME_VEIL_FX, int(g["amount"]), float(g["until"]) - now)   # the ice forms again
 	for r in _runoffs.duplicate():
 		if now < float(r["next"]):
 			continue

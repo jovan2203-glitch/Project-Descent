@@ -7,5 +7,5 @@
 script = ExtResource("1_s")
 ability = ExtResource("2_a")
 unlock_trigger = 1
-unlock_level = 12
+unlock_level = 10
 sort_order = 37

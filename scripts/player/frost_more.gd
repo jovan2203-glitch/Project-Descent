@@ -138,8 +138,11 @@ func _rime_edge_on_hit(info: RefCounted) -> void:
 		return
 	if info.target == null or not is_instance_valid(info.target) or not info.target.is_alive():
 		return
-	player.deal_damage(info.target, float(Abilities.get_resource(RIME_EDGE_ID).damage) + player._talent("frost_honed_rime"),
+	var was_cold := player.frost_steel.cold_on(info.target)
+	var dealt := player.deal_damage(info.target, float(Abilities.get_resource(RIME_EDGE_ID).damage) + player._talent("frost_honed_rime"),
 		RIME_EDGE_ID, true)   # + Honed Rime
+	if dealt > 0:
+		player.frost_steel._rime_edge_glaze(was_cold)   # Frost DPS: a chance at Glaze
 
 ## Icebreaker's coefficient: weapon damage x the ability's multiplier, or x
 ## ICEBREAKER_FROZEN_MULT on a target I have Frozen (+ the ability's flat part).
@@ -154,8 +157,10 @@ func _icebreaker(w: Dictionary, res: Resource) -> void:
 	var at: Vector3 = player.target.global_position
 	if frozen:
 		_end_freeze(player.target)
+	var glazed := player.frost_steel._icebreaker_glaze()   # Frost DPS: it spends all my Glaze
 	player.deal_damage(player.target, icebreaker_coef(float(w.get("damage", 0.0)), float(res.weapon_damage_multiplier),
-		float(res.damage), frozen), "icebreaker")
+		float(res.damage), frozen) * glazed, "icebreaker")
+	player.frost_steel._icebreaker_done()
 	player._slash_effect(Abilities.color_of("icebreaker"))
 	player._slash_effect(Color(0.95, 0.97, 1.0))
 	if frozen:

@@ -221,4 +221,5 @@ func test_talent_maths_shared_with_the_game() -> void:
 	assert_eq(Abilities.radius_bonus("frostnova"), 0.0, "no talent widens it")
 	assert_eq(float(Abilities.RADIUS_TALENTS["crucible"][1]), 0.5, "Deep Crucible gives width: half of it is radius")
 	assert_eq(Abilities.base_cast_time(Abilities.get_resource("frostbolt")), float(Abilities.get_resource("frostbolt").cast_time))
-	assert_true(Abilities.SHIELD_ABILITIES.has("rimeslash"), "Rime Ward counts for Rime Slash's shell too")
+	assert_false(Abilities.SHIELD_ABILITIES.has("rimeslash"), "Rime Slash gives Ice Layers now, not a Rime Shell")
+	assert_eq(Abilities.ice_layer_pct(10.0, 0.0), Balance.ICE_LAYER_PCT * 1.1, "Rime Ward makes each Ice Layer bigger")

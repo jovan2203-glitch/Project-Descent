@@ -270,7 +270,7 @@ const PATHS := {
 	# Frost: Rime Shell kit (draftable)
 	"rimeshell": "res://data/abilities/rimeshell.tres",
 	"meltwater": "res://data/abilities/meltwater.tres",
-	"glaze": "res://data/abilities/glaze.tres",
+	"rimeveil": "res://data/abilities/rimeveil.tres",
 	"breaktheice": "res://data/abilities/breaktheice.tres",
 	"frostlattice": "res://data/abilities/frostlattice.tres",
 	"rimefall": "res://data/abilities/rimefall.tres",
@@ -293,6 +293,16 @@ const PATHS := {
 	"rimeedge": "res://data/abilities/rimeedge.tres",
 	"icebreaker": "res://data/abilities/icebreaker.tres",
 	"icepin": "res://data/abilities/icepin.tres",
+	# Frost tank (Glacier Wall) and Frost DPS (Frostbitten Steel)
+	"coldshoulder": "res://data/abilities/coldshoulder.tres",
+	"rimequake": "res://data/abilities/rimequake.tres",
+	"hailcoat": "res://data/abilities/hailcoat.tres",
+	"hardrime": "res://data/abilities/hardrime.tres",
+	"glacialbulwark": "res://data/abilities/glacialbulwark.tres",
+	"hoarcleave": "res://data/abilities/hoarcleave.tres",
+	"calving": "res://data/abilities/calving.tres",
+	"bitteredge": "res://data/abilities/bitteredge.tres",
+	"blackfrost": "res://data/abilities/blackfrost.tres",
 	# Frost, the bow: a finisher, a cast shot, an auto-shot buff, a mark and a leap back
 	"shattershot": "res://data/abilities/shattershot.tres",
 	"glacialdraw": "res://data/abilities/glacialdraw.tres",
@@ -388,9 +398,10 @@ static func is_trinket_slot(id: String) -> bool:
 	return TRINKET_SLOTS.has(id)
 ## Offered by the level-up draft; learned permanently when picked.
 const DRAFT_POOL := ["frostnova", "icebarrier", "blink",
-	"rimeshell", "meltwater", "glaze", "breaktheice", "frostlattice", "rimefall", "frosttide", "stillwater", "springthaw",
+	"rimeshell", "meltwater", "rimeveil", "breaktheice", "frostlattice", "rimefall", "frosttide", "stillwater", "springthaw",
 	"shatteringwave", "flashfreeze", "hoarfrost", "shatteringslam", "rimeslash", "iceshards",
 	"coldspike", "sleetwave", "deepwinter", "rimelock", "snowward", "winterhide", "rimeedge", "icebreaker", "icepin",
+	"coldshoulder", "rimequake", "hailcoat", "hardrime", "glacialbulwark", "hoarcleave", "calving", "bitteredge", "blackfrost",
 	"shattershot", "glacialdraw", "rimefletch", "coldmark", "icyretreat",
 	"searingstrike", "flamingarrow", "flamenova", "ventflames", "coolhead", "furnacebreath", "slagskin",
 	"stoke", "embervolley", "immolate", "walloffire",
@@ -432,10 +443,11 @@ const DRAFT_POOL := ["frostnova", "icebarrier", "blink",
 	"counterspell"]
 # Every ability that can go on the action bar (order = list order).
 const ALL := ["frostbolt", "blizzard", "frostnova", "icebarrier",
-	"rimeshell", "meltwater", "glaze", "breaktheice", "frostlattice", "rimefall", "frosttide", "stillwater", "springthaw",
+	"rimeshell", "meltwater", "rimeveil", "breaktheice", "frostlattice", "rimefall", "frosttide", "stillwater", "springthaw",
 	"shatteringwave", "flashfreeze", "hoarfrost", "shatteringslam", "rimeslash", "iceshards",
 	"froststrike", "frostarrow",
 	"coldspike", "sleetwave", "deepwinter", "rimelock", "snowward", "winterhide", "rimeedge", "icebreaker", "icepin",
+	"coldshoulder", "rimequake", "hailcoat", "hardrime", "glacialbulwark", "hoarcleave", "calving", "bitteredge", "blackfrost",
 	"shattershot", "glacialdraw", "rimefletch", "coldmark", "icyretreat",
 	"fireball", "searingstrike", "flamingarrow", "flamenova", "ventflames", "coolhead", "furnacebreath", "slagskin",
 	"stoke", "embervolley", "immolate", "walloffire",
@@ -483,10 +495,11 @@ const CATEGORY_OF := {
 	"frostbolt": "frost", "blizzard": "frost", "hoarfrost": "frost", "shatteringslam": "frost", "rimeslash": "frost",
 	"frostnova": "frost", "icebarrier": "frost", "froststrike": "frost", "frostarrow": "frost",
 	"rimeshell": "frost", "shatteringwave": "frost", "flashfreeze": "frost", "iceshards": "frost",
-	"meltwater": "frost", "glaze": "frost", "breaktheice": "frost", "frostlattice": "frost", "rimefall": "frost", "frosttide": "frost", "stillwater": "frost", "springthaw": "frost",
+	"meltwater": "frost", "rimeveil": "frost", "breaktheice": "frost", "frostlattice": "frost", "rimefall": "frost", "frosttide": "frost", "stillwater": "frost", "springthaw": "frost",
 	"coldspike": "frost", "sleetwave": "frost", "deepwinter": "frost", "rimelock": "frost", "snowward": "frost",
 	"winterhide": "frost", "rimeedge": "frost", "icebreaker": "frost", "icepin": "frost",
 	"shattershot": "frost", "glacialdraw": "frost", "rimefletch": "frost", "coldmark": "frost", "icyretreat": "frost",
+	"coldshoulder": "frost", "rimequake": "frost", "hailcoat": "frost", "hardrime": "frost", "glacialbulwark": "frost", "hoarcleave": "frost", "calving": "frost", "bitteredge": "frost", "blackfrost": "frost",
 	"lightningbolt": "lightning",
 	"fireball": "fire", "searingstrike": "fire", "flamingarrow": "fire", "flamenova": "fire",
 	"ventflames": "fire", "coolhead": "fire", "furnacebreath": "fire", "slagskin": "fire",
@@ -607,7 +620,7 @@ const HEALER_SPECS := ["Choir of One", "Line of Light", "Strings Attached", "She
 ## party frames' role icon). Healers here and in HEALER_SPECS agree (tests/test_books.gd).
 const SPEC_ROLES := {
 	"Steady Flame": "dps", "Slagforged": "tank", "Forge Heat": "dps", "Pitch and Cinder": "dps",
-	"Hard Winter": "dps", "Cold Comfort": "healer", "Frostbitten Steel": "dps", "Winter Hunt": "dps",
+	"Hard Winter": "dps", "Cold Comfort": "healer", "Frostbitten Steel": "dps", "Glacier Wall": "tank", "Winter Hunt": "dps",
 	"Live Current": "dps", "Stormdancer": "dps", "Lightning Rod": "tank", "Stormstring": "dps",
 	"Clockwork": "dps", "Hall of Mirrors": "tank", "Second Act": "dps", "Aetherstring": "dps",
 	"The Breach": "dps", "Pack of Two": "dps", "Strings Attached": "healer", "Nightstring": "dps",
@@ -659,8 +672,9 @@ const SPECS := {
 	"frost": [
 		["Hard Winter", ["frostbolt", "blizzard", "frostnova", "iceshards", "coldspike", "sleetwave",
 			"hoarfrost", "shatteringwave", "deepwinter"]],
-		["Cold Comfort", ["rimeshell", "meltwater", "glaze", "breaktheice", "frostlattice", "rimefall", "frosttide", "stillwater", "springthaw"]],
-		["Frostbitten Steel", ["froststrike", "shatteringslam", "rimeslash", "rimeedge", "icebreaker"]],
+		["Cold Comfort", ["rimeshell", "meltwater", "rimeveil", "breaktheice", "frostlattice", "rimefall", "frosttide", "stillwater", "springthaw"]],
+		["Frostbitten Steel", ["froststrike", "hoarcleave", "calving", "icebreaker", "rimeedge", "bitteredge", "blackfrost"]],
+		["Glacier Wall", ["rimeslash", "shatteringslam", "coldshoulder", "rimequake", "hailcoat", "hardrime", "glacialbulwark"]],
 		["Winter Hunt", ["frostarrow", "icepin", "shattershot", "glacialdraw", "rimefletch", "coldmark", "icyretreat"]],
 		["Utility", ["rimelock", "flashfreeze", "winterhide", "icebarrier", "snowward"]],
 	],
@@ -865,11 +879,12 @@ const SPENDS_ALL := ["discharge", "groundout", "recharge"]
 const OFF_GCD := ["groundingsurge", "capacitor", "returnstroke", "rimefletch", "rewind", "lapse", "scatter",
 	"missedbeat", "tradeplaces", "doubletime", "offthechain", "doublethread", "restring", "behinditsback", "swell",
 	"aureole", "gatherthelight", "unfallen", "setprism", "moveprism", "shatterall", "prismarrow", "stepoflight",
-	"fightingstyle", "goin", "hityourstride", "rollwithit", "playdead", "breathe", "fasthands"]
+	"fightingstyle", "goin", "hityourstride", "rollwithit", "playdead", "breathe", "fasthands",
+	"coldshoulder", "glacialbulwark", "bitteredge"]
 ## Melee-weapon abilities used from their own range (cast_range) instead of the
 ## weapon's reach: Static Step dashes in, Whiplash lashes from afar.
 const LONG_REACH := ["staticstep", "whiplash", "reelin", "beckon", "raisethecenser", "dragin", "comeon",
-	"cut", "gut", "whirl", "redwhirl", "dartin", "drivethrough", "pintheshadow", "overtheshoulder"]
+	"cut", "gut", "whirl", "redwhirl", "dartin", "drivethrough", "pintheshadow", "overtheshoulder", "coldshoulder"]
 
 ## Does ability `id` have to be within the equipped weapon's reach of its target?
 static func uses_weapon_reach(id: String) -> bool:
@@ -1150,7 +1165,13 @@ static func radius_bonus(id: String) -> float:
 		return 0.0
 	return talent(str(RADIUS_TALENTS[id][0])) * float(RADIUS_TALENTS[id][1])
 ## Abilities whose shield Rime Ward makes bigger ({heal} / {ward}).
-const SHIELD_ABILITIES := ["rimeshell", "rimeslash", "snowward", "intervalward", "rootguard", "giantshands", "glaze", "rimefall"]
+## (Ice Layers count too: Rime Ward makes each bigger, see {layer_pct}.)
+const SHIELD_ABILITIES := ["rimeshell", "snowward", "intervalward", "rootguard", "giantshands", "rimeveil", "rimefall"]
+
+## % of maximum health one Ice Layer absorbs (Frost tank), with Rime Ward's `absorb_pct`
+## and Deep Strata's `strata_pct`. The game (GlacierKit) and the tooltips share this.
+static func ice_layer_pct(absorb_pct: float, strata_pct: float) -> float:
+	return Balance.ICE_LAYER_PCT * (1.0 + maxf(absorb_pct, 0.0) / 100.0) * (1.0 + maxf(strata_pct, 0.0) / 100.0)
 
 ## A talent's number at the rank the player has (0 without it, or outside the game).
 static func talent(key: String, field: String = "values") -> float:
@@ -1559,6 +1580,13 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		"edge_time": Stats.num(Balance.RIME_EDGE_TIME),
 		"ice_frozen": "?" if base < 0 or fr == null or float(fr.weapon_damage_multiplier) <= 0.0 \
 			else fmt_amount(base * per * Balance.ICEBREAKER_FROZEN_MULT / float(fr.weapon_damage_multiplier)),
+		# Frost tank (Ice Layers) and Frost DPS (Glaze), with the talents that change them.
+		"layer_pct": TextFill.num(ice_layer_pct(talent("frost_absorb"), talent("frost_deep_strata"))),   # Rime Ward, Deep Strata
+		"slam_layer": fmt_amount(Balance.SHATTER_SLAM_PER_LAYER * per * (1.0 + talent("frost_packed_ice") / 100.0)),   # Packed Ice
+		"quake_pct": TextFill.num(Balance.RIMEQUAKE_PCT_PER_LAYER + talent("frost_deep_tremor")),   # Deep Tremor
+		"bitter_glaze": str(Balance.BITTER_EDGE_GLAZE + int(round(talent("frost_biting_hold")))),   # Biting Hold
+		"glacial_time": TextFill.num(Balance.GLACIAL_BULWARK_TIME + talent("frost_old_ice")),   # Old Ice
+		"blackfrost_time": TextFill.num(Balance.BLACK_FROST_TIME + talent("frost_long_dark")),   # Long Dark
 	}
 	var paint := func(v: String) -> String:
 		return "[color=#%s]%s[/color]" % [NUM_COLOR.to_html(false), v] if bb else v
@@ -3751,7 +3779,7 @@ static func _draw_unique(c: Control, id: String, col: Color, mid: Vector2, k: fl
 			c.draw_colored_polygon(_pts(mid, k, [Vector2(0, -4), Vector2(7, 7), Vector2(0, 14), Vector2(-7, 7)]), Color(col, 0.9))
 			c.draw_circle(mid + Vector2(0, 7) * k, 7.0 * k, Color(col, 0.9))
 			c.draw_circle(mid + Vector2(-2.5, 5) * k, 2.0 * k, white)
-		"glaze":
+		"rimeveil":
 			# Three thin layers of ice over a heart of light.
 			for i in 3:
 				c.draw_arc(mid, (7.0 + i * 4.5) * k, PI * 1.05, PI * 1.95, 12, Color(white if i == 2 else light, 0.9 - i * 0.2), 2.0 * k, true)
@@ -3922,6 +3950,82 @@ static func _draw_unique(c: Control, id: String, col: Color, mid: Vector2, k: fl
 			c.draw_line(mid + Vector2(-7, -16) * k, mid + Vector2(7, -16) * k, Color(0.5, 0.33, 0.18), 3.0 * k)
 			for p in [Vector2(-10, -11), Vector2(11, -10)]:
 				_star(c, mid + (p as Vector2) * k, 2.4 * k, white, 3)
+		# --- Frost tank: Glacier Wall ---
+		"coldshoulder":
+			# A shield shouldered side-on, an enemy's red glare turned onto it.
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-4, -15), Vector2(10, -11), Vector2(10, 4), Vector2(3, 14), Vector2(-4, 6)]), col)
+			c.draw_polyline(_pts(mid, k, [Vector2(-4, -15), Vector2(10, -11), Vector2(10, 4), Vector2(3, 14), Vector2(-4, 6), Vector2(-4, -15)]), light, 1.6 * k, true)
+			c.draw_arc(mid + Vector2(-10, -2) * k, 7.0 * k, PI * 0.6, PI * 1.4, 10, white, 2.6 * k, true)
+			for p in [Vector2(-14, -12), Vector2(-15, 9)]:
+				c.draw_circle(mid + (p as Vector2) * k, 1.8 * k, Color(1.0, 0.35, 0.25))
+			_star(c, mid + Vector2(4, -3) * k, 3.2 * k, white, 3)
+		"rimequake":
+			# A boot stamping down, rings of frost cracking out across the ground.
+			c.draw_line(mid + Vector2(-16, 12) * k, mid + Vector2(16, 12) * k, Color(col, 0.6), 2.0 * k, true)
+			for i in 2:
+				c.draw_arc(mid + Vector2(0, 12) * k, (8.0 + i * 6.0) * k, PI, TAU, 14, Color(light, 0.9 - i * 0.35), 2.0 * k, true)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-5, -16), Vector2(4, -16), Vector2(4, 4), Vector2(10, 6), Vector2(10, 11), Vector2(-5, 11)]), Color(0.7, 0.72, 0.78))
+			_zigzag(c, mid, k, [Vector2(-12, 12), Vector2(-9, 15), Vector2(-5, 13)], white, 1.4)
+			_zigzag(c, mid, k, [Vector2(8, 12), Vector2(11, 15), Vector2(15, 13)], white, 1.4)
+		"hailcoat":
+			# Five stacked layers of ice over a shield, hail falling onto it.
+			for i in 5:
+				var y := 12.0 - i * 5.0
+				c.draw_rect(Rect2(mid + Vector2(-12 + i, y - 4) * k, Vector2(24 - i * 2, 4) * k), Color(col, 0.45 + i * 0.1), true)
+				c.draw_line(mid + Vector2(-12 + i, y - 4) * k, mid + Vector2(12 - i, y - 4) * k, light, 1.2 * k, true)
+			for p in [Vector2(-10, -15), Vector2(0, -17), Vector2(9, -14)]:
+				c.draw_circle(mid + (p as Vector2) * k, 2.0 * k, white)
+		"hardrime":
+			# A cracked layer of ice knitting itself back together.
+			c.draw_rect(Rect2(mid + Vector2(-14, -6) * k, Vector2(28, 12) * k), Color(col, 0.6), true)
+			c.draw_rect(Rect2(mid + Vector2(-14, -6) * k, Vector2(28, 12) * k), light, false, 1.5 * k)
+			_zigzag(c, mid, k, [Vector2(-2, -6), Vector2(2, -2), Vector2(-2, 2), Vector2(2, 6)], white, 1.6)
+			for s in [-1.0, 1.0]:
+				c.draw_arc(mid + Vector2(0, 0) * k, 12.0 * k, -PI * 0.5 + s * 0.6, -PI * 0.5 + s * 1.4, 8, white, 2.0 * k, true)
+				c.draw_arc(mid + Vector2(0, 0) * k, 12.0 * k, PI * 0.5 + s * 0.6, PI * 0.5 + s * 1.4, 8, white, 2.0 * k, true)
+		"glacialbulwark":
+			# A tall wall of glacier ice with a figure behind it, shards bursting off its face.
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-12, 16), Vector2(-13, -8), Vector2(-6, -16), Vector2(4, -13), Vector2(12, -16), Vector2(13, 16)]), Color(col, 0.75))
+			c.draw_polyline(_pts(mid, k, [Vector2(-12, 16), Vector2(-13, -8), Vector2(-6, -16), Vector2(4, -13), Vector2(12, -16), Vector2(13, 16)]), white, 1.6 * k, true)
+			for x in [-6.0, 1.0, 7.0]:
+				c.draw_line(mid + Vector2(x, -10) * k, mid + Vector2(x + 1.5, 14) * k, Color(light, 0.7), 1.3 * k, true)
+			for a in [-2.6, -1.6, -0.5]:
+				var d := Vector2(cos(a), sin(a))
+				c.draw_line(mid + Vector2(0, -16) * k + d * 2.0 * k, mid + Vector2(0, -16) * k + d * 6.0 * k, white, 1.6 * k, true)
+		# --- Frost DPS: Frostbitten Steel ---
+		"hoarcleave":
+			# A greatsword's wide arc through two frosted shapes.
+			c.draw_arc(mid + Vector2(2, 6) * k, 15.0 * k, PI * 1.05, PI * 1.95, 16, Color(col, 0.55), 6.0 * k, true)
+			c.draw_arc(mid + Vector2(2, 6) * k, 15.0 * k, PI * 1.05, PI * 1.95, 16, white, 1.8 * k, true)
+			c.draw_line(mid + Vector2(-14, 12) * k, mid + Vector2(-3, -3) * k, Color(0.92, 0.92, 0.96), 3.2 * k, true)
+			c.draw_line(mid + Vector2(-16, 14) * k, mid + Vector2(-12, 10) * k, Color(0.4, 0.25, 0.15), 3.4 * k, true)
+			for p in [Vector2(-8, -8), Vector2(10, -6)]:
+				c.draw_circle(mid + (p as Vector2) * k, 4.0 * k, Color(light, 0.45))
+				_star(c, mid + (p as Vector2) * k, 2.6 * k, white, 3)
+		"calving":
+			# A slab of ice breaking off a blade's edge and falling, smaller chunks scattering.
+			c.draw_line(mid + Vector2(-15, -12) * k, mid + Vector2(12, -12) * k, Color(0.92, 0.92, 0.96), 3.4 * k, true)
+			c.draw_line(mid + Vector2(-17, -12) * k, mid + Vector2(-13, -12) * k, Color(0.4, 0.25, 0.15), 3.6 * k, true)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-6, -9), Vector2(8, -9), Vector2(10, 4), Vector2(-3, 8)]), Color(col, 0.85))
+			c.draw_polyline(_pts(mid, k, [Vector2(-6, -9), Vector2(8, -9), Vector2(10, 4), Vector2(-3, 8), Vector2(-6, -9)]), white, 1.4 * k, true)
+			for p in [Vector2(-12, 12), Vector2(0, 15), Vector2(13, 12)]:
+				c.draw_colored_polygon(_pts(mid, k, [(p as Vector2) + Vector2(-2.5, -2), (p as Vector2) + Vector2(2.5, -2), (p as Vector2) + Vector2(0, 3)]), light)
+		"bitteredge":
+			# A thin blade nicking a frozen block, a sharp glint where it bites.
+			c.draw_rect(Rect2(mid + Vector2(-2, -4) * k, Vector2(16, 18) * k), Color(col, 0.55), true)
+			c.draw_rect(Rect2(mid + Vector2(-2, -4) * k, Vector2(16, 18) * k), light, false, 1.4 * k)
+			c.draw_line(mid + Vector2(-15, 10) * k, mid + Vector2(4, -10) * k, Color(0.92, 0.92, 0.96), 2.4 * k, true)
+			c.draw_line(mid + Vector2(-16, 11) * k, mid + Vector2(-12, 7) * k, Color(0.4, 0.25, 0.15), 3.0 * k, true)
+			_star(c, mid + Vector2(1, -6) * k, 5.0 * k, white, 4)
+		"blackfrost":
+			# A dark night-blue snowflake with a pale blade through its middle.
+			c.draw_circle(mid, 15.0 * k, Color(0.05, 0.08, 0.16))
+			for i in 6:
+				var a := TAU * i / 6.0
+				var d := Vector2(cos(a), sin(a))
+				c.draw_line(mid, mid + d * 12.0 * k, Color(col.darkened(0.2), 1.0), 2.4 * k, true)
+				c.draw_circle(mid + d * 12.0 * k, 1.6 * k, light)
+			c.draw_line(mid + Vector2(-13, 13) * k, mid + Vector2(13, -13) * k, white, 2.2 * k, true)
 		# --- Frost, the bow ---
 		"shattershot":
 			# An arrow punching through a block of ice, the pieces flying apart.
