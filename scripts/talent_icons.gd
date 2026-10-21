@@ -33,7 +33,7 @@ const ICONED := ["frost_deep_cracks", "frost_cold_spread", "frost_slow_runoff", 
 	"frost_thin_ice", "frost_marked_prey", "frost_absorb", "frost_shard_proc", "frost_bolt_cast",
 	"frost_discipline", "frost_chilled_dmg", "frost_int_sp", "frost_honed_rime",
 	"frost_hoarfrost", "frost_hoarfrost_burst", "frost_clean_break", "frost_piercing_cold",
-	"frost_dot_duration", "frost_cold_snap", "frost_splinter", "frost_shardstorm", "frost_shield_armor",
+	"frost_long_chill", "frost_cold_snap", "frost_splinter", "frost_shardstorm", "frost_shield_armor",
 	"frost_slow_threat", "frost_slow_dr", "frost_glacial_heart", "frost_deep_freeze",
 	"frost_ice_floe", "frost_shatterpoint", "frost_instinct",
 	"frost_pinning_frost", "frost_third_bite", "frost_hard_freeze",
@@ -2004,7 +2004,7 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			for a in [0.4, 1.6]:
 				var d := Vector2(cos(a), sin(a))
 				c.draw_line(mid + (Vector2(4, -3) + d * 3.0) * k, mid + (Vector2(4, -3) + d * 9.0) * k, WHITE, 1.4 * k, true)
-		"frost_dot_duration":   # Lingering Frost: hourglass with snow
+		"frost_long_chill":   # Lingering Frost: hourglass with snow
 			c.draw_line(mid + Vector2(-9, -14) * k, mid + Vector2(9, -14) * k, light, 2.5 * k, true)
 			c.draw_line(mid + Vector2(-9, 14) * k, mid + Vector2(9, 14) * k, light, 2.5 * k, true)
 			c.draw_polyline(_p(mid, k, [Vector2(-7, -13), Vector2(0, 0), Vector2(-7, 13)]), light, 1.8 * k, true)

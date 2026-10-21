@@ -44,7 +44,7 @@ const MOVED_TO := {
 	"frost_chilled_dmg": "frost_r1c1", "frost_cold_draw": "frost_r1c5", "frost_absorb": "frost_r1c7",
 	"frost_shield_armor": "frost_r4c7", "frost_ice_floe": "frost_r8c7", "frost_hoarfrost_burst": "frost_r5c2",
 	"frost_clean_break": "frost_r7c2", "frost_shardstorm": "frost_r6c4", "frost_splinter": "frost_r7c4",
-	"frost_dot_duration": "frost_r8c1", "frost_slow_threat": "frost_r9c2", "frost_slow_dr": "frost_r9c6",
+	"frost_long_chill": "frost_r8c1", "frost_slow_threat": "frost_r9c2", "frost_slow_dr": "frost_r9c6",
 	"frost_instinct": "frost_r7c6",   # (then one column left: Talents.FROST_MELEE_MOVED)
 	"lightning_quick_fuse": "lightning_r6c4", "lightning_tight_coil": "lightning_r5c4",
 	"lightning_rod": "lightning_r7c4", "lightning_snap_shot": "lightning_r9c4",

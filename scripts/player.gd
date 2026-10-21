@@ -1556,7 +1556,7 @@ func blizzard_radius() -> float:
 
 ## Extra seconds on effects you apply (StatusContainer asks). Deep Hoarfrost.
 func effect_duration_bonus(res: Resource) -> float:
-	# (Deep Hoarfrost, Long Burn, Lingering Frost: one list, shared
+	# (Deep Hoarfrost, Long Burn, Lingering Frost, Hard Freeze: one list, shared
 	# with the tooltips, so what they say is what happens.)
 	return Abilities.effect_time_bonus(res, _talent) + utility.duration_bonus(res)   # (Fixed Point: per Arcane cooldown)
 

@@ -30,7 +30,7 @@ const POINTS_TO_UNLOCK_NEXT := 3
 ## Bump this whenever a talent is added, moved, removed or changed. A profile saved
 ## with another number gets all its talent points back on its next load
 ## (SaveSystem), so talent changes never need a save migration.
-const TREE_VERSION := 1
+const TREE_VERSION := 2
 const POINTS_AT_LEVEL_1 := 5
 const POINTS_PER_LEVEL := 1
 ## Every this many levels (2, 4, 6...) gives one extra point on top.
@@ -292,8 +292,8 @@ const TALENTS := {
 		# (values = what is added to Coldspike's 25%.)
 		"r6c3": ["Piercing Cold", 3, "{n:coldspike} deals {v+b:COLDSPIKE_FROZEN_PCT}% more damage to a target you have Frozen, instead of {b:COLDSPIKE_FROZEN_PCT}%.",
 			{"key": "frost_piercing_cold", "values": [7.0, 13.0, 20.0], "requires": "coldspike"}],
-		"r8c1": ["Lingering Frost", 3, "Your Frost damage over time effects last {v} sec longer.",
-			{"key": "frost_dot_duration", "values": [1.0, 2.0, 3.0]}],
+		"r8c1": ["Lingering Frost", 3, "Your Chilled lasts {v} sec longer.",
+			{"key": "frost_long_chill", "values": [1.0, 2.0, 3.0]}],
 		"r6c5": ["Cold Snap", 3, "Freezing a target reduces your next global cooldown by {v} sec.",
 			{"key": "frost_cold_snap", "values": [0.1, 0.2, 0.3]}],
 		"r7c4": ["Splintering", 1, "Your Ice Shards that hit a target you have Frozen or Rime Shelled splinter, hitting one random other enemy within {b:SPLINTER_RANGE} m for {vdmg:iceshards} Frost damage.",

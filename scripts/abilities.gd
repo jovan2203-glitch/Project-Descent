@@ -1203,6 +1203,8 @@ static func effect_time_bonus(res: Resource, talent_of: Callable) -> float:
 		bonus += float(talent_of.call("frost_hoarfrost", "values2"))   # Deep Hoarfrost
 	if id == "immolate":
 		bonus += float(talent_of.call("fire_long_burn", "values"))     # Long Burn
+	if id == "chilled":
+		bonus += float(talent_of.call("frost_long_chill", "values"))   # Lingering Frost
 	if id == "frozen":
 		bonus += float(talent_of.call("frost_hard_freeze", "values"))  # Hard Freeze
 	if id == "grasped":
@@ -1220,10 +1222,6 @@ static func effect_time_bonus(res: Resource, talent_of: Callable) -> float:
 	if res.get("stun") == true or res.get("root") == true:
 		var d: Variant = res.get("duration")
 		bonus += (float(d) if d != null else 0.0) * float(talent_of.call("shadow_left_hanging", "values")) / 100.0
-	# Lingering Frost: every Frost damage-over-time effect lasts longer.
-	var tick: Variant = res.get("tick_damage")
-	if tick != null and float(tick) > 0.0 and str(res.get("damage_type")) == "frost":
-		bonus += float(talent_of.call("frost_dot_duration", "values"))
 	return bonus
 
 ## % more damage a Martial talent gives every hit of ability `id` (the hits get it as a

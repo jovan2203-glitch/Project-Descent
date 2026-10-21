@@ -63,7 +63,8 @@ Chill, Freeze, break. Code: scripts/player/frost_steel.gd (+ frost_runes_talents
 - Rimelock (interrupt), Flash Freeze, Winter Hide, Ice Barrier, Snow Ward. Icepin (Frost's root) and Icy Retreat stay in Winter Hunt: they need a bow. Cold Comfort keeps Rime Shell and became the healer (above).
 
 ## Talents
-- First talents: haste 1/2/3%; Frost spell slows +5/10/15%; shield absorbs +5/10/15%; spells 10/15/20% chance to generate an Ice Shard (requires Ice Shards).
+- First talents: Frozen Focus (haste 0.7/1.4/2.1%); Rime Ward (shield absorbs +5/10/15%); Splintering Cold (spells 10/15/20% chance to generate an Ice Shard, requires Ice Shards).
+- Lingering Frost (r8c1, 2026-10-21): your Chilled lasts 1/2/3 s longer, the Chilled twin of Hard Freeze. It was "Frost DoTs last 1/2/3 s longer", but Hoarfrost is Frost's only DoT and Deep Hoarfrost already lengthens it. Talents.TREE_VERSION 1 -> 2 refunds the points.
 - Bow talents, grouped together on the right of rows 1-5: Black Ice, Thin Ice (3, requires Glacial Draw: 0.3/0.7/1 s faster on a Chilled target), Clean Shatter, Cold Harvest, Marked Prey (3, requires Coldmark: Ice Shards +10/20/30% to your Coldmark target), Cold Draw.
 - Also in the tree: Quickened Frost, Pinning Frost, Bitter Cold, Deep Hoarfrost, Third Bite.
 - Cold Comfort's six (see the healer section) took new mirror-symmetric slots: the middle of rows 1-2, both edges of rows 9-10. New slots only: no save migration.
