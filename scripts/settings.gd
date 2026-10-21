@@ -114,6 +114,8 @@ var ui_opacity := 1.0   # in-game HUD only (Esc menu / Settings / map stay solid
 ## Mouseover casting (like WoW's): pressing an ability while the mouse is over a
 ## legal target for it uses it on that target, without changing your target.
 var mouseover_casting := false
+## Party frames also show when you play alone (they always show in a party).
+var party_frames_solo := false
 signal interface_changed
 
 func apply_interface() -> void:
@@ -164,6 +166,15 @@ func build_interface_ui() -> Control:
 		mouseover_casting = pressed
 		save())
 	_row(grid, "Mouseover casting", mo)
+	grid.add_child(Control.new())
+	var pf := CheckButton.new()
+	pf.focus_mode = Control.FOCUS_NONE
+	pf.button_pressed = party_frames_solo
+	pf.tooltip_text = "Show the party frames (right side) when you play alone too. In a party they always show."
+	pf.toggled.connect(func(pressed: bool):
+		party_frames_solo = pressed
+		save())
+	_row(grid, "Party frames when solo", pf)
 	grid.add_child(Control.new())
 	# Extra action bars: on / off and how see-through each one is.
 	v.add_child(UI.label("Extra action bars", 15, UI.ACCENT))
@@ -269,6 +280,7 @@ func _load() -> void:
 	ui_scale = clampf(float(cfg.get_value("ui", "scale", ui_scale)), UI_SCALE_MIN, UI_SCALE_MAX)
 	ui_opacity = clampf(float(cfg.get_value("ui", "opacity", ui_opacity)), UI_OPACITY_MIN, 1.0)
 	mouseover_casting = bool(cfg.get_value("ui", "mouseover_casting", mouseover_casting))
+	party_frames_solo = bool(cfg.get_value("ui", "party_frames_solo", party_frames_solo))
 	var eb: Variant = cfg.get_value("ui", "extra_bars", [])
 	var eo: Variant = cfg.get_value("ui", "extra_bar_opacity", [])
 	for i in EXTRA_BARS.size():
@@ -300,6 +312,7 @@ func save() -> void:
 	cfg.set_value("ui", "scale", ui_scale)
 	cfg.set_value("ui", "opacity", ui_opacity)
 	cfg.set_value("ui", "mouseover_casting", mouseover_casting)
+	cfg.set_value("ui", "party_frames_solo", party_frames_solo)
 	cfg.set_value("ui", "extra_bars", extra_bars)
 	cfg.set_value("ui", "extra_bar_opacity", extra_bar_opacity)
 	cfg.save(PATH)

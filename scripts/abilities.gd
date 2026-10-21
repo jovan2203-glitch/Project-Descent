@@ -606,6 +606,29 @@ const SPEC_ROLES := {
 	"Utility": "utility",
 }
 
+## The spec an ability sits in ("" if none).
+static func spec_of(id: String) -> String:
+	for spec in SPECS.get(category_of(id), []):
+		if (spec[1] as Array).has(id):
+			return str(spec[0])
+	return ""
+
+## A player's role from the abilities on their bars: the role with the most of
+## them ("Utility" ones don't count; ties: healer, then tank, then dps).
+static func role_of_bar(ids: Array) -> String:
+	var count := {"healer": 0, "tank": 0, "dps": 0}
+	for id in ids:
+		var role := str(SPEC_ROLES.get(spec_of(str(id)), ""))
+		if count.has(role):
+			count[role] += 1
+	var best := "dps"
+	var most := 0
+	for role in ["healer", "tank", "dps"]:   # (in tie order: a later one must have more)
+		if int(count[role]) > most:
+			most = int(count[role])
+			best = role
+	return best
+
 ## Each book's abilities split by playstyle (visual only): book -> [[spec name, [ids]], ...].
 ## Books show their specs in this order, each under a divider. Every ability of a
 ## book sits in exactly one spec (tests/test_books.gd).

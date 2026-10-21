@@ -62,6 +62,7 @@ const MULCH = preload("res://scripts/mulch_patch.gd")
 const NATURE_CREATURE = preload("res://scripts/nature_creature.gd")
 const HOUND = preload("res://scripts/hound.gd")
 const Balance = preload("res://scripts/balance.gd")
+const Abilities = preload("res://scripts/abilities.gd")
 
 const PLAYER_RATE := 15.0         # own character updates per second
 const ENEMY_RATE := 10.0          # host enemy snapshots per second
@@ -559,14 +560,25 @@ func _process(delta: float) -> void:
 	if _player_t <= 0.0:
 		_player_t = 1.0 / PLAYER_RATE
 		var p := _local_player()
+		var st := p.get_node_or_null("Status")
 		rpc("_pstate", token, my_id(), p.global_position, p.rotation.y, str(p.get("current_state")),
-			int(p.get("health")), int(p.get("max_health")))
+			int(p.get("health")), int(p.get("max_health")), _my_role(),
+			int(st.total_absorb()) if st and st.has_method("total_absorb") else 0)
 	if is_host():
 		_enemy_t -= delta
 		if _enemy_t <= 0.0:
 			_enemy_t = 1.0 / ENEMY_RATE
 			rpc("_esnap", token, _enemy_snapshot())
 		_check_wipe(delta)
+
+## My role for the others' party frames (from my bars; worked out once a second).
+var _role_cache := "dps"
+var _role_at := -10.0
+func _my_role() -> String:
+	if _now() - _role_at >= 1.0:
+		_role_at = _now()
+		_role_cache = Abilities.role_of_bar(get_node("/root/PlayerData").action_bar)
+	return _role_cache
 
 func _check_wipe(delta: float) -> void:
 	if not Balance.ROGUELIKE_DEATH:
@@ -583,7 +595,7 @@ func _check_wipe(delta: float) -> void:
 
 # Remote player state.
 @rpc("any_peer", "call_remote", "unreliable_ordered", 1)
-func _pstate(t: int, member: int, pos: Vector3, yaw: float, anim: String, hp: int, mhp: int) -> void:
+func _pstate(t: int, member: int, pos: Vector3, yaw: float, anim: String, hp: int, mhp: int, role: String = "", shield: int = 0) -> void:
 	if t != token or member == my_id():
 		return
 	var w := _world()
@@ -591,7 +603,7 @@ func _pstate(t: int, member: int, pos: Vector3, yaw: float, anim: String, hp: in
 		return
 	var p := _puppet(member, w)
 	if p:
-		p.apply_state(pos, yaw, anim, hp, mhp)
+		p.apply_state(pos, yaw, anim, hp, mhp, role, shield)
 
 func _puppet(member: int, w: Node) -> Node:
 	var existing: Variant = puppets.get(member)

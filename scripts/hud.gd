@@ -241,6 +241,7 @@ func _ready() -> void:
 	_build_cast_bar()
 	_build_action_bar()
 	_build_xp_bar()
+	_build_party_frames()
 	# Everything the HUD reacts to arrives through the SignalBus.
 	var bus := get_node("/root/SignalBus")
 	bus.xp_changed.connect(func(_l, _x, _n): _update_xp_bar())
@@ -393,6 +394,31 @@ func _on_player_died() -> void:
 	info.add_theme_constant_override("outline_size", 5)
 	add_child(info)
 	_death_nodes.append(info)
+
+# --- Party frames (right side, under the target frame: scripts/ui/party_frames.gd) ----
+
+const PARTY_FRAMES = preload("res://scripts/ui/party_frames.gd")
+const PARTY_TOP := 16.0 + 180.0 + 14.0 + 130.0   # under the minimap and the target frame
+var _party_frames: Control
+
+func _build_party_frames() -> void:
+	_party_frames = PARTY_FRAMES.new()
+	_party_frames.player = player
+	_party_frames.anchor_left = 1.0
+	_party_frames.anchor_right = 1.0
+	add_child(_party_frames)
+	_layout_party_frames()
+
+## Right edge, left of the right action bar when that one is on.
+func _layout_party_frames() -> void:
+	if _party_frames == null:
+		return
+	var right := -16.0
+	if _bar_roots.has(3) and (_bar_roots[3] as Control).visible:
+		right = (_bar_roots[3] as Control).offset_left - 8.0
+	_party_frames.offset_right = right
+	_party_frames.offset_left = right - PARTY_FRAMES.FRAME_W
+	_party_frames.offset_top = PARTY_TOP
 
 # --- Health ------------------------------------------------------------------
 
@@ -697,6 +723,7 @@ func _apply_bar_settings() -> void:
 		_bar_roots[b].visible = settings.is_bar_on(b)
 		_bar_panels[b].modulate.a = settings.bar_opacity(b)
 	_layout_side_bars()   # (the interface size changes how much room there is)
+	_layout_party_frames()
 	var lift := _top_bar_lift()
 	if _cast_root:
 		_cast_root.offset_top = -120.0 - lift

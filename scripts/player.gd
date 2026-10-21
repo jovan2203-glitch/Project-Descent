@@ -1960,6 +1960,13 @@ func _select_target_at(screen_pos: Vector2) -> void:
 		friendly_target = ally
 	# Clicking empty ground keeps your target (Esc clears it).
 
+## A party member (or me) becomes my friendly target (a party frame was clicked).
+func select_friendly(ally: Node3D) -> void:
+	if ally == null or not is_instance_valid(ally):
+		return
+	_set_target(null)
+	friendly_target = null if is_same(ally, self) else ally
+
 ## Esc: drop the current enemy / friendly target. True if there was one.
 func clear_target() -> bool:
 	var had := _has_valid_target() or has_friendly_target()
@@ -3794,12 +3801,21 @@ func mouseover_on() -> bool:
 func _mouseover_begin(id: String) -> void:
 	_mo_ally = null
 	_mo_prism = ""
-	if not mouseover_on() or not is_inside_tree():
+	if not is_inside_tree():
+		return
+	var at := get_viewport().get_mouse_position()
+	# A party frame under the mouse: that ally, setting or not (pointing at a
+	# frame says who the spell is for).
+	var frames := PartyFrames.of(get_tree())
+	var framed: Node = frames.member_at(at) if frames != null else null
+	if framed != null and not _needs_enemy_target(id) and not PrismsKit.PRISM_TARGET_IDS.has(id):
+		_mo_ally = framed
+		return
+	if not mouseover_on():
 		return
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
 		return
-	var at := get_viewport().get_mouse_position()
 	if PrismsKit.PRISM_TARGET_IDS.has(id):
 		_mo_prism = prism_kit._prism_at(at, cam)
 	elif _needs_enemy_target(id):

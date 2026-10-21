@@ -25,6 +25,8 @@ var rime_shell_by := 0
 var lockouts := {}
 ## Knocked down (0 health, not dead yet): stand next to them and press F to revive.
 var downed := false
+var role := "dps"      # their role from their bars (party frames' icon)
+var shield := 0        # their shields' total absorb (party frames)
 
 func has_lockout(effect_id: String) -> bool:
 	return float(lockouts.get(effect_id, 0.0)) > Time.get_ticks_msec() / 1000.0
@@ -88,7 +90,10 @@ func _make_label(size: int, color: Color) -> Label3D:
 
 # --- Net ----------------------------------------------------------------------------
 
-func apply_state(pos: Vector3, yaw: float, anim_state: String, hp: int, mhp: int) -> void:
+func apply_state(pos: Vector3, yaw: float, anim_state: String, hp: int, mhp: int, r: String = "", sh: int = 0) -> void:
+	if r != "":
+		role = r
+	shield = sh
 	_net_pos = pos
 	_net_yaw = yaw
 	if not _has_state:
