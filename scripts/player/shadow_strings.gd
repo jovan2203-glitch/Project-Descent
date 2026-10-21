@@ -1139,6 +1139,9 @@ func receive_support(kind: String, from: Node, data: Dictionary) -> void:
 				player._combat().float_text(player, "%s (%d)" % [Abilities.ability_name(ShepherdKit.ROOTGUARD_ID), int(data.get("amount", 0))], ShepherdKit.BLOSSOM_COLOR, false)
 		"rootguard_broke":
 			player.shepherd._rootguard_broke(from)   # (I am the healer: my shield on that ally was used up)
+		# The Frost healer, Cold Comfort (scripts/player/frost_healer.gd).
+		"frost_shield", "rime_grow", "rime_break", "stillwater", "rime_broke", "rime_runoff", "rime_broken":
+			player.frost_healer.receive(kind, from, data)
 		# Utility (scripts/player/utility.gd).
 		"storm_front":
 			player.utility._storm_front_on(player.status, from, float(data.get("t", 0.0)))

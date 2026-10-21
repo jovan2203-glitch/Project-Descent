@@ -28,7 +28,8 @@ static func _key_of(id: String) -> String:
 	return ""
 
 ## Every talent key with a picture below.
-const ICONED := ["frost_haste", "frost_cold_draw", "frost_black_ice", "frost_clean_shatter", "frost_cold_harvest",
+const ICONED := ["frost_deep_cracks", "frost_cold_spread", "frost_slow_runoff", "frost_shard_spray", "frost_splinterheal", "frost_wide_lattice",
+	"frost_haste", "frost_cold_draw", "frost_black_ice", "frost_clean_shatter", "frost_cold_harvest",
 	"frost_thin_ice", "frost_marked_prey", "frost_absorb", "frost_shard_proc", "frost_bolt_cast",
 	"frost_discipline", "frost_chilled_dmg", "frost_int_sp", "frost_honed_rime",
 	"frost_hoarfrost", "frost_hoarfrost_burst", "frost_clean_break", "frost_piercing_cold",
@@ -1899,6 +1900,35 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			c.draw_circle(mid + Vector2(5, 3) * k, 2.4 * k, WHITE)
 			for v in [Vector2(-3, -5), Vector2(-9, 0), Vector2(-5, -11)]:
 				_shard(c, mid + (v as Vector2) * k, Vector2(0.75, 0.66).normalized(), 9.0 * k, 2.2 * k, Color(0.9, 0.95, 1.0), WHITE, k)
+		# --- Cold Comfort (the Frost healer) ---
+		"frost_deep_cracks":   # Deep Cracks: a shell split by deep cracks, shards bursting out
+			c.draw_arc(mid, 13.0 * k, 0, TAU, 26, light, 2.5 * k, true)
+			c.draw_polyline(_p(mid, k, [Vector2(-10, -8), Vector2(-2, -2), Vector2(-6, 6), Vector2(2, 12)]), WHITE, 2.2 * k, true)
+			c.draw_polyline(_p(mid, k, [Vector2(10, -10), Vector2(3, -3), Vector2(8, 4)]), WHITE, 2.2 * k, true)
+			_plus(c, mid + Vector2(14, 13) * k, 4.0 * k, Color(0.45, 1.0, 0.45), 2.0 * k)
+		"frost_cold_spread":   # Cold Spread: rings of healing ice spreading out
+			for i in 3:
+				c.draw_arc(mid, (5.0 + i * 5.0) * k, 0, TAU, 20, Color(light if i < 2 else WHITE, 0.9 - i * 0.2), 2.0 * k, true)
+			_plus(c, mid, 3.5 * k, Color(0.45, 1.0, 0.45), 2.0 * k)
+		"frost_slow_runoff":   # Slow Runoff: drops running off a melting shell
+			c.draw_arc(mid + Vector2(0, -4) * k, 11.0 * k, PI, TAU, 16, light, 2.5 * k, true)
+			for p in [Vector2(-7, 6), Vector2(0, 11), Vector2(7, 6)]:
+				_drop(c, mid + (p as Vector2) * k, 4.0 * k, Color(col, 0.9), WHITE, k)
+		"frost_shard_spray":   # Shard Spray: shards flying out, each with a little shield
+			for d in [Vector2(-1, -1), Vector2(1, -1), Vector2(0, 1)]:
+				_shard(c, mid + (d as Vector2).normalized() * 15.0 * k, (d as Vector2).normalized(), 9.0 * k, 3.0 * k, Color(col, 0.85), WHITE, k)
+			c.draw_arc(mid, 5.0 * k, 0, TAU, 12, WHITE, 2.0 * k, true)
+		"frost_splinterheal":   # Splinterheal: a shattering splinter turning into a heal
+			_shard(c, mid + Vector2(-8, -8) * k, Vector2(-1, -1).normalized(), 14.0 * k, 4.0 * k, Color(col, 0.85), WHITE, k)
+			c.draw_line(mid + Vector2(-2, -2) * k, mid + Vector2(6, 6) * k, light, 2.0 * k, true)
+			_plus(c, mid + Vector2(9, 9) * k, 6.0 * k, Color(0.45, 1.0, 0.45), 3.0 * k)
+		"frost_wide_lattice":   # Wide Lattice: four shells joined by threads of ice
+			var spots := [Vector2(-10, -10), Vector2(10, -10), Vector2(10, 10), Vector2(-10, 10)]
+			for i in 4:
+				c.draw_line(mid + (spots[i] as Vector2) * k, mid + (spots[(i + 1) % 4] as Vector2) * k, light, 2.0 * k, true)
+			for p in spots:
+				c.draw_circle(mid + (p as Vector2) * k, 4.5 * k, Color(col, 0.85))
+				c.draw_arc(mid + (p as Vector2) * k, 4.5 * k, 0, TAU, 12, WHITE, 1.5 * k, true)
 		"frost_absorb":   # Rime Ward: stronger shields - shield with a plus
 			_shield(c, mid, k, Color(col, 0.5), light)
 			c.draw_rect(Rect2(mid + Vector2(-2, -8) * k, Vector2(4, 14) * k), WHITE, true)

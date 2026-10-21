@@ -11,7 +11,7 @@ Idle = time with nothing to press: "waiting on cooldowns" when every button was 
 | Fire | Forge Heat | dps | 323 | 323 DPS | 1822 DPS | Auto Attack 38%, Quench 33%, Searing Strike 23% |  | Cooling Slag, Bellows |
 | Fire | Pitch and Cinder | dps | 284 | 242 DPS | 1335 DPS | Auto Attack 51%, Flaming Arrow 31%, Furnace Breath 7% | geared DPS low, idle 32% (waiting on cooldowns) | Cooling Slag, Bellows |
 | Frost | Hard Winter | dps | 466 | 272 DPS | 1932 DPS | Frost Bolt 48%, Coldspike 40%, Hoarfrost 5% |  | Deepwinter, Rimelock, Flash Freeze, Winter Hide, Glacial Plate, Snow Ward |
-| Frost | Cold Comfort | tank | 483 | 134 DPS, 140 self-HPS | 1073 DPS, 728 self-HPS | Rime Shell 100% |  | Rimelock, Flash Freeze, Winter Hide, Glacial Plate, Snow Ward |
+| Frost | Cold Comfort | healer | 0 | 272 HPS | 1419 HPS | Meltwater 74%, Rimefall 15%, Break the Ice 11% | idle 38% (resource-starved) | Frost Lattice, Frost Tide, Spring Thaw, Rimelock, Flash Freeze, Winter Hide, Glacial Plate, Snow Ward |
 | Frost | Frostbitten Steel | dps | 303 | 297 DPS | 1796 DPS | Auto Attack 38%, Shattering Slam 17%, Winter's Bite 17% |  | Rimelock, Flash Freeze, Winter Hide, Glacial Plate, Snow Ward |
 | Frost | Winter Hunt | dps | 278 | 216 DPS | 1319 DPS | Auto Attack 52%, Frost Arrow 18%, Shatter Shot 13% | geared DPS low, idle 40% (resource-starved) | Rimefletch, Coldmark, Icy Retreat, Rimelock, Flash Freeze, Winter Hide, Glacial Plate, Snow Ward |
 | Lightning | Live Current | dps | 637 | 393 DPS | 2402 DPS | Lightning Bolt 48%, Leaping Arc 29%, Live Wire 23% |  | Discharge, Grounding Surge, Capacitor, Static Snare, Jolt, Storm Front, Flicker, Static Step, Thunder Strike, Faraday Guard, Ground Out, Recharge |

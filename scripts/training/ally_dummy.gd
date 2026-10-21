@@ -63,6 +63,9 @@ func _ready() -> void:
 	status.set_script(STATUS_CONTAINER)
 	add_child(status)
 	status.changed.connect(_update_bar)
+	status.shield_expired.connect(func(id: String, left: int, source: Node):
+		if id == "rime_shell" and source != null and source.get("frost_healer") != null:
+			source.frost_healer.shell_runoff(self, left))   # Runoff (Cold Comfort)
 	_build_bar()
 
 func is_alive() -> bool:
@@ -92,6 +95,8 @@ func take_damage(amount: int) -> void:
 ## `armor_pct` = the caster's Hardened Frost; `shatters` = false with Everlasting Rime.
 func receive_rime_shell(caster: Node, amount: int, armor_pct: float = 0.0, shatters: bool = true) -> void:
 	SHIELDS.put_rime_shell(status, caster, amount, false, armor_pct, func():
+		if is_instance_valid(caster) and caster.get("frost_healer") != null:
+			caster.frost_healer.shell_broke(self, amount)   # Rime Shards (Cold Comfort)
 		if shatters and is_instance_valid(caster) and caster.has_method("shatter_at"):
 			caster.shatter_at(global_position))
 	status.apply(THAWING_FX, caster)

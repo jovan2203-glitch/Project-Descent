@@ -814,6 +814,30 @@ const FROZEN_AEGIS_ON_HIT := 0.2         # shield = this x a Heal spell, when yo
 const FROZEN_AEGIS_CAP := 1.0            # shields stack up to this x a Heal spell
 const FROZEN_AEGIS_TIME := 10.0
 const EVERLASTING_RIME_MULT := 2.0       # Everlasting Rime: Rime Shell absorbs x this
+# Frost healer: Cold Comfort (scripts/player/frost_healer.gd). Shields as a share of
+# the reference heal ({h:..} in tooltips); Rime Shell's own size is HEALS["rimeshell"].
+const RIME_SHARDS_PCT := 30.0            # a Rime Shell of yours that breaks on an ally heals allies near it for this % of its shield
+const RIME_SHARDS_RADIUS := 8.0          # ... within this many metres (split past the AoE cap)
+const RUNOFF_PCT := 50.0                 # a Rime Shell of yours that runs out on an ally heals them for this % of what was left ...
+const RUNOFF_TIME := 4.0                 # ... over this many seconds (one tick a second)
+const MELTWATER_THAWING_PCT := 30.0      # Meltwater heals this % more on an ally with your Thawing
+const BREAK_ICE_PCT := 80.0              # Break the Ice: this % of the shell's remaining shield heals allies near them
+const GLAZE_SHARE := 0.2                 # Glaze: a shield this share of a heal ...
+const GLAZE_EVERY := 3.0                 # ... refilled every this many seconds ...
+const GLAZE_TIME := 12.0                 # ... for this long
+const LATTICE_LINKS := 3                 # Frost Lattice: your target and the nearest allies with your Rime Shell, this many in all ...
+const LATTICE_TIME := 20.0               # ... for this long
+const LATTICE_GROW_PCT := 20.0           # a linked shell that breaks makes every other linked shell this % of its size bigger
+const RIMEFALL_SHARE := 0.3              # Rimefall: a shield this share of a heal on every ally near you ...
+const RIMEFALL_PER_SHELL := 0.1          # ... plus this much per Rime Shell of yours on an ally ...
+const RIMEFALL_MAX_SHELLS := 3           # ... counting up to this many
+const RIMEFALL_TIME := 8.0
+const FROST_TIDE_TIME := 10.0            # Frost Tide: for this long Rime Shell ignores Thawing and is instant on enemies too
+const STILLWATER_HEALTH_PCT := 35.0      # Stillwater: only on an ally below this % health
+const STILLWATER_TIME := 3.0             # ... encased (no damage, can't act; moving breaks out) this long ...
+const STILLWATER_HEAL_PCT := 30.0        # ... then healed for this % of their max health
+const SPLINTERHEAL_RADIUS := 10.0        # Splinterheal (talent): the lowest-health ally within this many metres of the shattered enemy
+const SHARD_SPRAY_TIME := 3.0            # Shard Spray (talent): the little shield Rime Shards leave lasts this long
 
 ## The reference heal (what the old Heal spell healed): shields and heals sized as
 ## "a share of a heal" (Snow Ward, Cupped Hands, Frozen Aegis, {h:...} in tooltips) use it.
@@ -835,7 +859,9 @@ const HEALS := {"rimeshell": 1.1, "rimeslash": 1.1,
 	"mendingray": 3.3, "brightlance": 3.96, "gleam": 1.1, "prismward": 2.64,
 	# Nature healer (the Shepherd), in old Heals: Dewfall 1, Fawn 1 (the first ally; each bounce less),
 	# Owl 1, Rootguard 0.8 (shield, + ROOTGUARD_PER_BLOSSOM), Heartwood Elk 0.5 each (+ ELK_PER_BLOSSOM).
-	"dewfall": 2.2, "fawn": 2.2, "owl": 2.2, "rootguard": 1.76, "heartwoodelk": 1.1}
+	"dewfall": 2.2, "fawn": 2.2, "owl": 2.2, "rootguard": 1.76, "heartwoodelk": 1.1,
+	# Frost healer (Cold Comfort), in old Heals: Meltwater 0.9.
+	"meltwater": 1.98}
 ## Pacts (scripts/pacts.gd; every character can hold one for a dungeon). Each has
 ## a bonus, a drawback and a vow. Break the vow and the bonus turns into the same
 ## amount as a penalty until the dungeon ends; the drawback stays.
@@ -901,7 +927,7 @@ const REVIVE_HEALTH_PCT := 30.0    # revived with this % of max health
 ## the start; unused ones stack). A revive in combat (Last Verse, Not Finished With
 ## You) spends one. Out-of-combat rezzes and the Training Room are free.
 const COMBAT_REZ_INTERVAL := 300.0
-const RAISE_HEALTH_PCT := 50.0     # healers' out-of-combat rez (Hymn of Waking, Relight, Back on Your Feet, Return to Bloom): health back
+const RAISE_HEALTH_PCT := 50.0     # healers' out-of-combat rez (Hymn of Waking, Relight, Back on Your Feet, Return to Bloom, Spring Thaw): health back
 const RAISE_MANA_PCT := 50.0       # ... and mana back
 
 # --- Co-op: pings ------------------------------------------------------------------
@@ -1245,6 +1271,14 @@ const ABILITIES := {
 	"rimefletch": {"cooldown": 30.0, "cost": 20},                                       # RIMEFLETCH_SHOTS / _TIME / _PCT
 	"coldmark": {"cooldown": 20.0, "cost": 0},                                          # lasts as long as its effect (EFFECTS)
 	"icyretreat": {"cooldown": 15.0, "cost": 15, "radius": 4.0},                        # radius = the ice it leaves; ICY_RETREAT_DISTANCE / _TIME
+	# Frost healer: Cold Comfort (RIME_SHARDS_* and the rest below; heals in HEALS)
+	"meltwater": {"cost": 2, "cast_time": 1.5, "range": 40.0},
+	"glaze": {"cost": 2, "range": 40.0},                                                 # GLAZE_SHARE every GLAZE_EVERY sec for GLAZE_TIME
+	"breaktheice": {"cooldown": 10.0, "cost": 1, "radius": 8.0, "range": 40.0},          # radius = who its heal reaches (+ Cold Spread)
+	"frostlattice": {"cooldown": 30.0, "cost": 3, "range": 40.0},                        # LATTICE_LINKS allies for LATTICE_TIME
+	"rimefall": {"cooldown": 15.0, "cost": 4, "cast_time": 2.5, "radius": 20.0},
+	"frosttide": {"cooldown": 120.0},                                                    # lasts FROST_TIDE_TIME
+	"stillwater": {"cooldown": 90.0, "cost": 2, "range": 40.0},
 	# Fire
 	"fireball": {"damage": 1.25, "cost": 1, "cast_time": 2.2, "range": 20.0},
 	"searingstrike": {"weapon_mult": 1.5, "cooldown": 6.0, "cost": 30},

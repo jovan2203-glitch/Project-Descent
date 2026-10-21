@@ -115,7 +115,9 @@ const DEFAULT_LAYOUT := [
 ##              tank and caster (the bow's is in row 9).
 const LAYOUTS := {
 	"fire": [[0, 2, 3, 4, 6], [1, 2, 4, 5], [0, 3, 6], [1, 3, 5], [0, 2, 4, 6], [1, 2, 4, 5], [1, 5], [2, 3, 4], [1, 5], [1, 3, 5]],
-	"frost": [[0, 2, 4, 6], [1, 2, 4, 5], [1, 3, 5], [0, 2, 4, 6], [1, 2, 4, 5], [2, 3, 4], [1, 3, 5], [0, 3, 6], [1, 3, 5], [2, 3, 4]],
+	# (Cold Comfort's talents took new slots, kept mirror-symmetric: the middle of rows
+	# 1-2 and both edges of rows 9-10, clear of every link line.)
+	"frost": [[0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [1, 3, 5], [0, 2, 4, 6], [1, 2, 4, 5], [2, 3, 4], [1, 3, 5], [0, 3, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6]],
 	"lightning": [[1, 2, 3, 4, 5], [0, 2, 4, 6], [0, 2, 3, 4, 6], [2, 3, 4], [1, 3, 5], [0, 3, 6], [2, 3, 4], [1, 2, 4, 5], [1, 3, 5], [2, 3, 4]],
 	"arcane": [[0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 2, 4, 6], [0, 1, 3, 5, 6], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [0, 2, 4, 6], [1, 2, 4, 5], [0, 2, 4, 6], [1, 2, 3, 4, 5]],
 	"shadow": [[0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5]],
@@ -237,6 +239,21 @@ const TALENTS := {
 			{"key": "frost_haste", "values": [0.7, 1.4, 2.1], "stats": {"haste": 0.7}}],
 		"r1c7": ["Rime Ward", 3, "Shields you apply absorb {v}% more damage.",
 			{"key": "frost_absorb", "values": [5.0, 10.0, 15.0]}],
+		# Cold Comfort, the Frost healer (scripts/player/frost_healer.gd): Rime Shell's two
+		# at the top of the middle (linked), the rest on the edges of rows 9-10.
+		"r1c4": ["Deep Cracks", 3, "When your {n:rimeshell} breaks on an ally, its Rime Shards heal {v}% more.",
+			{"key": "frost_deep_cracks", "values": [10.0, 20.0, 30.0], "requires": "rimeshell"}],
+		"r9c7": ["Cold Spread", 3, "{n:breaktheice} heals allies up to {v} m farther away.",
+			{"key": "frost_cold_spread", "values": [2.0, 4.0, 6.0], "requires": "breaktheice"}],
+		"r9c1": ["Slow Runoff", 3, "When your {n:rimeshell} runs out on an ally, its Runoff heals {v}% more.",
+			{"key": "frost_slow_runoff", "values": [20.0, 40.0, 60.0], "requires": "rimeshell",
+			"capstone": "Each Runoff also gives you back as much mana as {n:breaktheice} costs."}],
+		"r2c4": ["Shard Spray", 3, "Rime Shards also leave a shield on each ally they heal, absorbing {v}% of what they healed for {b:SHARD_SPRAY_TIME} sec.",
+			{"key": "frost_shard_spray", "values": [20.0, 35.0, 50.0], "requires": "rimeshell"}],
+		"r10c1": ["Splinterheal", 3, "Your shatters heal the lowest-health ally within {b:SPLINTERHEAL_RADIUS} m of the enemy for {v}% of the damage they deal.",
+			{"key": "frost_splinterheal", "values": [20.0, 35.0, 50.0]}],
+		"r10c7": ["Wide Lattice", 1, "{n:frostlattice} links one more ally.",
+			{"key": "frost_wide_lattice", "values": [1.0], "requires": "frostlattice"}],
 		"r3c4": ["Splintering Cold", 3, "All of your spells have a {v}% chance to generate an Ice Shard charge.",
 			{"key": "frost_shard_proc", "values": [10.0, 15.0, 20.0], "requires": "iceshards"}],
 		"r2c3": ["Quickened Frost", 3, "Reduces the cast time of your {n:frostbolt} by {v} sec.",
@@ -1025,6 +1042,8 @@ const LINKS := [
 	["frost_hoarfrost", "frost_hoarfrost_burst"],
 	# Freezing a target.
 	["frost_cold_snap", "frost_instinct"],
+	# Cold Comfort: Rime Shards.
+	["frost_deep_cracks", "frost_shard_spray"],
 	# --- Lightning ---
 	# The parry tank: parry talents down column 4, Return Stroke's two down the edge.
 	["lightning_long_reach", "lightning_closed_circuit"],

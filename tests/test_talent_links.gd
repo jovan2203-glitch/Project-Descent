@@ -18,7 +18,7 @@ const WANT := [
 	["fire_fuse_crit", "fire_flashover"], ["fire_flashover", "fire_stoked_kiln"],
 	["frost_absorb", "frost_shield_armor"], ["frost_shield_armor", "frost_ice_floe"],
 	["frost_shard_proc", "frost_shardstorm"], ["frost_shardstorm", "frost_splinter"],
-	["frost_hoarfrost", "frost_hoarfrost_burst"], ["frost_cold_snap", "frost_instinct"],
+	["frost_hoarfrost", "frost_hoarfrost_burst"], ["frost_cold_snap", "frost_instinct"], ["frost_deep_cracks", "frost_shard_spray"],
 	["lightning_long_reach", "lightning_closed_circuit"], ["lightning_closed_circuit", "lightning_earth_return"],
 	["lightning_earth_return", "lightning_tempo"], ["lightning_counter_charge", "lightning_second_stroke"],
 	["lightning_running_start", "lightning_whip_crack"], ["lightning_quick_fuse", "lightning_rod"],

@@ -2,6 +2,7 @@ nature_open NatureTalentsOpenKit nature_talents_open.gd
 venomstring VenomstringKit nature_venomstring.gd
 colossus ColossusKit nature_colossus.gd
 shepherd ShepherdKit nature_shepherd.gd
+frost_healer FrostHealerKit frost_healer.gd
 weaver WeaverKit nature_weaver.gd
 holy_talents HolyTalentsKit holy_talents.gd
 lightstring LightstringKit holy_lightstring.gd

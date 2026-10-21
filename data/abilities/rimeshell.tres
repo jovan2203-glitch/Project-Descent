@@ -7,7 +7,7 @@
 script = ExtResource("1_s")
 id = &"rimeshell"
 display_name = "Rime Shell"
-description = "Encases the target in a Rime Shell for {e:rime_shell.time} sec that absorbs {heal} damage. On an ally, they also take {e:rime_shell.pct}% less damage and receive {ne:thawing}. On an enemy, it takes {e:rime_shell_foe.pct}% more damage of every kind from everyone. Targets you if you have no target. When the shell breaks, it shatters for {hit} Frost damage to all enemies within {radius} m. Allies are not harmed. A shatter that damages only one enemy deals {b:RIME_SHELL_SOLO_PCT}% more. On an enemy the shell stays for its full duration after it shatters."
+description = "Encases the target in a Rime Shell for {e:rime_shell.time} sec that absorbs {heal} damage. On an ally, they also take {e:rime_shell.pct}% less damage and receive {ne:thawing}. On an enemy, it takes {e:rime_shell_foe.pct}% more damage of every kind from everyone. Targets you if you have no target. When the shell breaks, it shatters for {hit} Frost damage to all enemies within {radius} m. Allies are not harmed. A shatter that damages only one enemy deals {b:RIME_SHELL_SOLO_PCT}% more. On an enemy the shell stays for its full duration after it shatters. On an ally: when it breaks, Rime Shards heal every ally within {b:RIME_SHARDS_RADIUS} m for {b:RIME_SHARDS_PCT}% of its shield (split evenly past {b:AOE_TARGET_CAP}); when it runs out instead, they are healed for {b:RUNOFF_PCT}% of the shield it had left over {b:RUNOFF_TIME} sec."
 tags = PackedStringArray("Frost", "Spell", "Shield")
 cast_type = 1
 cast_time = 2.0

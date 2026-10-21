@@ -269,6 +269,14 @@ const PATHS := {
 	"lightningbolt": "res://data/abilities/lightningbolt.tres",
 	# Frost: Rime Shell kit (draftable)
 	"rimeshell": "res://data/abilities/rimeshell.tres",
+	"meltwater": "res://data/abilities/meltwater.tres",
+	"glaze": "res://data/abilities/glaze.tres",
+	"breaktheice": "res://data/abilities/breaktheice.tres",
+	"frostlattice": "res://data/abilities/frostlattice.tres",
+	"rimefall": "res://data/abilities/rimefall.tres",
+	"frosttide": "res://data/abilities/frosttide.tres",
+	"stillwater": "res://data/abilities/stillwater.tres",
+	"springthaw": "res://data/abilities/springthaw.tres",
 	"shatteringwave": "res://data/abilities/shatteringwave.tres",
 	"flashfreeze": "res://data/abilities/flashfreeze.tres",
 	"hoarfrost": "res://data/abilities/hoarfrost.tres",
@@ -380,7 +388,8 @@ static func is_trinket_slot(id: String) -> bool:
 	return TRINKET_SLOTS.has(id)
 ## Offered by the level-up draft; learned permanently when picked.
 const DRAFT_POOL := ["frostnova", "icebarrier", "blink",
-	"rimeshell", "shatteringwave", "flashfreeze", "hoarfrost", "shatteringslam", "rimeslash", "iceshards",
+	"rimeshell", "meltwater", "glaze", "breaktheice", "frostlattice", "rimefall", "frosttide", "stillwater", "springthaw",
+	"shatteringwave", "flashfreeze", "hoarfrost", "shatteringslam", "rimeslash", "iceshards",
 	"coldspike", "sleetwave", "deepwinter", "rimelock", "snowward", "winterhide", "rimeedge", "icebreaker", "icepin",
 	"shattershot", "glacialdraw", "rimefletch", "coldmark", "icyretreat",
 	"searingstrike", "flamingarrow", "flamenova", "ventflames", "coolhead", "furnacebreath", "slagskin",
@@ -423,7 +432,8 @@ const DRAFT_POOL := ["frostnova", "icebarrier", "blink",
 	"counterspell"]
 # Every ability that can go on the action bar (order = list order).
 const ALL := ["frostbolt", "blizzard", "frostnova", "icebarrier",
-	"rimeshell", "shatteringwave", "flashfreeze", "hoarfrost", "shatteringslam", "rimeslash", "iceshards",
+	"rimeshell", "meltwater", "glaze", "breaktheice", "frostlattice", "rimefall", "frosttide", "stillwater", "springthaw",
+	"shatteringwave", "flashfreeze", "hoarfrost", "shatteringslam", "rimeslash", "iceshards",
 	"froststrike", "frostarrow",
 	"coldspike", "sleetwave", "deepwinter", "rimelock", "snowward", "winterhide", "rimeedge", "icebreaker", "icepin",
 	"shattershot", "glacialdraw", "rimefletch", "coldmark", "icyretreat",
@@ -473,6 +483,7 @@ const CATEGORY_OF := {
 	"frostbolt": "frost", "blizzard": "frost", "hoarfrost": "frost", "shatteringslam": "frost", "rimeslash": "frost",
 	"frostnova": "frost", "icebarrier": "frost", "froststrike": "frost", "frostarrow": "frost",
 	"rimeshell": "frost", "shatteringwave": "frost", "flashfreeze": "frost", "iceshards": "frost",
+	"meltwater": "frost", "glaze": "frost", "breaktheice": "frost", "frostlattice": "frost", "rimefall": "frost", "frosttide": "frost", "stillwater": "frost", "springthaw": "frost",
 	"coldspike": "frost", "sleetwave": "frost", "deepwinter": "frost", "rimelock": "frost", "snowward": "frost",
 	"winterhide": "frost", "rimeedge": "frost", "icebreaker": "frost", "icepin": "frost",
 	"shattershot": "frost", "glacialdraw": "frost", "rimefletch": "frost", "coldmark": "frost", "icyretreat": "frost",
@@ -590,13 +601,13 @@ static func in_category(category: String) -> Array[String]:
 ## The healer specs (SPECS names). Every one has an out-of-combat rez (tag
 ## "Resurrect"); abilities that revive (tags "Revive", "Resurrect") sit only in
 ## these (CLAUDE.md; tests/test_books.gd).
-const HEALER_SPECS := ["Choir of One", "Line of Light", "Strings Attached", "Shepherd"]
+const HEALER_SPECS := ["Choir of One", "Line of Light", "Strings Attached", "Shepherd", "Cold Comfort"]
 
 ## Each spec's role: "dps", "tank", "healer" or "utility" (the balance sim, the
 ## party frames' role icon). Healers here and in HEALER_SPECS agree (tests/test_books.gd).
 const SPEC_ROLES := {
 	"Steady Flame": "dps", "Slagforged": "tank", "Forge Heat": "dps", "Pitch and Cinder": "dps",
-	"Hard Winter": "dps", "Cold Comfort": "tank", "Frostbitten Steel": "dps", "Winter Hunt": "dps",
+	"Hard Winter": "dps", "Cold Comfort": "healer", "Frostbitten Steel": "dps", "Winter Hunt": "dps",
 	"Live Current": "dps", "Stormdancer": "dps", "Lightning Rod": "tank", "Stormstring": "dps",
 	"Clockwork": "dps", "Hall of Mirrors": "tank", "Second Act": "dps", "Aetherstring": "dps",
 	"The Breach": "dps", "Pack of Two": "dps", "Strings Attached": "healer", "Nightstring": "dps",
@@ -648,7 +659,7 @@ const SPECS := {
 	"frost": [
 		["Hard Winter", ["frostbolt", "blizzard", "frostnova", "iceshards", "coldspike", "sleetwave",
 			"hoarfrost", "shatteringwave", "deepwinter"]],
-		["Cold Comfort", ["rimeshell"]],
+		["Cold Comfort", ["rimeshell", "meltwater", "glaze", "breaktheice", "frostlattice", "rimefall", "frosttide", "stillwater", "springthaw"]],
 		["Frostbitten Steel", ["froststrike", "shatteringslam", "rimeslash", "rimeedge", "icebreaker"]],
 		["Winter Hunt", ["frostarrow", "icepin", "shattershot", "glacialdraw", "rimefletch", "coldmark", "icyretreat"]],
 		["Utility", ["rimelock", "flashfreeze", "winterhide", "icebarrier", "snowward"]],
@@ -1139,7 +1150,7 @@ static func radius_bonus(id: String) -> float:
 		return 0.0
 	return talent(str(RADIUS_TALENTS[id][0])) * float(RADIUS_TALENTS[id][1])
 ## Abilities whose shield Rime Ward makes bigger ({heal} / {ward}).
-const SHIELD_ABILITIES := ["rimeshell", "rimeslash", "snowward", "intervalward", "rootguard", "giantshands"]
+const SHIELD_ABILITIES := ["rimeshell", "rimeslash", "snowward", "intervalward", "rootguard", "giantshands", "glaze", "rimefall"]
 
 ## A talent's number at the rank the player has (0 without it, or outside the game).
 static func talent(key: String, field: String = "values") -> float:
@@ -1525,6 +1536,7 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		"loose_takes": "halves your Streak" if talent("martial_easy_release") <= 0.0
 			else "takes away a %s of your Streak" % ("third" if int(round(talent("martial_easy_release"))) == 3 else "quarter"),   # Easy Release
 		"rootguard_per": fmt_amount(Balance.ROOTGUARD_PER_BLOSSOM * per * absorb),
+		"lattice_links": str(Balance.LATTICE_LINKS + int(round(talent("frost_wide_lattice")))),   # Wide Lattice
 		"elk_per": fmt_amount(Balance.ELK_PER_BLOSSOM * per),
 		"swing_incense": str(Balance.CENSER_SWING_INCENSE + int(round(talent("holy_heavy_chain")))),   # Heavy Chain
 		"unfallen_time": TextFill.num(Balance.UNFALLEN_TIME + talent("holy_unbroken")),   # Unbroken
@@ -3731,6 +3743,59 @@ static func _draw_unique(c: Control, id: String, col: Color, mid: Vector2, k: fl
 			c.draw_arc(mid, 14.0 * k, 0, TAU, 28, light, 2.5 * k, true)
 			c.draw_arc(mid, 9.0 * k, PI * 1.1, PI * 1.5, 8, white, 2.5 * k, true)
 			c.draw_circle(mid + Vector2(5, 5) * k, 2.0 * k, white)
+		# --- Frost healer: Cold Comfort ---
+		"meltwater":
+			# A drop of meltwater falling from a block of ice.
+			c.draw_rect(Rect2(mid + Vector2(-10, -16) * k, Vector2(20, 9) * k), Color(light, 0.8), true)
+			c.draw_rect(Rect2(mid + Vector2(-10, -16) * k, Vector2(20, 9) * k), white, false, 1.5 * k)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(0, -4), Vector2(7, 7), Vector2(0, 14), Vector2(-7, 7)]), Color(col, 0.9))
+			c.draw_circle(mid + Vector2(0, 7) * k, 7.0 * k, Color(col, 0.9))
+			c.draw_circle(mid + Vector2(-2.5, 5) * k, 2.0 * k, white)
+		"glaze":
+			# Three thin layers of ice over a heart of light.
+			for i in 3:
+				c.draw_arc(mid, (7.0 + i * 4.5) * k, PI * 1.05, PI * 1.95, 12, Color(white if i == 2 else light, 0.9 - i * 0.2), 2.0 * k, true)
+			c.draw_circle(mid + Vector2(0, 3) * k, 5.0 * k, Color(col, 0.8))
+			c.draw_circle(mid + Vector2(0, 3) * k, 2.0 * k, white)
+		"breaktheice":
+			# A shell split by a crack, two shards flying off.
+			c.draw_arc(mid, 13.0 * k, 0, TAU, 28, light, 2.5 * k, true)
+			c.draw_polyline(_pts(mid, k, [Vector2(-3, -13), Vector2(2, -5), Vector2(-3, 1), Vector2(3, 7), Vector2(0, 13)]), white, 2.5 * k, true)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(13, -12), Vector2(18, -16), Vector2(16, -9)]), white)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-14, 12), Vector2(-19, 15), Vector2(-16, 8)]), light)
+		"frostlattice":
+			# Three small shells joined by threads of ice.
+			var spots := [Vector2(0, -11), Vector2(-11, 8), Vector2(11, 8)]
+			for i in 3:
+				c.draw_line(mid + (spots[i] as Vector2) * k, mid + (spots[(i + 1) % 3] as Vector2) * k, light, 2.0 * k, true)
+			for p in spots:
+				c.draw_circle(mid + (p as Vector2) * k, 5.0 * k, Color(col, 0.85))
+				c.draw_arc(mid + (p as Vector2) * k, 5.0 * k, 0, TAU, 12, white, 1.5 * k, true)
+		"rimefall":
+			# Rime falling over a dome.
+			c.draw_arc(mid + Vector2(0, 12) * k, 15.0 * k, PI, TAU, 18, light, 3.0 * k, true)
+			for p in [Vector2(-9, -12), Vector2(0, -6), Vector2(9, -13), Vector2(-4, -16), Vector2(6, -2)]:
+				_star(c, mid + (p as Vector2) * k, 2.5 * k, white, 3)
+		"frosttide":
+			# A breaking wave with a snowflake riding it.
+			c.draw_polyline(_pts(mid, k, [Vector2(-16, 8), Vector2(-8, 2), Vector2(0, 6), Vector2(8, 0), Vector2(14, -8), Vector2(8, -12), Vector2(4, -6)]), light, 3.0 * k, true)
+			c.draw_polyline(_pts(mid, k, [Vector2(-16, 14), Vector2(-6, 9), Vector2(4, 13), Vector2(16, 6)]), Color(col, 0.9), 2.5 * k, true)
+			_star(c, mid + Vector2(-6, -8) * k, 4.5 * k, white, 3)
+		"stillwater":
+			# A figure held still inside a block of ice.
+			c.draw_rect(Rect2(mid + Vector2(-11, -15) * k, Vector2(22, 30) * k), Color(col, 0.35), true)
+			c.draw_rect(Rect2(mid + Vector2(-11, -15) * k, Vector2(22, 30) * k), light, false, 2.0 * k)
+			c.draw_circle(mid + Vector2(0, -6) * k, 4.0 * k, white)
+			c.draw_line(mid + Vector2(0, -2) * k, mid + Vector2(0, 9) * k, white, 3.0 * k, true)
+			c.draw_line(mid + Vector2(-5, 2) * k, mid + Vector2(5, 2) * k, white, 2.0 * k, true)
+		"springthaw":
+			# A green shoot rising out of thawing ice.
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-16, 14), Vector2(-10, 6), Vector2(10, 6), Vector2(16, 14)]), Color(light, 0.8))
+			c.draw_line(mid + Vector2(0, 8) * k, mid + Vector2(0, -10) * k, Color(0.45, 0.9, 0.4), 3.0 * k, true)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(0, -6), Vector2(-9, -12), Vector2(-2, -2)]), Color(0.45, 0.9, 0.4))
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(0, -2), Vector2(9, -8), Vector2(2, 2)]), Color(0.55, 1.0, 0.5))
+			for p in [Vector2(-9, 10), Vector2(8, 10)]:
+				c.draw_circle(mid + (p as Vector2) * k, 1.5 * k, white)
 		"shatteringwave":
 			for i in 6:
 				var a0 := TAU * i / 6.0

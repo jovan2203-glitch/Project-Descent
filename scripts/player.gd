@@ -58,6 +58,7 @@ var lightstring: LightstringKit = _kit(LightstringKit) as LightstringKit
 var holy_talents: HolyTalentsKit = _kit(HolyTalentsKit) as HolyTalentsKit
 var weaver: WeaverKit = _kit(WeaverKit) as WeaverKit
 var shepherd: ShepherdKit = _kit(ShepherdKit) as ShepherdKit
+var frost_healer: FrostHealerKit = _kit(FrostHealerKit) as FrostHealerKit
 var colossus: ColossusKit = _kit(ColossusKit) as ColossusKit
 var venomstring: VenomstringKit = _kit(VenomstringKit) as VenomstringKit
 var nature_open: NatureTalentsOpenKit = _kit(NatureTalentsOpenKit) as NatureTalentsOpenKit
@@ -919,7 +920,7 @@ func _muzzle() -> Vector3:
 	# A strange pose (or a model swap) must never fire from somewhere silly.
 	return p if p.distance_to(global_position) < 1.6 else fallback
 ## Cast-time spells aimed at an ally / you / (Rime Shell) an enemy, or nothing.
-const SUPPORT_CASTS := ["rimeshell", "flashfreeze", "hoist", "patchup", "psalm", "outpour", "canticle", "exultation", "brightlance", "dewfall", "fawn"]
+const SUPPORT_CASTS := ["rimeshell", "flashfreeze", "hoist", "patchup", "psalm", "outpour", "canticle", "exultation", "brightlance", "dewfall", "fawn", "meltwater", "rimefall"]
 ## Instant abilities every character has (handled like drafted ones).
 const BASE_INSTANTS: Array[String] = []   # (none since the Martial book was wiped)
 
@@ -1060,6 +1061,7 @@ func _setup_status() -> void:
 	status.set_script(StatusContainer)
 	add_child(status)
 	status.shield_broken.connect(frost_runes._on_my_shield_broken)
+	status.shield_expired.connect(_on_my_shield_expired)
 	status.changed.connect(func():
 		fire_cooldowns._cool_head_check()
 		fire_cooldowns._heat_sink_check()
@@ -2159,8 +2161,8 @@ func _begin_spell(spell: String, display_name: String, duration: float, channel:
 	elif spell == DecayKit.ERODE_ID:
 		duration = StringsKit.deep_call_cast(duration, _talent("shadow_deep_call"), decay.decay_open_on(target))   # Deep Call
 	duration /= haste_mult()
-	if Abilities.INSTANT_ON_ALLIES.has(spell) and _cast_kind in ["self", "ally"]:
-		duration = 0.05   # Rime Shell: instant on an ally or me (released next frame)
+	if Abilities.INSTANT_ON_ALLIES.has(spell) and (_cast_kind in ["self", "ally"] or (spell == "rimeshell" and frost_healer.frost_tide_on())):
+		duration = 0.05   # Rime Shell: instant on an ally or me (Frost Tide: on enemies too; released next frame)
 	if Abilities.is_a(spell, "frostbolt") and frost_bow.frozen_instinct_ready():
 		duration = 0.05   # Frozen Instinct: instant (released next frame)
 		frost_bow._instinct_cast = true
@@ -2439,6 +2441,7 @@ func _process(_delta: float) -> void:
 	prism_kit._tick_prisms()
 	weaver._tick_weaver()
 	shepherd._tick_shepherd()
+	frost_healer._tick_frost_healer()
 	colossus._tick_colossus()
 	wheel._tick_wheel()
 	brawler._tick_brawler(_delta)
@@ -2715,6 +2718,8 @@ func _use_drafted(id: String) -> void:
 			weaver._weaver_use(id, res)   # Nature caster: the Weaver
 		ShepherdKit.ROOTGUARD_ID, ShepherdKit.OWL_ID, ShepherdKit.ELK_ID, ShepherdKit.WILD_HERD_ID:
 			shepherd._shepherd_use(id, res)   # Nature healer: the Shepherd
+		FrostHealerKit.GLAZE_ID, FrostHealerKit.BREAK_ICE_ID, FrostHealerKit.LATTICE_ID, FrostHealerKit.FROST_TIDE_ID, FrostHealerKit.STILLWATER_ID:
+			frost_healer._frost_healer_use(id, res)   # Frost healer: Cold Comfort
 		ColossusKit.VINE_FIST_ID, ColossusKit.GRASP_ID, ColossusKit.STOMP_ID, ColossusKit.GIANTS_HANDS_ID, ColossusKit.HEARTSAP_ID, ColossusKit.AWAKEN_ID:
 			colossus._colossus_use(id, res)   # Nature tank: the Colossus
 		"hack", "chop", "rush", "shrapnel", "slash", "lunge", "bladeguard", "shardlance", \
@@ -3088,6 +3093,8 @@ func _drafted_precheck(id: String, _res: Resource, w: Dictionary) -> String:
 		return lightstring._lightstring_precheck(id)   # Holy archer
 	if ShepherdKit.SHEPHERD_INSTANTS.has(id):
 		return shepherd._shepherd_precheck(id)   # Nature healer
+	if FrostHealerKit.INSTANTS.has(id):
+		return frost_healer._frost_healer_precheck(id)   # Frost healer
 	if ColossusKit.COLOSSUS_IDS.has(id):
 		return colossus._colossus_precheck(id)   # Nature tank
 	if Abilities.CATEGORY_OF.get(id, "") == "martial" and (Abilities.wheel_weapon_of(id) != "" \
@@ -3330,7 +3337,9 @@ func _pick_support_target(id: String) -> Array:
 	var res := Abilities.get_resource(id)
 	var lockout: Resource = res.get("ally_lockout_effect") if res else null
 	var lock_id := str(lockout.id) if lockout else ""
-	if id == "flashfreeze" or id == "canticle" or id == "exultation":
+	if id == "rimeshell" and frost_healer.frost_tide_on():
+		lock_id = ""   # Frost Tide: Rime Shell ignores Thawing
+	if id == "flashfreeze" or id == "canticle" or id == "exultation" or id == FrostHealerKit.RIMEFALL_ID:
 		return [null, ""]   # (around me: whoever my friendly target is does not matter)
 	# Mouseover casting: the ally (or me) under the mouse, if it is a legal target.
 	# It comes first, even for Rime Shell with an enemy targeted: allies are preferred.
@@ -3419,6 +3428,7 @@ func _release_support(spell: String) -> void:
 				"ally":
 					if is_instance_valid(tgt) and tgt.is_in_group("friendly") and tgt.has_method("receive_rime_shell"):
 						tgt.receive_rime_shell(self, absorb, armor, not everlasting)
+						frost_healer.note_shell(tgt, absorb)
 						_ring_effect(1.0, Color(0.6, 0.9, 1.0), tgt.global_position)
 					elif is_instance_valid(tgt) and tgt.is_alive() and _net():
 						_net().shell_ally(tgt, self, absorb, armor, not everlasting)
@@ -3427,9 +3437,11 @@ func _release_support(spell: String) -> void:
 						var locks: Dictionary = tgt.get("lockouts") if tgt.get("lockouts") is Dictionary else {}
 						locks["thawing"] = Time.get_ticks_msec() / 1000.0 + float(THAWING_FX.duration)
 						tgt.set("lockouts", locks)
+						frost_healer.note_shell(tgt, absorb)
 						_ring_effect(1.0, Color(0.6, 0.9, 1.0), tgt.global_position)
 				_:
 					receive_rime_shell(self, absorb, armor, not everlasting)
+					frost_healer.note_shell(self, absorb)
 		"flashfreeze":
 			_flash_freeze(float(res.radius))
 		"hoist", "patchup":
@@ -3440,6 +3452,17 @@ func _release_support(spell: String) -> void:
 			prism_kit._prism_cast_heal(spell, tgt, kind)   # Holy healer #2 (the Prisms)
 		"dewfall", "fawn":
 			shepherd._shepherd_cast_heal(spell, tgt, kind)   # Nature healer: the Shepherd
+		"meltwater", "rimefall":
+			frost_healer._frost_healer_cast(spell, tgt, kind)   # Frost healer: Cold Comfort
+
+## A shield on me ran out of time: a Rime Shell's caster turns what was left into Runoff.
+func _on_my_shield_expired(id: String, left: int, source: Node) -> void:
+	if id != "rime_shell" or source == null:
+		return
+	if source == self:
+		frost_healer.shell_runoff(self, left)
+	elif _net():
+		_net().support_ally(source, self, "rime_runoff", {"left": left})
 
 ## A Rime Shell lands on me (from me or a party member): 20% less damage taken,
 ## a shield of `amount`, and Thawing. When the shield breaks it shatters
@@ -3450,6 +3473,11 @@ func receive_rime_shell(caster: Node, amount: int, armor_pct: float = 0.0, shatt
 	if is_dead():
 		return
 	PlayerKit.SHIELDS.put_rime_shell(status, caster, amount, false, armor_pct, func():
+		# Rime Shards: the caster heals the allies near me (Cold Comfort), with or without a shatter.
+		if caster == self:
+			frost_healer.shell_broke(self, amount)
+		elif _net() and is_instance_valid(caster):
+			_net().support_ally(caster, self, "rime_broke", {"amount": amount})
 		if not shatters:
 			return
 		if _net():

@@ -508,6 +508,9 @@ const HIT_NAMES := {
 	"refraction": "Refraction",
 	"thornburst": "Thornburst",
 	"owlstrike": "Owl's Strike",
+	"rimeshards": "Rime Shards",
+	"runoff": "Runoff",
+	"splinterheal": "Splinterheal",
 	"evergreen": "Evergreen",
 	"catchyourbreath": "Catch Your Breath",
 	"stomproots": "Stomp Roots",
@@ -577,7 +580,7 @@ static func spell_color(id: String) -> Color:
 			return Color(0.75, 0.72, 0.66)
 		"burning", "afterglow", "slag_mending", "slag_shatter", "smoldering_debris":
 			return Abilities.color_of("fireball")
-		"chilled", "frozen", "frozen_shatter", "splintering", "permafrost", "deepfreeze", "icefloe":
+		"chilled", "frozen", "frozen_shatter", "splintering", "permafrost", "deepfreeze", "icefloe", "rimeshards", "runoff", "splinterheal":
 			return Abilities.color_of("frostbolt")
 		"overload", "earth_return", "parting_spark", "lightning_rod", "spillover":
 			return Abilities.color_of("lightningbolt")

@@ -10,7 +10,7 @@ extends RefCounted
 const DIR := "res://data/skill_cards/"
 const MAX_EQUIPPED := 5
 const ALL := ["frostnova", "icebarrier", "blink",
-	"rimeshell", "shatteringwave", "flashfreeze", "hoarfrost", "shatteringslam", "rimeslash", "iceshards",
+	"rimeshell", "meltwater", "glaze", "breaktheice", "frostlattice", "rimefall", "frosttide", "stillwater", "springthaw", "shatteringwave", "flashfreeze", "hoarfrost", "shatteringslam", "rimeslash", "iceshards",
 	"searingstrike", "flamingarrow", "flamenova", "ventflames", "coolhead", "furnacebreath", "slagskin", "stoke", "embervolley", "immolate", "walloffire",
 	"kilnblast", "slowfuse", "rekindle",
 	"brand", "anvil", "cinderstep", "cinderguard", "crucible", "heatsink", "quench", "flare",

@@ -30,6 +30,15 @@ const PAYOFF := {
 	"heartwoodelk": {"heal": (1.1 + 0.66 * 2) * 5.0},
 	"wildherd": {"heal": 2.2 * (1.0 + 0.8 + 0.64 + 0.512) * 5.0},
 	"owl": {"coef": 0.5, "heal": 2.2},
+	# Frost healer (Cold Comfort): Glaze refills four times over its time (counted as half used up);
+	# Rimefall on 5 allies with 2 shells out; Break the Ice on 3 allies from a half-used shell;
+	# Stillwater about 30% of a 2.5-Heal-sized health bar; Rime Shell's own shield plus its Rime Shards on 3.
+	"glaze": {"heal": 0.44 * 5.0 * 0.5},
+	"rimefall": {"heal": (0.66 + 0.22 * 2) * 5.0},
+	"breaktheice": {"heal": 1.1 * 0.5 * 0.8 * 3.0},
+	"stillwater": {"heal": 2.2 * 2.5 * 0.3},
+	"frostlattice": {"skip": true}, "frosttide": {"skip": true},
+	"rimeshell": {"heal": 1.1 + 1.1 * 0.3 * 3.0},
 	# Nature tank: Sap healing is a separate source (self_heal), Heartsap at 5 Sap.
 	"heartsap": {"self_heal_pct": 20.0},
 	"stomp": {"coef": 0.8, "dot": 0.6, "dot_time": 6.0},

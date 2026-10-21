@@ -14,6 +14,9 @@ extends Node
 signal changed
 ## A shield was used up by damage (not removed / expired). `id` = its effect key.
 signal shield_broken(id: String)
+## A shield ran out of time with `left` still in it (not broken, not removed).
+## `source` = who put it on (Runoff: Rime Shell's caster heals what was left).
+signal shield_expired(id: String, left: int, source: Node)
 
 const StatusEffectScript = preload("res://scripts/data/status_effect_data.gd")
 const COMBAT = preload("res://scripts/core/combat_system.gd")
@@ -287,6 +290,14 @@ func set_absorb(id: String, amount: int, on_break: Callable = Callable(), keep_e
 		return
 	absorbs[id] = {"amount": amount, "on_break": on_break, "keep": keep_effect}
 	effects[id].erase("net_absorb")
+	changed.emit()
+
+## Make the shield on effect `id` `amount` bigger, keeping what happens when it
+## breaks (Frost Lattice grows a Rime Shell). Nothing if it has no shield.
+func add_absorb(id: String, amount: int) -> void:
+	if not absorbs.has(id) or amount <= 0:
+		return
+	absorbs[id]["amount"] = int(absorbs[id]["amount"]) + amount
 	changed.emit()
 
 ## Shield health left on `source`'s copy of effect `id` (0 = none, or it already
@@ -722,8 +733,12 @@ func _process(_delta: float) -> void:
 	var bursts: Array = []
 	var last_ticks: Array = []   # [effect entry, % of a tick]: dealt below, once the effects are gone
 	var roots_ended: Array = []  # [caster, effect]: roots and holds that ran out (told below: Clinging Vines)
+	var shields_out: Array = []   # [id, left, source]: shields that ran out of time (told below)
 	for id in expired:
 		var e: Dictionary = effects[id]
+		if absorbs.has(id) and int(absorbs[id]["amount"]) > 0 and float(e["expires"]) > 0.0:
+			var ssrc: Variant = e.get("source")
+			shields_out.append([str(id), int(absorbs[id]["amount"]), ssrc if ssrc != null and is_instance_valid(ssrc) else null])
 		var er = e["res"].get("expire_damage")
 		if er != null and float(er) > 0.0:
 			bursts.append([e, float(er)])
@@ -767,5 +782,7 @@ func _process(_delta: float) -> void:
 	for r in roots_ended:
 		if is_instance_valid(r[0]):
 			r[0].root_ended(get_parent(), r[1])
+	for so in shields_out:
+		shield_expired.emit(so[0], so[1], so[2])
 	if not expired.is_empty():
 		changed.emit()

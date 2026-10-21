@@ -14,13 +14,15 @@ const HYMN_OF_WAKING_ID := "hymnofwaking"     # Choir of One
 const RELIGHT_ID := "relight"                 # Line of Light
 const BACK_ON_FEET_ID := "backonyourfeet"     # Strings Attached
 const RETURN_TO_BLOOM_ID := "returntobloom"   # Shepherd
-const IDS := [HYMN_OF_WAKING_ID, RELIGHT_ID, BACK_ON_FEET_ID, RETURN_TO_BLOOM_ID]
+const SPRING_THAW_ID := "springthaw"          # Cold Comfort
+const IDS := [HYMN_OF_WAKING_ID, RELIGHT_ID, BACK_ON_FEET_ID, RETURN_TO_BLOOM_ID, SPRING_THAW_ID]
 ## Each rez's colour (the ring where the ally gets up).
 const COLORS := {
 	HYMN_OF_WAKING_ID: Color(1.0, 0.85, 0.35),
 	RELIGHT_ID: Color(0.95, 0.97, 1.0),
 	BACK_ON_FEET_ID: Color(0.7, 0.35, 0.9),
 	RETURN_TO_BLOOM_ID: Color(0.45, 0.9, 0.4),
+	SPRING_THAW_ID: Color(0.6, 0.9, 1.0),
 }
 const IN_COMBAT_ERROR := "Can't do that in combat"
 const NO_TARGET_ERROR := "No fallen ally in range"

@@ -35,7 +35,7 @@ func test_splintering_cold_links() -> void:
 	assert_eq(Talents.id_for_key("frost_splinter"), "frost_r7c4", "Splintering under Shardstorm")
 	assert_eq(Talents.id_for_key("frost_shield_armor"), "frost_r4c7", "Hardened Frost on the right edge, under Rime Ward")
 	assert_eq(Talents.id_for_key("frost_discipline"), "frost_r2c2", "Cold Discipline in row 2")
-	assert_eq(Talents.links_in_tree("frost").size(), 6, "six lines drawn in the Frost book")
+	assert_eq(Talents.links_in_tree("frost").size(), 7, "seven lines drawn in the Frost book")
 
 func test_links_dont_skip_rows() -> void:
 	var PD = load("res://scripts/player_data.gd")
