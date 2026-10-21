@@ -30,7 +30,7 @@ const POINTS_TO_UNLOCK_NEXT := 3
 ## Bump this whenever a talent is added, moved, removed or changed. A profile saved
 ## with another number gets all its talent points back on its next load
 ## (SaveSystem), so talent changes never need a save migration.
-const TREE_VERSION := 1
+const TREE_VERSION := 2
 const POINTS_AT_LEVEL_1 := 5
 const POINTS_PER_LEVEL := 1
 ## Every this many levels (2, 4, 6...) gives one extra point on top.
@@ -174,8 +174,6 @@ const TALENTS := {
 		# The maths is Player.fire_crit_rules().
 		"r1c3": ["Tempered Flame", 3, "Your {n:fireball} gains {v}% less of your critical strike chance, but deals bonus damage equal to {v2}% of your critical strike chance.",
 			{"key": "fire_tempered_flame", "values": [40.0, 50.0, 60.0], "values2": [7.0, 13.0, 20.0], "requires": "fireball"}],
-		# Was the Rune of Smoldering Focus (crit chance x 0.6): now crit chance x 0.5
-		# at max rank, split evenly over the 5 ranks. The hook is in player.gd.
 		# Vent Flames comes back sooner the less you crit (Player._pressure_valve).
 		"r2c2": ["Pressure Valve", 3, "Each of your Fire spells that fails to critically strike takes {v} sec off the cooldown of {n:ventflames}.",
 			{"key": "fire_pressure_valve", "values": [0.15, 0.35, 0.5], "requires": "ventflames"}],
@@ -216,8 +214,9 @@ const TALENTS := {
 		"r7c6": ["Slag Mending", 3, "When your Slag shatters, you are healed for {v}% of your maximum health per stack.",
 			{"key": "fire_slag_mending", "values": [0.7, 1.3, 2.0], "requires": "slagskin"}],
 		# (r9c6 is empty: Furnace Heart was folded into Cinder Guard's cost.)
-		"r1c5": ["Banked Mana", 2, "Each of your Fire spells that fails to critically strike refunds {v}% of its mana cost.",
-			{"key": "fire_banked_mana", "values": [5.0, 10.0]}],
+		# Fury (the Fire caster's): FireFuryKit (scripts/player/fire_fury.gd).
+		"r1c5": ["Stoked Breath", 2, "Your Fire spells that do not critically strike give you {v}% more Fury.",
+			{"key": "fire_stoked_breath", "values": [10.0, 20.0]}],
 		"r4c4": ["Warm Blood", 3, "You take {v}% less damage from an enemy that has your Burning or {n:immolate} on it.",
 			{"key": "fire_warm_blood", "values": [2.0, 4.0, 6.0]}],
 		"r3c7": ["Deep Brand", 3, "An enemy you have Branded deals {v+b:BRAND_PCT}% less damage to you, instead of {b:BRAND_PCT}%.",
@@ -230,23 +229,28 @@ const TALENTS := {
 			{"key": "fire_thick_slag", "values": [20.0, 40.0, 60.0], "requires": "slagskin"}],
 		"r4c6": ["Hot Iron", 4, "Attacks you block burn the attacker for {v}% more ({n:slagskin} and {n:cinderguard}).",
 			{"key": "fire_hot_iron", "values": [15.0, 30.0, 45.0, 60.0]}],
-		"r6c5": ["Flashover", 3, "When your {n:slowfuse} explodes on a target that has your {n:immolate}, each other enemy within {b:IMMOLATE_SPREAD_RADIUS} m has a {v}% chance to catch your {n:immolate} too.",
-			{"key": "fire_flashover", "values": [10.0, 20.0, 30.0], "requires": "slowfuse"}],
+		# A crit that Vents your Fury burns its target with part of it (FireFuryKit).
+		"r6c5": ["Blowback", 3, "When a critical strike of yours Vents your Fury, {v}% of the Fury it Vents burns the target: {ds:BLOWBACK_PER_FURY} Fire damage per point, dealt over {b:BLOWBACK_TIME} sec.",
+			{"key": "fire_blowback", "values": [20.0, 35.0, 50.0]}],
 		"r6c6": ["Smoldering Debris", 3, "When your Slag shatters it leaves a burning patch {b2:CLINKER_RADIUS} m wide for {b:CLINKER_TIME} sec, dealing {v}% of the shatter's damage {bev:CLINKER_TICK} to enemies standing in it.",
 			{"key": "fire_clinker", "values": [7.0, 13.0, 20.0], "requires": "slagskin"}],
 		"r6c3": ["Scattered Embers", 2, "Each ember of your {n:embervolley} also strikes {v} additional enemies within {b:EMBER_VOLLEY_SPLIT_RADIUS} m of your target.",
 			{"key": "fire_volley_targets", "values": [1.0, 2.0], "requires": "embervolley"}],
-		# Turns Slow Fuse from a no-crit payoff into a crit payoff (Player.fuse_grow_chance).
-		"r5c5": ["Volatile Fuse", 3, "Your Fire critical strikes have a {v}% chance to grow your {n:slowfuse}, and your hits that do not critically strike are {v}% less likely to grow it.",
-			{"key": "fire_fuse_crit", "values": [50.0, 70.0, 100.0], "requires": "slowfuse"}],
-		"r10c2": ["Smoldering Focus", 5, "Every Fire spell hit that does NOT critically strike builds a stack of Smoldering Focus (up to {e:smoldering_focus.stacks}, {e:smoldering_focus.time} sec, refreshed by each stack). Your next Fire spell critical strike spends them all and deals +(critical strike chance x {v})% damage per stack.",
-			{"key": "fire_smoldering_focus", "values": [0.1, 0.2, 0.3, 0.4, 0.5]}],
-		# Between the two: both keep part of their stacks when spent
-		# (Player.stacks_kept_on_use, asked by the StatusContainer).
-		"r10c4": ["Banked Coals", 2, "When your Smoldering Focus or Afterburn stacks are spent, you keep {v}% of them (rounded down).",
+		# The first choice talent (Talents.options_of): points go into one of the two.
+		# Both move the embers' crit chance, not the Fury they give (FireFuryKit).
+		"r5c5": {"choice": [
+			["Damped Embers", 3, "The embers of your {n:embervolley} have {v}% less critical strike chance.",
+				{"key": "fire_damped_embers", "values": [10.0, 20.0, 30.0], "requires": "embervolley"}],
+			["Wild Embers", 3, "The embers of your {n:embervolley} have {v}% more critical strike chance.",
+				{"key": "fire_wild_embers", "values": [10.0, 20.0, 30.0], "requires": "embervolley"}],
+		]},
+		# Holding Fury pays (FireFuryKit.smolder_pct).
+		"r10c2": ["Smoldering Focus", 5, "Your Fire spells deal {v}% more damage for each point of Fury you have.",
+			{"key": "fire_smoldering_focus", "values": [0.02, 0.04, 0.06, 0.08, 0.1]}],
+		"r10c4": ["Banked Coals", 2, "Your critical strikes Vent {v}% less of your Fury.",
 			{"key": "fire_banked_coals", "values": [25.0, 50.0]}],
-		# Smoldering Focus's mirror image: crits build, the next non-crit spends, and
-		# a stack is worth more the LESS crit chance you have. The hook is in player.gd.
+		# Crits build, the next non-crit spends, and a stack is worth more the LESS
+		# crit chance you have. The hook is in fire_runes.gd.
 		"r10c6": ["Afterburn", 5, "Every Fire spell hit that critically strikes builds a stack of Afterburn (up to {e:afterburn.stacks}, {e:afterburn.time} sec, refreshed by each stack). Your next Fire spell hit that does NOT critically strike spends them all and deals +((100 - critical strike chance) x {v})% damage per stack.",
 			{"key": "fire_afterburn", "values": [0.1, 0.2, 0.3, 0.4, 0.5]}],
 	},
@@ -1074,11 +1078,8 @@ const LINKS := [
 	["fire_fresh_tinder", "fire_afterglow"],
 	["fire_afterglow", "fire_forge_heat"],
 	["fire_forge_heat", "fire_white_heat"],
-	# The caster: burns -> Immolate -> spreading it -> Kiln Blast on it. Slow Fuse's two.
+	# The caster: burns -> Blaze.
 	["fire_lingering_embers", "fire_long_burn"],
-	["fire_long_burn", "fire_flashover"],
-	["fire_fuse_crit", "fire_flashover"],
-	["fire_flashover", "fire_stoked_kiln"],
 	# --- Frost ---
 	# Shields, down the right edge.
 	["frost_absorb", "frost_shield_armor"],
@@ -1266,20 +1267,10 @@ static func db() -> Dictionary:
 					var id := make_id(cat, r, int(c))
 					var key := "r%dc%d" % [r + 1, int(c) + 1]
 					var entry := {"category": cat, "tier": r, "col": int(c), "stats": {}}
-					if defs.has(key):
-						var d: Array = defs[key]
-						var extra: Dictionary = d[3] if d.size() > 3 and d[3] is Dictionary else {}
-						entry["name"] = str(d[0])
-						entry["max_rank"] = int(d[1])
-						entry["desc"] = str(d[2]) if d.size() > 2 else ""
-						entry["implemented"] = not extra.is_empty()
-						entry["placeholder"] = false
-						entry["stats"] = extra.get("stats", {})
-						entry["values"] = extra.get("values", [])
-						entry["values2"] = extra.get("values2", [])
-						entry["requires"] = str(extra.get("requires", ""))
-						entry["capstone"] = str(extra.get("capstone", ""))
-						entry["capstone_requires"] = str(extra.get("capstone_requires", ""))
+					if defs.has(key) and defs[key] is Dictionary and defs[key].has("choice"):
+						_add_choice(entry, id, defs[key]["choice"])
+					elif defs.has(key):
+						var extra := _entry_from(entry, defs[key])
 						if extra.has("key"):
 							_keys[str(extra["key"])] = id
 					else:
@@ -1292,6 +1283,78 @@ static func db() -> Dictionary:
 					ids.append(id)
 				_rows_cache["%s:%d" % [cat, r]] = ids
 	return _db
+
+## One talent entry from its definition [name, max_rank, description, extra].
+static func _entry_from(entry: Dictionary, d: Array) -> Dictionary:
+	var extra: Dictionary = d[3] if d.size() > 3 and d[3] is Dictionary else {}
+	entry["name"] = str(d[0])
+	entry["max_rank"] = int(d[1])
+	entry["desc"] = str(d[2]) if d.size() > 2 else ""
+	entry["implemented"] = not extra.is_empty()
+	entry["placeholder"] = false
+	entry["stats"] = extra.get("stats", {})
+	entry["values"] = extra.get("values", [])
+	entry["values2"] = extra.get("values2", [])
+	entry["requires"] = str(extra.get("requires", ""))
+	entry["capstone"] = str(extra.get("capstone", ""))
+	entry["capstone_requires"] = str(extra.get("capstone_requires", ""))
+	return extra
+
+# --- Choice talents ------------------------------------------------------------------
+# A slot defined as {"choice": [talent A, talent B]} holds two talents and points
+# go into only one of them (WoW-style: hover the slot, pick one). The slot itself
+# ("fire_r5c5") is what rows, trees and the UI see; it holds no points. The two
+# talents are "fire_r5c5a" and "fire_r5c5b": real talents with their own keys,
+# ranks and tooltips, in the slot's row and column. PlayerData keeps points out of
+# one while the other has any. Choice slots take no LINKS.
+
+## `entry` (the slot's) gets its two talents; both are added to the db.
+static func _add_choice(entry: Dictionary, id: String, defs: Array) -> void:
+	var opts: Array[String] = []
+	var names: Array[String] = []
+	var ranks := 0
+	var req := ""
+	for i in mini(defs.size(), 2):
+		var oid := id + CHOICE_SUFFIX[i]
+		var opt := {"category": entry["category"], "tier": entry["tier"], "col": entry["col"], "stats": {},
+			"choice_slot": id}
+		var extra := _entry_from(opt, defs[i])
+		if extra.has("key"):
+			_keys[str(extra["key"])] = oid
+		_db[oid] = opt
+		opts.append(oid)
+		names.append(str(opt["name"]))
+		ranks = maxi(ranks, int(opt["max_rank"]))
+		req = str(opt["requires"]) if i == 0 or req == str(opt["requires"]) else ""
+	entry["name"] = " or ".join(names)
+	entry["max_rank"] = ranks
+	entry["desc"] = ""
+	entry["implemented"] = true
+	entry["placeholder"] = false
+	entry["requires"] = req   # (only when both talents need the same ability)
+	entry["choice_of"] = opts
+
+const CHOICE_SUFFIX := ["a", "b"]
+
+## The two talents of a choice slot ([] for any other id).
+static func options_of(id: String) -> Array[String]:
+	var out: Array[String] = []
+	out.assign(get_talent(id).get("choice_of", []))
+	return out
+
+static func is_choice_slot(id: String) -> bool:
+	return get_talent(id).has("choice_of")
+
+## The choice slot a talent belongs to ("" if it isn't one of a choice's two).
+static func choice_slot_of(id: String) -> String:
+	return str(get_talent(id).get("choice_slot", ""))
+
+## The other talent of the same choice ("" if `id` isn't one of a choice's two).
+static func sibling_of(id: String) -> String:
+	for o in options_of(choice_slot_of(id)):
+		if o != id:
+			return o
+	return ""
 
 static func get_talent(id: String) -> Dictionary:
 	return db().get(id, {})
@@ -1479,6 +1542,15 @@ static func tooltip(id: String, rank: int) -> String:
 	var t := get_talent(id)
 	if t.is_empty():
 		return ""
+	if t.has("choice_of"):
+		var parts: Array[String] = ["Choose one  (%s, row %d)" % [Categories.cat_name(t["category"]), int(t["tier"]) + 1],
+			"Points go into only one of these two. Hover to pick."]
+		for o in options_of(id):
+			parts.append("%s: %s" % [get_talent(o)["name"], description(o)])
+		parts.append("Rank %d / %d" % [rank, int(t["max_rank"])])
+		if str(t.get("requires", "")) != "":
+			parts.append(requires_line(str(t["requires"])))
+		return "\n".join(parts)
 	var lines: Array[String] = [
 		"%s  (%s, row %d)" % [t["name"], Categories.cat_name(t["category"]), int(t["tier"]) + 1],
 		fill(str(t["desc"]), t),
@@ -1494,6 +1566,9 @@ static func tooltip(id: String, rank: int) -> String:
 		var creq := str(t.get("capstone_requires", ""))
 		if creq != "":
 			lines.append("Capstone requires %s to be learned" % load("res://scripts/abilities.gd").ability_name(creq))
+	var other := sibling_of(id)
+	if other != "":
+		lines.append("Choice: points go into this or %s, not both" % get_talent(other)["name"])
 	for s in sources_of(id):
 		lines.append("Also unlocked by maxing %s (%s, row %d)" % [get_talent(s)["name"],
 			Categories.cat_name(category_of(s)), tier_of(s) + 1])

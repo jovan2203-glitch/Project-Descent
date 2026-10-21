@@ -19,6 +19,9 @@ static func has_icon(id: String) -> bool:
 	var t := Talents.get_talent(id)
 	if t.is_empty() or bool(t.get("placeholder", true)):
 		return false
+	var opts := Talents.options_of(id)
+	if not opts.is_empty():
+		return opts.all(func(o): return has_icon(o))   # a choice slot: both of its talents
 	return ICONED.has(_key_of(id))
 
 static func _key_of(id: String) -> String:
@@ -40,11 +43,11 @@ const ICONED := ["frost_deep_cracks", "frost_cold_spread", "frost_slow_runoff", 
 	"frost_cold_sweep", "frost_ice_fall", "frost_long_dark", "frost_glinting_rime", "frost_biting_hold", "frost_long_glaze",
 	"frost_packed_ice", "frost_deep_tremor", "frost_turned_backs", "frost_cold_fury", "frost_regelation", "frost_old_ice", "frost_deep_strata",
 	"fire_smoldering_focus", "fire_tempered_flame", "fire_afterburn",
-	"fire_banked_coals", "fire_volley_targets", "fire_fuse_crit",
-	"fire_pressure_valve", "fire_cool_under_fire", "fire_thick_slag", "fire_hot_iron", "fire_flashover", "fire_clinker",
+	"fire_banked_coals", "fire_volley_targets", "fire_damped_embers", "fire_wild_embers",
+	"fire_pressure_valve", "fire_cool_under_fire", "fire_thick_slag", "fire_hot_iron", "fire_blowback", "fire_clinker",
 	"fire_kindling", "fire_fresh_tinder", "fire_afterglow",
 	"fire_forge_heat", "fire_long_burn", "fire_deep_crucible", "fire_stoked_kiln", "fire_slag_mending",
-	"fire_deep_brand", "fire_banked_mana", "fire_warm_blood", "fire_white_heat",
+	"fire_deep_brand", "fire_stoked_breath", "fire_warm_blood", "fire_white_heat",
 	"fire_flash_point", "fire_forge_hardened", "fire_lingering_embers", "fire_controlled_burn",
 	"lightning_quick_charge", "lightning_conductive", "lightning_deep_reserves", "lightning_running_on_empty",
 	"lightning_running_start", "lightning_third_beat", "lightning_redline",
@@ -117,7 +120,29 @@ static func draw(c: Control, id: String) -> void:
 	var light := col.lightened(0.5)
 	var pad := 4.0 * k
 	c.draw_rect(Rect2(Vector2(pad, pad), s - Vector2(pad, pad) * 2.0), col.darkened(0.75), true)
-	_draw_key(c, _key_of(id), mid, k, col, light)
+	var opts := Talents.options_of(id)
+	if opts.is_empty():
+		_draw_key(c, _key_of(id), mid, k, col, light)
+		return
+	# A choice slot: the talent picked, or both side by side at half size.
+	var picked := _picked(opts)
+	if picked != "":
+		_draw_key(c, _key_of(picked), mid, k, col, light)
+		return
+	for i in 2:
+		_draw_key(c, _key_of(opts[i]), mid + Vector2((i * 2 - 1) * 12.0, 0) * k, k * 0.5, col, light)
+	c.draw_line(Vector2(mid.x, pad + 3.0 * k), Vector2(mid.x, s.y - pad - 3.0 * k), Color(light, 0.6), 1.5 * k, true)
+
+## Which talent of a choice slot has points ("" = neither).
+static func _picked(opts: Array[String]) -> String:
+	var tree := Engine.get_main_loop() as SceneTree
+	var pd: Node = tree.root.get_node_or_null("PlayerData") if tree else null
+	if pd == null:
+		return ""
+	for o in opts:
+		if int(pd.talent_rank(o)) > 0:
+			return o
+	return ""
 
 # --- Shared bits -------------------------------------------------------------------
 
@@ -1649,12 +1674,6 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			for y in [-4.0, 4.0]:
 				c.draw_line(mid + Vector2(8, y) * k, mid + Vector2(13, y) * k, light, 1.5 * k, true)
 				c.draw_line(mid + Vector2(-13, y) * k, mid + Vector2(-8, y) * k, light, 1.5 * k, true)
-		"fire_banked_mana":   # a mana drop coming back out of a small flame
-			c.draw_colored_polygon(_p(mid, k, [Vector2(-7, -2), Vector2(-1, 8), Vector2(-3, 15), Vector2(-11, 15), Vector2(-13, 8)]), col)
-			c.draw_circle(mid + Vector2(-7, 11) * k, 2.2 * k, Color(1.0, 0.9, 0.4))
-			_drop(c, mid + Vector2(8, -3) * k, 0.8 * k, Color(0.3, 0.5, 1.0, 0.9), WHITE, k)
-			c.draw_polyline(_p(mid, k, [Vector2(-2, 6), Vector2(3, 10), Vector2(9, 9)]), WHITE, 1.8 * k, true)
-			c.draw_polyline(_p(mid, k, [Vector2(5, 12), Vector2(9, 9), Vector2(6, 5)]), WHITE, 1.8 * k, true)
 		"fire_warm_blood":   # a drop of blood with a flame in it, behind a guard line
 			_drop(c, mid + Vector2(0, 0) * k, 1.1 * k, Color(0.75, 0.15, 0.12), light, k)
 			c.draw_colored_polygon(_p(mid, k, [Vector2(0, -3), Vector2(4, 4), Vector2(2, 9), Vector2(-2, 9), Vector2(-4, 4)]), Color(1.0, 0.9, 0.4))
@@ -1771,13 +1790,6 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			for a in [-0.5, 0.3, 1.2]:
 				var d := Vector2(cos(a), sin(a))
 				c.draw_line(mid + (Vector2(0, -2) + d * 9.0) * k, mid + (Vector2(0, -2) + d * 15.0) * k, WHITE, 1.8 * k, true)
-		"fire_flashover":   # one flame leaping to two more
-			c.draw_colored_polygon(_p(mid, k, [Vector2(-9, -8), Vector2(-4, 2), Vector2(-6, 10), Vector2(-12, 10), Vector2(-14, 2)]), col)
-			c.draw_circle(mid + Vector2(-9, 6) * k, 2.4 * k, Color(1.0, 0.9, 0.4))
-			for p in [Vector2(11, -9), Vector2(12, 9)]:
-				var at: Vector2 = mid + (p as Vector2) * k
-				c.draw_line(mid + Vector2(-3, 1) * k, at + Vector2(-5, 0) * k, light, 1.8 * k, true)
-				c.draw_colored_polygon(PackedVector2Array([at + Vector2(0, -6) * k, at + Vector2(4, 1) * k, at + Vector2(0, 5) * k, at + Vector2(-4, 1) * k]), col)
 		"fire_clinker":   # broken chunks of slag lying in a burning pool
 			c.draw_line(mid + Vector2(-16, 12) * k, mid + Vector2(16, 12) * k, Color(1.0, 0.9, 0.4), 3.0 * k, true)
 			c.draw_line(mid + Vector2(-12, 16) * k, mid + Vector2(12, 16) * k, col, 2.0 * k, true)
@@ -1786,17 +1798,44 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 				c.draw_colored_polygon(chunk, Color(0.22, 0.18, 0.16))
 				chunk.append(chunk[0])
 				c.draw_polyline(chunk, light, 1.6 * k, true)
-		"fire_fuse_crit":   # Volatile Fuse: a charge with a crit burst feeding it
-			c.draw_circle(mid + Vector2(-5, 6) * k, 9.0 * k, Color(0.16, 0.13, 0.13))
-			c.draw_arc(mid + Vector2(-5, 6) * k, 9.0 * k, 0, TAU, 22, col, 2.0 * k, true)
+		"fire_stoked_breath":   # Stoked Breath: a calm flame filling a bar of Fury beside it
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-8, -12), Vector2(-2, -2), Vector2(-3, 10), Vector2(-13, 10), Vector2(-15, -1)]), col)
+			c.draw_circle(mid + Vector2(-8, 5) * k, 3.0 * k, Color(1.0, 0.9, 0.4))
+			for i in 5:
+				var y := 12.0 - i * 6.0
+				c.draw_rect(Rect2(mid + Vector2(5, y - 4) * k, Vector2(10, 4.5) * k), Color(0.9, 0.25, 0.1) if i < 4 else Color(0.25, 0.12, 0.1), true)
+			c.draw_rect(Rect2(mid + Vector2(4, -17) * k, Vector2(12, 34) * k), light, false, 1.4 * k)
+		"fire_damped_embers":   # Damped Embers: a row of steady embers under a lid that keeps them from flaring
+			c.draw_line(mid + Vector2(-16, -6) * k, mid + Vector2(16, -6) * k, WHITE, 2.4 * k, true)
+			c.draw_polyline(_p(mid, k, [Vector2(-6, -15), Vector2(0, -9), Vector2(6, -15)]), light, 2.2 * k, true)
+			for i in 4:
+				var at := mid + Vector2(-12 + i * 8, 6) * k
+				c.draw_circle(at, 4.0 * k, Color(col, 0.85))
+				c.draw_circle(at, 1.8 * k, Color(1.0, 0.9, 0.4))
+			c.draw_line(mid + Vector2(-16, 14) * k, mid + Vector2(16, 14) * k, Color(light, 0.5), 1.5 * k, true)
+		"fire_wild_embers":   # Wild Embers: embers flying out in all directions, two of them bursting
+			for p in [Vector2(-13, -11), Vector2(12, -13), Vector2(-15, 8), Vector2(14, 10), Vector2(0, 15)]:
+				var at := mid + (p as Vector2) * k
+				c.draw_line(mid, at, Color(col, 0.55), 1.6 * k, true)
+				c.draw_circle(at, 3.2 * k, light)
+			for p in [Vector2(12, -13), Vector2(-15, 8)]:
+				var star := PackedVector2Array()
+				for i in 10:
+					var a := TAU * i / 10.0
+					star.append(mid + (p as Vector2) * k + Vector2(cos(a), sin(a)) * (6.5 if i % 2 == 0 else 2.5) * k)
+				c.draw_colored_polygon(star, Color(1.0, 0.9, 0.4))
+			c.draw_circle(mid, 4.5 * k, col)
+			c.draw_circle(mid, 2.0 * k, WHITE)
+		"fire_blowback":   # Blowback: a crit burst whose lost fury blows back onto a burning target
 			var burst := PackedVector2Array()
 			for i in 12:
 				var a := TAU * i / 12.0
-				burst.append(mid + Vector2(10, -9) * k + Vector2(cos(a), sin(a)) * (8.0 if i % 2 == 0 else 3.5) * k)
+				burst.append(mid + Vector2(-9, -7) * k + Vector2(cos(a), sin(a)) * (9.0 if i % 2 == 0 else 3.5) * k)
 			c.draw_colored_polygon(burst, Color(1.0, 0.9, 0.4))
-			c.draw_line(mid + Vector2(5, -4) * k, mid + Vector2(0, 1) * k, WHITE, 2.2 * k, true)
-			c.draw_line(mid + Vector2(-9, 6) * k, mid + Vector2(-1, 6) * k, light, 2.0 * k, true)
-			c.draw_line(mid + Vector2(-5, 2) * k, mid + Vector2(-5, 10) * k, light, 2.0 * k, true)
+			c.draw_arc(mid + Vector2(1, -1) * k, 12.0 * k, PI * 1.25, PI * 2.15, 14, light, 2.4 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(13, 3), Vector2(16, 9), Vector2(9, 9)]), light)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(8, 4), Vector2(13, 11), Vector2(11, 17), Vector2(3, 17), Vector2(1, 11)]), col)
+			c.draw_circle(mid + Vector2(7, 13) * k, 2.2 * k, Color(1.0, 0.9, 0.4))
 		"fire_volley_targets":   # Scattered Embers: one volley splitting toward three targets
 			var from := mid + Vector2(-15, 10) * k
 			for p in [Vector2(14, -13), Vector2(16, 2), Vector2(6, 14)]:

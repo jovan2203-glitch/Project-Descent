@@ -766,7 +766,14 @@ func validate_talents() -> bool:
 		return false
 	return true
 
+## A choice slot (Talents.options_of) counts the points of whichever of its two is taken.
 func talent_rank(id: String) -> int:
+	var opts := Talents.options_of(id)
+	if not opts.is_empty():
+		var n := 0
+		for o in opts:
+			n += int(talents.get(o, 0))
+		return n
 	return int(talents.get(id, 0))
 
 ## A talent's current number by its key (e.g. talent_value("frost_slow") -> 10.0
@@ -842,6 +849,11 @@ func talent_unlocked(id: String) -> bool:
 ## talents, or whose link source is accepted and maxed; repeat until stable. So
 ## links can't hold each other up in a loop.
 static func talents_valid(ranks: Dictionary) -> bool:
+	# Both talents of one choice can't hold points.
+	for id in ranks:
+		var other := Talents.sibling_of(str(id))
+		if int(ranks[id]) > 0 and other != "" and int(ranks.get(other, 0)) > 0:
+			return false
 	var accepted := {}
 	var row_pts := {}   # row -> points in accepted talents
 	var progress := true
@@ -876,6 +888,11 @@ func can_invest(id: String) -> String:
 	var t := Talents.get_talent(id)
 	if t.is_empty():
 		return "Unknown talent"
+	if Talents.is_choice_slot(id):
+		return "Pick one of the two talents in this slot"
+	var other := Talents.sibling_of(id)
+	if other != "" and talent_rank(other) > 0:
+		return "Remove your points from %s first" % Talents.get_talent(other)["name"]
 	if talent_points_left() <= 0:
 		return "No talent points left"
 	if talent_rank(id) >= int(t["max_rank"]):
@@ -889,6 +906,8 @@ func can_invest(id: String) -> String:
 	return ""
 
 func can_refund(id: String) -> String:
+	if Talents.is_choice_slot(id):
+		return "Pick one of the two talents in this slot"
 	if talent_rank(id) <= 0:
 		return "No points to refund"
 	# Would removing a point leave another invested talent locked (a lower row
