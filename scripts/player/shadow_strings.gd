@@ -1140,7 +1140,7 @@ func receive_support(kind: String, from: Node, data: Dictionary) -> void:
 		"rootguard_broke":
 			player.shepherd._rootguard_broke(from)   # (I am the healer: my shield on that ally was used up)
 		# The Frost healer, Cold Comfort (scripts/player/frost_healer.gd).
-		"frost_shield", "rime_grow", "rime_break", "stillwater", "rime_broke", "rime_runoff", "rime_broken":
+		"frost_shield", "rime_break", "stillwater", "lattice", "rime_drain", "rime_broke", "rime_runoff", "rime_broken", "lattice_bill":
 			player.frost_healer.receive(kind, from, data)
 		# Utility (scripts/player/utility.gd).
 		"storm_front":

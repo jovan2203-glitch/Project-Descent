@@ -1062,7 +1062,9 @@ func _setup_status() -> void:
 	add_child(status)
 	status.shield_broken.connect(frost_runes._on_my_shield_broken)
 	status.shield_expired.connect(_on_my_shield_expired)
+	status.shield_shared.connect(_on_my_shield_shared)
 	status.changed.connect(func():
+		RimeShellFx.show_on(self, status.has("rime_shell"), RimeShellFx.cracks_for(status.absorb_fraction("rime_shell")))   # (its cracks)
 		fire_cooldowns._cool_head_check()
 		fire_cooldowns._heat_sink_check()
 		_on_stats_changed()
@@ -3464,6 +3466,16 @@ func _on_my_shield_expired(id: String, left: int, source: Node) -> void:
 	elif _net():
 		_net().support_ally(source, self, "rime_runoff", {"left": left})
 
+## Frost Lattice: a hit on my linked Rime Shell cost it only its share; its
+## caster takes the rest (`billed`) from the other linked shells.
+func _on_my_shield_shared(id: String, billed: int, source: Node) -> void:
+	if id != "rime_shell" or source == null:
+		return
+	if source == self:
+		frost_healer.lattice_billed(self, billed)
+	elif _net():
+		_net().support_ally(source, self, "lattice_bill", {"amount": billed})
+
 ## A Rime Shell lands on me (from me or a party member): 20% less damage taken,
 ## a shield of `amount`, and Thawing. When the shield breaks it shatters
 ## (the caster deals the damage).
@@ -3682,11 +3694,12 @@ func _sync_support_state() -> void:
 	for fx in status.list():
 		if str(fx["id"]) == "thawing":
 			locks["thawing"] = float(fx["remaining"])
-	var key := "%s|%s|%d" % [shell, locks.has("thawing"), shell_by]
+	var cracks := RimeShellFx.cracks_for(status.absorb_fraction("rime_shell")) if shell else 0
+	var key := "%s|%s|%d|%d" % [shell, locks.has("thawing"), shell_by, cracks]
 	if key == _sent_support:
 		return
 	_sent_support = key
-	net.send_support_state(shell, locks, shell_by)
+	net.send_support_state(shell, locks, shell_by, cracks)
 
 # --- Auto-target -----------------------------------------------------------------------
 # Using something that needs an enemy target while you have none picks the

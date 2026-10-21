@@ -63,9 +63,14 @@ func _ready() -> void:
 	status.set_script(STATUS_CONTAINER)
 	add_child(status)
 	status.changed.connect(_update_bar)
+	status.changed.connect(func():   # (the Rime Shell's picture, and its cracks)
+		RimeShellFx.show_on(self, status.has("rime_shell"), RimeShellFx.cracks_for(status.absorb_fraction("rime_shell"))))
 	status.shield_expired.connect(func(id: String, left: int, source: Node):
 		if id == "rime_shell" and source != null and source.get("frost_healer") != null:
 			source.frost_healer.shell_runoff(self, left))   # Runoff (Cold Comfort)
+	status.shield_shared.connect(func(id: String, billed: int, source: Node):
+		if id == "rime_shell" and source != null and source.get("frost_healer") != null:
+			source.frost_healer.lattice_billed(self, billed))   # Frost Lattice (Cold Comfort)
 	_build_bar()
 
 func is_alive() -> bool:

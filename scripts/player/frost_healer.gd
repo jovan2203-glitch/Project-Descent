@@ -9,14 +9,19 @@ class_name FrostHealerKit
 # Runoff (a heal over time for a share of what was left). Meltwater is the
 # filler (stronger on an ally with my Thawing), Break the Ice breaks a shell on
 # purpose for a burst heal, Glaze is a shield that keeps forming again, Frost
-# Lattice links shells so one breaking feeds the others, Rimefall shields the
+# Lattice links shells so a hit on one is taken from all of them, Rimefall shields the
 # whole group (more for each of my shells out), Frost Tide lifts Thawing for a
 # while, Stillwater saves an ally about to die. Spring Thaw is its rez (RezKit).
 # Everything is decided on the healer's machine. A party member's machine is
 # told through Net.support_ally (StringsKit.receive_support -> receive here):
-# "frost_shield", "rime_grow", "rime_break", "stillwater"; it answers
-# "rime_broke" (my shell on them broke), "rime_runoff" (it ran out) and
-# "rime_broken" (Break the Ice took it off). A friendly dummy is handled here.
+# "frost_shield", "rime_break", "stillwater", "lattice" (their shell is linked)
+# and "rime_drain" (their share of a hit on another linked shell); it answers
+# "rime_broke" (my shell on them broke), "rime_runoff" (it ran out),
+# "rime_broken" (Break the Ice took it off) and "lattice_bill" (a hit on their
+# linked shell: the part the others pay). A friendly dummy is handled here.
+# Frost Lattice, step by step: the hit shell soaks the whole hit at once but
+# loses only 1/n of it (StatusContainer.set_share); the rest is billed here and
+# taken evenly from the other linked shells.
 # Own only: only my shells count and only my Thawing makes Meltwater stronger.
 # Numbers: balance.gd (RIME_SHARDS_*, RUNOFF_*, GLAZE_*, ...; Meltwater in HEALS).
 # Talents: Deep Cracks, Slow Runoff, Shard Spray (Rime Shards / Runoff),
@@ -138,18 +143,13 @@ func my_thawing_on(who: Variant) -> bool:
 	var at: Variant = _thawed.get((who as Node).get_instance_id())
 	return at != null and _now() - float(at) < float(THAWING_FX.duration)
 
-## My Rime Shell on `who` broke (here, or their machine said so): Rime Shards,
-## and with Frost Lattice the other linked shells grow.
+## My Rime Shell on `who` broke (here, or their machine said so): Rime Shards.
 func shell_broke(who: Node3D, amount: int) -> void:
 	if who == null or not is_instance_valid(who) or player.is_dead():
 		return
 	_shells.erase(who.get_instance_id())
-	var linked := _lattice_live() and _lattice.has(who)
+	_unlink(who)
 	var near := player.prism_kit._allies_near(who.global_position, Balance.RIME_SHARDS_RADIUS)
-	if linked:
-		for a in _lattice:   # (Frost Lattice: the shards reach every linked ally)
-			if is_instance_valid(a) and a.is_alive() and not near.has(a):
-				near.append(a)
 	var each := shards_each(amount, near.size(), player._talent("frost_deep_cracks"))   # Deep Cracks
 	var spray := int(round(each * player._talent("frost_shard_spray") / 100.0))   # Shard Spray: a share of the heal as a shield
 	for a in near:
@@ -157,17 +157,13 @@ func shell_broke(who: Node3D, amount: int) -> void:
 		if spray > 0:
 			_frost_shield(a, SHARD_SPRAY_FX, spray, Balance.SHARD_SPRAY_TIME)
 	player._ring_effect(Balance.RIME_SHARDS_RADIUS, ICE, who.global_position)
-	if linked:
-		var grow := int(round(amount * Balance.LATTICE_GROW_PCT / 100.0))
-		for a in _lattice:
-			if a != who and has_my_shell(a):
-				_grow_shell(a, grow)
 
 ## My Rime Shell on `who` ran out with `left` still in it: Runoff heals them over time.
 func shell_runoff(who: Node3D, left: int) -> void:
 	if who == null or not is_instance_valid(who):
 		return
 	_shells.erase(who.get_instance_id())
+	_unlink(who)
 	var total := runoff_total(left, player._talent("frost_slow_runoff"))   # Slow Runoff
 	var ticks := maxi(int(round(Balance.RUNOFF_TIME)), 1)
 	if total <= 0:
@@ -176,24 +172,62 @@ func shell_runoff(who: Node3D, left: int) -> void:
 	if player.frost_melee._capstone("frost_slow_runoff"):
 		player._gain("mana", player.mana_unit())   # Slow Runoff's capstone: a mana point back
 
-## Frost Lattice: a linked shell of mine on `who` grows by `amount`.
-func _grow_shell(who: Node3D, amount: int) -> void:
-	if amount <= 0:
+# --- Frost Lattice: linked shells share every hit -----------------------------------------
+
+## How much each of the `others` linked shells pays of a `billed` share of a hit.
+static func lattice_each(billed: int, others: int) -> int:
+	return int(ceil(float(maxi(billed, 0)) / others)) if others > 0 else 0
+
+func _lattice_live() -> bool:
+	return _lattice.size() > 1 and _now() < _lattice_until
+
+## The linked allies whose shell of mine is still up.
+func _linked() -> Array:
+	return _lattice.filter(func(a): return is_instance_valid(a) and has_my_shell(a)) if _lattice_live() else []
+
+## Tell every linked shell how many share its hits now (1 = the lattice is over).
+func _share_out() -> void:
+	var linked := _linked()
+	var n := linked.size() if linked.size() > 1 else 1
+	var left := maxf(_lattice_until - _now(), 0.0)
+	for a in _lattice:
+		if is_instance_valid(a):
+			_set_share(a, n if linked.has(a) else 1, left)
+	if n <= 1:
+		_lattice.clear()
+
+func _set_share(who: Node3D, n: int, time: float) -> void:
+	if is_same(who, player) or who.is_in_group("friendly"):
+		var st: Node = player.status if is_same(who, player) else who.get_node_or_null("Status")
+		if st:
+			st.set_share(RIME_SHELL_KEY, n, st._now() + time)
+	elif player._net():
+		player._net().support_ally(who, player, "lattice", {"n": n, "t": time})
+
+## `who`'s shell left the lattice (it broke, ran out or was broken on purpose).
+func _unlink(who: Node3D) -> void:
+	if _lattice.has(who):
+		_lattice.erase(who)
+		_share_out()
+
+## A hit on `who`'s linked shell: `billed` is the part the other linked shells pay.
+func lattice_billed(who: Node3D, billed: int) -> void:
+	if who == null or not is_instance_valid(who) or billed <= 0:
 		return
+	var others := _linked().filter(func(a): return a != who)
+	var each := lattice_each(billed, others.size())
+	for a in others:
+		_drain_shell(a, each)
+
+func _drain_shell(who: Node3D, amount: int) -> void:
 	if is_same(who, player):
-		player.status.add_absorb(RIME_SHELL_KEY, amount)
+		player.status.drain_absorb(RIME_SHELL_KEY, amount, player)
 	elif who.is_in_group("friendly"):
 		var st: Node = who.get_node_or_null("Status")
 		if st:
-			st.add_absorb(RIME_SHELL_KEY, amount)
+			st.drain_absorb(RIME_SHELL_KEY, amount, player)
 	elif player._net():
-		player._net().support_ally(who, player, "rime_grow", {"amount": amount})
-	var e: Variant = _shells.get(who.get_instance_id())
-	if e != null:
-		e["amount"] = int(e["amount"]) + amount
-
-func _lattice_live() -> bool:
-	return not _lattice.is_empty() and _now() < _lattice_until
+		player._net().support_ally(who, player, "rime_drain", {"amount": amount})
 
 # --- Shields --------------------------------------------------------------------------------
 
@@ -329,6 +363,7 @@ func broken_on_purpose(who: Node3D, left: int) -> void:
 	if who == null or not is_instance_valid(who) or player.is_dead():
 		return
 	_shells.erase(who.get_instance_id())
+	_unlink(who)
 	var res := Abilities.get_resource(BREAK_ICE_ID)
 	var radius := float(res.radius) + player._talent("frost_cold_spread")   # Cold Spread
 	var near := player.prism_kit._allies_near(who.global_position, radius)
@@ -345,8 +380,12 @@ func _link(who: Node3D) -> void:
 	var size := lattice_size(player._talent("frost_wide_lattice"))   # Wide Lattice
 	var others := shells_out().filter(func(a): return a != who)
 	others.sort_custom(func(a, b): return who.global_position.distance_to(a.global_position) < who.global_position.distance_to(b.global_position))
+	for a in _lattice:   # (a new lattice replaces the old one)
+		if is_instance_valid(a):
+			_set_share(a, 1, 0.0)
 	_lattice = [who] + others.slice(0, size - 1)
 	_lattice_until = _now() + Balance.LATTICE_TIME
+	_share_out()
 	for a in _lattice:
 		player._ring_effect(1.2, ICE, (a as Node3D).global_position)
 
@@ -447,9 +486,11 @@ func receive(kind: String, from: Node, data: Dictionary) -> void:
 		"frost_shield":
 			if player.is_alive():
 				frost_shield_on(player.status, from, str(data.get("id", "")), int(data.get("amount", 0)), float(data.get("time", 0.0)))
-		"rime_grow":
+		"lattice":
 			if player.status.shield_from(RIME_SHELL_KEY, from) > 0:
-				player.status.add_absorb(RIME_SHELL_KEY, int(data.get("amount", 0)))
+				player.status.set_share(RIME_SHELL_KEY, int(data.get("n", 1)), player.status._now() + float(data.get("t", 0.0)))
+		"rime_drain":
+			player.status.drain_absorb(RIME_SHELL_KEY, int(data.get("amount", 0)), from)
 		"rime_break":
 			var left := int(player.status.shield_from(RIME_SHELL_KEY, from))
 			if left > 0:
@@ -465,3 +506,5 @@ func receive(kind: String, from: Node, data: Dictionary) -> void:
 			shell_runoff(from as Node3D, int(data.get("left", 0)))
 		"rime_broken":
 			broken_on_purpose(from as Node3D, int(data.get("left", 0)))
+		"lattice_bill":
+			lattice_billed(from as Node3D, int(data.get("amount", 0)))

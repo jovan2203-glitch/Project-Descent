@@ -1222,18 +1222,20 @@ func _sup_heal_threat(t: int, healer: int, target: int, amount: float) -> void:
 ## status effects otherwise): lets their Rime Shell / Shattering Wave target me right.
 ## `shell_by` = the member who cast that Rime Shell (only its caster's
 ## Shattering Wave shatters it).
-func send_support_state(has_shell: bool, lockouts: Dictionary, shell_by: int = 0) -> void:
+## `cracks` = how cracked that Rime Shell is (0-2: RimeShellFx), so the others see it too.
+func send_support_state(has_shell: bool, lockouts: Dictionary, shell_by: int = 0, cracks: int = 0) -> void:
 	if with_others() and _connected() and _world() != null:
-		rpc("_sup_state", token, my_id(), has_shell, lockouts, shell_by)
+		rpc("_sup_state", token, my_id(), has_shell, lockouts, shell_by, cracks)
 
 @rpc("any_peer", "call_remote", "reliable")
-func _sup_state(t: int, member: int, has_shell: bool, lockouts: Dictionary, shell_by: int = 0) -> void:
+func _sup_state(t: int, member: int, has_shell: bool, lockouts: Dictionary, shell_by: int = 0, cracks: int = 0) -> void:
 	if t != token or member == my_id():
 		return
 	var p := body_of(member)
 	if p:
 		p.set("has_rime_shell", has_shell)
 		p.set("rime_shell_by", shell_by if has_shell else 0)
+		RimeShellFx.show_on(p, has_shell, cracks)
 		var now := _now()
 		var until := {}
 		for k in lockouts:

@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"frostlattice"
 display_name = "Frost Lattice"
-description = "Links your target and the allies nearest to them that carry your {n:rimeshell}, {lattice_links} allies in all, for {b:LATTICE_TIME} sec. When a linked shell breaks, its Rime Shards heal every linked ally wherever they stand, and every other linked shell grows by {b:LATTICE_GROW_PCT}% of its size."
+description = "Links your target and the allies nearest to them that carry your {n:rimeshell}, {lattice_links} allies in all, for {b:LATTICE_TIME} sec. Damage that hits a linked shell is taken from all of the linked shells evenly."
 tags = PackedStringArray("Frost", "Spell", "Defensive")
 cast_type = 0
 cast_time = 0.0

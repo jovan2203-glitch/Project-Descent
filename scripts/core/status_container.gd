@@ -14,6 +14,9 @@ extends Node
 signal changed
 ## A shield was used up by damage (not removed / expired). `id` = its effect key.
 signal shield_broken(id: String)
+## A shared shield (Frost Lattice: set_share) soaked a hit and paid only its own
+## share: `billed` is the rest, for the other shells it is linked with to pay.
+signal shield_shared(id: String, billed: int, source: Node)
 ## A shield ran out of time with `left` still in it (not broken, not removed).
 ## `source` = who put it on (Runoff: Rime Shell's caster heals what was left).
 signal shield_expired(id: String, left: int, source: Node)
@@ -288,7 +291,7 @@ var last_shield_source: Variant = null
 func set_absorb(id: String, amount: int, on_break: Callable = Callable(), keep_effect: bool = false) -> void:
 	if not effects.has(id) or amount <= 0:
 		return
-	absorbs[id] = {"amount": amount, "on_break": on_break, "keep": keep_effect}
+	absorbs[id] = {"amount": amount, "full": amount, "on_break": on_break, "keep": keep_effect}
 	effects[id].erase("net_absorb")
 	changed.emit()
 
@@ -298,7 +301,42 @@ func add_absorb(id: String, amount: int) -> void:
 	if not absorbs.has(id) or amount <= 0:
 		return
 	absorbs[id]["amount"] = int(absorbs[id]["amount"]) + amount
+	absorbs[id]["full"] = int(absorbs[id].get("full", 0)) + amount
 	changed.emit()
+
+## Frost Lattice: until `until` (this machine's clock), the shield on effect `id`
+## is one of `n` linked shells. A hit on it costs it only 1/n; the rest is billed
+## to the others (shield_shared). n = 1 ends it.
+func set_share(id: String, n: int, until: float = 0.0) -> void:
+	if not absorbs.has(id):
+		return
+	absorbs[id]["share"] = maxi(n, 1)
+	absorbs[id]["share_until"] = until
+
+## How many linked shells share effect `id`'s hits right now (1 = none).
+func share_of(id: String) -> int:
+	if not absorbs.has(id) or _now() >= float(absorbs[id].get("share_until", 0.0)):
+		return 1
+	return maxi(int(absorbs[id].get("share", 1)), 1)
+
+## Take `amount` off `source`'s shield on effect `id` (another linked shell's
+## share of a hit). Used up: it breaks, as if a hit had broken it.
+func drain_absorb(id: String, amount: int, source: Node = null) -> void:
+	if not absorbs.has(id) or amount <= 0 or (source != null and shield_from(id, source) <= 0):
+		return
+	absorbs[id]["amount"] = int(absorbs[id]["amount"]) - amount
+	if int(absorbs[id]["amount"]) <= 0:
+		last_shield_source = effects[id].get("source") if effects.has(id) else null
+		break_absorb(id, false)
+		shield_broken.emit(id)
+	else:
+		changed.emit()
+
+## How much of effect `id`'s shield is still there, 0..1 (Rime Shell's cracks).
+func absorb_fraction(id: String) -> float:
+	if not absorbs.has(id):
+		return 0.0
+	return clampf(float(absorbs[id]["amount"]) / float(maxi(int(absorbs[id].get("full", 1)), 1)), 0.0, 1.0)
 
 ## Shield health left on `source`'s copy of effect `id` (0 = none, or it already
 ## broke). Works on a mirrored copy too (a party member's machine only knows the
@@ -329,13 +367,20 @@ func absorb_damage(dmg: int) -> int:
 	if absorbs.is_empty() or dmg <= 0:
 		return dmg
 	var broken: Array = []
+	var shared: Array = []   # [id, billed, source]
 	for k in absorbs.keys():
 		if dmg <= 0:
 			break
 		var a: Dictionary = absorbs[k]
-		var soak := mini(int(a["amount"]), dmg)
-		a["amount"] = int(a["amount"]) - soak
+		var n := share_of(str(k))
+		# A linked shell can soak n times its own shield: it pays 1/n, the others the rest.
+		var soak := mini(int(a["amount"]) * n, dmg)
+		var own := soak if n <= 1 else int(ceil(float(soak) / n))
+		a["amount"] = int(a["amount"]) - own
 		dmg -= soak
+		if soak - own > 0:
+			var src: Variant = effects[k].get("source") if effects.has(k) else null
+			shared.append([str(k), soak - own, src if src != null and is_instance_valid(src) else null])
 		if int(a["amount"]) <= 0:
 			broken.append(k)
 	for k in broken:
@@ -344,6 +389,8 @@ func absorb_damage(dmg: int) -> int:
 		shield_broken.emit(str(k))
 	if broken.is_empty():
 		changed.emit()
+	for sh in shared:
+		shield_shared.emit(sh[0], sh[1], sh[2])
 	return dmg
 
 ## End the shield of effect `id` now, and the effect with it unless the shield

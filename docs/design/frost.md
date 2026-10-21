@@ -18,11 +18,12 @@ Values in Frost Bolts (FB) are conversation shorthand; real numbers live in bala
 ## Healer: Cold Comfort - BUILT 2026-10-21
 Code: scripts/player/frost_healer.gd (FrostHealerKit). Numbers: balance.gd (RIME_SHARDS_*, RUNOFF_*, GLAZE_*, LATTICE_*, RIMEFALL_*, FROST_TIDE_TIME, STILLWATER_*; Meltwater in HEALS). Tests: tests/test_frost_healer.gd.
 - Identity: a shield healer whose shells pay off when they end. A little damage through shatters (Break the Ice, Splinterheal).
+- Rime Shell's picture (scripts/rime_shell_fx.gd, visual only): a pale bubble of ice on you, party members and the training ally, cracking once a third of its shield is gone and again at two thirds, with a flash each time. Party members see it through the shell state sync (Net._sup_state).
 - Rime Shell on an ally: breaks -> Rime Shards heal every ally within 8 m for 30% of the shield (split past 5). Runs out unbroken -> Runoff heals them 50% of what was left over 4 s.
 - Meltwater - 1.5 s cast, 2 mana, heals 0.9 (old Heals); +30% on an ally with your Thawing. Filler. Card level 2.
 - Glaze - instant, 2 mana: a 0.2 shield that forms again every 3 s for 12 s; no Thawing. Level 8.
 - Break the Ice - instant, 10 s cooldown, 1 mana: breaks your shell on an ally; 80% of what was left heals allies within 8 m (split past 5) and it shatters on enemies. Level 10.
-- Frost Lattice - instant, 30 s cooldown, 3 mana: links your target and the nearest allies with your shell (3 in all) for 20 s. A linked shell breaking: its Rime Shards reach every linked ally, and the other linked shells grow by 20% of its size. (Built simpler than first pitched - "damage shared across shells" - so it works the same across machines.) Level 14.
+- Frost Lattice - instant, 30 s cooldown, 3 mana: links your target and the nearest allies with your shell (3 in all) for 20 s. A hit on a linked shell is taken from all the linked shells evenly. How: the hit shell soaks the whole hit at once and loses only 1/n of it (StatusContainer.set_share; it can soak up to n times its shield); the rest is billed to the healer's machine and drained evenly from the other linked shells, which can break from it. A shell that breaks or ends leaves the lattice. Level 14.
 - Rimefall - 2.5 s cast, 15 s cooldown, 4 mana: every ally within 20 m gets a 0.3 shield for 8 s, +0.1 per ally carrying your shell (up to 3); no Thawing. Level 12.
 - Frost Tide - instant, 2 min cooldown: for 10 s Rime Shell ignores Thawing and is instant on enemies too. Level 18.
 - Stillwater - instant, 90 s cooldown, 2 mana: only on an ally below 35% health (the anti-troll gate): 3 s no damage and can't act, moving breaks out; then healed 30% of max health. Level 16.

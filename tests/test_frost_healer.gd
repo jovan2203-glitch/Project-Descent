@@ -126,7 +126,7 @@ func test_glaze_and_rimefall_refill_never_stack() -> void:
 func test_every_message_has_a_handler() -> void:
 	var src := FileAccess.get_file_as_string("res://scripts/player/frost_healer.gd")
 	var relay := FileAccess.get_file_as_string("res://scripts/player/shadow_strings.gd")
-	for kind in ["frost_shield", "rime_grow", "rime_break", "stillwater", "rime_broke", "rime_runoff", "rime_broken"]:
+	for kind in ["frost_shield", "rime_break", "stillwater", "lattice", "rime_drain", "rime_broke", "rime_runoff", "rime_broken", "lattice_bill"]:
 		assert_true(src.contains("\"%s\":" % kind), "%s is handled" % kind)
 		assert_true(relay.contains("\"%s\"" % kind), "%s reaches the kit" % kind)
 
@@ -138,3 +138,85 @@ func test_the_talents() -> void:
 	assert_eq(Talents.get_talent(Talents.id_for_key("frost_wide_lattice"))["requires"], "frostlattice")
 	assert_eq(Talents.get_talent(Talents.id_for_key("frost_cold_spread"))["requires"], "breaktheice")
 	assert_true(Talents.targets_of(Talents.id_for_key("frost_deep_cracks")).has(Talents.id_for_key("frost_shard_spray")), "Deep Cracks opens Shard Spray")
+
+# --- Frost Lattice: a hit on one linked shell is taken from all of them --------------------------
+
+func _status() -> Array:   # [holder, status]: a status container asks its owner about itself
+	var holder := Node.new()
+	var st: Node = Node.new()
+	st.set_script(load("res://scripts/core/status_container.gd"))
+	holder.add_child(st)
+	return [holder, st]
+
+func test_a_linked_shell_pays_only_its_share() -> void:
+	var hs := _status()
+	var st: Node = hs[1]
+	Kit.frost_shield_on(st, null, Kit.GLAZE_FX, 300, 10.0)   # (any shield works the same)
+	st.set_share(Kit.GLAZE_FX, 3, st._now() + 10.0)
+	var billed := [0]
+	st.shield_shared.connect(func(_id, b, _src): billed[0] += b)
+	assert_eq(st.absorb_damage(300), 0, "the whole hit is soaked")
+	assert_eq(st.absorb_left(Kit.GLAZE_FX), 200, "it loses a third")
+	assert_eq(billed[0], 200, "the other two thirds go to the other linked shells")
+	# A linked shell can soak up to n times its own shield.
+	assert_eq(st.absorb_damage(700), 100, "200 left x 3 = 600 soaked")
+	hs[0].free()
+
+func test_the_others_are_drained_and_can_break() -> void:
+	var hs := _status()
+	var st: Node = hs[1]
+	Kit.frost_shield_on(st, null, Kit.GLAZE_FX, 100, 10.0)
+	st.drain_absorb(Kit.GLAZE_FX, 40)
+	assert_eq(st.absorb_left(Kit.GLAZE_FX), 60)
+	var broke := [false]
+	st.shield_broken.connect(func(_id): broke[0] = true)
+	st.drain_absorb(Kit.GLAZE_FX, 80)
+	assert_true(broke[0] and st.absorb_left(Kit.GLAZE_FX) == 0, "drained to nothing: it breaks")
+	hs[0].free()
+
+func test_sharing_ends_with_the_lattice() -> void:
+	var hs := _status()
+	var st: Node = hs[1]
+	Kit.frost_shield_on(st, null, Kit.GLAZE_FX, 300, 10.0)
+	st.set_share(Kit.GLAZE_FX, 3, st._now() - 1.0)
+	assert_eq(st.share_of(Kit.GLAZE_FX), 1, "past its time: not shared")
+	assert_eq(st.absorb_damage(90), 0)
+	assert_eq(st.absorb_left(Kit.GLAZE_FX), 210)
+	hs[0].free()
+
+func test_lattice_bill_is_split_evenly() -> void:
+	assert_eq(Kit.lattice_each(200, 2), 100)
+	assert_eq(Kit.lattice_each(201, 2), 101, "rounded up")
+	assert_eq(Kit.lattice_each(200, 0), 0)
+	var src := PlayerSource.text()
+	assert_true(src.contains("status.shield_shared.connect(_on_my_shield_shared)"))
+	assert_true(src.contains("\"lattice_bill\", {\"amount\": billed}"), "a party member's machine bills the healer")
+
+# --- Rime Shell's cracks ------------------------------------------------------------------------
+
+func test_the_shell_cracks_as_it_soaks() -> void:
+	assert_eq(RimeShellFx.cracks_for(1.0), 0)
+	assert_eq(RimeShellFx.cracks_for(0.7), 0)
+	assert_eq(RimeShellFx.cracks_for(0.6), 1, "a third gone")
+	assert_eq(RimeShellFx.cracks_for(0.3), 2, "two thirds gone")
+	var hs := _status()
+	var st: Node = hs[1]
+	Kit.frost_shield_on(st, null, Kit.GLAZE_FX, 300, 10.0)
+	st.absorb_damage(150)
+	assert_eq(st.absorb_fraction(Kit.GLAZE_FX), 0.5)
+	hs[0].free()
+
+func test_the_cracked_shell_shows_on_everyone() -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	var host := Node3D.new()
+	tree.current_scene.add_child(host)
+	RimeShellFx.show_on(host, true, 1)
+	var fx := host.get_node_or_null(RimeShellFx.NODE_NAME) as RimeShellFx
+	assert_true(fx != null and fx.cracks == 1, "a shell with one set of cracks")
+	RimeShellFx.show_on(host, true, 2)
+	assert_eq(fx.cracks, 2)
+	host.free()
+	var src := PlayerSource.text()
+	assert_true(src.contains("net.send_support_state(shell, locks, shell_by, cracks)"), "the others see the cracks")
+	assert_true(FileAccess.get_file_as_string("res://scripts/net/net.gd").contains("RimeShellFx.show_on(p, has_shell, cracks)"))
+	assert_true(FileAccess.get_file_as_string("res://scripts/training/ally_dummy.gd").contains("RimeShellFx.show_on(self"))
