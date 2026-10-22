@@ -152,12 +152,11 @@ func test_flare_spends_three_and_quench_takes_it_all() -> void:
 func test_fresh_tinder_never_passes_the_base_duration() -> void:
 	var p := _player()
 	assert_eq(FireMeleeKit.tinder_time(5.0, 1.0, 12.0), 6.0)
-	assert_eq(FireMeleeKit.tinder_time(5.0, 2.0, 12.0), 7.0, "the capstone adds 2")
+	assert_eq(FireMeleeKit.tinder_time(5.0, 2.0, 12.0), 7.0)
 	assert_eq(FireMeleeKit.tinder_time(11.5, 2.0, 12.0), 12.0, "capped at the base duration")
 	assert_eq(FireMeleeKit.tinder_time(12.0, 1.0, 12.0), 12.0)
 	assert_eq(FireMeleeKit.tinder_time(13.0, 1.0, 12.0), 13.0, "never shortens a longer one")
 	assert_eq(Balance.FRESH_TINDER_SECONDS, 1.0)
-	assert_eq(Balance.FRESH_TINDER_CAPSTONE_SECONDS, 2.0)
 
 ## Only my own Immolate is fed, and its tick timer is left alone.
 func test_feeding_only_touches_my_own_copy() -> void:
@@ -198,9 +197,8 @@ func test_afterglow_damage() -> void:
 
 func test_melee_talents() -> void:
 	var want := {
-		"fire_kindling": ["fire_r3c1", [10.0, 20.0, 30.0], "searingstrike"],
-		"fire_fresh_tinder": ["fire_r4c2", [10.0, 20.0, 30.0], "immolate"],
-		"fire_afterglow": ["fire_r6c2", [7.0, 13.0, 20.0], "quench"],
+		"fire_fresh_tinder": ["fire_r3c7", [10.0, 20.0, 30.0], ""],
+		"fire_afterglow": ["fire_r2c7", [7.0, 13.0, 20.0], "quench"],
 	}
 	for key in want:
 		var id := Talents.id_for_key(key)
@@ -212,9 +210,8 @@ func test_melee_talents() -> void:
 		assert_eq(str(Talents.get_talent(id).get("requires", "")), str(want[key][2]))
 		assert_true(TalentIcons.has_icon(id), "%s has an icon" % key)
 		assert_true(bool(Talents.get_talent(id).get("implemented", false)), "%s does something" % key)
-	var tinder := Talents.id_for_key("fire_fresh_tinder")
-	assert_true(Talents.has_capstone(tinder), "Fresh Tinder has a capstone")
-	assert_false(Talents.has_capstone(Talents.id_for_key("fire_kindling")))
+	assert_false(Talents.has_capstone(Talents.id_for_key("fire_fresh_tinder")), "Fresh Tinder's capstone went with its rework")
+	assert_eq(Talents.id_for_key("fire_kindling"), "", "Kindling is gone (Sparks build the extra Heat now)")
 
 func test_swings_glow_hotter() -> void:
 	var p := _player()

@@ -80,12 +80,11 @@ func test_tank_abilities() -> void:
 
 func test_new_fire_talents() -> void:
 	var want := {
-		"fire_pressure_valve": ["fire_r2c2", [0.15, 0.35, 0.5]],
-		"fire_cool_under_fire": ["fire_r3c4", [7.0, 13.0, 20.0]],   # moved down a row (Talents.MOVED)
-		"fire_thick_slag": ["fire_r2c6", [20.0, 40.0, 60.0]],
-		"fire_hot_iron": ["fire_r4c6", [15.0, 30.0, 45.0, 60.0]],
-		"fire_blowback": ["fire_r6c5", [20.0, 35.0, 50.0]],
-		"fire_clinker": ["fire_r6c6", [7.0, 13.0, 20.0]],
+		"fire_pressure_valve": ["fire_r2c1", [0.15, 0.35, 0.5]],
+		"fire_thick_slag": ["fire_r1c3", [15.0, 30.0, 45.0, 60.0]],
+		"fire_hot_iron": ["fire_r1c4", [10.0, 20.0, 30.0]],
+		"fire_blowback": ["fire_r5c1", [20.0, 35.0, 50.0]],
+		"fire_clinker": ["fire_r3c3", [7.0, 13.0, 20.0]],
 	}
 	for key in want:
 		var id := Talents.id_for_key(key)
@@ -134,7 +133,7 @@ func test_crucible() -> void:
 	assert_eq(float(r.cast_time), 1.5)
 	assert_eq(int(r.cast_type), 3, "placed on the ground")
 	assert_eq(float(r.cooldown), 0.0)
-	assert_eq(Balance.CRUCIBLE_TIME, 10.0)
+	assert_eq(Balance.CRUCIBLE_TIME, 12.5, "Deep Crucible was folded in")
 	assert_eq(Balance.CRUCIBLE_DOT_PCT, 15.0)
 	var p := _player()
 	assert_eq(FireCooldownsKit.crucible_time(false, 0.0, 10.0, false), 10.0, "a fresh one lasts the full time")

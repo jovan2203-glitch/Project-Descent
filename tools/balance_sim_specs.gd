@@ -31,6 +31,16 @@ const PAYOFF := {
 	"shatteringslam": {"coef": 0.45 * 1.9 + 0.2 * 3.0},
 	"rimequake": {"coef": 0.65 * (1.0 + 0.1 * 3.0)},
 	"coldshoulder": {"skip": true}, "hailcoat": {"skip": true}, "hardrime": {"skip": true}, "glacialbulwark": {"skip": true},
+	# Fire DPS: Forge Heat. Fold Steel ~3.5 hits (Orange half the time); Red Edge ~4 swings in Orange; Blast Furnace is a cooldown.
+	"foldsteel": {"coef": 0.5 * 3.5},
+	"rededge": {"coef": 0.25 * 4.0 * 0.5},
+	"blastfurnace": {"skip": true},
+	# Fire archer: Pitch and Cinder. Touch Off Ignites ~3 layers at +50%; Brushfire is a cooldown.
+	"touchoff": {"coef": 0.15 * 3.0 * 1.5},
+	"brushfire": {"skip": true},
+	# Fire tank: Slagforged. Forge Blow shatters ~5 Slag (0.25 each); Rivet and Molten Shell are utility.
+	"forgeblow": {"coef": 0.25 * 5.0},
+	"redhotrivet": {"skip": true}, "moltenshell": {"skip": true},
 	# Nature caster: finishers at an average of 3 patches; Thornburst on the target once.
 	"mossback": {"coef": 0.6 + 0.6 * 3},
 	"chokingvipers": {"coef": 0.0, "dot": 0.4 + 0.4 * 3, "dot_time": 3.0},

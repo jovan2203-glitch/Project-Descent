@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"foldsteel"
+display_name = "Fold Steel"
+description = "Strikes {b:FOLD_STEEL_HITS} times in quick succession, each hit dealing {hit} Fire damage. Each hit is a melee hit of its own: each builds its own Heat and can be its own Spark. Orange band: {b:FOLD_STEEL_HITS_ORANGE} hits. White band: each hit also deals {b:FOLD_STEEL_SPLASH_PCT}% of its damage to every enemy within {b:FOLD_STEEL_SPLASH_RADIUS} m of the target."
+tags = PackedStringArray("Ability", "Fire", "Melee")
+cast_type = 0
+cast_time = 0.0
+cooldown = 8.0
+requires_target = true
+weapon_requirement = 1
+resource_type = 3
+resource_cost = 25
+damage = 0.0
+weapon_damage_multiplier = 0.5
+damage_type = &"fire"

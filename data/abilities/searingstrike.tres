@@ -7,7 +7,7 @@
 script = ExtResource("1_s")
 id = &"searingstrike"
 display_name = "Searing Strike"
-description = "Strikes with a burning weapon, dealing {hit} Fire damage and Burning the target for {dot} Fire damage {fx_every} for {fx_time} sec. On a target with your {n:immolate} it builds {searing_heat} Heat instead of one."
+description = "Strikes with a burning weapon, dealing {hit} Fire damage and Burning the target for {dot} Fire damage {fx_every} for {fx_time} sec. On a target with your Burning or {n:immolate} it builds {searing_heat} Heat instead of one. Orange band: its Burning also goes on the nearest other enemy within {b:SEARING_SPREAD_RADIUS} m. White band: it gives you {b:SEARING_WHITE_FURY} Fury back."
 tags = PackedStringArray("Ability", "Fire", "Melee")
 cast_type = 0
 cast_time = 0.0

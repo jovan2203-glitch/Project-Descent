@@ -26,9 +26,9 @@ func test_gain_grows_with_crit_chance() -> void:
 func test_stoked_breath_and_sealed_kiln_scale_the_gain() -> void:
 	var plain := FireFuryKit.fury_gain(25.0, false, 0.0, false)
 	var id := Talents.id_for_key("fire_stoked_breath")
-	assert_eq(id, "fire_r1c5")
+	assert_eq(id, "fire_r1c1")
 	assert_true(TalentIcons.has_icon(id))
-	assert_true(is_equal_approx(FireFuryKit.fury_gain(25.0, false, Talents.value_at(id, 2), false), plain * 1.2), "rank 2: 20% more")
+	assert_true(is_equal_approx(FireFuryKit.fury_gain(25.0, false, Talents.value_at(id, 4), false), plain * 1.2), "rank 4: 20% more")
 	assert_true(is_equal_approx(FireFuryKit.fury_gain(25.0, false, 0.0, true), plain * (1.0 - Balance.SEALED_KILN_PCT / 100.0)), "Sealed Kiln: 30% less")
 
 func test_vent_maths() -> void:
@@ -74,7 +74,7 @@ func test_no_decay_while_casting() -> void:
 	assert_contains(_src(), "if not casting:   # (no Fury is lost while casting or channeling")
 
 func test_kiln_blast_never_crits() -> void:
-	assert_contains(_src(), "or id == \"kilnblast\":")
+	assert_contains(_src(), "or id == \"kilnblast\"")
 	assert_contains(Abilities.tooltip("kilnblast"), "Cannot critically strike")
 
 func test_damped_and_wild_embers_move_only_ember_crits() -> void:
@@ -92,7 +92,7 @@ func test_smoldering_focus_and_blowback() -> void:
 	assert_eq(FireFuryKit.smolder_pct(0.0, 0.1), 0.0, "no Fury, no bonus")
 	assert_contains(_src(), "info.add_bonus(smolder, \"Smoldering Focus\")", "its own damage-meter line")
 	var id := Talents.id_for_key("fire_blowback")
-	assert_eq(id, "fire_r6c5")
+	assert_eq(id, "fire_r5c1")
 	assert_true(TalentIcons.has_icon(id))
 	assert_true(is_equal_approx(FireFuryKit.blowback_coef(40.0, 50.0), 20.0 * Balance.BLOWBACK_PER_FURY), "half of 40 Vented burns")
 	assert_eq(FireFuryKit.blowback_coef(40.0, 0.0), 0.0)

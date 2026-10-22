@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"cinderguard"
 display_name = "Cinder Guard"
-description = "Raises your shield for {b:CINDER_GUARD_TIME} sec, increasing your chance to block by {b:CINDER_GUARD_BLOCK}%. Each attack you block burns the attacker for {hit} Fire damage and extends your {n:slagskin} by {b:CINDER_GUARD_EXTEND} sec (up to its full {b:SLAG_SKIN_TIME} sec)."
+description = "Raises your shield for {b:CINDER_GUARD_TIME} sec, increasing your chance to block by {b:CINDER_GUARD_BLOCK}%. Each attack you block burns the attacker for {hit} Fire damage, gives {b:CINDER_GUARD_SLAG} Slag instead of one and extends your {n:slagskin} by {b:CINDER_GUARD_EXTEND} sec (up to its full {b:SLAG_SKIN_TIME} sec)."
 tags = PackedStringArray("Ability", "Fire", "Shield", "Buff")
 cast_type = 0
 cast_time = 0.0

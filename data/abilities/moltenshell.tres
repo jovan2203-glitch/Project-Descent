@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"moltenshell"
+display_name = "Molten Shell"
+description = "For {b:MOLTEN_SHELL_TIME} sec your Slag holds up to {b:MOLTEN_SHELL_MAX} stacks, each attack you block adds {b:MOLTEN_SHELL_BLOCK_SLAG} Slag, and you take {b:MOLTEN_SHELL_DR}% less damage for each Slag you hold. When it ends, Slag above {b:SLAG_MAX_STACKS} is lost. Does not trigger the global cooldown."
+tags = PackedStringArray("Ability", "Fire", "Buff")
+cast_type = 0
+cast_time = 0.0
+cooldown = 120.0
+requires_target = false
+weapon_requirement = 1
+requires_shield = true
+resource_type = 0
+damage = 0.0
+damage_type = &"fire"

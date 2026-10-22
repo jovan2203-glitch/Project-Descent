@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"touchoff"
+display_name = "Touch Off"
+description = "Sets your Pitch on the target alight on purpose: it Ignites for {b:TOUCH_OFF_PCT}% more damage, {touchoff_layer} Fire damage per layer to the target and every enemy within {b:PITCH_IGNITE_RADIUS} m of it. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, it is split evenly between all of them. Requires your Pitch on the target."
+tags = PackedStringArray("Ability", "Fire", "Ranged", "AoE")
+cast_type = 0
+cast_time = 0.0
+cooldown = 10.0
+requires_target = true
+weapon_requirement = 2
+resource_type = 2
+resource_cost = 30
+damage = 0.0
+cast_range = 30.0
+damage_type = &"fire"

@@ -7,9 +7,9 @@ Idle = time with nothing to press: "waiting on cooldowns" when every button was 
 | Book | Spec | Role | Avg use (no gear) | No gear | Geared | Top sources (geared) | Flags | Not simulated |
 |---|---|---|---|---|---|---|---|---|
 | Fire | Steady Flame | dps | 914 | 498 DPS | 2650 DPS | Firebolt 56%, Vent Flames 23%, Blaze 21% | geared DPS high, hits big | Cool Head, Crucible, Cooling Slag, Bellows |
-| Fire | Slagforged | tank | 140 | 116 DPS, 518 TPS, 0 self-HPS | 608 DPS, 2687 TPS, 0 self-HPS | Auto Attack 39%, Brand 37%, Anvil 11% |  | Cooling Slag, Bellows |
-| Fire | Forge Heat | dps | 323 | 323 DPS | 1822 DPS | Auto Attack 38%, Flare 33%, Searing Strike 23% |  | Cooling Slag, Bellows |
-| Fire | Pitch and Cinder | dps | 284 | 242 DPS | 1335 DPS | Auto Attack 51%, Flaming Arrow 31%, Furnace Breath 7% | geared DPS low, idle 32% (waiting on cooldowns) | Cooling Slag, Bellows |
+| Fire | Slagforged | tank | 155 | 138 DPS, 616 TPS, 0 self-HPS | 702 DPS, 3058 TPS, 0 self-HPS | Auto Attack 34%, Brand 31%, Forge Blow 15% |  | Red-Hot Rivet, Molten Shell, Cooling Slag, Bellows |
+| Fire | Forge Heat | dps | 360 | 373 DPS | 2169 DPS | Auto Attack 32%, Flare 25%, Fold Steel 22% |  | Blast Furnace, Cooling Slag, Bellows |
+| Fire | Pitch and Cinder | dps | 229 | 261 DPS | 1469 DPS | Auto Attack 47%, Coal Shot 27%, Flaming Arrow 12% | geared DPS low, hits small | Brushfire, Cooling Slag, Bellows |
 | Frost | Hard Winter | dps | 466 | 272 DPS | 1932 DPS | Frost Bolt 48%, Coldspike 40%, Hoarfrost 5% |  | Deepwinter, Rimelock, Flash Freeze, Winter Hide, Glacial Plate, Snow Ward |
 | Frost | Cold Comfort | healer | 0 | 272 HPS | 1419 HPS | Meltwater 74%, Rimefall 15%, Break the Ice 11% | idle 38% (resource-starved) | Frost Lattice, Frost Tide, Spring Thaw, Rimelock, Flash Freeze, Winter Hide, Glacial Plate, Snow Ward |
 | Frost | Frostbitten Steel | dps | 285 | 312 DPS | 1880 DPS | Auto Attack 36%, Icebreaker 20%, Winter's Bite 18% |  | Black Frost, Rimelock, Flash Freeze, Winter Hide, Glacial Plate, Snow Ward |
@@ -42,6 +42,6 @@ Idle = time with nothing to press: "waiting on cooldowns" when every button was 
 
 ## Averages (geared, complete specs only)
 
-- DPS: average 2127 DPS, median 1919 (18 specs; 3 incomplete left out)
-- Tanks: average 712 DPS, median 740 (7 specs; 0 incomplete left out), average 3014 TPS
+- DPS: average 2154 DPS, median 2051 (18 specs; 3 incomplete left out)
+- Tanks: average 726 DPS, median 740 (7 specs; 0 incomplete left out), average 3067 TPS
 - Healers: average 1620 HPS, median 1508 (5 specs; 0 incomplete left out)

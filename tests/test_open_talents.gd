@@ -15,9 +15,9 @@ const StatusContainer = preload("res://scripts/core/status_container.gd")
 
 # [key, name, ranks, slot, values]
 const TALENTS := [
-	["fire_feed_the_flames", "Feed the Flames", 3, "fire_r1c4", [2.0, 4.0, 6.0]],
-	["fire_last_ember", "Last Ember", 2, "fire_r5c1", [50.0, 100.0]],
-	["fire_tempered", "Tempered", 3, "fire_r5c7", [2.0, 4.0, 6.0]],
+	["fire_feed_the_flames", "Feed the Flames", 3, "fire_r5c5", [2.0, 4.0, 6.0]],
+	["fire_last_ember", "Last Ember", 2, "fire_r6c5", [50.0, 100.0]],
+	["fire_tempered", "Tempered", 3, "fire_r7c5", [2.0, 4.0, 6.0]],
 	["lightning_change_of_pace", "Change of Pace", 3, "lightning_r1c4", [1.0, 2.0, 3.0]],
 	["lightning_spillover", "Spillover", 3, "lightning_r3c4", [5.0, 10.0, 15.0]],
 	["lightning_dig_in", "Dig In", 3, "lightning_r4c4", [2.0, 4.0, 6.0]],
@@ -79,9 +79,7 @@ func test_they_are_in_the_tree() -> void:
 		assert_false(Talents.MOVED.has(id), "%s is not a slot another talent moved out of" % id)
 
 func test_where_they_sit() -> void:
-	var fire: Array = Talents.layout("fire")
-	assert_eq(fire[0], [0, 2, 3, 4, 6], "the middle of row 1")
-	assert_eq(fire[4], [0, 2, 4, 6], "the edges of row 5")
+	assert_eq(Talents.group_of("fire_r5c5"), Talents.OPEN_GROUP, "Fire's open column (column groups)")
 	var lightning: Array = Talents.layout("lightning")
 	assert_eq(lightning[0], [1, 2, 3, 4, 5])
 	assert_eq(lightning[2], [0, 2, 3, 4, 6])

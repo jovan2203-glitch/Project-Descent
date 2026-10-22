@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"cinderrain"
 display_name = "Cinder Rain"
-description = "Looses a volley of burning arrows onto an area {width} m wide that you place. For {rain_time} sec, enemies inside take {hit} Fire damage every {rain_tick} sec. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, that damage is split evenly between all of them."
+description = "Looses a volley of burning arrows onto an area {width} m wide that you place. For {rain_time} sec, enemies inside take {hit} Fire damage every {rain_tick} sec. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, that damage is split evenly between all of them. Its ticks that do not critically strike coat each enemy in a layer of Pitch, at most once every {b:PITCH_RAIN_COAT_EVERY} sec; one that does Ignites it."
 tags = PackedStringArray("Ability", "Fire", "Ranged", "AoE")
 cast_type = 0
 cast_time = 0.0

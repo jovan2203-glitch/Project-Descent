@@ -81,6 +81,15 @@ const PATHS := {
 	"crucible": "res://data/abilities/crucible.tres",
 	"cinderstep": "res://data/abilities/cinderstep.tres",
 	"heatsink": "res://data/abilities/heatsink.tres",
+	"redhotrivet": "res://data/abilities/redhotrivet.tres",
+	"forgeblow": "res://data/abilities/forgeblow.tres",
+	"moltenshell": "res://data/abilities/moltenshell.tres",
+	"foldsteel": "res://data/abilities/foldsteel.tres",
+	"rededge": "res://data/abilities/rededge.tres",
+	"blastfurnace": "res://data/abilities/blastfurnace.tres",
+	"coalshot": "res://data/abilities/coalshot.tres",
+	"touchoff": "res://data/abilities/touchoff.tres",
+	"brushfire": "res://data/abilities/brushfire.tres",
 	"brand": "res://data/abilities/brand.tres",
 	"cinderguard": "res://data/abilities/cinderguard.tres",
 	"anvil": "res://data/abilities/anvil.tres",
@@ -406,6 +415,7 @@ const DRAFT_POOL := ["frostnova", "icebarrier", "blink",
 	"kilnblast",
 	"crucible", "cinderstep", "heatsink", "brand", "cinderguard", "anvil", "quench", "flare",
 	"pitcharrow", "cinderrain", "cinderwing",
+	"redhotrivet", "forgeblow", "moltenshell", "foldsteel", "rededge", "blastfurnace", "coalshot", "touchoff", "brushfire",
 	"chainlightning", "thunderstrike", "stormarrow",
 	"discharge", "balllightning", "groundout", "groundingsurge",
 	"arcflash", "livewire", "thunderhead", "forkedbolt", "jolt", "flicker", "capacitor",
@@ -452,6 +462,7 @@ const ALL := ["frostbolt", "blizzard", "frostnova", "icebarrier",
 	"kilnblast",
 	"crucible", "cinderstep", "heatsink", "brand", "cinderguard", "anvil", "quench", "flare",
 	"pitcharrow", "cinderrain", "cinderwing",
+	"redhotrivet", "forgeblow", "moltenshell", "foldsteel", "rededge", "blastfurnace", "coalshot", "touchoff", "brushfire",
 	"lightningbolt", "chainlightning", "discharge", "balllightning", "groundout", "groundingsurge",
 	"forkedbolt", "arcflash", "livewire", "thunderhead", "jolt", "flicker", "capacitor",
 	"thunderstrike", "chargededge", "whiplash", "arccleave", "cadence", "twincurrent", "staticstep",
@@ -506,6 +517,7 @@ const CATEGORY_OF := {
 	"crucible": "fire", "cinderstep": "fire", "heatsink": "fire",
 	"brand": "fire", "cinderguard": "fire", "anvil": "fire", "quench": "fire", "flare": "fire",
 	"pitcharrow": "fire", "cinderrain": "fire", "cinderwing": "fire",
+	"redhotrivet": "fire", "forgeblow": "fire", "moltenshell": "fire", "foldsteel": "fire", "rededge": "fire", "blastfurnace": "fire", "coalshot": "fire", "touchoff": "fire", "brushfire": "fire",
 	"chainlightning": "lightning", "thunderstrike": "lightning", "stormarrow": "lightning",
 	"discharge": "lightning", "balllightning": "lightning", "groundout": "lightning", "groundingsurge": "lightning",
 	"arcflash": "lightning", "livewire": "lightning", "thunderhead": "lightning", "forkedbolt": "lightning",
@@ -662,9 +674,9 @@ const SPECS := {
 	"fire": [
 		["Steady Flame", ["fireball", "flamenova", "ventflames", "coolhead", "stoke", "embervolley",
 			"immolate", "walloffire", "kilnblast", "crucible"]],
-		["Slagforged", ["slagskin", "brand", "cinderguard", "anvil"]],
-		["Forge Heat", ["searingstrike", "quench", "flare"]],
-		["Pitch and Cinder", ["flamingarrow", "pitcharrow", "cinderrain"]],
+		["Slagforged", ["slagskin", "brand", "cinderguard", "anvil", "redhotrivet", "forgeblow", "moltenshell"]],
+		["Forge Heat", ["searingstrike", "foldsteel", "quench", "flare", "rededge", "blastfurnace"]],
+		["Pitch and Cinder", ["flamingarrow", "coalshot", "pitcharrow", "cinderrain", "touchoff", "brushfire"]],
 		["Utility", ["coolingslag", "furnacebreath", "bellows", "cinderstep", "heatsink", "cinderwing"]],
 	],
 	"frost": [
@@ -881,11 +893,11 @@ const OFF_GCD := ["groundingsurge", "capacitor", "returnstroke", "rimefletch", "
 	"missedbeat", "tradeplaces", "doubletime", "offthechain", "doublethread", "restring", "behinditsback", "swell",
 	"aureole", "gatherthelight", "unfallen", "setprism", "moveprism", "shatterall", "prismarrow", "stepoflight",
 	"fightingstyle", "goin", "hityourstride", "rollwithit", "playdead", "breathe", "fasthands",
-	"coldshoulder", "glacialbulwark", "bitteredge"]
+	"coldshoulder", "glacialbulwark", "bitteredge", "redhotrivet", "moltenshell", "rededge", "blastfurnace"]
 ## Melee-weapon abilities used from their own range (cast_range) instead of the
 ## weapon's reach: Static Step dashes in, Whiplash lashes from afar.
 const LONG_REACH := ["staticstep", "whiplash", "reelin", "beckon", "raisethecenser", "dragin", "comeon",
-	"cut", "gut", "whirl", "redwhirl", "dartin", "drivethrough", "pintheshadow", "overtheshoulder", "coldshoulder"]
+	"cut", "gut", "whirl", "redwhirl", "dartin", "drivethrough", "pintheshadow", "overtheshoulder", "coldshoulder", "redhotrivet"]
 
 ## Does ability `id` have to be within the equipped weapon's reach of its target?
 static func uses_weapon_reach(id: String) -> bool:
@@ -1157,7 +1169,7 @@ const RogueIcons = preload("res://scripts/ui/rogue_icons.gd")
 const SharpshooterIcons = preload("res://scripts/ui/sharpshooter_icons.gd")
 ## Talents that widen an ability: [talent key, metres of RADIUS per point of the
 ## talent's value]. Deep Crucible gives width, so half of it is radius.
-const RADIUS_TALENTS := {"crucible": ["fire_deep_crucible", 0.5], "ripple": ["arcane_wide_rings", 1.0], "hallowedarc": ["holy_wide_arc", 1.0],
+const RADIUS_TALENTS := {"cinderrain": ["fire_wide_rain", 0.5], "ripple": ["arcane_wide_rings", 1.0], "hallowedarc": ["holy_wide_arc", 1.0],
 	"sweep": ["martial_wide_stance", 1.0], "roundhouse": ["martial_wide_stance", 1.0]}
 
 ## Metres your talents add to ability `id`'s radius (the game and its {radius} / {width} use this).
@@ -1202,8 +1214,10 @@ static func effect_time_bonus(res: Resource, talent_of: Callable) -> float:
 	var bonus := 0.0
 	if id == "hoarfrost":
 		bonus += float(talent_of.call("frost_hoarfrost", "values2"))   # Deep Hoarfrost
-	if id == "immolate":
+	if id == "immolate" or id == "burning":
 		bonus += float(talent_of.call("fire_long_burn", "values"))     # Long Burn
+	if id == "pitched":
+		bonus += float(talent_of.call("fire_long_coat", "values"))     # Long Coat
 	if id == "chilled":
 		bonus += float(talent_of.call("frost_long_chill", "values"))   # Lingering Frost
 	if id == "frozen":
@@ -1270,7 +1284,7 @@ const HEAL_OVER_TIME_IDS := ["sap", "evergreen", "puppetstring", "refrain", "cat
 
 ## Talents that shorten an ability's cooldown: ability id -> talent key (its
 ## value = seconds taken off).
-const COOLDOWN_TALENTS := {"realign": "holy_quick_realign", "prismarrow": "holy_full_quiver"}
+const COOLDOWN_TALENTS := {"realign": "holy_quick_realign", "prismarrow": "holy_full_quiver", "redhotrivet": "fire_riveted"}
 
 ## Ability `r`'s cooldown in seconds with your talents (the game and the
 ## tooltips both use this). Quick Realign shortens Realign's.
@@ -1492,10 +1506,11 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		"shatter_frozen": fmt_amount(shatter * Balance.FROZEN_SHATTER_MULT),
 		"burst": fmt_amount(_expire_coef(id) * dper * dot_mult),
 		"slag": fmt_amount(Balance.SLAG_ARMOR * flat * (1.0 + talent("fire_thick_slag") / 100.0)),   # Thick Slag
+		"slag_shatter": fmt_amount(float(EXTRA_HITS.get("slagskin", 0.0)) * dper),   # Forge Blow: per Slag shattered
 		# Heat (Fire melee): its numbers straight from balance.gd.
 		"heat_max": str(Balance.HEAT_MAX_STACKS),
 		"heat_pct": Stats.num(Balance.HEAT_DAMAGE_PCT),
-		"heat_time": TextFill.num(Balance.HEAT_TIME + talent("fire_forge_heat")),   # Forge Heat
+		"heat_time": TextFill.num(Balance.HEAT_TIME + talent("fire_slow_cooling")),   # Slow Cooling
 		"searing_heat": str(Balance.SEARING_STRIKE_HEAT),
 		"quench_pct": Stats.num(Balance.QUENCH_PCT_PER_HEAT),
 		"quench_min": str(Balance.QUENCH_MIN_HEAT),
@@ -1515,7 +1530,9 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		"ball_energy": TextFill.num(Balance.BALL_LIGHTNING_ENERGY + talent("lightning_tight_coil")),         # Tight Coil
 		"recharge_max": TextFill.num(Balance.RECHARGE_PCT_PER_STEP * energy_max / Balance.ENERGY_STEP),       # % of max health at a full bar
 		# Fire bow and the phoenix.
-		"pitch_pct": Stats.num(Balance.PITCH_TICK_SPEED_PCT),
+		"pitch_pct": Stats.num(Balance.PITCH_LAYER_SPEED_PCT),
+		"ignite_layer": fmt_amount(Balance.PITCH_IGNITE_PER_LAYER * dper),   # Pitch: an Ignite, per layer
+		"touchoff_layer": fmt_amount(Balance.PITCH_IGNITE_PER_LAYER * dper * (1.0 + Balance.TOUCH_OFF_PCT / 100.0)),
 		"rain_time": Stats.num(Balance.CINDER_RAIN_TIME),
 		"rain_tick": secs(Balance.CINDER_RAIN_TICK),
 		"phoenix_casts": str(Balance.PHOENIX_CASTS),
@@ -1534,10 +1551,10 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		"fx_pct": TextFill.effect_number(fx_res, "pct"),
 		"fx_every": TextFill.effect_number(fx_res, "every"),
 		# Numbers a talent adds to.
-		"kiln_pct": TextFill.num(Balance.KILN_BLAST_IMMOLATE_PCT + talent("fire_stoked_kiln")),          # Stoked Kiln
+		"kiln_pct": TextFill.num(Balance.KILN_BLAST_IMMOLATE_PCT),
 		"cold_pct": TextFill.num(Balance.COLDSPIKE_FROZEN_PCT + talent("frost_piercing_cold")),          # Piercing Cold
 		"brand_pct": TextFill.num(Balance.BRAND_PCT + talent("fire_deep_brand")),                        # Deep Brand
-		"crucible_time": TextFill.num(Balance.CRUCIBLE_TIME + talent("fire_deep_crucible", "values2")),  # Deep Crucible
+		"crucible_time": TextFill.num(Balance.CRUCIBLE_TIME),
 		"darts": str(Balance.ARCANE_MISSILES_COUNT + int(round(talent("arcane_seventh_sigil")))),         # Seventh Sigil
 		"mirror_pct": TextFill.num(Balance.MIRROR_SIGIL_PCT + talent("arcane_polished_glass")),          # Polished Glass
 		"collapse_pull": TextFill.num(Balance.COLLAPSE_PULL),
@@ -2498,6 +2515,29 @@ static func _draw_unique(c: Control, id: String, col: Color, mid: Vector2, k: fl
 		"searingstrike":
 			_sword(c, mid, k, col)
 			_flame(c, mid + Vector2(10, -11) * k, 0.8 * k, col, Color(1.0, 0.9, 0.4))
+		"foldsteel":
+			# A blade folded over on itself in glowing layers, three strike marks beside it.
+			for i in 3:
+				var y := -10.0 + i * 7.0
+				c.draw_line(mid + Vector2(-14, y) * k, mid + Vector2(6, y + 2) * k, Color(1.0, 0.55 + i * 0.15, 0.2 + i * 0.2), 4.0 * k, true)
+				c.draw_arc(mid + Vector2(6, y + 5.5) * k, 3.5 * k, -PI * 0.5, PI * 0.5, 6, light, 1.6 * k, true)
+			for i in 3:
+				c.draw_line(mid + Vector2(11 + i * 2, -14 + i * 9) * k, mid + Vector2(17 + i * 0.5, -9 + i * 9) * k, white, 1.8 * k, true)
+		"rededge":
+			# A blade whose edge glows red-hot, a heat shimmer along it.
+			c.draw_line(mid + Vector2(-14, 14) * k, mid + Vector2(12, -12) * k, Color(0.6, 0.58, 0.6), 5.0 * k, true)
+			c.draw_line(mid + Vector2(-12, 16) * k, mid + Vector2(14, -10) * k, Color(1.0, 0.25, 0.1), 2.6 * k, true)
+			c.draw_line(mid + Vector2(-17, 17) * k, mid + Vector2(-12, 12) * k, Color(0.4, 0.25, 0.15), 3.6 * k, true)
+			for p in [Vector2(-2, -4), Vector2(6, -12), Vector2(-9, 4)]:
+				c.draw_arc(mid + (p as Vector2) * k, 3.0 * k, PI, TAU, 6, Color(1.0, 0.5, 0.3, 0.8), 1.4 * k, true)
+		"blastfurnace":
+			# A furnace mouth roaring white-hot, bellows air rushing in.
+			c.draw_rect(Rect2(mid + Vector2(-13, -10) * k, Vector2(26, 24) * k), Color(0.3, 0.24, 0.22), true)
+			c.draw_arc(mid + Vector2(0, 6) * k, 8.0 * k, PI, TAU, 14, Color(0.55, 0.45, 0.4), 3.0 * k, true)
+			c.draw_circle(mid + Vector2(0, 7) * k, 6.5 * k, Color(1.0, 0.95, 0.75))
+			_flame(c, mid + Vector2(0, 2) * k, 0.9 * k, Color(1.0, 0.6, 0.2), Color(1.0, 1.0, 0.85))
+			for x in [-16.0, 16.0]:
+				c.draw_line(mid + Vector2(x, -15) * k, mid + Vector2(x * 0.7, -8) * k, white, 1.8 * k, true)
 		"quench":
 			# A glowing blade driven down into a trough of water, steam rising off it.
 			c.draw_line(mid + Vector2(9, -16) * k, mid + Vector2(-2, 7) * k, Color(col, 0.5), 7.5 * k, true)
@@ -2547,6 +2587,30 @@ static func _draw_unique(c: Control, id: String, col: Color, mid: Vector2, k: fl
 		"flamingarrow":
 			_arrow_shaft(c, mid, k, col)
 			_flame(c, mid + Vector2(10, -10) * k, 0.9 * k, col, Color(1.0, 0.9, 0.4))
+		"coalshot":
+			# An arrow tipped with a glowing lump of coal, a thin trail of smoke behind.
+			_arrow_shaft(c, mid, k, Color(0.55, 0.5, 0.48))
+			c.draw_circle(mid + Vector2(10, -10) * k, 5.0 * k, Color(0.18, 0.14, 0.12))
+			c.draw_circle(mid + Vector2(10, -10) * k, 3.0 * k, Color(1.0, 0.45, 0.12))
+			c.draw_circle(mid + Vector2(11, -11) * k, 1.2 * k, Color(1.0, 0.9, 0.4))
+			for i in 3:
+				c.draw_circle(mid + Vector2(-8 - i * 4, 8 + i * 4) * k, (2.5 - i * 0.6) * k, Color(0.6, 0.6, 0.62, 0.5 - i * 0.12))
+		"touchoff":
+			# A torch touched to a black, dripping coat that bursts into flame.
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-14, 4), Vector2(14, 4), Vector2(12, 14), Vector2(-12, 14)]), Color(0.16, 0.11, 0.08))
+			for x in [-8.0, 2.0, 10.0]:
+				c.draw_line(mid + Vector2(x, 14) * k, mid + Vector2(x, 17) * k, Color(0.16, 0.11, 0.08), 2.0 * k, true)
+			_flame(c, mid + Vector2(-2, -1) * k, 1.2 * k, col, Color(1.0, 0.9, 0.4))
+			c.draw_line(mid + Vector2(16, -16) * k, mid + Vector2(7, -6) * k, Color(0.55, 0.4, 0.3), 3.0 * k, true)
+			_flame(c, mid + Vector2(6, -9) * k, 0.5 * k, Color(1.0, 0.6, 0.2), white)
+		"brushfire":
+			# Dry grass catching, a line of small flames running across it.
+			for i in 7:
+				var x := -15.0 + i * 5.0
+				c.draw_line(mid + Vector2(x, 15) * k, mid + Vector2(x + 2, 5) * k, Color(0.75, 0.62, 0.3), 1.6 * k, true)
+			for x in [-10.0, 0.0, 10.0]:
+				_flame(c, mid + Vector2(x, 0) * k, 0.65 * k, col, Color(1.0, 0.9, 0.4))
+			_arrow_shaft(c, mid + Vector2(0, -8) * k, k * 0.6, light)
 		"flamenova":
 			for i in 8:
 				var a := TAU * i / 8.0
@@ -2660,6 +2724,33 @@ static func _draw_unique(c: Control, id: String, col: Color, mid: Vector2, k: fl
 			c.draw_polyline(_pts(mid, k, [Vector2(-3, -3), Vector2(5, -6), Vector2(8, 1)]), light, 1.8 * k, true)
 			for p in [Vector2(17, -13), Vector2(18, 0), Vector2(16, 12)]:
 				c.draw_line(mid + (p as Vector2) * k, mid + ((p as Vector2) + Vector2(-4, 0)) * k, light, 1.8 * k, true)
+		"redhotrivet":
+			# A glowing rivet flying at a target, a red-hot trail behind it.
+			for i in 3:
+				c.draw_line(mid + Vector2(-16 + i * 3, 12 - i * 3) * k, mid + Vector2(-2, -1) * k, Color(col, 0.35 + i * 0.2), (4.0 - i) * k, true)
+			c.draw_circle(mid + Vector2(2, -4) * k, 5.0 * k, Color(1.0, 0.55, 0.15))
+			c.draw_rect(Rect2(mid + Vector2(5, -6) * k, Vector2(6, 4) * k), Color(1.0, 0.85, 0.4), true)
+			c.draw_arc(mid + Vector2(12, -9) * k, 5.0 * k, 0, TAU, 14, Color(1.0, 0.3, 0.2), 2.0 * k, true)
+			c.draw_circle(mid + Vector2(12, -9) * k, 1.6 * k, Color(1.0, 0.3, 0.2))
+		"forgeblow":
+			# A hammer coming down on a slab of slag that bursts apart.
+			for p in [Vector2(-13, 12), Vector2(-2, 15), Vector2(10, 12)]:
+				c.draw_colored_polygon(_pts(mid, k, [(p as Vector2) + Vector2(-4, -2), (p as Vector2) + Vector2(3, -3), (p as Vector2) + Vector2(4, 2), (p as Vector2) + Vector2(-3, 3)]), Color(0.25, 0.19, 0.17))
+			for a in [-2.6, -2.0, -1.2, -0.6]:
+				var d := Vector2(cos(a), sin(a))
+				c.draw_line(mid + Vector2(0, 8) * k + d * 4.0 * k, mid + Vector2(0, 8) * k + d * 11.0 * k, Color(1.0, 0.9, 0.4), 1.8 * k, true)
+			c.draw_line(mid + Vector2(10, -15) * k, mid + Vector2(-1, 2) * k, Color(0.55, 0.4, 0.3), 3.0 * k, true)
+			c.draw_rect(Rect2(mid + Vector2(-8, -1) * k, Vector2(12, 7) * k), Color(0.5, 0.48, 0.5), true)
+			c.draw_line(mid + Vector2(-8, 6) * k, mid + Vector2(4, 6) * k, light, 2.0 * k, true)
+		"moltenshell":
+			# A figure wrapped in a thick, glowing shell of molten slag plates.
+			c.draw_circle(mid, 15.0 * k, Color(0.22, 0.16, 0.14))
+			for i in 6:
+				var a := TAU * i / 6.0
+				c.draw_arc(mid, 13.0 * k, a + 0.1, a + TAU / 6.0 - 0.1, 6, col, 4.0 * k, true)
+			c.draw_arc(mid, 15.5 * k, 0, TAU, 28, Color(1.0, 0.85, 0.4), 1.6 * k, true)
+			c.draw_circle(mid + Vector2(0, -4) * k, 3.5 * k, light)
+			c.draw_colored_polygon(_pts(mid, k, [Vector2(-5, 8), Vector2(5, 8), Vector2(3, 0), Vector2(-3, 0)]), light)
 		"coolhead":
 			# A calm head and shoulders with a small flame held inside a ring.
 			c.draw_arc(mid + Vector2(0, 22) * k, 15.0 * k, PI * 1.12, PI * 1.88, 16, light, 3.0 * k, true)

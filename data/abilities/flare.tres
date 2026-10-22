@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"flare"
 display_name = "Flare"
-description = "Sweeps your heated weapon in a wide arc, dealing {hit} Fire damage to every enemy within {radius} m in front of you. If your target has your {n:immolate}, it spreads to every enemy hit that does not have it yet. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, that damage is split evenly between all of them. Costs {flare_cost} Heat."
+description = "Sweeps your heated weapon in a wide arc, dealing {hit} Fire damage to every enemy within {radius} m in front of you. If your target has your Burning, it spreads to every enemy hit that does not have it yet. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, that damage is split evenly between all of them. Costs {flare_cost} Heat. Orange band: it deals {b:FLARE_ORANGE_PCT}% more damage. White band: it costs no Heat."
 tags = PackedStringArray("Ability", "Fire", "Melee", "AoE")
 cast_type = 0
 cast_time = 0.0

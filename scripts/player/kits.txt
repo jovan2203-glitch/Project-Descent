@@ -46,3 +46,4 @@ martial_talents MartialTalentsKit martial_talents_open.gd
 glacier GlacierKit frost_glacier.gd
 frost_steel FrostSteelKit frost_steel.gd
 fire_fury FireFuryKit fire_fury.gd
+fire_talents FireTalentsKit fire_talents.gd

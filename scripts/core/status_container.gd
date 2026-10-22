@@ -549,6 +549,13 @@ func stacks_of(id: String) -> int:
 		best = maxi(best, int(effects[k]["stacks"]))
 	return best
 
+## Stacks of `source`'s own copy of effect `id` (0 if it has none).
+func stacks_from(id: String, source: Node) -> int:
+	for k in _keys_of(id):
+		if effects[k]["source"] == source:
+			return int(effects[k]["stacks"])
+	return 0
+
 ## Remove only `source`'s copy of effect `id` (per-caster DoTs). Returns true
 ## if there was one.
 func remove_from(id: String, source: Node) -> bool:

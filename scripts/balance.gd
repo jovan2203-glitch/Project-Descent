@@ -261,18 +261,26 @@ const EMBER_VOLLEY_SPLIT_RADIUS := 8.0   # Scattered Embers talent: extra target
 const FURNACE_BREATH_ARC := 90.0          # Furnace Breath: the cone's full width in degrees
 const SLAG_SKIN_TIME := 15.0             # Slag Skin: seconds it lasts (its cooldown is shorter: keep it up)
 const SLAG_SKIN_ICD := 0.5               # ... each attacker is burned at most once per this many seconds
-const SLAG_MAX_STACKS := 6               # Slag: stacks from melee hits that don't crit, while Slag Skin is up
+const SLAG_MAX_STACKS := 6               # Slag: stacks from your blocks and melee hits, while Slag Skin is up
 const SLAG_ARMOR := 0.5                  # ... armor per stack, in flat units (Stats.flat_unit)
-const SLAG_SHATTER_RADIUS := 5.0         # ... a melee crit shatters every stack: Fire damage within this many metres
+const SLAG_BRITTLE_TIME := 3.0           # ... a stack from a melee crit is brittle: it lasts only this many seconds
+const SLAG_SHATTER_RADIUS := 5.0         # ... Forge Blow shatters every stack: Fire damage within this many metres
 const SLAG_SHATTER_THREAT := 3.0         # ... (damage per stack is EXTRA_HITS["slagskin"])
 const BRAND_PCT := 10.0                  # Brand: % less damage the branded enemy deals to you
 const CINDER_GUARD_TIME := 6.0           # Cinder Guard: seconds
 const CINDER_GUARD_BLOCK := 25.0         # ... added chance to block (%), still capped at Stats.MAX_BLOCK
 const CINDER_GUARD_EXTEND := 1.0         # ... seconds each block adds to Slag Skin (never above SLAG_SKIN_TIME)
+const CINDER_GUARD_SLAG := 2             # ... Slag each block gives during it (instead of 1)
+const RIVET_TAUNT := 3.0                 # Red-Hot Rivet: seconds the target must attack you
+const RIVET_SLAG := 1                    # ... Slag it gives you
+const MOLTEN_SHELL_TIME := 10.0          # Molten Shell: seconds it lasts
+const MOLTEN_SHELL_MAX := 12             # ... Slag you can hold during it (back to the normal cap when it ends)
+const MOLTEN_SHELL_BLOCK_SLAG := 2       # ... Slag each block gives during it
+const MOLTEN_SHELL_DR := 1.0             # ... % less damage taken per Slag you hold during it
 const CLINKER_TIME := 6.0                # Smoldering Debris talent (was "Clinker"): seconds the patch burns
 const CLINKER_TICK := 1.0                # ... seconds between its ticks
 const CLINKER_RADIUS := 3.0              # ... half the side of the (square) patch
-const CRUCIBLE_TIME := 10.0              # Crucible: seconds it stands
+const CRUCIBLE_TIME := 12.5              # Crucible: seconds it stands (Deep Crucible was folded in: was 10)
 const CRUCIBLE_DOT_PCT := 15.0           # ... % more periodic Fire damage enemies inside take
 const CRUCIBLE_MOVE_REFRESHES := false   # ... true = moving it also restarts its 10 seconds
 const CINDER_STEP_DISTANCE := 6.0        # Cinder Step: metres dashed (stops short of walls)
@@ -287,21 +295,52 @@ const HEAT_SINK_FULL_AT := 50.0          # ... reached when this % of your max h
 const COOL_HEAD_TIME := 15.0             # Cool Head: seconds your Fire spells / abilities can't crit
 const CONCENTRATED_FIRE_WINDOW := 5.0    # ... then this many seconds of instant Fire casts (1 per stack)
 const CONCENTRATED_FIRE_MAX := 20        # stack cap (more than fits in one Cool Head)
-## Fire melee: Heat. Built by your melee hits on a target that has YOUR Blaze.
+## Fire melee: Heat. Built by your melee hits on a target that has YOUR Burning or Blaze.
+## While you hold Heat your melee hits can't crit: one that would have is a Spark (+1 Heat).
 const HEAT_MAX_STACKS := 10              # Heat: most stacks you can hold
 const HEAT_DAMAGE_PCT := 4.0             # ... % more Fire damage from your ABILITIES (not spells), per stack
 const HEAT_TIME := 3.0                   # ... seconds without gaining a stack before all of it is lost
+const HEAT_BAND_ORANGE := 5              # Heat bands: Red below this, Orange from it ...
+const HEAT_BAND_WHITE := 9               # ... White from this
 const SEARING_STRIKE_HEAT := 2           # Searing Strike: Heat it builds (every other melee hit builds 1)
+const SEARING_SPREAD_RADIUS := 8.0       # ... Orange: its Burning also goes on the nearest enemy within this many metres
+const SEARING_WHITE_FURY := 15.0         # ... White: Fury it gives back
 const QUENCH_MIN_HEAT := 3               # Quench: Heat needed to use it (it removes all of it)
 const QUENCH_PCT_PER_HEAT := 25.0        # ... % more damage per Heat removed
-const FLARE_HEAT_COST := 3               # Flare: Heat it costs
+const QUENCH_WHITE_SPLASH_PCT := 50.0    # ... White: this % of its damage also hits ...
+const QUENCH_WHITE_RADIUS := 4.0         # ... the enemies within this many metres of the target (split past AOE_TARGET_CAP)
+const FLARE_HEAT_COST := 3               # Flare: Heat it costs (none in the White band)
 const FLARE_ARC := 120.0                 # ... the sweep's full width in degrees (its reach is the ability's radius)
+const FLARE_ORANGE_PCT := 30.0           # ... Orange and White: % more damage
+const FOLD_STEEL_HITS := 3               # Fold Steel: quick hits (each its own crit roll and Heat) ...
+const FOLD_STEEL_HITS_ORANGE := 4        # ... in the Orange band and up
+const FOLD_STEEL_GAP := 0.2              # ... seconds between them
+const FOLD_STEEL_SPLASH_PCT := 50.0      # ... White: each hit also deals this % ...
+const FOLD_STEEL_SPLASH_RADIUS := 3.0    # ... to the enemies within this many metres of the target
+const RED_EDGE_TIME := 6.0               # Red Edge: seconds (its extra Fire damage is the ability's weapon_mult)
+const BLAST_FURNACE_TIME := 12.0         # Blast Furnace: seconds everything counts as the White band
 const AFTERGLOW_TIME := 4.0              # Afterglow talent: seconds after Quench
-const FRESH_TINDER_SECONDS := 1.0        # Fresh Tinder talent: seconds added to your Blaze
-const FRESH_TINDER_CAPSTONE_SECONDS := 2.0   # ... with its capstone
+const FRESH_TINDER_SECONDS := 1.0        # Fresh Tinder talent: seconds added to your Burning
+## Fire talents (their rank values are in talents.gd).
+const BIG_SPEND_FURY := 60.0             # Big Spend: Fury a spell or ability must spend
+const LOW_FLAME_CRIT := 20.0             # Low Flame: below this % critical strike chance (on your sheet)
+const MOLTEN_HEART_ABOVE := 3            # Molten Heart: each Slag shattered above this many counts
+const OVERHEAT_RADIUS := 4.0             # Overheat: metres around the target a White-band Spark burns
+const DRIPPING_LAYERS := 3               # Dripping: layers of Pitch the target needs
+const KINDLE_PACK_HITS := 3              # Kindle Pack: enemies an Ignite must hit
+const FIRE_LINE_RANGE := 20.0            # Fire Line: metres beyond which your Burning hits harder
 ## Fire bow.
-const PITCH_TICK_SPEED_PCT := 25.0       # Pitch Arrow: % faster your burns tick on the coated target
-const PITCH_EFFECTS := ["burning", "immolate"]   # ... the burns it speeds up (data/effects/<id>.tres)
+const PITCH_MAX_LAYERS := 5              # Pitch: most layers of yours on one target (data/effects/pitched.tres)
+const PITCH_TIME := 15.0                 # ... seconds they last, refreshed by each new layer
+const PITCH_LAYER_SPEED_PCT := 8.0       # ... % faster your burns tick on it, per layer
+const PITCH_ARROW_LAYERS := 2            # ... layers Pitch Arrow adds (every other arrow that does not crit adds 1)
+const PITCH_IGNITE_PER_LAYER := 0.15     # ... an arrow crit Ignites it: Fire damage (coefficient) per layer ...
+const PITCH_IGNITE_RADIUS := 6.0         # ... to the target and every enemy within this many metres of it
+const PITCH_RAIN_COAT_EVERY := 1.0       # ... Cinder Rain coats each enemy at most once per this many seconds
+const TOUCH_OFF_PCT := 50.0              # Touch Off: % more Ignite damage
+const BRUSHFIRE_TIME := 12.0             # Brushfire: seconds your auto-shots Burn ...
+const BRUSHFIRE_LAYERS := 2              # ... and add this many layers of Pitch
+const PITCH_EFFECTS := ["burning", "immolate"]   # Pitch: the burns it speeds up (data/effects/<id>.tres)
 const CINDER_RAIN_TIME := 4.0            # Cinder Rain: seconds it falls
 const CINDER_RAIN_TICK := 0.5            # ... seconds between ticks (faster with Haste)
 ## Fire healing: Cinderwing (the phoenix).
@@ -1372,12 +1411,15 @@ const ABILITIES := {
 	"coolhead": {"cooldown": 120.0},
 	"furnacebreath": {"damage": 1.0, "cooldown": 15.0, "cost": 3, "radius": 6.0},   # radius = the cone's reach
 	"slagskin": {"damage": 0.3, "cooldown": 13.0, "cost": 0, "threat": 3.0},         # damage = per hit back at an attacker; lasts SLAG_SKIN_TIME, so it can be kept up
-	"crucible": {"cost": 20, "cast_time": 1.5, "radius": 5.0, "range": 30.0},          # moving it is free and instant
+	"crucible": {"cost": 20, "cast_time": 1.5, "radius": 5.65, "range": 30.0},         # moving it is free and instant (radius was 5, Deep Crucible folded in)
 	"cinderstep": {"damage": 0.15, "cooldown": 15.0, "cost": 2},                       # damage = per tick of the line
 	"heatsink": {"damage": 1.0, "cooldown": 60.0, "cost": 0, "radius": 6.0},           # damage = the burst with nothing stored
 	"brand": {"damage": 1.0, "weapon_mult": 1.0, "cooldown": 6.0, "generates": 20, "threat": 5.0},
 	"cinderguard": {"damage": 0.3, "cooldown": 12.0, "cost": 20, "threat": 3.0},        # damage = the burn on an attacker you block
 	"anvil": {"damage": 0.65, "weapon_mult": 0.5, "cooldown": 8.0, "generates": 10, "radius": 4.0, "threat": 6.0},
+	"redhotrivet": {"damage": 0.3, "cooldown": 8.0, "range": 25.0, "threat": 3.0},
+	"forgeblow": {"cooldown": 8.0, "cost": 30},            # shatters all your Slag: EXTRA_HITS["slagskin"] per stack
+	"moltenshell": {"cooldown": 120.0},
 	"stoke": {"damage": 1.0, "cooldown": 20.0, "cost": 20, "range": 30.0},             # damage = on top of the Burning it eats
 	"immolate": {"damage": 0.0, "cost": 0, "cast_time": 1.5, "range": 30.0},          # its damage is the Blaze effect below
 	"walloffire": {"damage": 0.25, "cooldown": 20.0, "cost": 30, "cast_time": 1.5, "radius": 4.0, "range": 30.0},   # damage = per tick, radius = half its length
@@ -1385,8 +1427,14 @@ const ABILITIES := {
 	"embervolley": {"damage": 0.35, "cooldown": 12.0, "cost": 0, "cast_time": 3.0, "range": 30.0},   # damage = per ember
 	"quench": {"weapon_mult": 1.0},                    # before Heat: + QUENCH_PCT_PER_HEAT % per Heat removed
 	"flare": {"weapon_mult": 1.0, "radius": 4.0},      # radius = the sweep's reach
+	"foldsteel": {"weapon_mult": 0.5, "cooldown": 8.0, "cost": 25},   # per hit (FOLD_STEEL_HITS)
+	"rededge": {"weapon_mult": 0.25, "cooldown": 15.0, "cost": 20},    # weapon_mult = its extra Fire damage per auto-swing (Orange and up)
+	"blastfurnace": {"cooldown": 120.0},
 	"pitcharrow": {"weapon_mult": 0.8, "cooldown": 12.0, "cost": 20},
 	"cinderrain": {"weapon_mult": 0.25, "cooldown": 15.0, "cost": 40, "radius": 4.0, "range": 30.0},   # weapon_mult = per tick (8 ticks)
+	"coalshot": {"weapon_mult": 0.7, "cost": 15},
+	"touchoff": {"cooldown": 10.0, "cost": 30, "range": 30.0},   # Ignites your Pitch: PITCH_IGNITE_* + TOUCH_OFF_PCT
+	"brushfire": {"cooldown": 120.0},
 	"cinderwing": {"cooldown": 60.0},                   # the phoenix: see PHOENIX_* and HEALS
 	# Lightning
 	"lightningbolt": {"damage": 1.05, "cost": 15, "cast_time": 1.7, "range": 20.0},                      # cost = Energy
@@ -1677,7 +1725,7 @@ const EFFECTS := {
 	"res://data/effects/asp_venom.tres": {"duration": POISON_TIME, "slow": -ASP_SLOW},   # Asp Arrow (Nature archer)
 	"res://data/effects/coiled.tres": {"duration": COIL_HOLD},   # Coil Back
 	"res://data/effects/snagged.tres": {"duration": CLINGING_VINES_TIME, "slow": -CLINGING_VINES_SLOW_STEP},   # Clinging Vines (Nature open talent; one stack per rank)
-	"res://data/effects/pitched.tres": {"duration": 12.0},   # Pitch Arrow (Fire archer)
+	"res://data/effects/pitched.tres": {"duration": PITCH_TIME},   # Pitch (Fire archer)
 	"res://data/effects/burning.tres": {"duration": 4.0, "tick_damage": 0.1, "tick_every": 1.0},
 	"res://data/effects/immolate.tres": {"duration": 12.0, "tick_damage": 0.2, "tick_every": 1.0},
 	"res://data/effects/live_wire.tres": {"duration": 10.0, "tick_damage": 0.2, "tick_every": 1.0},

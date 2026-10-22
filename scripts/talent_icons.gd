@@ -44,11 +44,12 @@ const ICONED := ["frost_deep_cracks", "frost_cold_spread", "frost_slow_runoff", 
 	"frost_packed_ice", "frost_deep_tremor", "frost_turned_backs", "frost_cold_fury", "frost_regelation", "frost_old_ice", "frost_deep_strata",
 	"fire_smoldering_focus", "fire_tempered_flame", "fire_afterburn",
 	"fire_banked_coals", "fire_volley_targets", "fire_damped_embers", "fire_wild_embers",
-	"fire_pressure_valve", "fire_cool_under_fire", "fire_thick_slag", "fire_hot_iron", "fire_blowback", "fire_clinker",
-	"fire_kindling", "fire_fresh_tinder", "fire_afterglow",
-	"fire_forge_heat", "fire_long_burn", "fire_deep_crucible", "fire_stoked_kiln", "fire_slag_mending",
+	"fire_pressure_valve", "fire_heat_shimmer", "fire_thick_slag", "fire_hot_iron", "fire_blowback", "fire_clinker",
+	"fire_warm_start", "fire_fresh_tinder", "fire_afterglow", "fire_long_coat", "fire_fed_furnace",
+	"fire_slow_cooling", "fire_long_burn", "fire_spreading_fire", "fire_stoked_kiln", "fire_slag_mending",
 	"fire_deep_brand", "fire_stoked_breath", "fire_warm_blood", "fire_white_heat",
 	"fire_flash_point", "fire_forge_hardened", "fire_lingering_embers", "fire_controlled_burn",
+	"fire_lean_fuel", "fire_hold_the_heat", "fire_long_focus", "fire_clean_burn", "fire_big_spend", "fire_low_flame", "fire_stay_lit", "fire_hard_crust", "fire_set_hard", "fire_red_iron", "fire_marked_iron", "fire_fuel_the_forge", "fire_deep_slag", "fire_riveted", "fire_heavy_hammer", "fire_glowing_seams", "fire_long_shell", "fire_spatter", "fire_quick_temper", "fire_molten_heart", "fire_bright_sparks", "fire_spark_bite", "fire_hard_quench", "fire_wide_flare", "fire_banked_fire", "fire_hammer_rhythm", "fire_fold_again", "fire_deep_sear", "fire_overheat", "fire_steady_arm", "fire_long_blast", "fire_cold_steel", "fire_quick_forge", "fire_molten_edge", "fire_sticky_pitch", "fire_light_string", "fire_big_flash", "fire_dripping", "fire_double_coat", "fire_hot_shafts", "fire_second_light", "fire_ember_bed", "fire_wide_rain", "fire_fuel_run", "fire_patient_fire", "fire_kindle_pack", "fire_long_brush", "fire_steady_bow", "fire_clean_shot", "fire_fire_line", "fire_pitch_black",
 	"lightning_quick_charge", "lightning_conductive", "lightning_deep_reserves", "lightning_running_on_empty",
 	"lightning_running_start", "lightning_third_beat", "lightning_redline",
 	"lightning_long_reach", "lightning_counter_charge", "lightning_closed_circuit", "lightning_quick_wrists",
@@ -116,7 +117,7 @@ const ICONED := ["frost_deep_cracks", "frost_cold_spread", "frost_slow_runoff", 
 
 ## Pictures kept from talents that were folded into their abilities, free for new
 ## talents (draw one under its new key). Not given to any talent today.
-const SPARE := ["fire_furnace_heart", "fire_thick_pitch", "frost_thick_hide", "lightning_honed_edge",
+const SPARE := ["frost_thick_hide", "lightning_honed_edge",
 	"arcane_deep_well", "shadow_cut_short", "nature_quick_return", "nature_big_herd", "martial_deep_pockets",
 	"martial_round_two", "holy_last_rites", "holy_swift_light", "holy_high_censer"]
 
@@ -252,6 +253,26 @@ const HEAL_GREEN := Color(0.45, 1.0, 0.45)
 ## A Hound's head from the side (the one on the ability icons: Abilities._hound_head).
 static func _hound(c: Control, at: Vector2, s: float, horn: Color, open: float = 0.6, flip: float = 1.0) -> void:
 	load("res://scripts/abilities.gd")._hound_head(c, at, s, horn, WHITE, open, flip)
+
+## A flame about 30 x `s` tall standing on `at` (its base a little below), with a bright core.
+static func _fire(c: Control, at: Vector2, s: float, col: Color, core: Color) -> void:
+	c.draw_colored_polygon(_p(at, s, [Vector2(0, -15), Vector2(6, -6), Vector2(8, 3), Vector2(5, 9), Vector2(-5, 9), Vector2(-8, 3), Vector2(-6, -6)]), col)
+	c.draw_colored_polygon(_p(at, s, [Vector2(0, -6), Vector2(3, 0), Vector2(3, 6), Vector2(-3, 6), Vector2(-3, 0)]), core)
+
+## A star with `points` points, `r` from its middle to a tip.
+static func _star(c: Control, at: Vector2, r: float, col: Color, points: int) -> void:
+	var pts := PackedVector2Array()
+	for i in points * 2:
+		var a := PI * i / points - PI / 2.0
+		pts.append(at + Vector2(cos(a), sin(a)) * (r if i % 2 == 0 else r * 0.4))
+	c.draw_colored_polygon(pts, col)
+
+## An arrow from the bottom left to the top right: shaft, head and fletching.
+static func _arrow_line(c: Control, mid: Vector2, k: float, shaft: Color, head: Color) -> void:
+	c.draw_line(mid + Vector2(-14, 14) * k, mid + Vector2(9, -9) * k, shaft, 2.5 * k, true)
+	c.draw_colored_polygon(_p(mid, k, [Vector2(14, -14), Vector2(6, -10), Vector2(10, -6)]), head)
+	c.draw_line(mid + Vector2(-14, 14) * k, mid + Vector2(-17, 8) * k, head, 2.0 * k, true)
+	c.draw_line(mid + Vector2(-14, 14) * k, mid + Vector2(-8, 17) * k, head, 2.0 * k, true)
 
 ## A plus sign `r` from its middle to the end of an arm.
 static func _plus(c: Control, at: Vector2, r: float, col: Color, w: float) -> void:
@@ -1696,7 +1717,7 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			c.draw_line(mid + Vector2(-13, 0) * k, mid + Vector2(13, 0) * k, light, 2.4 * k, true)
 			c.draw_line(mid + Vector2(0, -13) * k, mid + Vector2(0, 13) * k, light, 2.4 * k, true)
 			c.draw_circle(mid, 2.6 * k, WHITE)
-		"fire_thick_pitch":   # a heavy drop of pitch stretching down, a small flame on it
+		"fire_long_coat":   # a heavy drop of pitch stretching down, a small flame on it (Thick Pitch's)
 			var pitch := Color(0.12, 0.09, 0.08)
 			c.draw_rect(Rect2(mid + Vector2(-15, -16) * k, Vector2(30, 6) * k), pitch, true)
 			c.draw_colored_polygon(_p(mid, k, [Vector2(-7, -10), Vector2(7, -10), Vector2(3, 0), Vector2(-3, 0)]), pitch)
@@ -1704,7 +1725,7 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			c.draw_arc(mid + Vector2(0, 6) * k, 8.0 * k, PI * 0.1, PI * 0.9, 12, light, 1.8 * k, true)
 			c.draw_colored_polygon(_p(mid, k, [Vector2(10, -4), Vector2(14, 3), Vector2(12, 8), Vector2(8, 8), Vector2(6, 3)]), col)
 			c.draw_circle(mid + Vector2(10, 5) * k, 1.8 * k, Color(1.0, 0.9, 0.4))
-		"fire_forge_heat":   # a glowing bar on an anvil that stays hot: a clock beside it
+		"fire_slow_cooling":   # a glowing bar on an anvil that stays hot: a clock beside it
 			c.draw_colored_polygon(_p(mid, k, [Vector2(-16, 4), Vector2(4, 4), Vector2(1, 9), Vector2(-3, 9), Vector2(-3, 14), Vector2(-9, 14), Vector2(-9, 9), Vector2(-13, 9)]), Color(0.4, 0.38, 0.4))
 			c.draw_line(mid + Vector2(-15, 1) * k, mid + Vector2(3, 1) * k, Color(1.0, 0.9, 0.4), 4.0 * k, true)
 			c.draw_line(mid + Vector2(-15, -3) * k, mid + Vector2(3, -3) * k, Color(col, 0.6), 2.0 * k, true)
@@ -1718,7 +1739,7 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			c.draw_colored_polygon(_p(mid, k, [Vector2(0, -10), Vector2(2, -5), Vector2(0, -2), Vector2(-2, -5)]), Color(1.0, 0.9, 0.4))
 			for i in 3:
 				c.draw_line(mid + Vector2(9 + i * 3, 14 - i * 9) * k, mid + Vector2(9 + i * 3, 9 - i * 9) * k, Color(light, 0.9 - i * 0.25), 2.0 * k, true)
-		"fire_deep_crucible":   # a crucible bowl inside a ring pushed outward
+		"fire_spreading_fire":   # a burning bowl inside a ring pushed outward
 			c.draw_arc(mid + Vector2(0, 2) * k, 11.0 * k, 0, TAU, 24, Color(light, 0.6), 1.6 * k, true)
 			c.draw_arc(mid + Vector2(0, 2) * k, 17.0 * k, 0, TAU, 30, light, 2.0 * k, true)
 			c.draw_colored_polygon(_p(mid, k, [Vector2(-8, -3), Vector2(8, -3), Vector2(5, 8), Vector2(-5, 8)]), Color(0.2, 0.16, 0.15))
@@ -1742,7 +1763,7 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			c.draw_polyline(chunk, col, 1.8 * k, true)
 			c.draw_rect(Rect2(mid + Vector2(-2.5, -8) * k, Vector2(5, 16) * k), Color(0.45, 1.0, 0.5), true)
 			c.draw_rect(Rect2(mid + Vector2(-8, -2.5) * k, Vector2(16, 5) * k), Color(0.45, 1.0, 0.5), true)
-		"fire_furnace_heart":   # a heart with a furnace glow inside
+		"fire_fed_furnace":   # a heart with a furnace glow inside (Furnace Heart's)
 			var heart := PackedVector2Array()
 			for i in 24:
 				var t := TAU * i / 24.0
@@ -1754,7 +1775,7 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			c.draw_polyline(heart, light, 1.8 * k, true)
 			c.draw_colored_polygon(_p(mid, k, [Vector2(0, -8), Vector2(5, 0), Vector2(3, 6), Vector2(-3, 6), Vector2(-5, 0)]), col)
 			c.draw_circle(mid + Vector2(0, 3) * k, 2.4 * k, Color(1.0, 0.9, 0.4))
-		"fire_kindling":   # crossed sticks catching their first flame
+		"fire_warm_start":   # crossed sticks catching their first flame
 			c.draw_line(mid + Vector2(-14, 14) * k, mid + Vector2(9, 3) * k, WOOD, 3.5 * k, true)
 			c.draw_line(mid + Vector2(14, 14) * k, mid + Vector2(-9, 3) * k, WOOD, 3.5 * k, true)
 			c.draw_line(mid + Vector2(-10, 16) * k, mid + Vector2(10, 16) * k, WOOD.darkened(0.25), 3.0 * k, true)
@@ -1784,7 +1805,7 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			c.draw_line(mid + Vector2(-7, -6) * k, mid + Vector2(7, -6) * k, light, 2.0 * k, true)
 			for x in [-11.0, 11.0]:
 				c.draw_arc(mid + Vector2(x, -12) * k, 3.5 * k, PI * 0.8, PI * 2.1, 8, WHITE, 1.8 * k, true)
-		"fire_cool_under_fire":   # a calm shield with a small flame held on it
+		"fire_heat_shimmer":   # a calm shield with a small flame held on it
 			_shield(c, mid, k, Color(0.3, 0.42, 0.55), Color(0.65, 0.88, 1.0))
 			c.draw_colored_polygon(_p(mid, k, [Vector2(0, -8), Vector2(5, 0), Vector2(3, 6), Vector2(-3, 6), Vector2(-5, 0)]), col)
 			c.draw_circle(mid + Vector2(0, 3) * k, 2.2 * k, Color(1.0, 0.9, 0.4))
@@ -1863,6 +1884,259 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			for p in [Vector2(-5, 6), Vector2(5, 6), Vector2(0, -2)]:
 				c.draw_circle(mid + (p as Vector2) * k, 2.0 * k, Color(1.0, 0.9, 0.4))
 			c.draw_arc(mid + Vector2(0, 4) * k, 19.0 * k, PI * 1.2, PI * 1.8, 16, Color(WHITE, 0.6), 1.5 * k, true)
+		# --- Fire on the column-group tree (2026-10-23) ---
+		"fire_lean_fuel":   # a thin Fury bar with a small chunk cut off its cost
+			c.draw_rect(Rect2(mid + Vector2(-15, -4) * k, Vector2(30, 8) * k), Color(0.2, 0.12, 0.1), true)
+			c.draw_rect(Rect2(mid + Vector2(-15, -4) * k, Vector2(19, 8) * k), col, true)
+			c.draw_rect(Rect2(mid + Vector2(-15, -4) * k, Vector2(30, 8) * k), light, false, 1.4 * k)
+			c.draw_line(mid + Vector2(8, -12) * k, mid + Vector2(14, -12) * k, WHITE, 2.4 * k, true)
+			c.draw_rect(Rect2(mid + Vector2(6, 8) * k, Vector2(7, 5) * k), Color(light, 0.6), true)
+		"fire_hold_the_heat":   # a flame inside cupped hands
+			_fire(c, mid + Vector2(0, -3) * k, k, col, Color(1.0, 0.9, 0.4))
+			for s in [-1.0, 1.0]:
+				c.draw_arc(mid + Vector2(0, 2) * k, 13.0 * k, PI * 0.5 - s * 0.2, PI * 0.5 + s * 1.3, 10, light, 3.0 * k, true)
+		"fire_long_focus":   # an hourglass with a steady flame in its top half
+			_hourglass(c, mid, k, Color(col, 0.6), light)
+			_fire(c, mid + Vector2(0, -9) * k, k * 0.45, Color(1.0, 0.9, 0.4), WHITE)
+		"fire_clean_burn":   # a clean, even flame on a level line, no sparks
+			c.draw_line(mid + Vector2(-15, 13) * k, mid + Vector2(15, 13) * k, light, 2.0 * k, true)
+			_fire(c, mid + Vector2(0, 0) * k, k * 1.15, col, Color(1.0, 0.9, 0.4))
+			c.draw_line(mid + Vector2(-13, -14) * k, mid + Vector2(-7, -14) * k, Color(WHITE, 0.6), 1.4 * k, true)
+		"fire_big_spend":   # a Fury bar pouring out into one big blast
+			c.draw_rect(Rect2(mid + Vector2(-16, -14) * k, Vector2(9, 28) * k), Color(0.2, 0.12, 0.1), true)
+			c.draw_rect(Rect2(mid + Vector2(-16, -14) * k, Vector2(9, 28) * k), light, false, 1.4 * k)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-7, -6), Vector2(16, -14), Vector2(16, 14), Vector2(-7, 6)]), Color(col, 0.8))
+			c.draw_circle(mid + Vector2(9, 0) * k, 5.0 * k, WHITE)
+		"fire_low_flame":   # a small, low flame under a high mark it never reaches
+			_fire(c, mid + Vector2(0, 7) * k, k * 0.6, col, Color(1.0, 0.9, 0.4))
+			c.draw_line(mid + Vector2(-14, -8) * k, mid + Vector2(14, -8) * k, Color(light, 0.7), 1.6 * k, true)
+			for x in [-12.0, 12.0]:
+				c.draw_line(mid + Vector2(x, -12) * k, mid + Vector2(x, -4) * k, Color(light, 0.7), 1.6 * k, true)
+		"fire_stay_lit":   # a flame bursting, a second flame already relit beside it
+			for i in 6:
+				var a := TAU * i / 6.0
+				c.draw_line(mid + Vector2(-6, -4) * k + Vector2(cos(a), sin(a)) * 5.0 * k, mid + Vector2(-6, -4) * k + Vector2(cos(a), sin(a)) * 10.0 * k, light, 1.8 * k, true)
+			_fire(c, mid + Vector2(8, 6) * k, k * 0.7, col, Color(1.0, 0.9, 0.4))
+		"fire_hard_crust":   # a shield with a thick crust of slag plates on its face
+			_shield(c, mid, k, Color(0.24, 0.19, 0.17), light)
+			for p in [Vector2(-5, -6), Vector2(4, -6), Vector2(0, 3)]:
+				c.draw_rect(Rect2(mid + ((p as Vector2) + Vector2(-4, -3)) * k, Vector2(8, 6) * k), col, true)
+		"fire_set_hard":   # a cracked slag stack held by a clamp, a clock beside it
+			c.draw_rect(Rect2(mid + Vector2(-14, -6) * k, Vector2(16, 14) * k), Color(0.3, 0.22, 0.2), true)
+			c.draw_polyline(_p(mid, k, [Vector2(-10, -6), Vector2(-6, 1), Vector2(-9, 8)]), Color(1.0, 0.9, 0.4), 1.6 * k, true)
+			c.draw_rect(Rect2(mid + Vector2(-16, -9) * k, Vector2(20, 20) * k), light, false, 2.0 * k)
+			_clock(c, mid + Vector2(10, -8) * k, 6.0 * k, WHITE, k)
+		"fire_red_iron":   # a shield boss glowing red-hot
+			_shield(c, mid, k, Color(0.4, 0.38, 0.4), light)
+			c.draw_circle(mid, 6.0 * k, Color(1.0, 0.3, 0.12))
+			c.draw_circle(mid, 3.0 * k, Color(1.0, 0.85, 0.4))
+		"fire_marked_iron":   # a brand mark on a slab of slag breaking apart
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-14, -10), Vector2(-1, -12), Vector2(1, 12), Vector2(-13, 10)]), Color(0.3, 0.22, 0.2))
+			c.draw_colored_polygon(_p(mid, k, [Vector2(3, -12), Vector2(15, -9), Vector2(13, 11), Vector2(4, 12)]), Color(0.3, 0.22, 0.2))
+			c.draw_arc(mid, 7.0 * k, 0, TAU, 18, Color(1.0, 0.9, 0.4), 2.4 * k, true)
+			c.draw_line(mid + Vector2(-4, 0) * k, mid + Vector2(4, 0) * k, light, 2.0 * k, true)
+		"fire_fuel_the_forge":   # a blocked blow sending a spark into a Fury bar
+			_shield(c, mid + Vector2(-5, 0) * k, k * 0.8, Color(0.3, 0.24, 0.22), light)
+			c.draw_rect(Rect2(mid + Vector2(10, -14) * k, Vector2(6, 28) * k), Color(0.2, 0.12, 0.1), true)
+			c.draw_rect(Rect2(mid + Vector2(10, 2) * k, Vector2(6, 12) * k), col, true)
+			c.draw_line(mid + Vector2(3, -4) * k, mid + Vector2(9, -10) * k, Color(1.0, 0.9, 0.4), 2.0 * k, true)
+		"fire_deep_slag":   # a tall stack of slag plates, one more on top
+			for i in 5:
+				c.draw_rect(Rect2(mid + Vector2(-10, 12 - i * 6) * k, Vector2(20, 5) * k), Color(0.3 + i * 0.05, 0.22, 0.2), true)
+				c.draw_line(mid + Vector2(-10, 12 - i * 6) * k, mid + Vector2(10, 12 - i * 6) * k, Color(col, 0.8), 1.2 * k, true)
+			_plus(c, mid + Vector2(13, -14) * k, 4.0 * k, WHITE, 2.0 * k)
+		"fire_riveted":   # a glowing rivet head with a quick arrow round it
+			c.draw_circle(mid, 7.0 * k, Color(1.0, 0.45, 0.15))
+			c.draw_circle(mid, 3.5 * k, Color(1.0, 0.85, 0.4))
+			c.draw_arc(mid, 13.0 * k, -PI * 0.2, PI * 1.3, 18, light, 2.0 * k, true)
+			var tip := mid + Vector2(cos(PI * 1.3), sin(PI * 1.3)) * 13.0 * k
+			c.draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(5, 1) * k, tip + Vector2(1, 5) * k]), light)
+		"fire_heavy_hammer":   # a heavy hammer with Fury sparks flying back to it
+			c.draw_line(mid + Vector2(-12, 14) * k, mid + Vector2(4, -2) * k, Color(0.55, 0.4, 0.3), 3.2 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-2, -12), Vector2(10, -2), Vector2(14, -6), Vector2(2, -16)]), Color(0.5, 0.48, 0.5))
+			for p in [Vector2(12, 8), Vector2(16, 2), Vector2(8, 13)]:
+				c.draw_circle(mid + (p as Vector2) * k, 2.0 * k, col)
+		"fire_glowing_seams":   # slag plates with bright seams between them, an eye of threat
+			for x in [-12.0, -2.0, 8.0]:
+				c.draw_rect(Rect2(mid + Vector2(x, -8) * k, Vector2(8, 16) * k), Color(0.28, 0.2, 0.18), true)
+			for x in [-3.0, 7.0]:
+				c.draw_line(mid + Vector2(x, -8) * k, mid + Vector2(x, 8) * k, Color(1.0, 0.85, 0.4), 2.0 * k, true)
+			c.draw_arc(mid + Vector2(0, -13) * k, 4.0 * k, PI, TAU, 8, Color(1.0, 0.35, 0.25), 1.8 * k, true)
+		"fire_long_shell":   # a molten shell with a long clock hand
+			c.draw_arc(mid, 13.0 * k, 0, TAU, 28, col, 4.0 * k, true)
+			c.draw_arc(mid, 15.5 * k, 0, TAU, 28, Color(1.0, 0.85, 0.4), 1.4 * k, true)
+			c.draw_line(mid, mid + Vector2(0, -9) * k, WHITE, 2.0 * k, true)
+			c.draw_line(mid, mid + Vector2(7, 3) * k, WHITE, 2.0 * k, true)
+		"fire_spatter":   # slag bursting, one plate falling back onto the shield
+			for a in [-2.6, -1.9, -1.2, -0.5]:
+				var d := Vector2(cos(a), sin(a))
+				c.draw_rect(Rect2(mid + d * 12.0 * k - Vector2(2, 2) * k, Vector2(4, 4) * k), Color(0.35, 0.25, 0.22), true)
+			_shield(c, mid + Vector2(0, 5) * k, k * 0.6, Color(0.3, 0.24, 0.22), light)
+			c.draw_rect(Rect2(mid + Vector2(-3, 2) * k, Vector2(6, 4) * k), col, true)
+		"fire_quick_temper":   # a shield with a fast arrow round its rim
+			_shield(c, mid, k * 0.75, Color(0.24, 0.19, 0.17), light)
+			c.draw_arc(mid, 15.0 * k, PI * 0.9, PI * 2.1, 18, Color(1.0, 0.9, 0.4), 2.0 * k, true)
+			var arc_end := mid + Vector2(cos(PI * 2.1), sin(PI * 2.1)) * 15.0 * k
+			c.draw_colored_polygon(PackedVector2Array([arc_end, arc_end + Vector2(-5, -2) * k, arc_end + Vector2(-1, -6) * k]), Color(1.0, 0.9, 0.4))
+		"fire_molten_heart":   # a heart of molten slag, plates around it
+			var heart := _p(mid, k, [Vector2(0, 12), Vector2(-12, 0), Vector2(-12, -7), Vector2(-6, -12), Vector2(0, -7), Vector2(6, -12), Vector2(12, -7), Vector2(12, 0)])
+			c.draw_colored_polygon(heart, col)
+			heart.append(heart[0])
+			c.draw_polyline(heart, Color(1.0, 0.9, 0.4), 1.8 * k, true)
+			for p in [Vector2(-15, 10), Vector2(15, 10), Vector2(0, -16)]:
+				c.draw_rect(Rect2(mid + ((p as Vector2) + Vector2(-2.5, -2)) * k, Vector2(5, 4) * k), Color(0.35, 0.25, 0.22), true)
+		"fire_bright_sparks":   # a hammer strike throwing many bright sparks
+			c.draw_rect(Rect2(mid + Vector2(-14, 8) * k, Vector2(28, 6) * k), Color(0.45, 0.43, 0.45), true)
+			for a in [-2.8, -2.3, -1.8, -1.3, -0.8, -0.3]:
+				var d := Vector2(cos(a), sin(a))
+				c.draw_line(mid + Vector2(0, 7) * k + d * 4.0 * k, mid + Vector2(0, 7) * k + d * 16.0 * k, Color(1.0, 0.9, 0.4), 1.8 * k, true)
+				c.draw_circle(mid + Vector2(0, 7) * k + d * 17.0 * k, 1.4 * k, WHITE)
+		"fire_spark_bite":   # a spark with teeth biting into a blade's edge
+			c.draw_line(mid + Vector2(-15, 12) * k, mid + Vector2(12, -12) * k, Color(0.85, 0.85, 0.9), 3.4 * k, true)
+			for i in 3:
+				var at := mid + Vector2(-4 + i * 5, -2 - i * 4) * k
+				c.draw_colored_polygon(PackedVector2Array([at, at + Vector2(3, 4) * k, at + Vector2(-2, 4) * k]), Color(1.0, 0.9, 0.4))
+			_star(c, mid + Vector2(7, -10) * k, 5.0 * k, WHITE, 4)
+		"fire_hard_quench":   # a white-hot blade plunged into water, a big splash
+			c.draw_rect(Rect2(mid + Vector2(-15, 4) * k, Vector2(30, 11) * k), Color(0.3, 0.55, 0.85, 0.7), true)
+			c.draw_line(mid + Vector2(0, -16) * k, mid + Vector2(0, 8) * k, Color(1.0, 0.95, 0.75), 4.0 * k, true)
+			for x in [-10.0, -5.0, 5.0, 10.0]:
+				c.draw_line(mid + Vector2(x * 0.5, 3) * k, mid + Vector2(x, -5) * k, WHITE, 1.6 * k, true)
+		"fire_wide_flare":   # a very wide flaming sweep
+			c.draw_arc(mid + Vector2(0, 14) * k, 20.0 * k, PI * 1.02, PI * 1.98, 20, Color(col, 0.7), 7.0 * k, true)
+			c.draw_arc(mid + Vector2(0, 14) * k, 20.0 * k, PI * 1.02, PI * 1.98, 20, Color(1.0, 0.9, 0.4), 1.8 * k, true)
+			for x in [-17.0, 17.0]:
+				c.draw_line(mid + Vector2(x, 10) * k, mid + Vector2(x * 1.05, 4) * k, WHITE, 2.0 * k, true)
+		"fire_banked_fire":   # coals left glowing under a quenched blade
+			c.draw_line(mid + Vector2(-12, -14) * k, mid + Vector2(10, 2) * k, Color(0.75, 0.78, 0.85), 3.4 * k, true)
+			for p in [Vector2(-8, 11), Vector2(0, 13), Vector2(8, 11)]:
+				c.draw_circle(mid + (p as Vector2) * k, 4.0 * k, Color(0.25, 0.15, 0.12))
+				c.draw_circle(mid + (p as Vector2) * k, 2.2 * k, col)
+		"fire_hammer_rhythm":   # a hammer and three beats of a rhythm
+			c.draw_line(mid + Vector2(-14, 14) * k, mid + Vector2(-2, 2) * k, Color(0.55, 0.4, 0.3), 3.0 * k, true)
+			c.draw_rect(Rect2(mid + Vector2(-6, -6) * k, Vector2(10, 7) * k), Color(0.5, 0.48, 0.5), true)
+			for i in 3:
+				c.draw_line(mid + Vector2(7 + i * 4, -6 + i * 2) * k, mid + Vector2(7 + i * 4, 6 + i * 2) * k, light, 2.0 * k, true)
+				c.draw_circle(mid + Vector2(5 + i * 4, 6 + i * 2) * k, 2.0 * k, light)
+		"fire_fold_again":   # a blade folded into many glowing layers, a plus
+			for i in 5:
+				c.draw_line(mid + Vector2(-14, -12 + i * 5) * k, mid + Vector2(6, -11 + i * 5) * k, Color(1.0, 0.45 + i * 0.1, 0.15 + i * 0.12), 3.0 * k, true)
+			_plus(c, mid + Vector2(12, 8) * k, 4.0 * k, WHITE, 2.0 * k)
+		"fire_deep_sear":   # a deep scorch mark burning into a surface
+			c.draw_rect(Rect2(mid + Vector2(-15, -6) * k, Vector2(30, 20) * k), Color(0.45, 0.38, 0.32), true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-8, -6), Vector2(8, -6), Vector2(4, 10), Vector2(-4, 10)]), Color(0.15, 0.08, 0.05))
+			_fire(c, mid + Vector2(0, -6) * k, k * 0.65, col, Color(1.0, 0.9, 0.4))
+		"fire_overheat":   # a white-hot blade with heat waves rolling off it
+			c.draw_line(mid + Vector2(-14, 14) * k, mid + Vector2(10, -10) * k, Color(1.0, 0.95, 0.75), 4.2 * k, true)
+			for i in 3:
+				var o := Vector2(4 + i * 4, 4 + i * 4)
+				c.draw_arc(mid + o * k, 6.0 * k, -PI * 0.25, PI * 0.75, 8, Color(col, 0.9 - i * 0.25), 1.8 * k, true)
+		"fire_steady_arm":   # an arm braced with a steady hand-clock beside it
+			c.draw_line(mid + Vector2(-15, 12) * k, mid + Vector2(-3, 0) * k, light, 4.0 * k, true)
+			c.draw_line(mid + Vector2(-3, 0) * k, mid + Vector2(-3, -12) * k, light, 4.0 * k, true)
+			c.draw_circle(mid + Vector2(-3, -13) * k, 3.0 * k, light)
+			_clock(c, mid + Vector2(9, 5) * k, 7.0 * k, Color(1.0, 0.75, 0.3), k)
+		"fire_long_blast":   # a furnace mouth with a long flame and a clock
+			c.draw_rect(Rect2(mid + Vector2(-15, -2) * k, Vector2(12, 14) * k), Color(0.3, 0.24, 0.22), true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-4, 1), Vector2(16, 3), Vector2(16, 7), Vector2(-4, 9)]), Color(1.0, 0.95, 0.75))
+			_clock(c, mid + Vector2(8, -9) * k, 6.0 * k, WHITE, k)
+		"fire_cold_steel":   # a cold blue-white blade with a crit star at its tip
+			c.draw_line(mid + Vector2(-14, 14) * k, mid + Vector2(10, -10) * k, Color(0.75, 0.85, 1.0), 3.6 * k, true)
+			c.draw_line(mid + Vector2(-16, 16) * k, mid + Vector2(-12, 12) * k, Color(0.4, 0.25, 0.15), 3.6 * k, true)
+			_star(c, mid + Vector2(11, -11) * k, 6.0 * k, WHITE, 4)
+		"fire_quick_forge":   # an anvil with a spark and a fast clock hand
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-15, 2), Vector2(9, 2), Vector2(9, 7), Vector2(3, 9), Vector2(3, 14), Vector2(-9, 14), Vector2(-9, 9), Vector2(-15, 7)]), Color(0.45, 0.43, 0.45))
+			_star(c, mid + Vector2(-3, -4) * k, 4.0 * k, Color(1.0, 0.9, 0.4), 4)
+			_clock(c, mid + Vector2(10, -9) * k, 6.0 * k, light, k)
+			c.draw_line(mid + Vector2(10, -9) * k, mid + Vector2(14, -12) * k, WHITE, 1.6 * k, true)
+		"fire_molten_edge":   # a blade dripping molten metal
+			c.draw_line(mid + Vector2(-14, -12) * k, mid + Vector2(14, -6) * k, Color(0.75, 0.75, 0.8), 4.0 * k, true)
+			c.draw_line(mid + Vector2(-14, -10) * k, mid + Vector2(14, -4) * k, Color(1.0, 0.5, 0.15), 2.0 * k, true)
+			for p in [Vector2(-6, 2), Vector2(4, 6), Vector2(11, 1)]:
+				_drop(c, mid + (p as Vector2) * k, k * 0.35, col, Color(1.0, 0.9, 0.4), k * 0.6)
+		"fire_sticky_pitch":   # a dark blob of pitch with strings stretching from it
+			c.draw_circle(mid + Vector2(-2, -2) * k, 9.0 * k, Color(0.12, 0.09, 0.08))
+			for x in [-8.0, -1.0, 6.0]:
+				c.draw_line(mid + Vector2(x, 5) * k, mid + Vector2(x * 1.2, 15) * k, Color(0.25, 0.18, 0.12), 1.8 * k, true)
+			c.draw_arc(mid + Vector2(-2, -2) * k, 9.0 * k, PI * 1.1, PI * 1.6, 6, light, 1.6 * k, true)
+		"fire_light_string":   # a thin bowstring drawn lightly, a small Energy spark
+			c.draw_arc(mid + Vector2(6, 0) * k, 16.0 * k, PI * 0.6, PI * 1.4, 16, Color(0.6, 0.45, 0.3), 3.0 * k, true)
+			c.draw_line(mid + Vector2(-3, -15) * k, mid + Vector2(-3, 15) * k, Color(light, 0.9), 1.0 * k, true)
+			_star(c, mid + Vector2(10, -6) * k, 4.0 * k, Color(1.0, 0.9, 0.4), 4)
+		"fire_big_flash":   # a huge flash bursting out of a coat of pitch
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-12, 8), Vector2(12, 8), Vector2(10, 15), Vector2(-10, 15)]), Color(0.12, 0.09, 0.08))
+			for i in 8:
+				var a := PI + PI * i / 7.0
+				c.draw_line(mid + Vector2(0, 6) * k, mid + Vector2(0, 6) * k + Vector2(cos(a), sin(a)) * 17.0 * k, Color(1.0, 0.85, 0.4), 2.0 * k, true)
+			c.draw_circle(mid + Vector2(0, 6) * k, 5.0 * k, WHITE)
+		"fire_dripping":   # pitch dripping onto a flame that flares up
+			c.draw_rect(Rect2(mid + Vector2(-14, -16) * k, Vector2(28, 5) * k), Color(0.12, 0.09, 0.08), true)
+			for x in [-7.0, 6.0]:
+				c.draw_circle(mid + Vector2(x, -6) * k, 2.4 * k, Color(0.12, 0.09, 0.08))
+			_fire(c, mid + Vector2(0, 8) * k, k * 0.75, col, Color(1.0, 0.9, 0.4))
+		"fire_double_coat":   # two pitch-dipped arrowheads side by side
+			for x in [-6.0, 6.0]:
+				c.draw_line(mid + Vector2(x, 16) * k, mid + Vector2(x, -4) * k, Color(0.75, 0.55, 0.35), 2.4 * k, true)
+				c.draw_colored_polygon(_p(mid, k, [Vector2(x, -16), Vector2(x + 5, -5), Vector2(x - 5, -5)]), Color(0.12, 0.09, 0.08))
+			c.draw_line(mid + Vector2(-14, -10) * k, mid + Vector2(14, -10) * k, Color(light, 0.5), 1.2 * k, true)
+		"fire_hot_shafts":   # an arrow shaft wreathed in fire along its length
+			_arrow_line(c, mid, k, Color(0.75, 0.55, 0.35), light)
+			for i in 3:
+				_fire(c, mid + Vector2(-8 + i * 7, 8 - i * 7) * k, k * 0.35, col, Color(1.0, 0.9, 0.4))
+		"fire_second_light":   # a torch lit twice: two small flames on one torch
+			c.draw_line(mid + Vector2(-6, 16) * k, mid + Vector2(2, -2) * k, Color(0.55, 0.4, 0.3), 3.2 * k, true)
+			_fire(c, mid + Vector2(1, -7) * k, k * 0.55, col, Color(1.0, 0.9, 0.4))
+			_fire(c, mid + Vector2(11, -11) * k, k * 0.4, light, WHITE)
+		"fire_ember_bed":   # a bed of embers with a thin pitch coat on top
+			for i in 5:
+				var x := -14.0 + i * 7.0
+				c.draw_circle(mid + Vector2(x, 9) * k, 3.4 * k, Color(0.25, 0.15, 0.12))
+				c.draw_circle(mid + Vector2(x, 9) * k, 1.8 * k, col)
+			c.draw_line(mid + Vector2(-16, 3) * k, mid + Vector2(16, 3) * k, Color(0.12, 0.09, 0.08), 3.0 * k, true)
+			_fire(c, mid + Vector2(0, -6) * k, k * 0.5, col, Color(1.0, 0.9, 0.4))
+		"fire_wide_rain":   # burning arrows falling over a wide circle
+			c.draw_arc(mid + Vector2(0, 10) * k, 16.0 * k, PI, TAU, 18, Color(col, 0.7), 2.0 * k, true)
+			for x in [-12.0, -4.0, 4.0, 12.0]:
+				c.draw_line(mid + Vector2(x - 3, -14) * k, mid + Vector2(x, 6) * k, Color(0.75, 0.55, 0.35), 1.8 * k, true)
+				c.draw_circle(mid + Vector2(x - 3, -15) * k, 1.6 * k, Color(1.0, 0.6, 0.2))
+		"fire_fuel_run":   # a burst of flame feeding a bar of Energy
+			_fire(c, mid + Vector2(-6, 2) * k, k * 0.8, col, Color(1.0, 0.9, 0.4))
+			c.draw_rect(Rect2(mid + Vector2(8, -14) * k, Vector2(7, 28) * k), Color(0.15, 0.13, 0.1), true)
+			c.draw_rect(Rect2(mid + Vector2(8, 0) * k, Vector2(7, 14) * k), Color(1.0, 0.85, 0.3), true)
+		"fire_patient_fire":   # five pitch layers stacked under a steady aimed arrow
+			for i in 5:
+				c.draw_rect(Rect2(mid + Vector2(-12, 14 - i * 4) * k, Vector2(24, 3) * k), Color(0.15 + i * 0.03, 0.1, 0.08), true)
+			c.draw_line(mid + Vector2(0, -16) * k, mid + Vector2(0, -2) * k, Color(0.75, 0.55, 0.35), 2.4 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(0, 1), Vector2(-4, -5), Vector2(4, -5)]), light)
+		"fire_kindle_pack":   # one flash hitting a pack of three, a layer coming back
+			for p in [Vector2(-11, 6), Vector2(0, 10), Vector2(11, 6)]:
+				c.draw_circle(mid + (p as Vector2) * k, 4.0 * k, Color(light, 0.45))
+			c.draw_circle(mid + Vector2(0, -6) * k, 6.0 * k, Color(1.0, 0.85, 0.4))
+			c.draw_arc(mid + Vector2(0, -6) * k, 10.0 * k, PI * 0.2, PI * 0.8, 8, Color(0.12, 0.09, 0.08), 3.0 * k, true)
+		"fire_long_brush":   # long grass burning in a long line, a clock above
+			for i in 7:
+				c.draw_line(mid + Vector2(-15 + i * 5, 15) * k, mid + Vector2(-13 + i * 5, 6) * k, Color(0.75, 0.62, 0.3), 1.4 * k, true)
+			c.draw_line(mid + Vector2(-15, 6) * k, mid + Vector2(15, 6) * k, col, 3.0 * k, true)
+			_clock(c, mid + Vector2(0, -8) * k, 7.0 * k, light, k)
+		"fire_steady_bow":   # a bow held level, a calm Energy drop beside it
+			c.draw_arc(mid + Vector2(-2, 0) * k, 14.0 * k, -PI * 0.4, PI * 0.4, 12, Color(0.6, 0.45, 0.3), 3.0 * k, true)
+			c.draw_line(mid + Vector2(-2 + 14 * cos(-PI * 0.4), 14 * sin(-PI * 0.4)) * k, mid + Vector2(-2 + 14 * cos(PI * 0.4), 14 * sin(PI * 0.4)) * k, light, 1.0 * k, true)
+			c.draw_circle(mid + Vector2(-11, 0) * k, 4.0 * k, Color(1.0, 0.85, 0.3))
+		"fire_clean_shot":   # a clean arrow into a pitched target, no crit spark
+			c.draw_circle(mid + Vector2(6, -6) * k, 9.0 * k, Color(0.12, 0.09, 0.08))
+			c.draw_arc(mid + Vector2(6, -6) * k, 9.0 * k, 0, TAU, 20, light, 1.4 * k, true)
+			c.draw_line(mid + Vector2(-15, 15) * k, mid + Vector2(4, -4) * k, Color(0.75, 0.55, 0.35), 2.4 * k, true)
+		"fire_fire_line":   # a burning target far down a dotted line
+			for i in 5:
+				c.draw_circle(mid + Vector2(-15 + i * 5, 10 - i * 4) * k, 1.4 * k, Color(light, 0.8))
+			c.draw_circle(mid + Vector2(10, -10) * k, 6.0 * k, Color(light, 0.35))
+			_fire(c, mid + Vector2(10, -11) * k, k * 0.45, col, Color(1.0, 0.9, 0.4))
+		"fire_pitch_black":   # a black sphere of pitch with a red-hot core showing through
+			c.draw_circle(mid, 14.0 * k, Color(0.07, 0.05, 0.05))
+			for i in 5:
+				var a := TAU * i / 5.0
+				c.draw_arc(mid, (5.0 + i * 1.8) * k, a, a + 0.9, 6, Color(col, 0.5 + i * 0.1), 1.4 * k, true)
+			c.draw_circle(mid, 3.0 * k, Color(1.0, 0.35, 0.12))
 		"fire_afterburn":   # Afterburn: a crit burst whose glow trails into the next plain hit
 			var star := PackedVector2Array()
 			for i in 16:

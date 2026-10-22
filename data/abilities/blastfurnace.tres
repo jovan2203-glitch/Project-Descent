@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"blastfurnace"
+display_name = "Blast Furnace"
+description = "Stokes your weapon to a white glow for {b:BLAST_FURNACE_TIME} sec: your abilities count as the White band whatever your Heat, and your Heat does not fade. Does not trigger the global cooldown."
+tags = PackedStringArray("Ability", "Fire", "Buff")
+cast_type = 0
+cast_time = 0.0
+cooldown = 120.0
+requires_target = false
+weapon_requirement = 1
+resource_type = 0
+damage = 0.0
+damage_type = &"fire"

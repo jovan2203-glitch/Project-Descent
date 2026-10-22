@@ -148,12 +148,10 @@ func test_retired_names_are_gone() -> void:
 func test_talent_texts_follow_their_values() -> void:
 	var d := func(key: String) -> String: return Talents.description(Talents.id_for_key(key))
 	assert_contains(d.call("frost_bolt_cast"), "0.1 / 0.2 / 0.3 sec")
-	assert_contains(d.call("fire_forge_heat"), "0.5 / 1 / 1.5 / 2 sec")
+	assert_contains(d.call("fire_slow_cooling"), "0.5 / 1 / 1.5 sec")
 	assert_contains(d.call("frost_discipline"), "2 / 3 / 4%")
 	assert_contains(d.call("frost_discipline"), "5 / 10 / 15%")
 	# A value added to a base from balance.gd.
-	assert_contains(d.call("fire_stoked_kiln"), "%s / %s / %s%%" % [TextFill.num(Balance.KILN_BLAST_IMMOLATE_PCT + 7.0), TextFill.num(Balance.KILN_BLAST_IMMOLATE_PCT + 13.0), TextFill.num(Balance.KILN_BLAST_IMMOLATE_PCT + 20.0)])
-	assert_contains(d.call("fire_stoked_kiln"), "instead of %s%%" % TextFill.num(Balance.KILN_BLAST_IMMOLATE_PCT))
 	assert_contains(d.call("fire_deep_brand"), "%s / %s / %s%%" % [TextFill.num(Balance.BRAND_PCT + 2.0), TextFill.num(Balance.BRAND_PCT + 4.0), TextFill.num(Balance.BRAND_PCT + 6.0)])
 	assert_contains(d.call("frost_piercing_cold"), "%s / %s / %s%%" % [TextFill.num(Balance.COLDSPIKE_FROZEN_PCT + 7.0), TextFill.num(Balance.COLDSPIKE_FROZEN_PCT + 13.0), TextFill.num(Balance.COLDSPIKE_FROZEN_PCT + 20.0)])
 	# Damage is shown as real numbers: Honed Rime's three ranks and what it replaces.
@@ -211,7 +209,8 @@ func test_talent_maths_shared_with_the_game() -> void:
 	var pitched: Resource = Effects.get_effect("pitched")
 	var chilled: Resource = Effects.get_effect("chilled")
 	assert_eq(Abilities.effect_time_bonus(immolate, talent_of), 3.0, "Long Burn")
-	assert_eq(Abilities.effect_time_bonus(pitched, talent_of), 0.0, "nothing lengthens the pitch (Thick Pitch was folded into it)")
+	assert_eq(Abilities.effect_time_bonus(pitched, talent_of), 0.0, "Long Coat has no ranks here")
+	assert_eq(Abilities.effect_time_bonus(Effects.get_effect("burning"), talent_of), 3.0, "Long Burn: Burning too")
 	assert_eq(Abilities.effect_time_bonus(hoarfrost, talent_of), 4.0, "Deep Hoarfrost's seconds")
 	assert_eq(Abilities.effect_time_bonus(chilled, talent_of), 2.0, "Lingering Frost")
 	assert_eq(Abilities.effect_time_bonus(immolate, none), 0.0)
@@ -219,7 +218,7 @@ func test_talent_maths_shared_with_the_game() -> void:
 	# Without talents (the editor has no character) the bonuses are zero.
 	assert_eq(Abilities.radius_bonus("blizzard"), 0.0)
 	assert_eq(Abilities.radius_bonus("frostnova"), 0.0, "no talent widens it")
-	assert_eq(float(Abilities.RADIUS_TALENTS["crucible"][1]), 0.5, "Deep Crucible gives width: half of it is radius")
+	assert_eq(float(Abilities.RADIUS_TALENTS["cinderrain"][1]), 0.5, "Wide Rain gives width: half of it is radius")
 	assert_eq(Abilities.base_cast_time(Abilities.get_resource("frostbolt")), float(Abilities.get_resource("frostbolt").cast_time))
 	assert_false(Abilities.SHIELD_ABILITIES.has("rimeslash"), "Rime Slash gives Ice Layers now, not a Rime Shell")
 	assert_eq(Abilities.ice_layer_pct(10.0, 0.0), Balance.ICE_LAYER_PCT * 1.1, "Rime Ward makes each Ice Layer bigger")

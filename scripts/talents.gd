@@ -31,7 +31,7 @@ const POINTS_TO_UNLOCK_NEXT := 3
 ## Bump this whenever a talent is added, moved, removed or changed. A profile saved
 ## with another number gets all its talent points back on its next load
 ## (SaveSystem), so talent changes never need a save migration.
-const TREE_VERSION := 5
+const TREE_VERSION := 6
 const POINTS_AT_LEVEL_1 := 5
 const POINTS_PER_LEVEL := 1
 ## Every this many levels (2, 4, 6...) gives one extra point on top.
@@ -77,8 +77,7 @@ const DEFAULT_LAYOUT := [
 ## important first, joined by LINKS. A link is drawn as a straight line between
 ## the two slots, so when a talent moves, check its lines still run clear of the
 ## other talents (tests/test_talent_links.gd does).
-##   Fire       melee down the left (columns 0-1), the tank down the right
-##              (column 5), the caster in the middle.
+##   Fire       on the column-group layout (GROUPS), like Martial: see LAYOUTS.
 ##   Frost      the bow talents together on the right of rows 1-5 (columns 4-5),
 ##              shields down the right edge (column 6), Ice Shards down the
 ##              middle, Hoarfrost down column 1. The melee DPS (Frostbitten
@@ -131,7 +130,12 @@ const DEFAULT_LAYOUT := [
 ##              of row 9. The bottom row: the 5-rank talents of the healer,
 ##              tank and caster (the bow's is in row 9).
 const LAYOUTS := {
-	"fire": [[0, 2, 3, 4, 6], [1, 2, 4, 5], [0, 3, 6], [1, 3, 5], [0, 2, 4, 6], [1, 2, 4, 5], [1, 5], [2, 3, 4], [1, 5], [1, 3, 5]],
+	# (Fire is on the column-group layout, like Martial: GROUPS, 9 columns. Steady Flame in
+	# columns 0-1, Slagforged 2-3, the open talents 4, Forge Heat 5-6, Pitch and Cinder
+	# 7-8. Rows 1-9 are full (the open column skips row 9, Martial's skips 7); row 10 holds each spec's capstone.)
+	"fire": [[0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8],
+		[0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8],
+		[0, 1, 2, 3, 5, 6, 7, 8], [1, 3, 5, 7]],
 	# (Cold Comfort's talents took the middle of rows 1-2 and both edges of rows 9-10;
 	# Cold Fury moved to the middle of row 8, Thick Hide's old slot, to free row 1 for them.)
 	"frost": [[0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [0, 2, 4, 6], [1, 2, 4, 5], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [0, 2, 3, 4, 6], [0, 1, 2, 3, 4, 5, 6], [0, 1, 2, 3, 4, 5, 6]],
@@ -162,100 +166,200 @@ const LAYOUTS := {
 #   "capstone_requires" an ability that must be known for the capstone to do anything
 const TALENTS := {
 	"fire": {
-		# Open talents: themed to the book (burns, blocking) but they work with every
-		# book's spells and abilities (player.gd, "Fire and Lightning: the open
-		# talents"). They took new slots: the middle of row 1 and the edges of row 5.
-		# Feed the Flames: Player._open_talents_modify; Last Ember: StatusContainer
-		# asks Player.dot_last_tick_pct; Tempered: Player._tempered.
-		"r1c4": ["Feed the Flames", 3, "Your direct hits deal {v}% more damage to enemies that carry one of your damage over time effects.",
-			{"key": "fire_feed_the_flames", "values": [2.0, 4.0, 6.0]}],
-		"r5c1": ["Last Ember", 2, "When one of your damage over time effects runs its full time, it ticks once more for {v}% of a tick's damage.",
-			{"key": "fire_last_ember", "values": [50.0, 100.0]}],
-		"r5c7": ["Tempered", 3, "Each attack you block increases your Armor by {v}% for {b:TEMPERED_TIME} sec, stacking up to {b:TEMPERED_STACKS} times.",
-			{"key": "fire_tempered", "values": [2.0, 4.0, 6.0]}],
-		# Firebolt (ability id "fireball") crits less, and turns crit chance into damage.
-		# The maths is Player.fire_crit_rules().
-		"r1c3": ["Tempered Flame", 3, "Your {n:fireball} gains {v}% less of your critical strike chance, but deals bonus damage equal to {v2}% of your critical strike chance.",
+		# The column-group layout (GROUPS): Steady Flame (the caster) in columns 1-2,
+		# Slagforged (the tank) in 3-4, the open talents down the middle (column 5),
+		# Forge Heat (melee) in 6-7 and Pitch and Cinder (the bow) in 8-9. Rows 1-9 hold
+		# two talents per spec; row 10 its 5-rank capstone, which needs
+		# Balance.CAPSTONE_GATE points in the spec. Most key off the spec's own words
+		# (Fury, Venting, Slag, blocks, Heat, Sparks, Pitch, Ignites...); few need one
+		# ability. Code: each spec's component (fire_fury.gd, fire_tank.gd,
+		# fire_melee.gd, fire_bow.gd) and fire_talents.gd for the hits' bonuses.
+		# --- Steady Flame.
+		"r1c1": ["Stoked Breath", 4, "Your Fire spells that do not critically strike give you {v}% more Fury.",
+			{"key": "fire_stoked_breath", "values": [5.0, 10.0, 15.0, 20.0]}],
+		# Firebolt (ability id "fireball") crits less, and turns crit chance into damage
+		# (Player.fire_crit_rules).
+		"r1c2": ["Tempered Flame", 3, "Your {n:fireball} gains {v}% less of your critical strike chance, but deals bonus damage equal to {v2}% of your critical strike chance.",
 			{"key": "fire_tempered_flame", "values": [40.0, 50.0, 60.0], "values2": [7.0, 13.0, 20.0], "requires": "fireball"}],
-		# Vent Flames comes back sooner the less you crit (Player._pressure_valve).
-		"r2c2": ["Pressure Valve", 3, "Each of your Fire spells that fails to critically strike takes {v} sec off the cooldown of {n:ventflames}.",
+		"r2c1": ["Pressure Valve", 3, "Each of your Fire spells that fails to critically strike takes {v} sec off the cooldown of {n:ventflames}.",
 			{"key": "fire_pressure_valve", "values": [0.15, 0.35, 0.5], "requires": "ventflames"}],
-		# Generic Fire talents (no ability needed), on the outside of row 1 and the
-		# inside of row 2. Flash Point is a plain stat; Forge-Hardened is worked out in
-		# PlayerData._compute_total_stats; the other two in Player._on_damage_modify.
-		"r1c1": ["Flash Point", 3, "Increases your Critical Strike chance by {v}%.",
-			{"key": "fire_flash_point", "values": [1.0, 2.0, 3.0], "stats": {"crit_chance": 1.0}}],
-		"r1c7": ["Forge-Hardened", 3, "Increases your Attack Power by {v}% of your Strength.",
-			{"key": "fire_forge_hardened", "values": [2.0, 4.0, 6.0]}],
-		"r2c3": ["Lingering Embers", 3, "Your Fire damage over time effects deal {v}% more damage.",
-			{"key": "fire_lingering_embers", "values": [3.0, 6.0, 9.0]}],
-		"r2c5": ["Controlled Burn", 3, "Your Fire spells and abilities generate {v}% less threat.",
-			{"key": "fire_controlled_burn", "values": [5.0, 10.0, 15.0]}],
-		# (Moved down from the middle of row 2 to make room: see MOVED.)
-		"r3c4": ["Cool Under Fire", 3, "You take {v}% less damage while {n:coolhead} is active.",
-			{"key": "fire_cool_under_fire", "values": [7.0, 13.0, 20.0], "requires": "coolhead"}],
-		# The Fire melee talents sit down the left side of the book (Heat: see player.gd),
-		# linked top to bottom (see LINKS).
-		"r3c1": ["Kindling", 3, "{n:searingstrike} has a {v}% chance to build one extra Heat.",
-			{"key": "fire_kindling", "values": [10.0, 20.0, 30.0], "requires": "searingstrike"}],
-		"r4c2": ["Fresh Tinder", 3, "Your abilities have a {v}% chance to add {b:FRESH_TINDER_SECONDS} sec to your {n:immolate} on the target they hit, up to its base duration.",
-			{"key": "fire_fresh_tinder", "values": [10.0, 20.0, 30.0], "requires": "immolate",
-			"capstone": "Adds {b:FRESH_TINDER_CAPSTONE_SECONDS} sec instead."}],
-		"r7c2": ["Forge Heat", 4, "Heat lasts {v} sec longer before it is lost.",
-			{"key": "fire_forge_heat", "values": [0.5, 1.0, 1.5, 2.0], "requires": "immolate"}],
-		# Rewards holding full Heat (Quench and Flare spend it first, so they never get this).
-		"r9c2": ["White Heat", 3, "While you hold the maximum {b:HEAT_MAX_STACKS} Heat, your abilities deal {v}% more Fire damage.",
-			{"key": "fire_white_heat", "values": [5.0, 10.0, 15.0], "requires": "immolate"}],
-		# The caster's Immolate, Crucible and Kiln Blast talents.
-		"r5c3": ["Long Burn", 3, "Your {n:immolate} lasts {v} sec longer.",
-			{"key": "fire_long_burn", "values": [1.0, 2.0, 3.0], "requires": "immolate"}],
-		"r8c4": ["Deep Crucible", 3, "Your {n:crucible} is {v} m wider and lasts {v2} sec longer.",
-			{"key": "fire_deep_crucible", "values": [0.7, 1.3, 2.0], "values2": [1.5, 2.5, 4.0], "requires": "crucible"}],
-		"r8c5": ["Stoked Kiln", 3, "{n:kilnblast} deals {v+b:KILN_BLAST_IMMOLATE_PCT}% more damage to a target with your {n:immolate}, instead of {b:KILN_BLAST_IMMOLATE_PCT}%.",
-			{"key": "fire_stoked_kiln", "values": [7.0, 13.0, 20.0], "requires": "kilnblast"}],
-		# More of the tank's, down the right side.
-		"r7c6": ["Slag Mending", 3, "When your Slag shatters, you are healed for {v}% of your maximum health per stack.",
-			{"key": "fire_slag_mending", "values": [0.7, 1.3, 2.0], "requires": "slagskin"}],
-		# (r9c6 is empty: Furnace Heart was folded into Cinder Guard's cost.)
-		# Fury (the Fire caster's): FireFuryKit (scripts/player/fire_fury.gd).
-		"r1c5": ["Stoked Breath", 2, "Your Fire spells that do not critically strike give you {v}% more Fury.",
-			{"key": "fire_stoked_breath", "values": [10.0, 20.0]}],
-		"r4c4": ["Warm Blood", 3, "You take {v}% less damage from an enemy that has your Burning or {n:immolate} on it.",
-			{"key": "fire_warm_blood", "values": [2.0, 4.0, 6.0]}],
-		"r3c7": ["Deep Brand", 3, "An enemy you have Branded deals {v+b:BRAND_PCT}% less damage to you, instead of {b:BRAND_PCT}%.",
-			{"key": "fire_deep_brand", "values": [2.0, 4.0, 6.0], "requires": "brand"}],
-		# (r8c3 is empty: Thick Pitch was folded into Pitch Arrow's pitch.)
-		"r6c2": ["Afterglow", 3, "For {b:AFTERGLOW_TIME} sec after you use {n:quench}, your auto-attacks also deal {v}% of their damage as Fire damage.",
-			{"key": "fire_afterglow", "values": [7.0, 13.0, 20.0], "requires": "quench"}],
-		# The Fire tank's talents sit down the right side of the book.
-		"r2c6": ["Thick Slag", 3, "Each stack of Slag gives {v}% more Armor.",
-			{"key": "fire_thick_slag", "values": [20.0, 40.0, 60.0], "requires": "slagskin"}],
-		"r4c6": ["Hot Iron", 4, "Attacks you block burn the attacker for {v}% more ({n:slagskin} and {n:cinderguard}).",
-			{"key": "fire_hot_iron", "values": [15.0, 30.0, 45.0, 60.0]}],
-		# A crit that Vents your Fury burns its target with part of it (FireFuryKit).
-		"r6c5": ["Blowback", 3, "When a critical strike of yours Vents your Fury, {v}% of the Fury it Vents burns the target: {ds:BLOWBACK_PER_FURY} Fire damage per point, dealt over {b:BLOWBACK_TIME} sec.",
-			{"key": "fire_blowback", "values": [20.0, 35.0, 50.0]}],
-		"r6c6": ["Smoldering Debris", 3, "When your Slag shatters it leaves a burning patch {b2:CLINKER_RADIUS} m wide for {b:CLINKER_TIME} sec, dealing {v}% of the shatter's damage {bev:CLINKER_TICK} to enemies standing in it.",
-			{"key": "fire_clinker", "values": [7.0, 13.0, 20.0], "requires": "slagskin"}],
-		"r6c3": ["Scattered Embers", 2, "Each ember of your {n:embervolley} also strikes {v} additional enemies within {b:EMBER_VOLLEY_SPLIT_RADIUS} m of your target.",
-			{"key": "fire_volley_targets", "values": [1.0, 2.0], "requires": "embervolley"}],
+		"r2c2": ["Lean Fuel", 3, "Your spells and abilities that cost Fury cost {v} less.",
+			{"key": "fire_lean_fuel", "values": [2.0, 4.0, 6.0]}],
+		"r3c1": ["Banked Coals", 2, "Your critical strikes Vent {v}% less of your Fury.",
+			{"key": "fire_banked_coals", "values": [25.0, 50.0]}],
+		# Crits build, the next non-crit spends, and a stack is worth more the LESS
+		# crit chance you have. The hook is in fire_runes.gd.
+		"r3c2": ["Afterburn", 3, "Every Fire spell hit that critically strikes builds a stack of Afterburn (up to {e:afterburn.stacks}, {e:afterburn.time} sec, refreshed by each stack). Your next Fire spell hit that does NOT critically strike spends them all and deals +((100 - critical strike chance) x {v})% damage per stack.",
+			{"key": "fire_afterburn", "values": [0.17, 0.33, 0.5]}],
 		# The first choice talent (Talents.options_of): points go into one of the two.
 		# Both move the embers' crit chance, not the Fury they give (FireFuryKit).
-		"r5c5": {"choice": [
+		"r4c1": {"choice": [
 			["Damped Embers", 3, "The embers of your {n:embervolley} have {v}% less critical strike chance.",
 				{"key": "fire_damped_embers", "values": [10.0, 20.0, 30.0], "requires": "embervolley"}],
 			["Wild Embers", 3, "The embers of your {n:embervolley} have {v}% more critical strike chance.",
 				{"key": "fire_wild_embers", "values": [10.0, 20.0, 30.0], "requires": "embervolley"}],
 		]},
+		"r4c2": ["Scattered Embers", 2, "Each ember of your {n:embervolley} also strikes {v} additional enemies within {b:EMBER_VOLLEY_SPLIT_RADIUS} m of your target.",
+			{"key": "fire_volley_targets", "values": [1.0, 2.0], "requires": "embervolley"}],
+		# A crit that Vents your Fury burns its target with part of it (FireFuryKit).
+		"r5c1": ["Blowback", 3, "When a critical strike of yours Vents your Fury, {v}% of the Fury it Vents burns the target: {ds:BLOWBACK_PER_FURY} Fire damage per point, dealt over {b:BLOWBACK_TIME} sec.",
+			{"key": "fire_blowback", "values": [20.0, 35.0, 50.0]}],
+		"r5c2": ["Long Burn", 3, "Your Burning and {n:immolate} last {v} sec longer.",
+			{"key": "fire_long_burn", "values": [1.0, 2.0, 3.0]}],
+		"r6c1": ["Stoked Kiln", 3, "Your spells and abilities that cost Fury deal {v}% more damage to a target with your {n:immolate}.",
+			{"key": "fire_stoked_kiln", "values": [5.0, 10.0, 15.0]}],
+		"r6c2": ["Hold the Heat", 3, "While you are not casting, your Fury drops {v}% slower.",
+			{"key": "fire_hold_the_heat", "values": [33.0, 66.0, 100.0]}],
+		"r7c1": ["Long Focus", 3, "Your Concentrated Fire lasts {v} sec longer.",
+			{"key": "fire_long_focus", "values": [2.0, 4.0, 6.0]}],
+		"r7c2": ["Clean Burn", 3, "Your Fire spells that do not critically strike deal {v}% more damage.",
+			{"key": "fire_clean_burn", "values": [2.0, 4.0, 6.0]}],
+		"r8c1": ["Big Spend", 3, "A spell or ability that spends {b:BIG_SPEND_FURY} or more Fury deals {v}% more damage.",
+			{"key": "fire_big_spend", "values": [5.0, 10.0, 15.0]}],
+		"r8c2": ["Warm Start", 2, "When you enter combat, you gain {v} Fury.",
+			{"key": "fire_warm_start", "values": [20.0, 40.0]}],
+		"r9c1": ["Low Flame", 3, "While your critical strike chance is below {b:LOW_FLAME_CRIT}%, your Fire spells deal {v}% more damage.",
+			{"key": "fire_low_flame", "values": [3.0, 6.0, 9.0]}],
+		"r9c2": ["Stay Lit", 3, "After a critical strike Vents your Fury, your next Fire spell that does not critically strike gives {v}% more Fury.",
+			{"key": "fire_stay_lit", "values": [30.0, 60.0, 100.0]}],
 		# Holding Fury pays (FireFuryKit.smolder_pct).
 		"r10c2": ["Smoldering Focus", 5, "Your Fire spells deal {v}% more damage for each point of Fury you have.",
 			{"key": "fire_smoldering_focus", "values": [0.02, 0.04, 0.06, 0.08, 0.1]}],
-		"r10c4": ["Banked Coals", 2, "Your critical strikes Vent {v}% less of your Fury.",
-			{"key": "fire_banked_coals", "values": [25.0, 50.0]}],
-		# Crits build, the next non-crit spends, and a stack is worth more the LESS
-		# crit chance you have. The hook is in fire_runes.gd.
-		"r10c6": ["Afterburn", 5, "Every Fire spell hit that critically strikes builds a stack of Afterburn (up to {e:afterburn.stacks}, {e:afterburn.time} sec, refreshed by each stack). Your next Fire spell hit that does NOT critically strike spends them all and deals +((100 - critical strike chance) x {v})% damage per stack.",
-			{"key": "fire_afterburn", "values": [0.1, 0.2, 0.3, 0.4, 0.5]}],
+		# --- Slagforged.
+		"r1c3": ["Thick Slag", 4, "Each stack of Slag gives {v}% more Armor.",
+			{"key": "fire_thick_slag", "values": [15.0, 30.0, 45.0, 60.0]}],
+		"r1c4": ["Hot Iron", 3, "Attacks you block burn the attacker for {v}% more ({n:slagskin} and {n:cinderguard}).",
+			{"key": "fire_hot_iron", "values": [10.0, 20.0, 30.0]}],
+		"r2c3": ["Slag Mending", 3, "When your Slag shatters, you are healed for {v}% of your maximum health per stack.",
+			{"key": "fire_slag_mending", "values": [0.7, 1.3, 2.0]}],
+		"r2c4": ["Deep Brand", 3, "An enemy you have Branded deals {v+b:BRAND_PCT}% less damage to you, instead of {b:BRAND_PCT}%.",
+			{"key": "fire_deep_brand", "values": [2.0, 4.0, 6.0], "requires": "brand"}],
+		"r3c3": ["Smoldering Debris", 3, "When your Slag shatters it leaves a burning patch {b2:CLINKER_RADIUS} m wide for {b:CLINKER_TIME} sec, dealing {v}% of the shatter's damage {bev:CLINKER_TICK} to enemies standing in it.",
+			{"key": "fire_clinker", "values": [7.0, 13.0, 20.0]}],
+		"r3c4": ["Hard Crust", 3, "Each stack of Slag gives you {v}% chance to block.",
+			{"key": "fire_hard_crust", "values": [0.5, 1.0, 1.5]}],
+		"r4c3": ["Set Hard", 2, "Your brittle Slag lasts {v} sec longer.",
+			{"key": "fire_set_hard", "values": [1.5, 3.0]}],
+		"r4c4": ["Red Iron", 3, "Your shield abilities deal {v}% more damage.",
+			{"key": "fire_red_iron", "values": [5.0, 10.0, 15.0]}],
+		"r5c3": ["Marked Iron", 3, "Your Slag shattering deals {v}% more damage to enemies you have Branded.",
+			{"key": "fire_marked_iron", "values": [33.0, 66.0, 100.0]}],
+		"r5c4": ["Fuel the Forge", 3, "Each attack you block gives you {v} Fury.",
+			{"key": "fire_fuel_the_forge", "values": [2.0, 4.0, 6.0]}],
+		"r6c3": ["Deep Slag", 2, "You can hold {v} more Slag.",
+			{"key": "fire_deep_slag", "values": [1.0, 2.0]}],
+		"r6c4": ["Riveted", 3, "{n:redhotrivet}'s cooldown is {v} sec shorter.",
+			{"key": "fire_riveted", "values": [1.0, 2.0, 3.0], "requires": "redhotrivet"}],
+		"r7c3": ["Heavy Hammer", 3, "{n:forgeblow} gives you {v} Fury back for each stack of Slag it shatters.",
+			{"key": "fire_heavy_hammer", "values": [2.0, 4.0, 6.0], "requires": "forgeblow"}],
+		"r7c4": ["Glowing Seams", 3, "While you hold all the Slag you can, your spells and abilities generate {v}% more threat.",
+			{"key": "fire_glowing_seams", "values": [10.0, 20.0, 30.0]}],
+		"r8c3": ["Long Shell", 2, "{n:moltenshell} lasts {v} sec longer.",
+			{"key": "fire_long_shell", "values": [2.0, 4.0], "requires": "moltenshell"}],
+		"r8c4": ["Spatter", 3, "When your Slag shatters, there is a {v}% chance a stack of it stays on you.",
+			{"key": "fire_spatter", "values": [20.0, 40.0, 60.0]}],
+		"r9c3": ["Quick Temper", 3, "When your Slag shatters, the cooldown of {n:cinderguard} is {v} sec shorter.",
+			{"key": "fire_quick_temper", "values": [1.0, 2.0, 3.0]}],
+		"r9c4": ["Heat Shimmer", 3, "Each stack of Slag makes you take {v}% less damage from spells.",
+			{"key": "fire_heat_shimmer", "values": [0.5, 1.0, 1.5]}],
+		"r10c4": ["Molten Heart", 5, "Your Slag shattering deals {v}% more damage and threat for each stack above {b:MOLTEN_HEART_ABOVE}.",
+			{"key": "fire_molten_heart", "values": [2.0, 4.0, 6.0, 8.0, 10.0]}],
+		# --- Open talents: themed to the book (burns, blocking) but they work with every
+		# book's spells and abilities (open_talents_fire_lightning.gd and player.gd).
+		"r1c5": ["Flash Point", 3, "Increases your Critical Strike chance by {v}%.",
+			{"key": "fire_flash_point", "values": [1.0, 2.0, 3.0], "stats": {"crit_chance": 1.0}}],
+		"r2c5": ["Forge-Hardened", 3, "Increases your Attack Power by {v}% of your Strength.",
+			{"key": "fire_forge_hardened", "values": [2.0, 4.0, 6.0]}],
+		"r3c5": ["Lingering Embers", 3, "Your Fire damage over time effects deal {v}% more damage.",
+			{"key": "fire_lingering_embers", "values": [3.0, 6.0, 9.0]}],
+		"r4c5": ["Controlled Burn", 3, "Your Fire spells and abilities generate {v}% less threat.",
+			{"key": "fire_controlled_burn", "values": [5.0, 10.0, 15.0]}],
+		"r5c5": ["Feed the Flames", 3, "Your direct hits deal {v}% more damage to enemies that carry one of your damage over time effects.",
+			{"key": "fire_feed_the_flames", "values": [2.0, 4.0, 6.0]}],
+		"r6c5": ["Last Ember", 2, "When one of your damage over time effects runs its full time, it ticks once more for {v}% of a tick's damage.",
+			{"key": "fire_last_ember", "values": [50.0, 100.0]}],
+		"r8c5": ["Warm Blood", 3, "You take {v}% less damage from an enemy that has your Burning or {n:immolate} on it.",
+			{"key": "fire_warm_blood", "values": [2.0, 4.0, 6.0]}],
+		"r7c5": ["Tempered", 3, "Each attack you block increases your Armor by {v}% for {b:TEMPERED_TIME} sec, stacking up to {b:TEMPERED_STACKS} times.",
+			{"key": "fire_tempered", "values": [2.0, 4.0, 6.0]}],
+		# --- Forge Heat.
+		"r1c6": ["White Heat", 4, "While your Heat is in the White band, your abilities deal {v}% more Fire damage.",
+			{"key": "fire_white_heat", "values": [4.0, 8.0, 12.0, 16.0]}],
+		"r1c7": ["Bright Sparks", 3, "Each of your Sparks has a {v}% chance to build one more Heat.",
+			{"key": "fire_bright_sparks", "values": [15.0, 30.0, 45.0]}],
+		"r2c6": ["Slow Cooling", 3, "Your Heat lasts {v} sec longer before it is lost.",
+			{"key": "fire_slow_cooling", "values": [0.5, 1.0, 1.5]}],
+		"r2c7": ["Afterglow", 3, "For {b:AFTERGLOW_TIME} sec after you use {n:quench}, your auto-attacks also deal {v}% of their damage as Fire damage.",
+			{"key": "fire_afterglow", "values": [7.0, 13.0, 20.0], "requires": "quench"}],
+		"r3c6": ["Spark Bite", 3, "Your Sparks deal {v}% more damage.",
+			{"key": "fire_spark_bite", "values": [10.0, 20.0, 30.0]}],
+		"r3c7": ["Fresh Tinder", 3, "Your melee abilities have a {v}% chance to add {b:FRESH_TINDER_SECONDS} sec to your Burning on the target they hit, up to its full duration.",
+			{"key": "fire_fresh_tinder", "values": [10.0, 20.0, 30.0]}],
+		"r4c6": ["Hard Quench", 3, "Your abilities that spend Heat deal {v}% more damage for each Heat they spend.",
+			{"key": "fire_hard_quench", "values": [1.0, 2.0, 3.0]}],
+		"r4c7": ["Wide Flare", 2, "{n:flare} sweeps {v} degrees wider.",
+			{"key": "fire_wide_flare", "values": [30.0, 60.0], "requires": "flare"}],
+		"r5c6": ["Banked Fire", 3, "{n:quench} leaves you {v} Heat.",
+			{"key": "fire_banked_fire", "values": [1.0, 2.0, 3.0], "requires": "quench"}],
+		"r5c7": ["Hammer Rhythm", 3, "Your auto-attacks give you {v} more Fury.",
+			{"key": "fire_hammer_rhythm", "values": [1.0, 2.0, 3.0]}],
+		"r6c6": ["Fold Again", 2, "{n:foldsteel} strikes {v} more times.",
+			{"key": "fire_fold_again", "values": [1.0, 2.0], "requires": "foldsteel"}],
+		"r6c7": ["Deep Sear", 3, "Your Burning deals {v}% more damage.",
+			{"key": "fire_deep_sear", "values": [5.0, 10.0, 15.0]}],
+		"r7c6": ["Overheat", 3, "While your Heat is in the White band, each of your Sparks also burns every other enemy within {b:OVERHEAT_RADIUS} m for {v}% of its damage.",
+			{"key": "fire_overheat", "values": [20.0, 40.0, 60.0]}],
+		"r7c7": ["Steady Arm", 3, "While your Heat is in the Orange or White band, the cooldowns of your melee abilities recover {v}% faster.",
+			{"key": "fire_steady_arm", "values": [5.0, 10.0, 15.0]}],
+		"r8c6": ["Long Blast", 2, "{n:blastfurnace} lasts {v} sec longer.",
+			{"key": "fire_long_blast", "values": [2.0, 4.0], "requires": "blastfurnace"}],
+		"r8c7": ["Cold Steel", 3, "While you hold no Heat, your melee critical strikes deal {v}% more damage and build {v2} Heat.",
+			{"key": "fire_cold_steel", "values": [10.0, 20.0, 30.0], "values2": [1.0, 2.0, 3.0]}],
+		"r9c6": ["Quick Forge", 3, "Each of your Sparks takes {v} sec off the cooldowns of your Fire abilities.",
+			{"key": "fire_quick_forge", "values": [0.2, 0.4, 0.6]}],
+		"r9c7": ["Fed Furnace", 3, "Your abilities that spend Heat give you {v} Fury.",
+			{"key": "fire_fed_furnace", "values": [5.0, 10.0, 15.0]}],
+		"r10c6": ["Molten Edge", 5, "Each Heat makes your abilities deal {v}% more Fire damage, instead of {b:HEAT_DAMAGE_PCT}%.",
+			{"key": "fire_molten_edge", "values": [0.2, 0.4, 0.6, 0.8, 1.0]}],
+		# --- Pitch and Cinder.
+		"r1c8": ["Sticky Pitch", 4, "Each layer of your Pitch makes your burns tick {v}% faster on top of the usual {b:PITCH_LAYER_SPEED_PCT}%.",
+			{"key": "fire_sticky_pitch", "values": [0.5, 1.0, 1.5, 2.0]}],
+		"r1c9": ["Light String", 3, "Your arrows that cost Energy cost {v} less.",
+			{"key": "fire_light_string", "values": [2.0, 4.0, 6.0]}],
+		"r2c8": ["Big Flash", 3, "Your Ignites deal {v}% more damage.",
+			{"key": "fire_big_flash", "values": [10.0, 20.0, 30.0]}],
+		"r2c9": ["Long Coat", 3, "Your Pitch lasts {v} sec longer.",
+			{"key": "fire_long_coat", "values": [3.0, 6.0, 9.0]}],
+		"r3c8": ["Spreading Fire", 2, "Your Ignites reach {v} m further.",
+			{"key": "fire_spreading_fire", "values": [2.0, 4.0]}],
+		"r3c9": ["Dripping", 3, "Your Burning deals {v}% more damage to a target with {b:DRIPPING_LAYERS} or more layers of your Pitch.",
+			{"key": "fire_dripping", "values": [5.0, 10.0, 15.0]}],
+		"r4c8": ["Double Coat", 2, "{n:pitcharrow} adds {v} more layers of Pitch.",
+			{"key": "fire_double_coat", "values": [1.0, 2.0], "requires": "pitcharrow"}],
+		"r4c9": ["Hot Shafts", 3, "Your auto-shots on a target with your Pitch also deal {v}% of their damage as Fire damage.",
+			{"key": "fire_hot_shafts", "values": [3.0, 6.0, 9.0]}],
+		"r5c8": ["Second Light", 3, "{n:touchoff} has a {v}% chance not to go on cooldown.",
+			{"key": "fire_second_light", "values": [10.0, 20.0, 30.0], "requires": "touchoff"}],
+		"r5c9": ["Ember Bed", 3, "Each enemy your Ignite hits has a {v}% chance to be left with a layer of your Pitch.",
+			{"key": "fire_ember_bed", "values": [33.0, 66.0, 100.0]}],
+		"r6c8": ["Wide Rain", 2, "{n:cinderrain} covers an area {v} m wider.",
+			{"key": "fire_wide_rain", "values": [1.0, 2.0], "requires": "cinderrain"}],
+		"r6c9": ["Fuel Run", 3, "Each of your Ignites gives you {v} Energy.",
+			{"key": "fire_fuel_run", "values": [5.0, 10.0, 15.0]}],
+		"r7c8": ["Patient Fire", 3, "Your arrows deal {v}% more damage to a target with {b:PITCH_MAX_LAYERS} layers of your Pitch.",
+			{"key": "fire_patient_fire", "values": [3.0, 6.0, 9.0]}],
+		"r7c9": ["Kindle Pack", 3, "When your Ignite hits {b:KINDLE_PACK_HITS} or more enemies, it coats its target in {v} new layers of Pitch.",
+			{"key": "fire_kindle_pack", "values": [1.0, 2.0, 3.0]}],
+		"r8c8": ["Long Brush", 2, "{n:brushfire} lasts {v} sec longer.",
+			{"key": "fire_long_brush", "values": [3.0, 6.0], "requires": "brushfire"}],
+		"r8c9": ["Steady Bow", 3, "Each of your arrows that does not critically strike gives you {v} Energy.",
+			{"key": "fire_steady_bow", "values": [1.0, 2.0, 3.0]}],
+		"r9c8": ["Clean Shot", 3, "Your arrows that do not critically strike deal {v}% more damage to a target with your Pitch.",
+			{"key": "fire_clean_shot", "values": [3.0, 6.0, 9.0]}],
+		"r9c9": ["Fire Line", 3, "Your Burning deals {v}% more damage to targets more than {b:FIRE_LINE_RANGE} m away from you.",
+			{"key": "fire_fire_line", "values": [4.0, 8.0, 12.0]}],
+		"r10c8": ["Pitch Black", 5, "Each layer of your Pitch on a target makes your arrows deal {v}% more damage to it.",
+			{"key": "fire_pitch_black", "values": [1.0, 2.0, 3.0, 4.0, 5.0]}],
 	},
 	"frost": {
 		"r1c3": ["Frozen Focus", 3, "Increases your Haste by {v}%.",
@@ -1180,18 +1284,6 @@ const TALENTS := {
 ## "key" (it follows the talent when its slot changes) or a talent id.
 ## A line must not run behind another talent, and the bottom row has no links.
 const LINKS := [
-	# --- Fire ---
-	# The tank, down the right: Slag Skin's talents, then Cinder Guard's.
-	["fire_thick_slag", "fire_hot_iron"],
-	["fire_hot_iron", "fire_clinker"],
-	["fire_clinker", "fire_slag_mending"],
-	# Melee, down the left: the Heat builder, Immolate upkeep, the finisher, then Heat itself.
-	["fire_kindling", "fire_fresh_tinder"],
-	["fire_fresh_tinder", "fire_afterglow"],
-	["fire_afterglow", "fire_forge_heat"],
-	["fire_forge_heat", "fire_white_heat"],
-	# The caster: burns -> Blaze.
-	["fire_lingering_embers", "fire_long_burn"],
 	# --- Frost ---
 	# Shields, down the right edge.
 	["frost_absorb", "frost_shield_armor"],
@@ -1269,11 +1361,12 @@ static func layout(category: String) -> Array:
 # in GROUPS keep the old 10 x COLUMNS grid until their own pass.
 
 ## Columns of a book's grid.
-const GRID_COLUMNS := {"martial": 9}
+const GRID_COLUMNS := {"martial": 9, "fire": 9}
 
 ## Book -> its groups: [name, first column, last column] (0-based, left to right).
 const GROUPS := {
 	"martial": [["The Wheel", 0, 1], ["Rogue", 2, 3], ["Open", 4, 4], ["Brawler", 5, 6], ["Sharpshooter", 7, 8]],
+	"fire": [["Steady Flame", 0, 1], ["Slagforged", 2, 3], ["Open", 4, 4], ["Forge Heat", 5, 6], ["Pitch and Cinder", 7, 8]],
 }
 const OPEN_GROUP := "Open"
 
@@ -1313,7 +1406,6 @@ static func in_group(category: String, group: String) -> Array[String]:
 ## follow the talent (SaveSystem._valid_talents). An old id listed here must not
 ## be given to a new talent.
 const MOVED := {
-	"fire_r2c4": "fire_r3c4",   # Cool Under Fire: row 2 -> row 3
 	"lightning_r2c4": "lightning_r3c5",   # Long Reach: row 2 -> row 3
 }
 
@@ -1336,9 +1428,6 @@ const FROST_BOW_MOVED := {
 ## Old id -> new id; nothing was removed. Like FROST_BOW_MOVED this is applied
 ## once, to saves made before the change: most old slots now hold another talent.
 const LINKS_MOVED := {
-	"fire_r8c3": "fire_r5c3",   # Long Burn: row 8 -> row 5
-	"fire_r5c3": "fire_r6c3",   # Scattered Embers: row 5 -> row 6
-	"fire_r6c3": "fire_r8c3",   # Thick Pitch: row 6 -> row 8
 	"frost_r1c2": "frost_r1c1",   # Bitter Cold: to the left edge of row 1
 	"frost_r1c6": "frost_r1c5",   # Cold Draw: one column left
 	"frost_r1c5": "frost_r1c7",   # Rime Ward: to the right edge of row 1
@@ -1463,8 +1552,8 @@ static func _entry_from(entry: Dictionary, d: Array) -> Dictionary:
 # --- Choice talents ------------------------------------------------------------------
 # A slot defined as {"choice": [talent A, talent B]} holds two talents and points
 # go into only one of them (WoW-style: hover the slot, pick one). The slot itself
-# ("fire_r5c5") is what rows, trees and the UI see; it holds no points. The two
-# talents are "fire_r5c5a" and "fire_r5c5b": real talents with their own keys,
+# ("fire_r4c1") is what rows, trees and the UI see; it holds no points. The two
+# talents are "fire_r4c1a" and "fire_r4c1b": real talents with their own keys,
 # ranks and tooltips, in the slot's row and column. PlayerData keeps points out of
 # one while the other has any. Choice slots take no LINKS.
 

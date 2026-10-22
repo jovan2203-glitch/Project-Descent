@@ -467,6 +467,10 @@ func player_color(pd: Dictionary, kind: String) -> Color:
 const HIT_NAMES := {
 	"frozen_shatter": "Frozen Shatter",
 	"hoar_blade": "Hoar Blade",   # (Frost DPS: the Rune of the Hoar Blade)
+	"red_edge": "Red Edge",   # (Fire DPS: its extra Fire damage on auto-attacks)
+	"pitch_ignite": "Ignite",   # (Fire archer: Pitch bursting)
+	"hot_shafts": "Hot Shafts",   # (Fire archer talent: Fire damage on auto-shots)
+	"overheat": "Overheat",   # (Fire melee talent: a White-band Spark burning the enemies around)
 	"afterglow": "Afterglow",
 	"slag_shatter": "Slag Shatter",
 	"dot_smoldering_debris": "Smoldering Debris",
@@ -582,7 +586,7 @@ static func spell_color(id: String) -> Color:
 	match base:
 		"auto_melee", "auto_ranged":
 			return Color(0.75, 0.72, 0.66)
-		"burning", "afterglow", "slag_mending", "slag_shatter", "smoldering_debris", "blowback":
+		"burning", "afterglow", "slag_mending", "slag_shatter", "smoldering_debris", "blowback", "red_edge", "pitch_ignite", "hot_shafts", "overheat":
 			return Abilities.color_of("fireball")
 		"chilled", "frozen", "frozen_shatter", "splintering", "permafrost", "deepfreeze", "icefloe", "rimeshards", "runoff", "splinterheal", "hoar_blade":
 			return Abilities.color_of("frostbolt")

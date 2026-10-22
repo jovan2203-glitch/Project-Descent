@@ -157,6 +157,13 @@ func _pressure_valve(info: RefCounted) -> void:
 	_vent_reduce(cut)
 
 ## Is one of my burns (Balance.FIRE_BURNS: Immolate, Burning) on `enemy`? (Warm Blood)
+## Does `enemy` carry my Blaze (Immolate)?
+func _my_blaze_on(enemy: Variant) -> bool:   # untyped: may be a freed enemy
+	if enemy == null or not is_instance_valid(enemy) or not (enemy is Node):
+		return false
+	var st: Node = enemy.get_node_or_null("Status")
+	return st != null and st.has_from("immolate", player)
+
 func _my_burn_on(enemy: Variant) -> bool:   # untyped: may be a freed enemy
 	if enemy == null or not is_instance_valid(enemy) or not (enemy is Node):
 		return false

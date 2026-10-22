@@ -10,11 +10,6 @@ const PlayerDataScript = preload("res://scripts/player_data.gd")
 
 ## Every link, as talent keys: [from, to].
 const WANT := [
-	["fire_thick_slag", "fire_hot_iron"], ["fire_hot_iron", "fire_clinker"],
-	["fire_clinker", "fire_slag_mending"],
-	["fire_kindling", "fire_fresh_tinder"], ["fire_fresh_tinder", "fire_afterglow"],
-	["fire_afterglow", "fire_forge_heat"], ["fire_forge_heat", "fire_white_heat"],
-	["fire_lingering_embers", "fire_long_burn"],
 	["frost_absorb", "frost_shield_armor"], ["frost_shield_armor", "frost_ice_floe"],
 	["frost_shard_proc", "frost_shardstorm"], ["frost_shardstorm", "frost_splinter"],
 	["frost_hoarfrost", "frost_hoarfrost_burst"], ["frost_cold_snap", "frost_instinct"], ["frost_deep_cracks", "frost_shard_spray"],
@@ -39,7 +34,7 @@ const WANT := [
 ## Where every talent that changed slot landed in LINKS_MOVED: key -> id (a later
 ## move, Talents.FROST_MELEE_MOVED, can take it on from there).
 const MOVED_TO := {
-	"fire_long_burn": "fire_r5c3", "fire_volley_targets": "fire_r6c3",
+
 	"frost_chilled_dmg": "frost_r1c1", "frost_cold_draw": "frost_r1c5", "frost_absorb": "frost_r1c7",
 	"frost_shield_armor": "frost_r4c7", "frost_ice_floe": "frost_r8c7", "frost_hoarfrost_burst": "frost_r5c2",
 	"frost_clean_break": "frost_r7c2", "frost_shardstorm": "frost_r6c4", "frost_splinter": "frost_r7c4",
@@ -158,7 +153,7 @@ func test_a_linked_talent_opens_before_its_row() -> void:
 func test_moved_talents_and_old_saves() -> void:
 	const SaveSystemScript = preload("res://scripts/save_system.gd")
 	assert_true(SaveSystemScript.VERSION >= 6)
-	assert_eq(Talents.LINKS_MOVED.size(), MOVED_TO.size() + 1, "and Thick Pitch, since folded into Pitch Arrow")
+	assert_eq(Talents.LINKS_MOVED.size(), MOVED_TO.size(), "(the Fire entries went with the column-group tree, which refunded every point)")
 	var news: Array = Talents.LINKS_MOVED.values()
 	for key in MOVED_TO:
 		var later := str(Talents.FROST_MELEE_MOVED.get(MOVED_TO[key], MOVED_TO[key]))
@@ -168,11 +163,11 @@ func test_moved_talents_and_old_saves() -> void:
 		assert_true(Talents.exists(str(Talents.LINKS_MOVED[old])), "%s is a slot of today's book" % Talents.LINKS_MOVED[old])
 		assert_eq(news.count(Talents.LINKS_MOVED[old]), 1, "no two talents land in %s" % Talents.LINKS_MOVED[old])
 		assert_false(Talents.MOVED.has(str(old)), "the every-load table never touches %s" % old)
-	# A v5 save: Hardened Frost 4, Splintering 1, Shardstorm 2, Long Burn 3, Tempo 3,
+	# A v5 save: Hardened Frost 4, Splintering 1, Shardstorm 2, Tempo 3,
 	# and one talent that stayed put.
-	var old_save := {"frost_r7c4": 4, "frost_r7c6": 1, "frost_r7c2": 2, "fire_r8c3": 3, "lightning_r6c7": 3, "frost_r1c3": 3}
+	var old_save := {"frost_r7c4": 4, "frost_r7c6": 1, "frost_r7c2": 2, "lightning_r6c7": 3, "frost_r1c3": 3}
 	var now: Dictionary = Talents.rearranged(old_save, Talents.LINKS_MOVED, [])
 	assert_eq(now, {_id("frost_shield_armor"): 4, _id("frost_splinter"): 1, _id("frost_shardstorm"): 2,
-		_id("fire_long_burn"): 3, _id("lightning_tempo"): 3, "frost_r1c3": 3})
+		_id("lightning_tempo"): 3, "frost_r1c3": 3})
 	for id in now:
 		assert_true(int(now[id]) <= Talents.max_rank(str(id)), "%s: no more ranks than the talent has" % id)

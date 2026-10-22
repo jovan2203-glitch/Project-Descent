@@ -62,6 +62,8 @@ func _sealed() -> bool:
 
 var _gain_last := ""   # "<ability>@<frame>" of the last cast that built Fury
 var _vent_last := ""   # ... and of the last that Vented it
+var _stay_lit := false   # a crit Vented: the next non-crit gives more (Stay Lit)
+var last_spent := 0.0   # Fury the Vent Flames being dealt right now spent (Big Spend)
 
 ## A Fire spell hit of mine with damage landed (FireRunesKit._on_damage_dealt_fire).
 func _fury_on_hit(info: RefCounted) -> void:
@@ -82,13 +84,18 @@ func _fury_on_hit(info: RefCounted) -> void:
 		if v <= 0.0:
 			return
 		player._gain("fury", -v)
+		_stay_lit = player._talent("fire_stay_lit") > 0.0
 		_blowback(info.target, v)
 		return
 	if not builds_fury(id) or key == _gain_last:
 		return
 	_gain_last = key
 	var chance := float(info.get_meta(CRIT_META, 0.0))
-	player._gain("fury", fury_gain(chance, ember, player._talent("fire_stoked_breath"), _sealed()))
+	var gain := fury_gain(chance, ember, player._talent("fire_stoked_breath"), _sealed())
+	if _stay_lit:
+		_stay_lit = false
+		gain *= 1.0 + player._talent("fire_stay_lit") / 100.0   # Stay Lit
+	player._gain("fury", gain)
 
 ## The crit chance a hit's Fury is worked out from (Player.adjust_crit, before the
 ## spell's own changes). Rune of the Dull Mind: as if crit weren't capped.
@@ -107,7 +114,9 @@ func hair_trigger() -> bool:
 func vent_flames(tgt: Node3D, base: float) -> void:
 	var spent := vent_spend(fury(), hair_trigger())
 	player._gain("fury", -spent)
+	last_spent = spent   # (Big Spend)
 	player.deal_damage(tgt, vent_coef(base, spent), FireCasterKit.VENT_ID)
+	last_spent = 0.0
 
 # --- Blowback (talent): a Vent burns the target with part of the Fury ----------------
 

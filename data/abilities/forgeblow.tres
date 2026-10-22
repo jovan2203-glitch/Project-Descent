@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"forgeblow"
+display_name = "Forge Blow"
+description = "Hammers your hardened slag apart, shattering all of your Slag at once: each stack deals {slag_shatter} Fire damage to every enemy within {b:SLAG_SHATTER_RADIUS} m with {b:SLAG_SHATTER_THREAT}x threat. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, it is split evenly between all of them. It cannot critically strike, and it needs Slag to shatter."
+tags = PackedStringArray("Ability", "Fire", "Melee", "AoE")
+cast_type = 0
+cast_time = 0.0
+cooldown = 8.0
+requires_target = false
+weapon_requirement = 1
+resource_type = 3
+resource_cost = 30
+damage = 0.0
+radius = 5.0
+threat_multiplier = 3.0
+damage_type = &"fire"

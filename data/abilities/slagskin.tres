@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"slagskin"
 display_name = "Slag Skin"
-description = "Your skin hardens into molten slag for {b:SLAG_SKIN_TIME} sec: every enemy that attacks you takes {hit} Fire damage. While it lasts, each melee hit of yours that does not critically strike adds a stack of Slag (up to {b:SLAG_MAX_STACKS}), each increasing your Armor by {slag}. A melee critical strike shatters all your Slag, dealing {flat1} Fire damage per stack to enemies within {b:SLAG_SHATTER_RADIUS} m."
+description = "Your skin hardens into molten slag for {b:SLAG_SKIN_TIME} sec: every enemy that attacks you takes {hit} Fire damage. While it lasts, each attack you block and each melee hit of yours adds a stack of Slag (up to {b:SLAG_MAX_STACKS}), each increasing your Armor by {slag}. Slag from a critical strike is brittle and crumbles after {b:SLAG_BRITTLE_TIME} sec."
 tags = PackedStringArray("Fire", "Spell")
 cast_type = 0
 cast_time = 0.0

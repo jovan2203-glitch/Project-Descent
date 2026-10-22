@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"quench"
 display_name = "Quench"
-description = "Drives your heated weapon into the target, removing all of your Heat and dealing {hit} Fire damage, increased by {quench_pct}% for each Heat removed (up to {quench_max} at {heat_max} Heat). It cannot critically strike. Requires at least {quench_min} Heat."
+description = "Drives your heated weapon into the target, removing all of your Heat and dealing {hit} Fire damage, increased by {quench_pct}% for each Heat removed (up to {quench_max} at {heat_max} Heat). White band: {b:QUENCH_WHITE_SPLASH_PCT}% of its damage also hits every enemy within {b:QUENCH_WHITE_RADIUS} m of the target. It cannot critically strike. Requires at least {quench_min} Heat."
 tags = PackedStringArray("Ability", "Fire", "Melee")
 cast_type = 0
 cast_time = 0.0

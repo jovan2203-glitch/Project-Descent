@@ -183,7 +183,7 @@ static func _fire_fury(id: String, d: float, fury: float, c: float, res: Diction
 	return d
 
 ## Hits that never crit (Player.adjust_crit).
-const NEVER_CRIT := ["stoke", "kilnblast", "anvil", "quench"]
+const NEVER_CRIT := ["stoke", "kilnblast", "anvil", "quench", "forgeblow"]
 
 ## What one press of `id` is worth, or {} if it does no damage and no healing.
 static func button(id: String, w: Dictionary, stat_of: Callable, haste: float, max_hp: float) -> Dictionary:

@@ -35,6 +35,7 @@ var frost_bow: FrostBowKit = _kit(FrostBowKit) as FrostBowKit
 var fire_runes: FireRunesKit = _kit(FireRunesKit) as FireRunesKit
 var fire_caster: FireCasterKit = _kit(FireCasterKit) as FireCasterKit
 var fire_fury: FireFuryKit = _kit(FireFuryKit) as FireFuryKit
+var fire_talents: FireTalentsKit = _kit(FireTalentsKit) as FireTalentsKit
 var fire_tank: FireTankKit = _kit(FireTankKit) as FireTankKit
 var fire_melee: FireMeleeKit = _kit(FireMeleeKit) as FireMeleeKit
 var fire_bow: FireBowKit = _kit(FireBowKit) as FireBowKit
@@ -162,6 +163,7 @@ func crit_hit_bonus(info: RefCounted) -> Array:
 	var out: Array = shadow_talents.crit_hit_bonus(info)   # Ill Will (damage over time)
 	out.append_array(wheel.crit_hit_bonus(info))           # Keen Edge (the Greatsword)
 	out.append_array(martial_talents.crit_hit_bonus(info))   # Keen Strikes
+	out.append_array(fire_talents.crit_hit_bonus(info))   # Cold Steel
 	return out
 
 # Forwards to DecayKit (called from other scripts).
@@ -632,6 +634,7 @@ func _ready() -> void:
 	_bus().cast_started.connect(overload_kit._on_cast_for_static)
 	_bus().cast_finished.connect(overload_kit._on_cast_for_static)
 	_bus().damage_dealt.connect(fire_tank._slag_skin_retaliate)
+	_bus().damage_dealt.connect(fire_bow._pitch_on_hit)   # Fire archer: Pitch and its Ignites
 	_bus().damage_dealt.connect(fire_cooldowns._on_hit_taken)
 	_bus().damage_modify.connect(_on_damage_modify)
 	_bus().player_hit.connect(_on_hit_talents)
@@ -1272,7 +1275,7 @@ func can_afford(id: String, report: bool = false) -> bool:
 			_error("No Ice Shard charges")
 		return false
 	# Quench and Flare run on Heat.
-	var heat_need := FireMeleeKit.heat_needed(id)
+	var heat_need := fire_melee.heat_needed_now(id)   # (Flare is free in the White band)
 	if heat_need > 0 and fire_melee.heat_stacks() < heat_need:
 		if report:
 			_error("Requires %d Heat" % heat_need)
@@ -1342,9 +1345,13 @@ func resource_cost(id: String, with_storm_cycle: bool = true) -> float:
 			_talent("lightning_snap_shot") if status.has(LightningCasterKit.SNAP_SHOT_FX) else 0.0)
 	if cost > 0.0 and Abilities.resource_of(id) == "energy":
 		cost = maxf(cost - _talent("martial_thrift"), 0.0)                                                  # Thrift
+		if Abilities.tags_of(id).has("Ranged"):
+			cost = maxf(cost - _talent("fire_light_string"), 0.0)                                         # Light String: arrows
 		cost = LightningCasterKit.surge_energy_cost(cost, lightning_caster.surge_active())                   # Grounding Surge
 		if with_storm_cycle and bottled_kit.storm_cycle_ready():
 			cost = 0.0                                                   # Storm Cycle: this one is free
+	if cost > 0.0 and Abilities.resource_of(id) == "fury":
+		cost = maxf(cost - _talent("fire_lean_fuel"), 0.0)                                                 # Lean Fuel
 	if cost <= 0.0 or Abilities.resource_of(id) != "mana":
 		return cost * pacts_kit._pact_cost_mult(Abilities.resource_of(id))   # (my Pact: Sidestep)
 	cost *= mana_unit() * pacts_kit._pact_cost_mult("mana")                  # (my Pact: Sidestep, Reservoir)
@@ -1400,7 +1407,8 @@ func _tick_resources(delta: float) -> void:
 	_gain("mana", MANA_REGEN * mana_unit() * delta)
 	_gain("energy", LightningMeleeKit.energy_regen(ENERGY_REGEN, _talent("lightning_quick_charge")) * delta)   # Quick Charge
 	if not casting:   # (no Fury is lost while casting or channeling: the Fire caster's)
-		_gain("fury", -HoundsKit.fury_decay(FURY_DECAY, _talent("shadow_thick_blood")) * delta)   # Thick Blood
+		_gain("fury", -HoundsKit.fury_decay(FURY_DECAY, _talent("shadow_thick_blood")) * delta
+			* maxf(1.0 - _talent("fire_hold_the_heat") / 100.0, 0.0))   # Thick Blood, Hold the Heat
 
 # --- Natural health regeneration (WoW-style) ------------------------------------------
 # A trickle in combat, fast once the fight is over (after a short delay).
@@ -1555,7 +1563,7 @@ func _tick_cooldowns(delta: float) -> void:
 	for id in cooldowns.keys():
 		var step := delta if plain else delta * ArcaneCasterKit.arcane_cooldown_rate(arcane_rate, arcane_caster._is_arcane_spell(str(id)),
 			arcane_caster._in_arcane_book(str(id)), clock)
-		cooldowns[id] = float(cooldowns[id]) - step * pact_rate
+		cooldowns[id] = float(cooldowns[id]) - step * pact_rate * fire_melee.cooldown_rate(str(id))   # (Steady Arm)
 		if cooldowns[id] <= 0.0:
 			cooldowns.erase(id)
 	arcane_open._tick_borrowed_time()   # Borrowed Time: a long cooldown just came back?
@@ -1602,10 +1610,7 @@ func _on_damage_modify(info: RefCounted) -> void:
 		var dr := _talent("frost_slow_dr")
 		if dr > 0.0 and frost_melee._slowed_recently(info.source):
 			info.add_bonus(-dr, "Numbing Cold")
-		# Cool Under Fire: tougher while Cool Head is up.
-		var cuf := _talent("fire_cool_under_fire")
-		if cuf > 0.0 and fire_cooldowns.cool_head_active():
-			info.add_bonus(-cuf, "Cool Under Fire")
+		fire_talents._fire_talents_incoming(info)   # Heat Shimmer
 		# Heat Sink: part of every hit is stored instead (see _on_hit_taken).
 		if status and status.has(FireCooldownsKit.HEAT_SINK_ID):
 			info.add_bonus(-Balance.HEAT_SINK_PCT, "Heat Sink")
@@ -1618,6 +1623,7 @@ func _on_damage_modify(info: RefCounted) -> void:
 			var brand_st: Node = info.source.get_node_or_null("Status")
 			if brand_st and brand_st.has_from(FireTankKit.BRAND_FX_ID, self):
 				info.add_bonus(-(Balance.BRAND_PCT + _talent("fire_deep_brand")), "Brand")   # + Deep Brand
+		fire_tank._slag_incoming(info)   # Molten Shell
 		arcane_tank._reflection_talents_incoming(info)   # Empty Room, Bent Light
 		lightning_melee._guard_incoming(info)   # Reflex Arc, Faraday Guard
 		strings._crossed_incoming(info) # Crossed Strings: part of it goes to an enemy
@@ -1711,12 +1717,13 @@ func _on_damage_modify(info: RefCounted) -> void:
 		var beat := _talent("lightning_third_beat")
 		if beat > 0.0:
 			info.add_bonus(beat, "Third Beat")
-	# White Heat: while I hold full Heat, the Fire damage of my abilities is higher
+	# White Heat: in the White band, the Fire damage of my abilities is higher
 	# (the same hits Heat itself boosts: abilities and their burns, never spells).
 	if str(info.damage_type) == "fire" and info.tags.has("Ability"):
-		var white := FireMeleeKit.white_heat_bonus(fire_melee.heat_stacks(), _talent("fire_white_heat"))
+		var white := FireMeleeKit.white_heat_bonus(fire_melee.band(), _talent("fire_white_heat"))
 		if white > 0.0:
 			info.add_bonus(white, "White Heat")
+	fire_talents._fire_talents_outgoing(info)   # the Fire talents' bonuses (column-group tree)
 	# Shatterpoint: every shatter hit (tagged "Shatter", whatever its name) hits harder.
 	if info.tags.has("Shatter"):
 		var sp := _talent("frost_shatterpoint")
@@ -1746,7 +1753,7 @@ func _on_damage_modify(info: RefCounted) -> void:
 	if id == "kilnblast" and info.target and is_instance_valid(info.target):
 		var kst: Node = info.target.get_node_or_null("Status")
 		if kst and kst.has_from("immolate", self):
-			info.add_bonus(Balance.KILN_BLAST_IMMOLATE_PCT + _talent("fire_stoked_kiln"), "Kiln Blast")   # + Stoked Kiln
+			info.add_bonus(Balance.KILN_BLAST_IMMOLATE_PCT, "Kiln Blast")
 	# Third Bite: the Winter's Bite that Freezes hits harder.
 	if id == "froststrike" and frost_runes._bite_freezing:
 		var third := _talent("frost_third_bite")
@@ -1794,11 +1801,11 @@ func _on_hit_talents(ability_id: String, tgt: Node, amount: int, _crit: bool, is
 	if tgt == null or not is_instance_valid(tgt) or not tgt.is_alive():
 		return
 	var periodic := ability_id.begins_with("dot_") or ability_id.begins_with("burst_")
-	# Fresh Tinder: abilities (not procs, not ticks) may feed my Immolate on the target.
+	# Fresh Tinder: melee abilities (not procs, not ticks) may feed my Burning on the target.
 	var tinder := _talent("fire_fresh_tinder")
 	if tinder > 0.0 and not is_proc and not periodic and Abilities.tags_of(ability_id).has("Ability") \
-			and randf() * 100.0 < tinder:
-		fire_melee._feed_immolate(tgt)
+			and Abilities.tags_of(ability_id).has("Melee") and randf() * 100.0 < tinder:
+		fire_melee._feed_burning(tgt)
 	# Brittle Rime: direct damage may make your Hoarfrost on the target burst early.
 	var burst := _talent("frost_hoarfrost_burst")
 	if burst > 0.0 and not periodic and ability_id != "hoarfrost" and amount > 0:
@@ -1890,7 +1897,7 @@ func _try_auto_attack(moving: bool) -> void:
 		_slash_effect(FireMeleeKit.heat_tint(fire_melee.heat_stacks()))   # the swing glows hotter with Heat
 	# Auto-attacks and auto-shots build fury when you're playing a fury user.
 	if _has_fury_spender():
-		_gain("fury", AUTO_ATTACK_FURY)
+		_gain("fury", AUTO_ATTACK_FURY + (_talent("fire_hammer_rhythm") if w["weapon"] != "ranged" else 0.0))   # + Hammer Rhythm (auto-swings)
 
 ## Fury per auto-attack / auto-shot (only with a fury spender on the action bar).
 const AUTO_ATTACK_FURY := Balance.AUTO_ATTACK_FURY
@@ -2472,6 +2479,8 @@ func _process(_delta: float) -> void:
 	frost_healer._tick_frost_healer()
 	colossus._tick_colossus()
 	glacier._tick_glacier()
+	fire_tank._tick_slag()   # Fire tank: brittle Slag, Molten Shell ending
+	fire_melee._tick_heat()   # Fire DPS: Blast Furnace keeps Heat
 	wheel._tick_wheel()
 	brawler._tick_brawler(_delta)
 	rogue._tick_rogue(_delta)
@@ -2754,6 +2763,12 @@ func _use_drafted(id: String) -> void:
 		GlacierKit.RIME_SLASH_ID, GlacierKit.SHATTER_SLAM_ID, GlacierKit.COLD_SHOULDER_ID, GlacierKit.RIMEQUAKE_ID, \
 				GlacierKit.HAILCOAT_ID, GlacierKit.HARD_RIME_ID, GlacierKit.BULWARK_ID:
 			glacier._glacier_use(id, res, w)   # Frost tank: Glacier Wall
+		FireTankKit.FORGE_BLOW_ID, FireTankKit.RIVET_ID, FireTankKit.MOLTEN_SHELL_ID:
+			fire_tank._tank_use(id, res)   # Fire tank: Slagforged
+		"searingstrike", "quench", "flare", FireMeleeKit.FOLD_STEEL_ID, FireMeleeKit.RED_EDGE_ID, FireMeleeKit.BLAST_FURNACE_ID:
+			fire_melee._melee_use(id, res, w)   # Fire DPS: Forge Heat
+		FireBowKit.TOUCH_OFF_ID, FireBowKit.BRUSHFIRE_ID:
+			fire_bow._bow_use(id)   # Fire archer: Pitch and Cinder
 		FrostSteelKit.HOARCLEAVE_ID, FrostSteelKit.CALVING_ID, FrostSteelKit.BITTER_EDGE_ID, FrostSteelKit.BLACK_FROST_ID:
 			frost_steel._steel_use(id, res, w)   # Frost DPS: Frostbitten Steel
 		"hack", "chop", "rush", "shrapnel", "slash", "lunge", "bladeguard", "shardlance", \
@@ -2806,7 +2821,7 @@ func _use_drafted(id: String) -> void:
 			frost_bow._coldmark(target)
 		"icyretreat":
 			frost_bow._icy_retreat(res)
-		"flamingarrow", "stormarrow", "arcaneshot", "shadowarrow", "frostarrow", "pitcharrow", "icepin", "shattershot":
+		"flamingarrow", "stormarrow", "arcaneshot", "shadowarrow", "frostarrow", "pitcharrow", "coalshot", "icepin", "shattershot":
 			ARROW.spawn(get_tree().current_scene, muzzle, target, self, _weapon_hit(w, res), id)   # (Pitch / Icepin's root are the ability's on-hit effect)
 		# --- Frost, second batch ---
 		"sleetwave":
@@ -2828,7 +2843,7 @@ func _use_drafted(id: String) -> void:
 			frost_runes._winters_bite(target, _weapon_hit(w, res))
 			_slash_effect(Abilities.color_of(id))
 			_slash_effect(Abilities.color_of(id))
-		"searingstrike", "thunderstrike", "arcanestrike", "shadowstrike", \
+		"thunderstrike", "arcanestrike", "shadowstrike", \
 				"chargededge":
 			deal_damage(target, _weapon_hit(w, res), id)
 			_slash_effect(Abilities.color_of(id))
@@ -2871,11 +2886,11 @@ func _use_drafted(id: String) -> void:
 			_cone_effect(float(res.radius), Balance.FURNACE_BREATH_ARC * 0.5, Abilities.color_of(id))
 			_cone_effect(float(res.radius) * 0.6, Balance.FURNACE_BREATH_ARC * 0.5, Color(1.0, 0.9, 0.4))
 		"slagskin":
-			# The armor comes from Slag stacks (melee hits that don't crit, see _slag_on_hit).
+			# The armor comes from Slag stacks (blocks and melee hits, see FireTankKit).
 			var slag := StatusContainer.make_buff(FireTankKit.SLAG_ID, "Slag Skin", FireTankKit.SLAG_ID, 0.0,
 				Balance.SLAG_SKIN_TIME, 1, Abilities.color_of(id))
 			slag.stat_modifiers = {}
-			slag.description = "Enemies that attack you are burned. Your melee hits that do not critically strike add Slag; a melee critical strike shatters it."
+			slag.description = "Enemies that attack you are burned. Your blocks and melee hits add Slag."
 			status.apply(slag, self)
 			fire_tank._sync_slag()   # Slag you already carry lasts as long as the fresh Slag Skin
 			_ring_effect(1.3, Abilities.color_of(id))
@@ -2891,19 +2906,6 @@ func _use_drafted(id: String) -> void:
 			_shield_bash_effect(Abilities.color_of(id))
 			_ring_effect(float(res.radius), Abilities.color_of(id))
 			_ring_effect(float(res.radius) * 0.55, Color(1.0, 0.9, 0.4))
-		"quench":
-			# Every stack of Heat goes into this one hit. The Heat is gone before it
-			# lands, so the hit gets no Heat bonus of its own; it never crits (adjust_crit).
-			var heat := fire_melee.heat_stacks()
-			status.remove(FireMeleeKit.HEAT_ID)
-			deal_damage(target, FireMeleeKit.quench_coef(_weapon_hit(w, res), heat), id)
-			_slash_effect(Color(1.0, 0.9, 0.4))
-			_slash_effect(Abilities.color_of(id))
-			_ring_effect(0.8, Color(0.85, 0.93, 1.0), target.global_position)   # steam
-			if _talent("fire_afterglow") > 0.0:
-				fire_melee._start_afterglow()
-		"flare":
-			fire_melee._flare(w, res)
 		"cinderguard":
 			var guard := StatusContainer.make_buff(FireTankKit.CINDER_GUARD_ID, "Cinder Guard", "block_chance", Balance.CINDER_GUARD_BLOCK,
 				Balance.CINDER_GUARD_TIME, 1, Abilities.color_of(id))
@@ -3127,6 +3129,10 @@ func _drafted_precheck(id: String, _res: Resource, w: Dictionary) -> String:
 		return frost_healer._frost_healer_precheck(id)   # Frost healer
 	if ColossusKit.COLOSSUS_IDS.has(id):
 		return colossus._colossus_precheck(id)   # Nature tank
+	if FireBowKit.BOW_IDS.has(id):
+		return fire_bow._bow_precheck(id)   # Fire archer
+	if FireTankKit.TANK_IDS.has(id):
+		return fire_tank._tank_precheck(id)   # Fire tank
 	if GlacierKit.GLACIER_IDS.has(id):
 		return glacier._glacier_precheck(id)   # Frost tank
 	if FrostSteelKit.STEEL_PRECHECKS.has(id):
@@ -3298,6 +3304,8 @@ func _update_combat_state() -> void:
 		in_combat = fighting
 		if not in_combat:
 			_out_of_combat_since = now   # fast regen kicks in a moment later
+		if in_combat:
+			fire_talents._on_combat_start()   # Warm Start
 		_bus().combat_state_changed.emit(in_combat)
 
 # --- Friendly target (party members) --------------------------------------------------
@@ -3802,8 +3810,8 @@ static func fire_crit_rules(id: String, chance: float, temper_less: float = 0.0,
 func adjust_crit(info: RefCounted, chance: float) -> float:
 	var id := str(info.ability_id)
 	fire_fury.store_crit(info, chance)   # Fury is worked out from the chance before the changes below
-	if id == "permafrost" or id == "stoke" or id == "anvil" or id == "quench" or id == "kilnblast":
-		return 0.0                               # (Stoke, Anvil, Quench and Kiln Blast never crit)
+	if id == "permafrost" or id == "stoke" or id == "anvil" or id == "quench" or id == "kilnblast" or id == "forgeblow":
+		return 0.0                               # (Stoke, Anvil, Quench, Kiln Blast and Forge Blow never crit)
 	if not info.is_dot and (id == "ventflames" or id == "embervolley" or Abilities.is_a(id, "fireball")):
 		var ember_pct := _talent("fire_wild_embers") - _talent("fire_damped_embers")
 		var fire := fire_crit_rules(id, chance, _talent("fire_tempered_flame"), _talent("fire_tempered_flame", "values2"), ember_pct)
@@ -3813,6 +3821,7 @@ func adjust_crit(info: RefCounted, chance: float) -> float:
 	chance = rogue.adjust_crit(info, chance)   # Over the Shoulder (Martial Utility): a sure crit
 	chance = sharp.adjust_crit(info, chance)   # Sharpshooter: Heavy Draw at full Streak, a sure crit
 	chance = frost_steel.adjust_crit(info, chance)   # Frost DPS: Glinting Rime
+	chance = fire_melee.adjust_crit(info, chance)   # Fire DPS: Sparks (no melee crits while holding Heat)
 	chance = wheel.adjust_crit(info, chance)   # Sharp Fragments (the Wheel's Cracks)
 	var tags: PackedStringArray = info.tags
 	if fire_cooldowns.cool_head_active() and FireCooldownsKit.is_fire_action(tags):

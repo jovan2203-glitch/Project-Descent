@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"anvil"
 display_name = "Anvil"
-description = "Slams your shield down, dealing {hit} Fire damage to all enemies within {radius} m with {threat}x threat. It never critically strikes, so it always adds Slag."
+description = "Slams your shield down, dealing {hit} Fire damage to all enemies within {radius} m with {threat}x threat. It never critically strikes, so its Slag is never brittle."
 tags = PackedStringArray("Ability", "Fire", "Melee", "Shield", "AoE")
 cast_type = 0
 cast_time = 0.0

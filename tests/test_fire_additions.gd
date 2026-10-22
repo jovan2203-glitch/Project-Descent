@@ -53,17 +53,16 @@ func test_bow_abilities_need_a_bow() -> void:
 	assert_false(bool(Abilities.get_resource("cinderrain").requires_target), "placed on the ground")
 
 func test_pitch_is_one_per_archer_and_speeds_up_their_burns() -> void:
-	var fx: Resource = Abilities.get_resource("pitcharrow").on_hit_effect
-	assert_true(fx != null, "Pitch Arrow leaves pitch on the target")
+	var fx: Resource = FireBowKit.PITCH_FX
 	assert_eq(str(fx.id), "pitched")
-	assert_eq(float(fx.get("duration")), 12.0)
 	assert_true(bool(fx.get("per_caster")), "each archer has their own pitch (own only)")
-	var p := _player()
-	assert_eq(Balance.PITCH_TICK_SPEED_PCT, 25.0)
-	assert_eq(FireBowKit.pitch_speed("burning", true), 1.25)
-	assert_eq(FireBowKit.pitch_speed("immolate", true), 1.25)
-	assert_eq(FireBowKit.pitch_speed("hoarfrost", true), 1.0, "only Burning and Immolate")
-	assert_eq(FireBowKit.pitch_speed("burning", false), 1.0, "no pitch of mine on it: normal speed")
+	assert_eq(int(fx.get("max_stacks")), Balance.PITCH_MAX_LAYERS, "it comes in layers")
+	var per := Balance.PITCH_LAYER_SPEED_PCT / 100.0
+	assert_true(absf(FireBowKit.pitch_speed("burning", 1) - (1.0 + per)) < 0.0001)
+	assert_true(absf(FireBowKit.pitch_speed("immolate", 3) - (1.0 + per * 3.0)) < 0.0001, "faster per layer")
+	assert_true(absf(FireBowKit.pitch_speed("burning", 99) - (1.0 + per * Balance.PITCH_MAX_LAYERS)) < 0.0001, "only up to the cap")
+	assert_eq(FireBowKit.pitch_speed("hoarfrost", 5), 1.0, "only Burning and Immolate")
+	assert_eq(FireBowKit.pitch_speed("burning", 0), 1.0, "no pitch of mine on it: normal speed")
 
 ## The container side: a caster that speeds up its burns gets shorter ticks; nobody else does.
 func test_only_the_archers_own_burns_tick_faster() -> void:
@@ -121,15 +120,14 @@ func test_phoenix() -> void:
 
 func test_new_talents() -> void:
 	var want := {
-		"fire_forge_heat": ["fire_r7c2", [0.5, 1.0, 1.5, 2.0]],
-		"fire_long_burn": ["fire_r5c3", [1.0, 2.0, 3.0]],   # moved up under Lingering Embers (Talents.LINKS_MOVED)
-		"fire_deep_crucible": ["fire_r8c4", [0.7, 1.3, 2.0]],
-		"fire_stoked_kiln": ["fire_r8c5", [7.0, 13.0, 20.0]],
-		"fire_slag_mending": ["fire_r7c6", [0.7, 1.3, 2.0]],
-		"fire_deep_brand": ["fire_r3c7", [2.0, 4.0, 6.0]],
-		"fire_stoked_breath": ["fire_r1c5", [10.0, 20.0]],
-		"fire_warm_blood": ["fire_r4c4", [2.0, 4.0, 6.0]],
-		"fire_white_heat": ["fire_r9c2", [5.0, 10.0, 15.0]],
+		"fire_slow_cooling": ["fire_r2c6", [0.5, 1.0, 1.5]],   # (was the Forge Heat talent)
+		"fire_long_burn": ["fire_r5c2", [1.0, 2.0, 3.0]],
+		"fire_stoked_kiln": ["fire_r6c1", [5.0, 10.0, 15.0]],
+		"fire_slag_mending": ["fire_r2c3", [0.7, 1.3, 2.0]],
+		"fire_deep_brand": ["fire_r2c4", [2.0, 4.0, 6.0]],
+		"fire_stoked_breath": ["fire_r1c1", [5.0, 10.0, 15.0, 20.0]],
+		"fire_warm_blood": ["fire_r8c5", [2.0, 4.0, 6.0]],
+		"fire_white_heat": ["fire_r1c6", [4.0, 8.0, 12.0, 16.0]],
 	}
 	for key in want:
 		var id := Talents.id_for_key(key)
@@ -140,40 +138,37 @@ func test_new_talents() -> void:
 			assert_eq(Talents.value_at(id, i + 1), float(vals[i]), "%s rank %d" % [key, i + 1])
 		assert_true(TalentIcons.has_icon(id), "%s has an icon" % key)
 		assert_true(bool(Talents.get_talent(id).get("implemented", false)), "%s does something" % key)
-	var crucible := Talents.id_for_key("fire_deep_crucible")
-	assert_eq(Talents.value_at(crucible, 1, "values2"), 1.5, "+1.5 s")
-	assert_eq(Talents.value_at(crucible, 3, "values2"), 4.0, "+4 s")
+	assert_eq(Talents.id_for_key("fire_deep_crucible"), "", "Deep Crucible was folded into Crucible")
 
 func test_talent_maths() -> void:
 	var p := _player()
-	# Forge Heat: the buff simply lasts longer.
+	# Slow Cooling: the buff simply lasts longer; Molten Edge: more per stack.
 	assert_eq(float(FireMeleeKit.make_heat_fx().duration), Balance.HEAT_TIME)
-	assert_eq(float(FireMeleeKit.make_heat_fx(Balance.HEAT_TIME + 2.0).duration), 5.0, "4 / 4: 3 s + 2 s")
+	assert_eq(float(FireMeleeKit.make_heat_fx(Balance.HEAT_TIME + 1.5).duration), 4.5, "3 / 3: 3 s + 1.5 s")
+	assert_eq(float(FireMeleeKit.make_heat_fx(Balance.HEAT_TIME, Balance.HEAT_DAMAGE_PCT + 1.0).damage_mod_pct), Balance.HEAT_DAMAGE_PCT + 1.0)
 	# Long Burn raises what Fresh Tinder can fill up to.
 	assert_eq(FireMeleeKit.tinder_time(14.0, 2.0, 12.0 + 3.0), 15.0)
-	# Stoked Kiln: 20% -> 27 / 33 / 40%.
-	var kiln := Talents.id_for_key("fire_stoked_kiln")
-	assert_eq(Balance.KILN_BLAST_IMMOLATE_PCT + Talents.value_at(kiln, 1), 27.0)
-	assert_eq(Balance.KILN_BLAST_IMMOLATE_PCT + Talents.value_at(kiln, 3), 40.0)
+	# Stoked Kiln: Fury spenders on a Blazed target.
+	assert_contains(Talents.description(Talents.id_for_key("fire_stoked_kiln")), "cost Fury")
 	# Deep Brand: 10% -> 12 / 14 / 16% less damage from the enemy I Branded.
 	var brand := Talents.id_for_key("fire_deep_brand")
 	assert_eq(Balance.BRAND_PCT + Talents.value_at(brand, 1), 12.0)
 	assert_eq(Balance.BRAND_PCT + Talents.value_at(brand, 3), 16.0)
 	assert_eq(str(Talents.get_talent(brand).get("requires", "")), "brand")
-	# Pitch Arrow's pitch lasts as long as its cooldown (Thick Pitch was folded into it): it can be kept up.
-	assert_eq(float(Abilities.get_resource("pitcharrow").on_hit_effect.get("duration")), float(Abilities.get_resource("pitcharrow").cooldown))
+	# Pitch lasts longer than Pitch Arrow's cooldown (Thick Pitch was folded into it): it can be kept up.
+	assert_true(Balance.PITCH_TIME >= float(Abilities.get_resource("pitcharrow").cooldown))
 	assert_eq(Talents.id_for_key("fire_thick_pitch"), "", "Thick Pitch is gone")
 	# Stoked Breath (was Banked Mana): non-crits give more Fury.
 	assert_true(is_equal_approx(FireFuryKit.fury_gain(20.0, false, 20.0, false), FireFuryKit.fury_gain(20.0, false, 0.0, false) * 1.2))
 	assert_eq(Talents.id_for_key("fire_banked_mana"), "", "Banked Mana is gone")
 	# Warm Blood counts my burns.
 	assert_true(Balance.FIRE_BURNS.has("burning") and Balance.FIRE_BURNS.has("immolate"))
-	# White Heat: only at the maximum Heat, and no Fire slot is left empty.
-	assert_eq(FireMeleeKit.white_heat_bonus(Balance.HEAT_MAX_STACKS, 15.0), 15.0)
-	assert_eq(FireMeleeKit.white_heat_bonus(Balance.HEAT_MAX_STACKS - 1, 15.0), 0.0, "one stack short: nothing")
-	assert_eq(FireMeleeKit.white_heat_bonus(0, 15.0), 0.0)
-	assert_eq(FireMeleeKit.white_heat_bonus(Balance.HEAT_MAX_STACKS, 0.0), 0.0, "nothing without the talent")
-	assert_contains(Talents.description(Talents.id_for_key("fire_white_heat")), "maximum %d Heat" % Balance.HEAT_MAX_STACKS)
+	# White Heat: only in the White band, and no Fire slot is left empty.
+	assert_eq(FireMeleeKit.white_heat_bonus(FireMeleeKit.Band.WHITE, 16.0), 16.0)
+	assert_eq(FireMeleeKit.white_heat_bonus(FireMeleeKit.Band.ORANGE, 16.0), 0.0, "one band short: nothing")
+	assert_eq(FireMeleeKit.white_heat_bonus(FireMeleeKit.Band.NONE, 16.0), 0.0)
+	assert_eq(FireMeleeKit.white_heat_bonus(FireMeleeKit.Band.WHITE, 0.0), 0.0, "nothing without the talent")
+	assert_contains(Talents.description(Talents.id_for_key("fire_white_heat")), "White band")
 	for id in Talents.in_tree("fire"):
 		assert_false(bool(Talents.get_talent(id).get("placeholder", true)) and not Talents.FOLDED_INTO_ABILITIES.has(id), "%s: every Fire slot holds a talent, or was folded" % id)
 	# Slag Mending: % of max health per stack.

@@ -71,14 +71,14 @@ static func lowest_share(shares: Array) -> int:
 			best = i
 	return best
 
-# --- Deep Crucible (Fire talent): a wider Crucible that stands longer ----------------------------
+# --- Crucible: its size and time (Deep Crucible was folded into it) ---------------------------
 
 func crucible_radius() -> float:
-	# Deep Crucible makes it 1 / 2 m WIDER, so half of that goes on the radius.
+	# (Abilities.RADIUS_TALENTS: no talent changes it now.)
 	return float(Abilities.get_resource(CRUCIBLE_ID).radius) + Abilities.radius_bonus(CRUCIBLE_ID)
 
 func crucible_duration() -> float:
-	return Balance.CRUCIBLE_TIME + player._talent("fire_deep_crucible", "values2")
+	return Balance.CRUCIBLE_TIME
 
 ## Health Slag Mending restores when `stacks` of Slag shatter, at `pct` % of max health per stack.
 static func slag_mending_heal(max_hp: int, stacks: int, pct: float) -> int:
@@ -93,6 +93,7 @@ func _on_hit_taken(info: RefCounted) -> void:
 	player.shepherd._owl_taken(info)       # a Nature healer's Owl watching over me dives
 	player.colossus._colossus_hit_taken(info)   # Nature tank: hits on my Giant's Hands give Sap
 	player.glacier._glacier_hit_taken(info)   # Frost tank: hits that break my Ice Layers
+	player.fire_tank._slag_hit_taken(info)   # Fire tank: blocks add Slag
 	# Heat Sink: what it spared me is stored for the burst.
 	if _heat_on and player.status.has(HEAT_SINK_ID) and not info.blocked and int(info.amount) > 0:
 		_heat_stored += heat_sink_stored(float(info.amount), float(info.bonus_pct), Balance.HEAT_SINK_PCT)
@@ -295,13 +296,17 @@ func _cool_head_on_hit(info: RefCounted, tags: PackedStringArray) -> void:
 		_conc_fx.description = "When Cool Head ends, your next Fire spells and abilities with a cast time are instant: one cast per stack."
 	player.status.apply(_conc_fx, player)
 	# The stacks always run out CONCENTRATED_FIRE_WINDOW seconds after Cool Head does.
-	player.status.set_remaining(CONC_ID, player.status.remaining_of(COOL_HEAD_ID) + Balance.CONCENTRATED_FIRE_WINDOW)
+	player.status.set_remaining(CONC_ID, player.status.remaining_of(COOL_HEAD_ID) + conc_window())
+
+## Seconds Concentrated Fire lasts after Cool Head ends (Long Focus: longer).
+func conc_window() -> float:
+	return Balance.CONCENTRATED_FIRE_WINDOW + player._talent("fire_long_focus")
 
 ## Cool Head just ran out: the Concentrated Fire window starts.
 func _cool_head_check() -> void:
 	if _cool_head_on and not cool_head_active():
 		_cool_head_on = false
-		player.status.set_remaining(CONC_ID, Balance.CONCENTRATED_FIRE_WINDOW)
+		player.status.set_remaining(CONC_ID, conc_window())
 
 ## Would casting `id` right now be instant from Concentrated Fire?
 func concentrated_fire_ready(id: String) -> bool:

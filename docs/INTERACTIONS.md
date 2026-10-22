@@ -77,15 +77,15 @@ so keep them rare and hard to apply. Prefer buffs on the attacker.
 - **Rune of the Sealed Kiln** (Epic): your crits Vent no Fury, but you gain `SEALED_KILN_PCT`% less.
 - **Stoke** (Fire spell, instant, 20 s cooldown, 20 Fury): needs your Burning on the target; ends it and deals 1 Frost Bolt + everything the Burning had left as one hit that never crits (so it spends Afterburn).
 - **Ember Volley** (Fire spell, 3 s channel, 12 s cooldown, free): 6 embers of 0.35, each with its own crit roll, so each one builds or Vents Fury on its own. One Concentrated Fire stack per channel; with Concentrated Fire active it is instant (all 6 embers in a quick burst, one stack). Scattered Embers (Fire talent, row 6, 2 ranks): each ember also hits 1 / 2 extra enemies within 8 m of the target. **Damped Embers / Wild Embers** (r5c5, the first choice talent): the embers have 10 / 20 / 30 less or more crit chance.
-- **Banked Coals** (Fire talent, bottom row middle, 2 ranks): crits Vent 25 / 50% less of your Fury.
-- **Blowback** (Fire talent, r6c5, 3 ranks): when a crit Vents your Fury, 20 / 35 / 50% of what was Vented burns the target (`BLOWBACK_PER_FURY` per point over `BLOWBACK_TIME`, its own `dot_blowback` meter line).
-- **Stoked Breath** (Fire talent, r1c5, 2 ranks): non-crit Fire spells give 10 / 20% more Fury.
+- **Banked Coals** (Fire talent, Steady Flame r3c1, 2 ranks): crits Vent 25 / 50% less of your Fury.
+- **Blowback** (Fire talent, r5c1, 3 ranks): when a crit Vents your Fury, 20 / 35 / 50% of what was Vented burns the target (`BLOWBACK_PER_FURY` per point over `BLOWBACK_TIME`, its own `dot_blowback` meter line).
+- **Stoked Breath** (Fire talent, r1c1, 4 ranks): non-crit Fire spells give 5 / 10 / 15 / 20% more Fury.
 - **Furnace Breath** (Fire spell, instant, 15 s cooldown, off the GCD): a 6 m, 90-degree cone that deals 1 Frost Bolt of Fire damage and interrupts every enemy in it (3 s lockout). Fire's interrupt.
-- **Slag Skin** (Fire spell, instant, 25 s cooldown, 10 s): +3 flat units of Armor; every enemy that attacks you takes 0.3 Fire damage (3x threat, once per 0.5 s each). The burns are Fire spell proc hits, so they feed Afterburn (not Fury: procs build none).
+- **Slag Skin**: see Fire tank below.
 - **Cool Head** (Fire spell, instant, 2 min cooldown, 15 s): Fire spells and abilities can't crit; each one that deals damage gives a stack of **Concentrated Fire**. When it ends, the stacks last 5 s and each makes one Fire spell / ability with a cast time instant. No crits = 15 s of Fury that never Vents.
 - **Tempered Flame** (Fire talent, top row, 3 ranks): Firebolt gains 40 / 50 / 60% less crit chance but deals +(crit chance x 0.07 / 0.13 / 0.2)% damage. Fewer Firebolt crits, while it still builds Fury from your full crit chance.
-- **Afterburn** (Fire talent, bottom row right, 5 ranks): each fire spell crit adds a stack; the next fire spell hit that does NOT crit spends them for +((100 - crit chance) x 0.1 per rank)% per stack. Vent Flames (always crits) is a reliable stack for low-crit builds.
-- **Smoldering Focus** (Fire talent, bottom row left, 5 ranks; used to be a Legendary rune): your Fire spells deal 0.02% more damage per Fury you hold per rank (+10% at 100 Fury at rank 5).
+- **Afterburn** (Fire talent, r3c2, 3 ranks): each fire spell crit adds a stack; the next fire spell hit that does NOT crit spends them for +((100 - crit chance) x 0.17 / 0.33 / 0.5)% per stack. Vent Flames (always crits) is a reliable stack for low-crit builds.
+- **Smoldering Focus** (Fire talent, Steady Flame's capstone, 5 ranks; used to be a Legendary rune): your Fire spells deal 0.02% more damage per Fury you hold per rank (+10% at 100 Fury at rank 5).
 - **Rune of Stormfire** (Epic): lightning damage → next fire spell +20% per stack (5 stacks, 10 s).
 - **Rune of Frostbound Insight** (Rare, max 1): casting Frost Bolt gives the party +1% Intellect for 15 s, 3 stacks (`status_target = PARTY`).
 
@@ -93,14 +93,29 @@ so keep them rare and hard to apply. Prefer buffs on the attacker.
 - **Crucible** (ground-targeted like Whiteout, 1.5 s cast, no cooldown): a circle for `CRUCIBLE_TIME`; enemies in it take `CRUCIBLE_DOT_PCT`% more periodic Fire damage (`is_dot` + fire: Burning, Blaze, Wall of Fire, Cinder Step's line, Clinker). While yours stands, casting it again is instant and free and moves it, keeping the time left (`CRUCIBLE_MOVE_REFRESHES` to restart it instead). Party members see your Crucible (`Net` "crucible" fx), but it only boosts its owner's burns (own only).
 - **Cinder Step**: a dash (Phase Step's wall rule) that leaves a strip of fire, and a buff: the next Fire spell with a cast time (not a channel) can be finished while moving. Used up when that cast finishes; a cancelled cast keeps it.
 - **Heat Sink**: `HEAT_SINK_PCT`% of damage taken is stored for `HEAT_SINK_TIME`; when the buff ends it bursts for the ability's damage, up to `1 + HEAT_SINK_BONUS` times that at `HEAT_SINK_FULL_AT`% of max health stored. No burst if you die first.
-- Talents: **Pressure Valve** (a Fire spell that fails to crit cuts Vent Flames' cooldown, once per use, not procs), **Cool Under Fire** (less damage taken during Cool Head).
+- Talents: **Pressure Valve** (a Fire spell that fails to crit cuts Vent Flames' cooldown, once per use, not procs), **Long Focus** (Concentrated Fire lasts longer).
 
-## Fire tank: Slag
-- **Slag Skin** is upkeep: 15 s, 13 s cooldown, free. It still burns attackers. While it is up, each melee hit of yours that does not crit adds a stack of **Slag** (armor per stack, `SLAG_MAX_STACKS`; once per use, however many enemies it hit; not procs). A melee crit shatters every stack: Fire damage per stack around you (a proc hit). Slag always runs out together with Slag Skin.
-- **Brand** (builds fury, 3x threat): the branded enemy deals `BRAND_PCT`% less damage to the one who branded it (per caster).
-- **Cinder Guard** (spends fury, needs a shield): +`CINDER_GUARD_BLOCK`% block (a `block_chance` buff on top of the Block stat, same cap; Armor does not block). Each block burns the attacker and adds `CINDER_GUARD_EXTEND` s to Slag Skin, never above its full time.
-- **Anvil** (needs a shield): Fire damage around you, 4x threat, never crits, so it always adds Slag.
-- Talents: **Thick Slag** (armor per stack), **Clinker** (shattered Slag leaves a burning patch: a share of the shatter's damage per second), **Hot Iron** (retaliation for a BLOCKED attack burns harder: Slag Skin and Cinder Guard).
+## Fire tank: Slagforged (Slag)
+- **Slag Skin** is upkeep: 15 s, 13 s cooldown, free. It still burns attackers. While it is up, each attack you block and each melee hit of yours adds a stack of **Slag** (armor per stack, `SLAG_MAX_STACKS`; a hit adds one per use, however many enemies it hit; not procs). A crit's stack is **brittle**: it crumbles after `SLAG_BRITTLE_TIME` (the brittle ones go first). Slag never breaks by itself, and always runs out together with Slag Skin.
+- **Forge Blow** (30 Fury, never crits) shatters every stack on purpose: Fire damage per stack around you (a proc hit, `SLAG_SHATTER_THREAT` threat). Slag Mending, Smoldering Debris, Spatter and Quick Temper react to it.
+- **Brand** (builds fury, 5x threat): the branded enemy deals `BRAND_PCT`% less damage to the one who branded it (per caster).
+- **Cinder Guard** (spends fury, needs a shield): +`CINDER_GUARD_BLOCK`% block (a `block_chance` buff on top of the Block stat, same cap; Armor does not block). Each block burns the attacker, gives `CINDER_GUARD_SLAG` Slag and adds `CINDER_GUARD_EXTEND` s to Slag Skin, never above its full time.
+- **Anvil** (needs a shield): Fire damage around you, 6x threat, never crits, so its Slag is never brittle.
+- **Red-Hot Rivet** (taunt, off the GCD): the target attacks you for `RIVET_TAUNT` s (`_net_taunt`, the host owns it in a party); +1 Slag.
+- **Molten Shell** (2 min, off the GCD): Slag holds `MOLTEN_SHELL_MAX`, each block adds `MOLTEN_SHELL_BLOCK_SLAG`, `MOLTEN_SHELL_DR`% less damage taken per Slag. When it ends, Slag above the normal cap is lost.
+- Talents (FireTankKit, FireTalentsKit): Thick Slag and Hard Crust (armor and block per stack), Hot Iron (blocked attackers burn harder), Fuel the Forge (Fury per block, Slag Skin or not), Deep Slag (cap), Set Hard (brittle time), Marked Iron and Molten Heart (shatter damage), Heavy Hammer (Fury back per stack shattered), Glowing Seams (threat at full Slag), Heat Shimmer (less spell damage per Slag).
+
+## Fire melee: Forge Heat (Heat, Sparks, bands)
+- **Heat** is built by my melee hits on a target with MY Burning or Blaze (once per swing; Red Edge: auto-swings on anything). Each stack is `HEAT_DAMAGE_PCT`% more Fire damage from abilities and their burns (Molten Edge: more).
+- **Sparks**: while I hold Heat (or during Blast Furnace), `FireMeleeKit.adjust_crit` rolls the crit itself: a hit that would have crit gets the `spark` meta and no crit (normal damage); it builds one more Heat. At 0 Heat melee hits crit normally (Cold Steel).
+- **Bands** (`FireMeleeKit.band()`): Red below `HEAT_BAND_ORANGE`, Orange from it, White from `HEAT_BAND_WHITE`; Blast Furnace counts as White. Each ability reads the band when it is used, before its own Heat is spent or built.
+- **Fold Steel**: its hits are timers `FOLD_STEEL_GAP` apart, so each is its own swing (its own crit roll and Heat).
+- **Quench / Flare**: `last_heat_spent` is set while they deal damage (Hard Quench reads it). Flare in White spends nothing.
+
+## Fire archer: Pitch and Cinder (Pitch, Ignites)
+- **Pitch** (`data/effects/pitched.tres`) is per caster and stacks to `PITCH_MAX_LAYERS`; my Burning and Blaze tick `PITCH_LAYER_SPEED_PCT`% faster per layer (`dot_speed_mult`). Layers are put on through the combat system (a 0-damage proc carrying the effect), so the host applies them in a party.
+- `FireBowKit._pitch_on_hit` (on `damage_dealt`): an arrow of mine (a Ranged ability or an auto-shot; not procs) that doesn't crit adds a layer; a crit Ignites. Cinder Rain's ticks coat at most once per `PITCH_RAIN_COAT_EVERY` s per enemy.
+- **Ignite**: removes my layers (`Net.remove_effect` in a party), then deals `PITCH_IGNITE_PER_LAYER` per layer to the target and every enemy within `PITCH_IGNITE_RADIUS` (split past the cap) as procs, and Burns every enemy hit that wasn't Burning (Flaming Arrow's on-hit effect). Touch Off Ignites on purpose for `TOUCH_OFF_PCT`% more.
 
 ## Rune spells (the "Rune Spells" book)
 - A rune can teach a spell: `Runes.TEACHES` (rune id -> ability id). The spell is known while the rune is on equipped gear (`PlayerData.has_ability` / `rune_spells`), is never drafted and has no Skill Card. Its category is `Categories.RUNE` (not in `Categories.ORDER`: no talent tree).

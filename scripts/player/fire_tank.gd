@@ -44,14 +44,101 @@ func _slag_skin_retaliate(info: RefCounted) -> void:
 	player._combat().deal(back)
 
 # --- Slag (the Fire tank's armor) ---------------------------------------------------------
-# While Slag Skin is up, each melee hit of mine that doesn't crit adds a stack of
-# Slag (armor per stack; once per use, however many enemies it hit). A melee crit
-# shatters every stack as Fire damage around me. Slag lasts exactly as long as
-# Slag Skin does, so letting Slag Skin drop loses it.
+# While Slag Skin is up, each attack I block and each melee hit of mine adds a
+# stack of Slag (armor per stack; a hit adds one per use, however many enemies it
+# hit). A stack from a melee crit is brittle: it crumbles after SLAG_BRITTLE_TIME.
+# Slag never breaks by itself: only Forge Blow shatters it, as Fire damage around
+# me. Slag lasts exactly as long as Slag Skin does, so letting Slag Skin drop loses it.
 
 const SLAG_STACK_ID := "slag"
+const FORGE_BLOW_ID := "forgeblow"
+const RIVET_ID := "redhotrivet"
+const MOLTEN_SHELL_ID := "moltenshell"
+const TANK_IDS := [FORGE_BLOW_ID, RIVET_ID, MOLTEN_SHELL_ID]
 var _slag_fx: Resource
 var _slag_last := ""   # "<ability>@<frame>" of the last hit that added a stack
+var _brittle: Array = []   # expiry times of my brittle Slag stacks
+var _shell_on := false   # Molten Shell was up last tick (to trim Slag when it ends)
+
+## Most Slag I can hold right now.
+func slag_cap() -> int:
+	var deep := int(round(player._talent("fire_deep_slag")))   # Deep Slag
+	if player.status and player.status.has(MOLTEN_SHELL_ID):
+		return Balance.MOLTEN_SHELL_MAX + deep
+	return Balance.SLAG_MAX_STACKS + deep
+
+## Seconds a brittle stack of Slag lasts (Set Hard: longer).
+func brittle_time() -> float:
+	return Balance.SLAG_BRITTLE_TIME + player._talent("fire_set_hard")
+
+func slag_stacks() -> int:
+	return int(player.status.stacks_of(SLAG_STACK_ID)) if player.status else 0
+
+## Slag one blocked attack gives: 1, or more during Cinder Guard / Molten Shell.
+static func block_slag(guard: bool, shell: bool) -> int:
+	var n := 1
+	if guard:
+		n = maxi(n, Balance.CINDER_GUARD_SLAG)
+	if shell:
+		n = maxi(n, Balance.MOLTEN_SHELL_BLOCK_SLAG)
+	return n
+
+## % less damage taken during Molten Shell while holding `stacks` Slag.
+static func shell_reduction(stacks: int) -> float:
+	return Balance.MOLTEN_SHELL_DR * maxi(stacks, 0)
+
+## Add `n` Slag (only while Slag Skin is up). `brittle` stacks crumble after SLAG_BRITTLE_TIME.
+func gain_slag(n: int, brittle: bool = false) -> void:
+	if player.status == null or not player.status.has(SLAG_ID):
+		return
+	var fx := _slag_stack_fx()
+	var now := Time.get_ticks_msec() / 1000.0
+	for i in maxi(n, 0):
+		var before := slag_stacks()
+		player.status.apply(fx, player)
+		if brittle and slag_stacks() > before:
+			_brittle.append(now + brittle_time())
+	_sync_slag()
+
+## Brittle Slag crumbling, and Slag dropping back to its cap when Molten Shell ends.
+func _tick_slag() -> void:
+	if player.status == null:
+		return
+	var stacks: int = slag_stacks()
+	if stacks <= 0:
+		_brittle.clear()
+	var shell: bool = player.status.has(MOLTEN_SHELL_ID)
+	var normal: int = Balance.SLAG_MAX_STACKS + int(round(player._talent("fire_deep_slag")))
+	if _shell_on and not shell and stacks > normal:
+		player.status.set_stacks(SLAG_STACK_ID, normal)
+	_shell_on = shell
+	if _brittle.is_empty():
+		return
+	var now := Time.get_ticks_msec() / 1000.0
+	for i in range(_brittle.size() - 1, -1, -1):
+		if float(_brittle[i]) <= now:
+			_brittle.remove_at(i)
+			player.status.spend_stacks(SLAG_STACK_ID, 1)
+	while _brittle.size() > slag_stacks():
+		_brittle.pop_front()   # (stacks trimmed some other way: the brittle ones went first)
+
+## A blocked attack (not damage over time) adds Slag while Slag Skin is up.
+## Fuel the Forge: every block gives Fury, Slag Skin or not.
+func _slag_hit_taken(info: RefCounted) -> void:
+	if not info.blocked or info.is_dot or player.status == null:
+		return
+	var fuel := player._talent("fire_fuel_the_forge")
+	if fuel > 0.0:
+		player._gain("fury", fuel)
+	if player.status.has(SLAG_ID):
+		gain_slag(block_slag(player.status.has(CINDER_GUARD_ID), player.status.has(MOLTEN_SHELL_ID)))
+
+## Damage I take: Molten Shell takes some off for each Slag I hold.
+func _slag_incoming(info: RefCounted) -> void:
+	if player.status and player.status.has(MOLTEN_SHELL_ID):
+		var cut := shell_reduction(slag_stacks())
+		if cut > 0.0:
+			info.add_bonus(-cut, "Molten Shell")
 
 ## Armor one Slag stack gives, in flat units, with Thick Slag at `talent_pct`.
 static func slag_armor(talent_pct: float) -> float:
@@ -72,31 +159,70 @@ func _sync_slag() -> void:
 
 func _slag_stack_fx() -> Resource:
 	var per := slag_armor(player._talent("fire_thick_slag")) * player._flat_unit()
-	if _slag_fx == null or not is_equal_approx(float(_slag_fx.stat_modifiers.get(Stats.ARMOR, 0.0)), per):
+	var crust := player._talent("fire_hard_crust")   # Hard Crust: chance to block per stack
+	var cap := slag_cap()
+	if _slag_fx == null or not is_equal_approx(float(_slag_fx.stat_modifiers.get(Stats.ARMOR, 0.0)), per) \
+			or not is_equal_approx(float(_slag_fx.stat_modifiers.get(Stats.BLOCK, 0.0)), crust) or int(_slag_fx.max_stacks) != cap:
 		_slag_fx = StatusContainer.make_buff(SLAG_STACK_ID, "Slag", Stats.ARMOR, per,
-			Balance.SLAG_SKIN_TIME, Balance.SLAG_MAX_STACKS, Color(0.75, 0.45, 0.3))
-		_slag_fx.description = "Hardened slag: Armor per stack. A melee critical strike of yours shatters it."
+			Balance.SLAG_SKIN_TIME, cap, Color(0.75, 0.45, 0.3))
+		if crust > 0.0:
+			_slag_fx.stat_modifiers[Stats.BLOCK] = crust
+		_slag_fx.description = "Hardened slag: Armor per stack. Stacks from critical strikes are brittle and crumble after %s sec. Forge Blow shatters it." \
+			% Stats.num(brittle_time())
 	return _slag_fx
 
-## A hit of mine landed: melee hits (not procs) build or shatter Slag.
+## A hit of mine landed: each melee hit (not procs) adds Slag; a crit's is brittle.
 func _slag_on_hit(info: RefCounted, tags: PackedStringArray) -> void:
 	if info.is_proc or int(info.amount) <= 0 or not tags.has("Melee") or not player.status.has(SLAG_ID):
-		return
-	if info.crit:
-		_slag_shatter()
 		return
 	var key := "%s@%d" % [str(info.ability_id), Engine.get_process_frames()]
 	if key == _slag_last:
 		return   # the same swing hitting another enemy
 	_slag_last = key
-	player.status.apply(_slag_stack_fx(), player)
-	_sync_slag()
+	gain_slag(1, bool(info.crit))
 
+# --- Forge Blow, Red-Hot Rivet, Molten Shell -------------------------------------------------
+
+func _tank_precheck(id: String) -> String:
+	if id == FORGE_BLOW_ID and slag_stacks() <= 0:
+		return "You have no Slag"
+	return ""
+
+## One of Slagforged's new abilities (paid for and put on cooldown by _use_drafted).
+func _tank_use(id: String, res: Resource) -> void:
+	match id:
+		FORGE_BLOW_ID:
+			var fuel := player._talent("fire_heavy_hammer") * slag_stacks()   # Heavy Hammer: Fury back per stack
+			player._shield_bash_effect(Abilities.color_of(id))
+			_slag_shatter()
+			if fuel > 0.0:
+				player._gain("fury", fuel)
+		RIVET_ID:
+			if not player._has_valid_target():
+				return
+			var foe: Node3D = player.target
+			player.deal_damage(foe, float(res.damage), id)
+			player._net_taunt(foe, Balance.RIVET_TAUNT)
+			gain_slag(Balance.RIVET_SLAG)
+			player._ring_effect(0.8, Color(1.0, 0.45, 0.15), foe.global_position)
+		MOLTEN_SHELL_ID:
+			var fx := StatusContainer.make_buff(MOLTEN_SHELL_ID, Abilities.ability_name(id), MOLTEN_SHELL_ID, 0.0,
+				Balance.MOLTEN_SHELL_TIME + player._talent("fire_long_shell"), 1, Abilities.color_of(id))   # + Long Shell
+			fx.stat_modifiers = {}
+			fx.description = "Your Slag holds up to %d, each block adds %d, and each Slag makes you take %s%% less damage." % [
+				Balance.MOLTEN_SHELL_MAX, Balance.MOLTEN_SHELL_BLOCK_SLAG, Stats.num(Balance.MOLTEN_SHELL_DR)]
+			player.status.apply(fx, player)
+			_shell_on = true
+			player._ring_effect(1.4, Abilities.color_of(id))
+			player._ring_effect(0.9, Color(1.0, 0.85, 0.4))
+
+## Forge Blow: every stack of Slag breaks at once, as Fire damage around me.
 func _slag_shatter() -> void:
 	var stacks: int = player.status.stacks_of(SLAG_STACK_ID)
 	if stacks <= 0:
 		return
 	player.status.remove(SLAG_STACK_ID)
+	_brittle.clear()
 	# Slag Mending: the breaking slag heals me, per stack.
 	var mend := FireCooldownsKit.slag_mending_heal(player.max_health, stacks, player._talent("fire_slag_mending"))
 	if mend > 0:
@@ -105,6 +231,8 @@ func _slag_shatter() -> void:
 	var tags := PackedStringArray(["Fire", "Spell", "AoE"])
 	var hit := player._enemies_within(Balance.SLAG_SHATTER_RADIUS)
 	var share := Balance.aoe_share(hit.size())
+	var heart := FireTalentsKit.molten_heart_pct(stacks, player._talent("fire_molten_heart"))   # Molten Heart
+	var marked := player._talent("fire_marked_iron")   # Marked Iron
 	for e in hit:
 		if not is_instance_valid(e) or not e.is_alive():
 			continue
@@ -112,12 +240,23 @@ func _slag_shatter() -> void:
 		var info := DamageInfo.make(player, e, coef * share, "slag_shatter")
 		info.tags = tags
 		info.damage_type = "fire"
-		info.threat_multiplier = Balance.SLAG_SHATTER_THREAT
+		info.threat_multiplier = Balance.SLAG_SHATTER_THREAT * (1.0 + heart / 100.0)
 		info.is_proc = true
 		# Passive damage: a shatter must not spend a full stack of Smoldering Focus
 		# (one crit did 15x a normal shatter that way) or build it / Afterburn.
 		info.no_empower = true
+		if heart > 0.0:
+			info.add_bonus(heart, "Molten Heart")
+		var est: Node = e.get_node_or_null("Status")
+		if marked > 0.0 and est != null and est.has_from(BRAND_FX_ID, player):
+			info.add_bonus(marked, "Marked Iron")
 		player._combat().deal(info)
+	# Quick Temper: Cinder Guard comes back sooner. Spatter: a stack may stay.
+	var temper := player._talent("fire_quick_temper")
+	if temper > 0.0 and player.cooldowns.has("cinderguard"):
+		player.cooldowns["cinderguard"] = float(player.cooldowns["cinderguard"]) - temper
+	if randf() * 100.0 < player._talent("fire_spatter"):
+		gain_slag(1)
 	player._ring_effect(Balance.SLAG_SHATTER_RADIUS, Abilities.color_of(SLAG_ID))
 	player._ring_effect(Balance.SLAG_SHATTER_RADIUS * 0.6, Color(0.25, 0.2, 0.18))
 	# Smoldering Debris talent: the broken slag keeps burning where I stand. Each
