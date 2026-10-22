@@ -12,7 +12,7 @@ const MAX_EQUIPPED := 5
 const ALL := ["frostnova", "icebarrier", "blink",
 	"rimeshell", "meltwater", "rimeveil", "breaktheice", "frostlattice", "rimefall", "frosttide", "stillwater", "springthaw", "shatteringwave", "flashfreeze", "hoarfrost", "shatteringslam", "rimeslash", "iceshards",
 	"searingstrike", "flamingarrow", "flamenova", "ventflames", "coolhead", "furnacebreath", "slagskin", "stoke", "embervolley", "immolate", "walloffire",
-	"kilnblast", "slowfuse", "rekindle",
+	"kilnblast",
 	"brand", "anvil", "cinderstep", "cinderguard", "crucible", "heatsink", "quench", "flare",
 	"pitcharrow", "cinderrain", "cinderwing",
 	"chainlightning", "thunderstrike", "stormarrow",

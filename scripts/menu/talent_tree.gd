@@ -12,6 +12,8 @@ var _talent_canvas: Control     # the open book's talent grid (lines are drawn o
 var T_LABEL_W := 74.0           # row labels on the left of the grid
 var T_CELL := Vector2(56, 54)   # one grid cell (column x row)
 var T_BTN := 42.0               # talent button size
+var T_TOP := 0.0                # strip above the grid for spec group names (Talents.GROUPS)
+const GROUP_HEADER_H := 16.0
 
 func _build_talent_tree() -> void:
 	for c in _book_tree.get_children():
@@ -21,14 +23,14 @@ func _build_talent_tree() -> void:
 	_row_status.clear()
 	_row_info.clear()
 	var pd := menu.get_node("/root/PlayerData")
-	# One canvas: talents placed on a ROWS x COLUMNS grid, link lines drawn
+	# One canvas: talents placed on the book's rows x columns grid, link lines drawn
 	# underneath (see _draw_talent_canvas). _layout_talent_canvas sizes it to the page.
 	var canvas := Control.new()
 	_talent_canvas = canvas
 	_talent_canvas.mouse_filter = Control.MOUSE_FILTER_PASS
 	_talent_canvas.draw.connect(_draw_talent_canvas.bind(canvas))
 	_book_tree.add_child(_talent_canvas)
-	for r in Talents.ROWS:
+	for r in Talents.rows_of(menu.open_book._book_cat):
 		for id in Talents.in_row(menu.open_book._book_cat, r):
 			var b := _make_talent_button(id)
 			_talent_canvas.add_child(b)
@@ -132,17 +134,22 @@ func _close_choice() -> void:
 	_choice_buttons.clear()
 
 ## Fit the whole tree into the talent page: cell size comes from the page size,
-## buttons scale with it, and the grid is centered.
+## buttons scale with it, and the grid is centered. A book on the column-group
+## layout (Talents.GROUPS) gets a strip on top for its spec names.
 func _layout_talent_canvas() -> void:
 	if not is_instance_valid(_talent_canvas) or _book_tree.size.x <= 0.0 or _book_tree.size.y <= 0.0:
 		return
+	var cat: String = menu.open_book._book_cat
+	var rows := Talents.rows_of(cat)
+	var cols := Talents.columns_of(cat)
 	var avail := _book_tree.size
 	T_LABEL_W = 0.0
-	var ch := avail.y / Talents.ROWS
-	var cw := minf(avail.x / Talents.COLUMNS, ch * 1.6)   # don't spread too wide
+	T_TOP = GROUP_HEADER_H if not Talents.groups_of(cat).is_empty() else 0.0
+	var ch := (avail.y - T_TOP) / rows
+	var cw := minf(avail.x / cols, ch * 1.6)   # don't spread too wide
 	T_CELL = Vector2(cw, ch)
 	T_BTN = clampf(minf(cw, ch) - 8.0, 22.0, 50.0)
-	var w := Talents.COLUMNS * cw
+	var w := cols * cw
 	_talent_canvas.position = Vector2((avail.x - w) / 2.0, 0)
 	_talent_canvas.size = Vector2(w, avail.y)
 	var font := 12 if T_BTN >= 36.0 else (11 if T_BTN >= 28.0 else 9)
@@ -155,20 +162,22 @@ func _layout_talent_canvas() -> void:
 
 ## Top-left corner of a talent's grid cell on the canvas.
 func _talent_cell_origin(id: String) -> Vector2:
-	return Vector2(T_LABEL_W + Talents.col_of(id) * T_CELL.x, Talents.tier_of(id) * T_CELL.y)
+	return Vector2(T_LABEL_W + Talents.col_of(id) * T_CELL.x, T_TOP + Talents.tier_of(id) * T_CELL.y)
 
 func _talent_center(id: String) -> Vector2:
 	return _talent_cell_origin(id) + T_CELL / 2.0
 
-# Row separators + link lines between talents of the open book (under the buttons).
+# Row separators, spec groups + link lines between talents of the open book (under the buttons).
 func _draw_talent_canvas(canvas: Control) -> void:
 	# An old canvas (book just switched, not freed yet) draws nothing.
-	if menu.open_book._book_cat == "" or canvas != _talent_canvas:
+	var cat: String = menu.open_book._book_cat
+	if cat == "" or canvas != _talent_canvas:
 		return
-	var w := T_LABEL_W + Talents.COLUMNS * T_CELL.x
-	for r in range(1, Talents.ROWS):
-		var y := r * T_CELL.y
+	var w := T_LABEL_W + Talents.columns_of(cat) * T_CELL.x
+	for r in range(1, Talents.rows_of(cat)):
+		var y := T_TOP + r * T_CELL.y
 		canvas.draw_line(Vector2(0, y), Vector2(w, y), Color(MainMenu.PAGE_BORDER, 0.45), 1.0)
+	_draw_groups(canvas, cat)
 	var pd := menu.get_node("/root/PlayerData")
 	var half := T_BTN / 2.0
 	for l in Talents.links_in_tree(menu.open_book._book_cat):
@@ -186,6 +195,28 @@ func _draw_talent_canvas(canvas: Control) -> void:
 		# Arrowhead at the unlocked talent.
 		var side := Vector2(-dir.y, dir.x) * 5.0
 		canvas.draw_colored_polygon(PackedVector2Array([to, to - dir * 9.0 + side, to - dir * 9.0 - side]), col)
+
+## The column-group layout: a faint line between spec groups (a reminder, not a
+## barrier) and each group's name and points on top.
+func _draw_groups(canvas: Control, cat: String) -> void:
+	var groups := Talents.groups_of(cat)
+	if groups.is_empty():
+		return
+	var pd := menu.get_node("/root/PlayerData")
+	var font := ThemeDB.fallback_font
+	var fsize := 11 if T_CELL.x >= 44.0 else 9
+	var bottom := T_TOP + Talents.rows_of(cat) * T_CELL.y
+	for i in groups.size():
+		var g: Array = groups[i]
+		var x0 := T_LABEL_W + int(g[1]) * T_CELL.x
+		var x1 := T_LABEL_W + (int(g[2]) + 1) * T_CELL.x
+		if i > 0:
+			canvas.draw_line(Vector2(x0, 2), Vector2(x0, bottom), Color(MainMenu.INK_DIM, 0.22), 1.0)
+		var pts: int = pd.group_points(cat, str(g[0]))
+		var text := str(g[0]) if pts <= 0 else "%s  %d" % [g[0], pts]
+		var tw := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize).x
+		canvas.draw_string(font, Vector2((x0 + x1 - tw) / 2.0, T_TOP - 5.0), text, HORIZONTAL_ALIGNMENT_LEFT, x1 - x0, fsize,
+			Color(MainMenu.INK_DIM, 0.85))
 
 func _refresh_talents() -> void:
 	var pd := menu.get_node("/root/PlayerData")

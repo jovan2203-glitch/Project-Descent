@@ -78,8 +78,6 @@ const PATHS := {
 	"immolate": "res://data/abilities/immolate.tres",
 	"walloffire": "res://data/abilities/walloffire.tres",
 	"kilnblast": "res://data/abilities/kilnblast.tres",
-	"slowfuse": "res://data/abilities/slowfuse.tres",
-	"rekindle": "res://data/abilities/rekindle.tres",
 	"crucible": "res://data/abilities/crucible.tres",
 	"cinderstep": "res://data/abilities/cinderstep.tres",
 	"heatsink": "res://data/abilities/heatsink.tres",
@@ -405,7 +403,7 @@ const DRAFT_POOL := ["frostnova", "icebarrier", "blink",
 	"shattershot", "glacialdraw", "rimefletch", "coldmark", "icyretreat",
 	"searingstrike", "flamingarrow", "flamenova", "ventflames", "coolhead", "furnacebreath", "slagskin",
 	"stoke", "embervolley", "immolate", "walloffire",
-	"kilnblast", "slowfuse", "rekindle",
+	"kilnblast",
 	"crucible", "cinderstep", "heatsink", "brand", "cinderguard", "anvil", "quench", "flare",
 	"pitcharrow", "cinderrain", "cinderwing",
 	"chainlightning", "thunderstrike", "stormarrow",
@@ -451,7 +449,7 @@ const ALL := ["frostbolt", "blizzard", "frostnova", "icebarrier",
 	"shattershot", "glacialdraw", "rimefletch", "coldmark", "icyretreat",
 	"fireball", "searingstrike", "flamingarrow", "flamenova", "ventflames", "coolhead", "furnacebreath", "slagskin",
 	"stoke", "embervolley", "immolate", "walloffire",
-	"kilnblast", "slowfuse", "rekindle",
+	"kilnblast",
 	"crucible", "cinderstep", "heatsink", "brand", "cinderguard", "anvil", "quench", "flare",
 	"pitcharrow", "cinderrain", "cinderwing",
 	"lightningbolt", "chainlightning", "discharge", "balllightning", "groundout", "groundingsurge",
@@ -504,7 +502,7 @@ const CATEGORY_OF := {
 	"fireball": "fire", "searingstrike": "fire", "flamingarrow": "fire", "flamenova": "fire",
 	"ventflames": "fire", "coolhead": "fire", "furnacebreath": "fire", "slagskin": "fire",
 	"stoke": "fire", "embervolley": "fire", "immolate": "fire", "walloffire": "fire",
-	"kilnblast": "fire", "slowfuse": "fire", "rekindle": "fire",
+	"kilnblast": "fire",
 	"crucible": "fire", "cinderstep": "fire", "heatsink": "fire",
 	"brand": "fire", "cinderguard": "fire", "anvil": "fire", "quench": "fire", "flare": "fire",
 	"pitcharrow": "fire", "cinderrain": "fire", "cinderwing": "fire",
@@ -663,7 +661,7 @@ static func role_of_bar(ids: Array) -> String:
 const SPECS := {
 	"fire": [
 		["Steady Flame", ["fireball", "flamenova", "ventflames", "coolhead", "stoke", "embervolley",
-			"immolate", "walloffire", "kilnblast", "slowfuse", "rekindle", "crucible"]],
+			"immolate", "walloffire", "kilnblast", "crucible"]],
 		["Slagforged", ["slagskin", "brand", "cinderguard", "anvil"]],
 		["Forge Heat", ["searingstrike", "quench", "flare"]],
 		["Pitch and Cinder", ["flamingarrow", "pitcharrow", "cinderrain"]],
@@ -756,6 +754,9 @@ const WHEEL_FORMS := {
 	"wheelhalberd": ["jab", "hook", "dragin", "flyinghead"],
 	"wheelmaul": ["thud", "crush", "earthshake", "faultline"],
 }
+## The Wheel's moves by kind (talents name the kind: Heavy Hands, Gather Pace...).
+const WHEEL_HEAVY := ["chop", "lunge", "hook", "crush"]
+const WHEEL_ARTS := ["rush", "bladeguard", "dragin", "earthshake"]
 
 ## The weapon a Wheel move belongs to ("" if `id` is not one).
 static func wheel_weapon_of(id: String) -> String:
@@ -873,8 +874,8 @@ static func specs_in(category: String, keep: Callable = Callable()) -> Array:
 	return out
 
 const RESOURCE_NAMES := ["", "mana", "energy", "fury"]
-## Abilities that spend ALL your Energy (their tooltips say so; player.gd spends it).
-const SPENDS_ALL := ["discharge", "groundout", "recharge"]
+## Abilities that spend ALL your Energy or Fury (their tooltips say so; their kits spend it).
+const SPENDS_ALL := ["discharge", "groundout", "recharge", "ventflames"]
 ## Abilities that skip the global cooldown without being an interrupt or a trinket.
 const OFF_GCD := ["groundingsurge", "capacitor", "returnstroke", "rimefletch", "rewind", "lapse", "scatter",
 	"missedbeat", "tradeplaces", "doubletime", "offthechain", "doublethread", "restring", "behinditsback", "swell",
@@ -1228,20 +1229,40 @@ static func effect_time_bonus(res: Resource, talent_of: Callable) -> float:
 ## bonus of their own, MartialTalentsKit; the tooltips show it in {hit}).
 ## `talent_of` = func(key, field) -> float.
 static func martial_hit_pct(id: String, talent_of: Callable) -> float:
-	var key := martial_hit_talent(id)
-	return float(talent_of.call(key, "values")) if key != "" else 0.0
+	var pct := 0.0
+	for key in martial_hit_talents(id):
+		pct += float(talent_of.call(key, "values"))
+	return pct
 
-## The Martial talent that makes every hit of `id` stronger ("" if none).
+## The Martial talent that makes every hit of `id` stronger (the first; "" if none).
 static func martial_hit_talent(id: String) -> String:
+	var keys := martial_hit_talents(id)
+	return keys[0] if not keys.is_empty() else ""
+
+## The Brawler's strong moves (a chain of three different strikes) and Catch strings.
+const BRAWLER_STRONG := ["haymaker", "roundhouse", "shakeoff"]
+const BRAWLER_CATCH_HITS := ["turnitaround", "throw", "reversal", "takedown"]
+
+## Every Martial talent that makes each hit of `id` stronger (each its own damage line).
+static func martial_hit_talents(id: String) -> Array[String]:
+	var out: Array[String] = []
 	if ["shrapnel", "shardlance", "flyinghead", "faultline"].has(id):
-		return "martial_hard_break"   # Hard Break: the Wheel's finishers
+		out.append("martial_hard_break")   # Hard Break: the Wheel's finishers
+	if WHEEL_HEAVY.has(id):
+		out.append("martial_heavy_hands")  # Heavy Hands: the Heavy Fillers
 	if is_kill_form(id):
-		return "martial_clean_kill"   # Clean Kill: the Rogue's Kill forms
+		out.append("martial_clean_kill")   # Clean Kill: the Rogue's Kill forms
+	if id == "closeitout":
+		out.append("martial_finish_strong")   # Finish Strong
 	if id == "haymaker":
-		return "martial_knockout"     # Knockout
+		out.append("martial_knockout")     # Knockout
+	if BRAWLER_STRONG.has(id):
+		out.append("martial_heavy_bag")    # Heavy Bag: the strong moves
+	if BRAWLER_CATCH_HITS.has(id):
+		out.append("martial_counter_puncher")   # Counter Puncher: the Catch strings
 	if id == "heavydraw":
-		return "martial_full_draw"    # Full Draw
-	return ""
+		out.append("martial_full_draw")    # Full Draw
+	return out
 
 ## Heals over time: heals (by their meter / log id) that come a little at a time,
 ## every second or so (Green Thumb heals them more; keyword "heals over time").
@@ -1260,6 +1281,8 @@ static func cooldown_of(r: Resource) -> float:
 	var key := str(COOLDOWN_TALENTS.get(str(r.id), ""))
 	if key != "" and cd > 0.0:
 		cd = maxf(cd - talent(key), 1.0)
+	if WHEEL_ARTS.has(str(r.id)):
+		cd *= 1.0 - talent("martial_gather_pace") / 100.0   # Gather Pace: the Wheel's Weapon Arts
 	if str(r.id) == "shelter" and capstone("holy_open_doors"):
 		cd = minf(cd, Balance.OPEN_DOORS_COOLDOWN)   # Open Doors (capstone)
 	return cd
@@ -2546,22 +2569,6 @@ static func _draw_unique(c: Control, id: String, col: Color, mid: Vector2, k: fl
 			c.draw_circle(mid + Vector2(9, -8) * k, 8.0 * k, col)
 			c.draw_circle(mid + Vector2(9, -8) * k, 4.5 * k, white)
 			c.draw_line(mid + Vector2(-2, 3) * k, mid + Vector2(4, -3) * k, light, 2.5 * k, true)
-		"slowfuse":
-			# A round charge with a long curling fuse and a spark at its end.
-			c.draw_circle(mid + Vector2(-4, 6) * k, 10.0 * k, Color(0.16, 0.13, 0.13))
-			c.draw_arc(mid + Vector2(-4, 6) * k, 10.0 * k, 0, TAU, 24, col, 2.0 * k, true)
-			c.draw_polyline(_pts(mid, k, [Vector2(2, -2), Vector2(7, -8), Vector2(4, -13), Vector2(10, -16), Vector2(15, -11)]), light, 2.2 * k, true)
-			for i in 6:
-				var sa := TAU * i / 6.0
-				c.draw_line(mid + Vector2(15, -11) * k, mid + (Vector2(15, -11) + Vector2(cos(sa), sin(sa)) * 5.0) * k, Color(1.0, 0.9, 0.4), 1.6 * k, true)
-			c.draw_circle(mid + Vector2(15, -11) * k, 2.2 * k, white)
-		"rekindle":
-			# Two arrows circling a flame (the burn starting over).
-			_flame(c, mid + Vector2(0, -1) * k, 0.95 * k, col, Color(1.0, 0.9, 0.4))
-			c.draw_arc(mid, 15.0 * k, PI * 0.15, PI * 0.85, 12, light, 2.4 * k, true)
-			c.draw_arc(mid, 15.0 * k, PI * 1.15, PI * 1.85, 12, light, 2.4 * k, true)
-			c.draw_colored_polygon(_pts(mid, k, [Vector2(-18, 7), Vector2(-10, 5), Vector2(-14, 12)]), light)
-			c.draw_colored_polygon(_pts(mid, k, [Vector2(18, -7), Vector2(10, -5), Vector2(14, -12)]), light)
 		"walloffire":
 			# A row of flames standing on a glowing line.
 			c.draw_rect(Rect2(mid + Vector2(-18, 11) * k, Vector2(36, 4) * k), light, true)

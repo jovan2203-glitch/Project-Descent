@@ -114,6 +114,10 @@ const FURY_DECAY := 5.0        # Fury per second lost
 ## an early opener can take aggro, and the tank has to taunt or work to win it back.
 const TANK_DAMAGE_PCT := 35.0
 const TANK_THREAT_MULT := 1.4
+
+## Talents on the column-group layout (Talents.GROUPS): a spec's bottom-row talent (its
+## capstone) needs this many points spent in that spec's group.
+const CAPSTONE_GATE := 25
 const AUTO_ATTACK_FURY := 10.0 # Fury per auto-attack (with a fury spender on the bar)
 ## Auto-attacks and auto-shots deal this share of the weapon's damage (weapon
 ## abilities still use all of it).
@@ -226,13 +230,20 @@ const ICY_RETREAT_TIME := 4.0            # ... seconds the ice stays on the grou
 const ICY_RETREAT_TICK := 1.0            # ... seconds between its Chills
 
 ## Fire.
-const VENT_FLAMES_CRIT_DAMAGE := 0.5     # Vent Flames (always crits): extra damage % = crit chance x this
+# Steady Flame runs on Fury (FireFuryKit): Fire spell hits that don't crit build
+# it, Fire spell crits Vent part of it.
+const FIRE_FURY_BASE := 6.0               # Fury from a Fire spell that doesn't crit ...
+const FIRE_FURY_PER_CRIT := 0.6           # ... + this x your crit chance (%)
+const FIRE_FURY_VENT_PCT := 50.0          # % of your Fury a Fire spell crit Vents
+const FIRE_FURY_EMBER_MULT := 1.0 / 3.0   # an Ember Volley ember gives this share of a spell's Fury
+const VENT_FURY_MIN := 20.0               # Vent Flames: Fury needed (it spends all of it) ...
+const VENT_FURY_PCT := 0.5                # ... % more damage per Fury spent
+const BLOWBACK_PER_FURY := 0.03           # Blowback: Frost Bolts of Fire damage per Fury point that burns ...
+const BLOWBACK_TIME := 4.0                # ... dealt over this many seconds ...
+const BLOWBACK_TICK := 1.0                # ... one tick every this many (faster with Haste)
+const SEALED_KILN_PCT := 30.0             # Rune of the Sealed Kiln: % less Fury gained (crits Vent none)
 const KILN_BLAST_IMMOLATE_PCT := 20.0     # Kiln Blast: % more damage to a target with your Blaze
-const SLOW_FUSE_TIME := 5.0               # Slow Fuse: seconds until the charge explodes
-const SLOW_FUSE_GROW := 0.25              # ... Frost Bolts added to the explosion each time it grows
-const SLOW_FUSE_MAX_GROWS := 20           # ... times it can grow
-const REKINDLE_RADIUS := 10.0             # Rekindle: metres around the target
-const REKINDLE_EFFECTS := ["immolate", "burning"]   # ... the burns it refreshes (data/effects/<id>.tres)
+const FIRE_BURNS := ["immolate", "burning"]   # my burns (data/effects/<id>.tres): Warm Blood counts them
 const FIRE_WALL_TIME := 8.0               # Wall of Fire: seconds it stands
 const FIRE_WALL_TICK := 0.5               # ... seconds between ticks (faster with Haste)
 const FIRE_WALL_DEPTH := 2.0              # ... thickness in metres (its length is 2 x the ability's radius)
@@ -1254,6 +1265,19 @@ const TURNING_WHEEL_TIME := 15.0          # Turning Wheel: seconds each broken w
 const CLEAN_KILL_FLOW := 3                # Clean Kill's capstone: Flow Close It Out leaves you
 const SOAK_IT_UP_SHAKE_OFF := 40.0        # Soak It Up's capstone: % of your Bruise Shake Off clears
 const FULL_DRAW_CUT := 3.0                # Full Draw's capstone: seconds Heavy Draw takes off the other shots
+const CLEAN_SWAP_TIME := 3.0              # Clean Swap: seconds after a weapon breaks that your abilities hit harder
+const EASY_PICKINGS_DAGGERS := 3          # Easy Pickings: your stuck daggers an enemy needs
+const CROWD_WORK_MAX := 3                 # Crowd Work: most enemies that give Fury per Sweep / Roundhouse
+const HARDENED_BRUISE_PCT := 20.0         # Hardened: % of your max health your Bruise must hold
+const LONG_RANGE_FROM := 10.0             # Long Range: metres past which your shots hit harder ...
+const LONG_RANGE_STEP := 5.0              # ... by its % for every this many metres more
+const WAITING_GAME_TIME := 3.0            # Waiting Game: a shot gains Overcut for every this many seconds it stays ready
+const CLEAN_RELEASE_OVERCUT := 6.0        # Clean Release: seconds of Overcut a shot must spend
+const HOLD_STEADY_OVERCUT := 6.0          # Hold Steady: seconds of Overcut one shot must hold
+const SECOND_ARROW_PCT := 30.0            # Second Arrow: % of the shot's damage the second arrow deals
+const HARD_TARGET_HEALTH := 80.0          # Hard Target: % health an enemy must be above
+const RUN_IT_BACK_CUT := 2.0              # Run It Back: seconds it takes off the next shot in the chain
+const GRIT_HEALTH_PCT := 50.0             # Grit: below this % health you hit harder
 const CATCH_BREATH_HEALTH_PCT := 35.0     # Catch Your Breath: dropping below this % health ...
 const CATCH_BREATH_TIME := 6.0            # ... heals over this many seconds ...
 const CATCH_BREATH_TICK := 1.0            # ... a tick every this many seconds ...
@@ -1339,27 +1363,26 @@ const ABILITIES := {
 	"calving": {"weapon_mult": 1.0, "cooldown": 10.0, "cost": 30},
 	"blackfrost": {"cooldown": 120.0},
 	# Fire
-	"fireball": {"damage": 1.25, "cost": 1, "cast_time": 2.2, "range": 20.0},
+	# Steady Flame's spells build Fury for free or spend it (FireFuryKit).
+	"fireball": {"damage": 1.0, "cost": 0, "cast_time": 2.2, "range": 20.0},
 	"searingstrike": {"weapon_mult": 1.5, "cooldown": 6.0, "cost": 30},
 	"flamingarrow": {"weapon_mult": 1.0, "cooldown": 6.0, "cost": 30},
-	"flamenova": {"damage": 1.5, "cooldown": 10.0, "cost": 4, "radius": 3.0},
-	"ventflames": {"damage": 2.0, "cooldown": 10.0, "cost": 3, "range": 30.0},
+	"flamenova": {"damage": 1.5, "cooldown": 10.0, "cost": 30, "radius": 3.0},
+	"ventflames": {"damage": 2.0, "cooldown": 10.0, "cost": 0, "range": 30.0},          # spends all your Fury: VENT_FURY_*
 	"coolhead": {"cooldown": 120.0},
 	"furnacebreath": {"damage": 1.0, "cooldown": 15.0, "cost": 3, "radius": 6.0},   # radius = the cone's reach
 	"slagskin": {"damage": 0.3, "cooldown": 13.0, "cost": 0, "threat": 3.0},         # damage = per hit back at an attacker; lasts SLAG_SKIN_TIME, so it can be kept up
-	"crucible": {"cost": 3, "cast_time": 1.5, "radius": 5.0, "range": 30.0},          # moving it is free and instant
+	"crucible": {"cost": 20, "cast_time": 1.5, "radius": 5.0, "range": 30.0},          # moving it is free and instant
 	"cinderstep": {"damage": 0.15, "cooldown": 15.0, "cost": 2},                       # damage = per tick of the line
 	"heatsink": {"damage": 1.0, "cooldown": 60.0, "cost": 0, "radius": 6.0},           # damage = the burst with nothing stored
 	"brand": {"damage": 1.0, "weapon_mult": 1.0, "cooldown": 6.0, "generates": 20, "threat": 5.0},
 	"cinderguard": {"damage": 0.3, "cooldown": 12.0, "cost": 20, "threat": 3.0},        # damage = the burn on an attacker you block
 	"anvil": {"damage": 0.65, "weapon_mult": 0.5, "cooldown": 8.0, "generates": 10, "radius": 4.0, "threat": 6.0},
-	"stoke": {"damage": 1.0, "cooldown": 20.0, "cost": 2, "range": 30.0},              # damage = on top of the Burning it eats
-	"immolate": {"damage": 0.0, "cost": 2, "cast_time": 1.5, "range": 30.0},          # its damage is the Blaze effect below
-	"walloffire": {"damage": 0.25, "cooldown": 20.0, "cost": 4, "cast_time": 1.5, "radius": 4.0, "range": 30.0},   # damage = per tick, radius = half its length
-	"kilnblast": {"damage": 3.0, "cooldown": 3.0, "cost": 3, "cast_time": 3.5, "range": 30.0},
-	"slowfuse": {"damage": 1.5, "cost": 2, "cast_time": 2.0, "range": 30.0},              # damage = the explosion before it grows
-	"rekindle": {"cost": 2, "cast_time": 2.0, "range": 30.0},
-	"embervolley": {"damage": 0.35, "cooldown": 12.0, "cost": 3, "cast_time": 3.0, "range": 30.0},   # damage = per ember
+	"stoke": {"damage": 1.0, "cooldown": 20.0, "cost": 20, "range": 30.0},             # damage = on top of the Burning it eats
+	"immolate": {"damage": 0.0, "cost": 0, "cast_time": 1.5, "range": 30.0},          # its damage is the Blaze effect below
+	"walloffire": {"damage": 0.25, "cooldown": 20.0, "cost": 30, "cast_time": 1.5, "radius": 4.0, "range": 30.0},   # damage = per tick, radius = half its length
+	"kilnblast": {"damage": 3.0, "cooldown": 3.0, "cost": 40, "cast_time": 3.5, "range": 30.0},   # never crits
+	"embervolley": {"damage": 0.35, "cooldown": 12.0, "cost": 0, "cast_time": 3.0, "range": 30.0},   # damage = per ember
 	"quench": {"weapon_mult": 1.0},                    # before Heat: + QUENCH_PCT_PER_HEAT % per Heat removed
 	"flare": {"weapon_mult": 1.0, "radius": 4.0},      # radius = the sweep's reach
 	"pitcharrow": {"weapon_mult": 0.8, "cooldown": 12.0, "cost": 20},

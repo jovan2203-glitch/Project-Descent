@@ -6,14 +6,14 @@
 script = ExtResource("1_s")
 id = &"ventflames"
 display_name = "Vent Flames"
-description = "Vents your flames into the target, dealing {hit} Fire damage. Always critically strikes, and deals increased damage equal to {b%:VENT_FLAMES_CRIT_DAMAGE}% of your critical strike chance."
+description = "Spends all your Fury to vent your flames into the target, dealing {hit} Fire damage, plus {b:VENT_FURY_PCT}% more for each Fury spent. Always critically strikes; this critical strike does not Vent your Fury. Requires at least {b:VENT_FURY_MIN} Fury."
 tags = PackedStringArray("Fire", "Spell")
 cast_type = 0
 cast_time = 0.0
 cooldown = 10.0
 requires_target = true
-resource_type = 1
-resource_cost = 3
+resource_type = 3
+resource_cost = 0
 damage = 2.0
 cast_range = 30.0
 damage_type = &"fire"

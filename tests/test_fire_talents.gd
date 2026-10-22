@@ -1,8 +1,9 @@
 @tool
 extends McpTestSuite
 
-# Fire talents. Smoldering Focus used to be a Legendary rune (crit chance x 0.6);
-# as a talent it is 5 ranks of crit chance x 0.1 each (x 0.5 at max rank).
+# Fire talents. Smoldering Focus used to be a Legendary rune; now it is 5 ranks of
+# 0.02% more Fire spell damage per Fury you hold (+10% at 100 Fury at max rank).
+# The Fury maths itself is tests/test_fire_fury.gd.
 
 const Talents = preload("res://scripts/talents.gd")
 const TalentIcons = preload("res://scripts/talent_icons.gd")
@@ -34,8 +35,8 @@ func test_smoldering_focus_bonus_is_split_evenly() -> void:
 	var vals: Array = Talents.get_talent(id).get("values", [])
 	assert_eq(vals.size(), 5, "one value per rank")
 	for rank in range(1, 6):
-		assert_true(is_equal_approx(Talents.value_at(id, rank), 0.1 * rank), "rank %d = crit chance x %.1f" % [rank, 0.1 * rank])
-	assert_true(is_equal_approx(Talents.value_at(id, 5), 0.5), "max rank: 0.6 lowered to 0.5")
+		assert_true(is_equal_approx(Talents.value_at(id, rank), 0.02 * rank), "rank %d = %.2f%% per Fury" % [rank, 0.02 * rank])
+	assert_true(is_equal_approx(FireFuryKit.smolder_pct(100.0, Talents.value_at(id, 5)), 10.0), "max rank at 100 Fury: +10%")
 	assert_eq(Talents.value_at(id, 0), 0.0, "nothing without the talent")
 
 func test_tempered_flame_is_a_top_row_fire_talent() -> void:
@@ -100,17 +101,19 @@ func test_vent_flames() -> void:
 	assert_eq(float(r.cooldown), 10.0, "10 s cooldown")
 	assert_eq(float(r.damage), 2.0, "2 Frost Bolts of damage")
 	assert_eq(str(r.damage_type), "fire")
-	assert_true(r.tags.has("Fire") and r.tags.has("Spell"), "a Fire spell (so it spends Smoldering Focus)")
+	assert_true(r.tags.has("Fire") and r.tags.has("Spell"), "a Fire spell")
 	assert_eq(Abilities.category_of("ventflames"), "fire")
 	assert_true(Abilities.ALL.has("ventflames") and Abilities.DRAFT_POOL.has("ventflames") and SkillCards.ALL.has("ventflames"))
 	assert_eq(SkillCards.ability_of("ventflames"), "ventflames")
+	assert_eq(Abilities.resource_of("ventflames"), "fury")
+	assert_true(Abilities.SPENDS_ALL.has("ventflames"), "spends all your Fury")
+	assert_contains(Abilities.tooltip("ventflames"), "All Fury")
 	var player_script: GDScript = load("res://scripts/player.gd")
 	var v: Array = player_script.fire_crit_rules("ventflames", 30.0)
 	assert_eq(float(v[0]), 100.0, "always crits")
-	assert_true(is_equal_approx(float(v[1]), 15.0), "+50% of 30% crit = +15% damage")
+	assert_eq(float(v[1]), 0.0, "no bonus from crit chance any more: it scales on Fury")
 	var v0: Array = player_script.fire_crit_rules("ventflames", 0.0, 60.0, 20.0)
 	assert_eq(float(v0[0]), 100.0, "crits even with no crit chance")
-	assert_eq(float(v0[1]), 0.0)
 
 func test_cool_head() -> void:
 	var r := Abilities.get_resource("coolhead")
@@ -156,7 +159,7 @@ func test_afterburn_sits_right_of_smoldering_focus() -> void:
 	assert_true(row.find(id) > row.find(sf), "to the right of Smoldering Focus")
 	assert_eq(Talents.max_rank(id), 5, "0 / 5, like Smoldering Focus")
 	for rank in range(1, 6):
-		assert_true(is_equal_approx(Talents.value_at(id, rank), Talents.value_at(sf, rank)), "rank %d mirrors Smoldering Focus" % rank)
+		assert_true(is_equal_approx(Talents.value_at(id, rank), 0.1 * rank), "rank %d = (100 - crit chance) x %.1f" % [rank, 0.1 * rank])
 	assert_true(TalentIcons.has_icon(id))
 
 ## The buff: only non-crit Fire spell hits get it, scaled from 100 - crit chance.
@@ -176,7 +179,7 @@ func test_afterburn_boosts_non_crits_from_missing_crit_chance() -> void:
 			"mod_damage_types", "mod_required_tags", "mod_affects_dots", "consume_on_use", "mod_crit_only",
 			"mod_non_crit_only", "mod_scale_stat", "mod_scale_factor", "mod_scale_inverse"]:
 		fx.set(p, src.get(p))
-	assert_true(bool(fx.mod_non_crit_only) and bool(fx.mod_scale_inverse) and not bool(fx.mod_crit_only), "the opposite of Smoldering Focus")
+	assert_true(bool(fx.mod_non_crit_only) and bool(fx.mod_scale_inverse) and not bool(fx.mod_crit_only), "non-crits, from the crit chance you lack")
 	assert_eq(int(fx.max_stacks), 20)
 	assert_eq(float(fx.duration), 20.0)
 	fx.mod_scale_factor = 0.5   # rank 5 (player.gd sets it from the rank)
@@ -240,11 +243,10 @@ func test_banked_coals_sits_between_the_two() -> void:
 	assert_eq(Talents.value_at(id, 1), 25.0)
 	assert_eq(Talents.value_at(id, 2), 50.0)
 	assert_true(TalentIcons.has_icon(id))
-	var player_script: GDScript = load("res://scripts/player.gd")
-	assert_eq(FireCasterKit.banked_stacks(4, 50.0), 2)
-	assert_eq(FireCasterKit.banked_stacks(20, 25.0), 5)
-	assert_eq(FireCasterKit.banked_stacks(1, 50.0), 0, "rounded down: a single stack is always spent")
-	assert_eq(FireCasterKit.banked_stacks(7, 0.0), 0, "nothing kept without the talent")
+	# A crit Vents 50% of your Fury; Banked Coals Vents 25% / 50% less of that.
+	assert_true(is_equal_approx(FireFuryKit.vented(80.0, 0.0, false), 40.0))
+	assert_true(is_equal_approx(FireFuryKit.vented(80.0, 25.0, false), 30.0), "rank 1: 37.5% of it")
+	assert_true(is_equal_approx(FireFuryKit.vented(80.0, 50.0, false), 20.0), "rank 2: 25% of it")
 
 ## The container side: a carrier that keeps stacks still has them after the buff is used.
 func test_spent_stacks_can_be_kept() -> void:
@@ -359,7 +361,7 @@ func test_effect_only_hits_use_nothing_up() -> void:
 	assert_eq(landing.bonus_pct, 0.0)
 
 func test_fire_runes() -> void:
-	for id in ["dull_edge", "hair_trigger"]:
+	for id in ["dull_edge", "hair_trigger", "sealed_kiln"]:
 		assert_true(Runes.PATHS.has(id) and Runes.ALL.has(id), "%s is registered" % id)
 		assert_eq(Runes.rarity(id), Runes.EPIC, "%s is Epic" % id)
 	assert_eq(Balance.HAIR_TRIGGER_CHARGES, 2)
@@ -418,75 +420,44 @@ func test_kiln_blast() -> void:
 	assert_eq(float(r.damage), 3.0, "3 Frost Bolts")
 	assert_eq(Balance.KILN_BLAST_IMMOLATE_PCT, 20.0, "+20% with your Immolate")
 	assert_contains(Abilities.tooltip("kilnblast"), "20%", "the tooltip reads it from balance.gd")
-
-func test_slow_fuse() -> void:
-	var r := Abilities.get_resource("slowfuse")
-	assert_true(r != null, "Slow Fuse exists")
-	assert_eq(float(r.cast_time), 2.0, "2 s cast")
-	assert_eq(Balance.SLOW_FUSE_TIME, 5.0, "explodes after 5 s")
-	assert_true(Effects.get_effect("slow_fuse") != null or ResourceLoader.exists("res://data/effects/slow_fuse.tres"))
+	assert_eq(Abilities.resource_of("kilnblast"), "fury")
+	assert_eq(Abilities.cost_of("kilnblast"), 40.0, "the non-crit spender: 40 Fury")
 	var player_script: GDScript = load("res://scripts/player.gd")
-	assert_true(is_equal_approx(FireCasterKit.fuse_size(1.5, 0), 1.5), "no growth: the base explosion")
-	assert_true(is_equal_approx(FireCasterKit.fuse_size(1.5, 4), 1.5 + 4 * Balance.SLOW_FUSE_GROW))
-	assert_true(is_equal_approx(FireCasterKit.fuse_size(1.5, 999), 1.5 + Balance.SLOW_FUSE_MAX_GROWS * Balance.SLOW_FUSE_GROW), "growth is capped")
-	# Without the talent: every non-crit grows it, crits never do.
-	assert_eq(FireCasterKit.fuse_grow_chance(false, true, 0.0), 100.0)
-	assert_eq(FireCasterKit.fuse_grow_chance(false, false, 0.0), 100.0, "a non-crit of any school")
-	assert_eq(FireCasterKit.fuse_grow_chance(true, true, 0.0), 0.0)
+	assert_true(player_script.ENEMY_BOLTS.has("kilnblast"), "cast at an enemy")
+	assert_true(FireCooldownsKit.concentrated_applies(Abilities.tags_of("kilnblast"), float(r.cast_time), false), "can be made instant")
 
-func test_volatile_fuse() -> void:
-	var id := Talents.id_for_key("fire_fuse_crit")
-	assert_eq(id, "fire_r5c5", "middle of the Fire book")
-	assert_eq(Talents.max_rank(id), 3, "0 / 3")
-	assert_eq(Talents.get_talent(id).get("values", []), [50.0, 70.0, 100.0])
-	assert_eq(str(Talents.get_talent(id).get("requires", "")), "slowfuse")
-	assert_true(TalentIcons.has_icon(id))
-	var player_script: GDScript = load("res://scripts/player.gd")
-	for rank in range(1, 4):
-		var pct := Talents.value_at(id, rank)
-		assert_eq(FireCasterKit.fuse_grow_chance(true, true, pct), pct, "rank %d: Fire crits grow it %d%% of the time" % [rank, int(pct)])
-		assert_eq(FireCasterKit.fuse_grow_chance(false, true, pct), 100.0 - pct, "rank %d: non-crits %d%% less often" % [rank, int(pct)])
-		assert_eq(FireCasterKit.fuse_grow_chance(true, false, pct), 0.0, "only FIRE crits count")
-	assert_eq(FireCasterKit.fuse_grow_chance(false, true, 100.0), 0.0, "rank 3: non-crits never grow it")
+## Slow Fuse and Rekindle are gone, with Volatile Fuse and Flashover.
+func test_slow_fuse_and_rekindle_are_gone() -> void:
+	for id in ["slowfuse", "rekindle"]:
+		assert_false(Abilities.PATHS.has(id), "%s is no ability" % id)
+		assert_false(Abilities.ALL.has(id) or Abilities.DRAFT_POOL.has(id) or SkillCards.ALL.has(id), "%s is in no list" % id)
+	for key in ["fire_fuse_crit", "fire_flashover", "fire_banked_mana"]:
+		assert_eq(Talents.id_for_key(key), "", "%s is gone" % key)
+	assert_false(ResourceLoader.exists("res://data/effects/slow_fuse.tres"))
 
-func test_rekindle() -> void:
-	var r := Abilities.get_resource("rekindle")
-	assert_true(r != null, "Rekindle exists")
-	assert_eq(float(r.cast_time), 2.0, "2 s cast")
-	assert_eq(float(r.damage), 0.0, "no damage of its own")
-	assert_eq(Balance.REKINDLE_RADIUS, 10.0)
-	for fx_id in Balance.REKINDLE_EFFECTS:
-		assert_true(ResourceLoader.exists("res://data/effects/%s.tres" % fx_id), "%s is an effect" % fx_id)
-	assert_true(Balance.REKINDLE_EFFECTS.has("immolate") and Balance.REKINDLE_EFFECTS.has("burning"))
-	var player_script: GDScript = load("res://scripts/player.gd")
-	for id in ["kilnblast", "slowfuse", "rekindle"]:
-		assert_true(player_script.ENEMY_BOLTS.has(id), "%s is cast at an enemy" % id)
-		assert_eq(Abilities.category_of(id), "fire")
-		assert_true(Abilities.DRAFT_POOL.has(id) and SkillCards.ALL.has(id), "%s is draftable and has a card" % id)
-		assert_true(FireCooldownsKit.concentrated_applies(Abilities.tags_of(id), float(Abilities.get_resource(id).cast_time), false), "%s can be made instant" % id)
-
-## Slow Fuse grows by changing the debuff's stacks without restarting its timer.
+## A debuff's stacks can change without restarting its timer.
 func test_set_stacks_keeps_the_timer() -> void:
 	var owner_node: Node = track(Node.new())
 	var st: Node = StatusContainer.new()
 	st.name = "Status"
 	owner_node.add_child(st)
 	var fx: Resource = StatusEffectScript.new()
-	fx.id = &"slow_fuse"
-	fx.display_name = "Slow Fuse"
+	fx.id = &"test_charge"
+	fx.display_name = "Test Charge"
 	fx.duration = 5.0
 	fx.max_stacks = 99
 	st.apply(fx)
-	var before := float(st.effects["slow_fuse"]["expires"])
-	assert_true(st.set_stacks("slow_fuse", 4))
-	assert_eq(st.stacks_of("slow_fuse"), 4)
-	assert_eq(float(st.effects["slow_fuse"]["expires"]), before, "growing doesn't move the explosion")
+	var before := float(st.effects["test_charge"]["expires"])
+	assert_true(st.set_stacks("test_charge", 4))
+	assert_eq(st.stacks_of("test_charge"), 4)
+	assert_eq(float(st.effects["test_charge"]["expires"]), before, "the timer stays")
 	assert_false(st.set_stacks("nothing", 2))
 
 func test_smoldering_focus_rune_is_gone() -> void:
 	assert_false(Runes.PATHS.has("smoldering_focus"))
 	assert_false(Runes.ALL.has("smoldering_focus"))
-	assert_true(Effects.get_effect("smoldering_focus") != null, "the buff itself is still there")
+	assert_false(ResourceLoader.exists("res://data/runes/smoldering_focus.tres"), "its stale file is gone")
+	assert_true(Effects.get_effect("smoldering_focus") == null, "the talent holds no stacks any more")
 	assert_true(Runes.any_of_rarity(Runes.LEGENDARY), "the only Legendary rune is Dusk till Dawn")
 	assert_true(Runes.any_of_rarity(Runes.EPIC))
 

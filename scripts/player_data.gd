@@ -28,6 +28,7 @@ const ACTION_SLOTS_TOTAL := ACTION_SLOTS * ACTION_BARS
 # equipped item from the Runes panel.
 const Runes = preload("res://scripts/runes.gd")
 const Talents = preload("res://scripts/talents.gd")
+const Balance = preload("res://scripts/balance.gd")
 var known_runes: Array[String] = []
 var gear_runes := {}   # legacy (slot-based runes) — folded into items on load
 
@@ -881,7 +882,30 @@ static func talents_valid(ranks: Dictionary) -> bool:
 	for id in ranks:
 		if int(ranks[id]) > 0 and not accepted.has(id):
 			return false
+	# A spec's capstone needs its group's points (Talents.capstone_gated).
+	for id in ranks:
+		if int(ranks[id]) > 0 and Talents.capstone_gated(str(id)) \
+				and gate_points(ranks, Talents.category_of(str(id)), Talents.group_of(str(id))) < Balance.CAPSTONE_GATE:
+			return false
 	return true
+
+## Points in a spec group that count toward its capstone's gate: every talent of
+## the group except the capstone itself.
+static func gate_points(ranks: Dictionary, category: String, group: String) -> int:
+	var n := 0
+	for id in ranks:
+		var key := str(id)
+		if Talents.category_of(key) == category and Talents.group_of(key) == group and not Talents.capstone_gated(key):
+			n += int(ranks[id])
+	return n
+
+## Points in one group of a book (the column-group layout), capstone included.
+func group_points(category: String, group: String) -> int:
+	var n := 0
+	for id in talents:
+		if Talents.category_of(str(id)) == category and Talents.group_of(str(id)) == group:
+			n += int(talents[id])
+	return n
 
 # Returns "" if allowed, otherwise the reason.
 func can_invest(id: String) -> String:
@@ -899,6 +923,11 @@ func can_invest(id: String) -> String:
 		return "Already at max rank"
 	if not talent_unlocked(id):
 		return "Requires %d points in row %d (any book)" % [Talents.POINTS_TO_UNLOCK_NEXT, int(t["tier"])]
+	if Talents.capstone_gated(id):
+		var group := Talents.group_of(id)
+		var have := gate_points(talents, Talents.category_of(id), group)
+		if have < Balance.CAPSTONE_GATE:
+			return "Requires %d points in %s (%d / %d)" % [Balance.CAPSTONE_GATE, group, have, Balance.CAPSTONE_GATE]
 	# A talent that only works with one ability needs that ability first.
 	var req := Talents.required_ability(id)
 	if req != "" and not has_ability(req):

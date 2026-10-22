@@ -34,6 +34,7 @@ var frost_more: FrostMoreKit = _kit(FrostMoreKit) as FrostMoreKit
 var frost_bow: FrostBowKit = _kit(FrostBowKit) as FrostBowKit
 var fire_runes: FireRunesKit = _kit(FireRunesKit) as FireRunesKit
 var fire_caster: FireCasterKit = _kit(FireCasterKit) as FireCasterKit
+var fire_fury: FireFuryKit = _kit(FireFuryKit) as FireFuryKit
 var fire_tank: FireTankKit = _kit(FireTankKit) as FireTankKit
 var fire_melee: FireMeleeKit = _kit(FireMeleeKit) as FireMeleeKit
 var fire_bow: FireBowKit = _kit(FireBowKit) as FireBowKit
@@ -157,8 +158,11 @@ func hounds_out() -> bool:
 
 # Forwards to ShadowTalentsKit (called from other scripts).
 func crit_hit_bonus(info: RefCounted) -> Array:
-	var ill_will: Array = shadow_talents.crit_hit_bonus(info)   # Ill Will (damage over time)
-	return ill_will if not ill_will.is_empty() else wheel.crit_hit_bonus(info)   # Keen Edge (the Greatsword)
+	# [pct, label, pct, label, ...]: each its own damage-meter line.
+	var out: Array = shadow_talents.crit_hit_bonus(info)   # Ill Will (damage over time)
+	out.append_array(wheel.crit_hit_bonus(info))           # Keen Edge (the Greatsword)
+	out.append_array(martial_talents.crit_hit_bonus(info))   # Keen Strikes
+	return out
 
 # Forwards to DecayKit (called from other scripts).
 func interest_ready() -> bool:
@@ -293,9 +297,6 @@ func charges_text(id: String) -> String:
 		return cracks
 	var over := sharp.charges_text(id)   # Martial archer: the Overcut on a shot
 	return over if over != "" else fire_caster.charges_text(id)
-
-func stacks_kept_on_use(res: Resource, stacks: int) -> int:
-	return fire_caster.stacks_kept_on_use(res, stacks)
 
 # Forwards to FrostBowKit (called from other scripts).
 func frozen_instinct_ready() -> bool:
@@ -451,7 +452,7 @@ func _die() -> void:
 	cancel_placement()
 	change_state(PState.DEAD)
 	current_state = "dead"   # the party's puppet of me stops showing "Downed"
-	fire_caster._fuses.clear()
+	fire_fury.clear()
 	arcane_caster._clear_arcane()
 	fire_cooldowns._heat_on = false
 	if status:
@@ -498,7 +499,7 @@ func _go_down() -> void:
 	cancel_placement()
 	clear_queue()
 	change_state(PState.DOWNED)
-	fire_caster._fuses.clear()   # Slow Fuse charges fizzle with me
+	fire_fury.clear()   # my Blowback burns go out with me
 	arcane_caster._clear_arcane()  # (so do Countdown marks; the Mirror Sigil and the Afterimage go)
 	fire_cooldowns._heat_on = false
 	if status:
@@ -895,7 +896,7 @@ func use_ability(id: String) -> void:
 
 ## Enemy-targeted bolt spells with a cast time (same flow as Frost Bolt).
 const ENEMY_BOLTS := ["frostbolt", "fireball", "lightningbolt", "immolate",
-	"kilnblast", "slowfuse", "rekindle", "frostfirebolt", "coldspike", "chainlightning", "discharge",
+	"kilnblast", "frostfirebolt", "coldspike", "chainlightning", "discharge",
 	"livewire", "forkedbolt", "unravel", "countdown", "convergence",
 	"blight", "erode", "highnote", "piercinglight", "thornshot", "briartiger",
 	"sporesleep", "coolingslag"]
@@ -1300,11 +1301,14 @@ func can_afford(id: String, report: bool = false) -> bool:
 		if report:
 			_error("Requires %d Strings in your hand" % Balance.NOT_FINISHED_STRINGS)
 		return false
-	# Discharge and Ground Out spend ALL my Energy: they need some to spend.
-	if Abilities.SPENDS_ALL.has(id) and float(resources["energy"]) + 0.0001 < Balance.SPEND_ALL_MIN_ENERGY:
-		if report:
-			_error("Not enough energy")
-		return false
+	# Discharge and Ground Out spend ALL my Energy, Vent Flames all my Fury: they need some to spend.
+	if Abilities.SPENDS_ALL.has(id):
+		var all_res := Abilities.resource_of(id)
+		var need := Balance.VENT_FURY_MIN if all_res == "fury" else Balance.SPEND_ALL_MIN_ENERGY
+		if float(resources.get(all_res, 0.0)) + 0.0001 < need:
+			if report:
+				_error("Not enough %s" % all_res)
+			return false
 	# Overdrive only starts with little Energy (it would end at once with more).
 	if id == LightningMeleeKit.OVERDRIVE_ID and not LightningMeleeKit.overdrive_holds(float(resources["energy"]), resource_max("energy")):
 		if report:
@@ -1337,6 +1341,7 @@ func resource_cost(id: String, with_storm_cycle: bool = true) -> float:
 		cost = StormArrowKit.storm_arrow_cost(cost, status.has(LightningCasterKit.LOADED_QUIVER_FX),
 			_talent("lightning_snap_shot") if status.has(LightningCasterKit.SNAP_SHOT_FX) else 0.0)
 	if cost > 0.0 and Abilities.resource_of(id) == "energy":
+		cost = maxf(cost - _talent("martial_thrift"), 0.0)                                                  # Thrift
 		cost = LightningCasterKit.surge_energy_cost(cost, lightning_caster.surge_active())                   # Grounding Surge
 		if with_storm_cycle and bottled_kit.storm_cycle_ready():
 			cost = 0.0                                                   # Storm Cycle: this one is free
@@ -1394,7 +1399,8 @@ func _tick_resources(delta: float) -> void:
 		return
 	_gain("mana", MANA_REGEN * mana_unit() * delta)
 	_gain("energy", LightningMeleeKit.energy_regen(ENERGY_REGEN, _talent("lightning_quick_charge")) * delta)   # Quick Charge
-	_gain("fury", -HoundsKit.fury_decay(FURY_DECAY, _talent("shadow_thick_blood")) * delta)   # Thick Blood
+	if not casting:   # (no Fury is lost while casting or channeling: the Fire caster's)
+		_gain("fury", -HoundsKit.fury_decay(FURY_DECAY, _talent("shadow_thick_blood")) * delta)   # Thick Blood
 
 # --- Natural health regeneration (WoW-style) ------------------------------------------
 # A trickle in combat, fast once the fight is over (after a short delay).
@@ -1412,6 +1418,7 @@ func _tick_health_regen(delta: float) -> void:
 	if not in_combat:
 		pct = Balance.HP_REGEN_OUT_OF_COMBAT_PCT if now - _out_of_combat_since >= Balance.HP_REGEN_OOC_DELAY \
 			else Balance.HP_REGEN_IN_COMBAT_PCT
+	pct *= 1.0 + _talent("martial_hardy") / 100.0   # Hardy
 	_regen_carry += float(max_health) * pct / 100.0 * delta
 	if _regen_carry < 1.0:
 		return
@@ -1579,7 +1586,8 @@ func blizzard_radius() -> float:
 func effect_duration_bonus(res: Resource) -> float:
 	# (Deep Hoarfrost, Long Burn, Lingering Frost, Hard Freeze: one list, shared
 	# with the tooltips, so what they say is what happens.)
-	return Abilities.effect_time_bonus(res, _talent) + utility.duration_bonus(res)   # (Fixed Point: per Arcane cooldown)
+	return Abilities.effect_time_bonus(res, _talent) + utility.duration_bonus(res) \
+		+ brawler.duration_bonus(res)   # (Fixed Point: per Arcane cooldown; Ground Game: Throw and Takedown)
 
 ## Extra hits effects you apply take to shake (StatusContainer asks). Pinned Down.
 func effect_extra_hits(res: Resource) -> int:
@@ -1633,6 +1641,11 @@ func _on_damage_modify(info: RefCounted) -> void:
 		var embers := _talent("fire_lingering_embers")
 		if embers > 0.0:
 			info.add_bonus(embers, "Lingering Embers")
+	# Smoldering Focus: my Fire spells hit harder the more Fury I hold.
+	if str(info.damage_type) == "fire" and info.tags.has("Spell"):
+		var smolder := FireFuryKit.smolder_pct(fire_fury.fury(), _talent("fire_smoldering_focus"))
+		if smolder > 0.0:
+			info.add_bonus(smolder, "Smoldering Focus")
 	# Controlled Burn: my Fire spells and abilities make less threat.
 	if info.tags.has("Fire"):
 		var calm := _talent("fire_controlled_burn")
@@ -2143,9 +2156,6 @@ func _start_bolt(id: String) -> void:
 	if not _has_valid_target():
 		_error("No target")
 		return
-	if id == "rekindle" and fire_caster._rekindle_targets(target).is_empty():
-		_error("You have nothing burning there")
-		return
 	var util_err := utility.cast_error(id, target)
 	if util_err != "":
 		_error(util_err)
@@ -2357,14 +2367,8 @@ func _release_cast() -> void:
 	if spell == LightningCasterKit.FORKED_BOLT_ID:
 		bottled_kit._forked_bolt(target)
 		return
-	if spell == "slowfuse":
-		fire_caster._plant_fuse(target)
-		return
 	if spell in UtilityKit.CASTS:
 		utility.finish_cast(spell, target)   # each book's Utility
-		return
-	if spell == "rekindle":
-		fire_caster._rekindle(target)
 		return
 	if spell == ArcaneCasterKit.COUNTDOWN_ID:
 		arcane_caster._plant_countdown(target)
@@ -2448,7 +2452,7 @@ func _process(_delta: float) -> void:
 	_tick_health_regen(_delta)
 	frost_melee._scan_my_slows()
 	frost_runes._tick_permafrost()
-	fire_caster._tick_fuses()
+	fire_fury._tick_blowback()
 	arcane_caster._tick_countdowns()
 	decay._tick_decay()
 	overload_kit._tick_grounded()
@@ -2911,8 +2915,8 @@ func _use_drafted(id: String) -> void:
 		"heatsink":
 			fire_cooldowns._start_heat_sink()
 		"ventflames":
-			# One instant hit; "always crits" and its crit-chance bonus are in adjust_crit.
-			deal_damage(target, float(res.damage), id)
+			# One instant hit spending my Fury (FireFuryKit); "always crits" is in adjust_crit.
+			fire_fury.vent_flames(target, float(res.damage))
 			_ring_effect(0.9, Abilities.color_of(id), target.global_position)
 			_ring_effect(0.5, Color(1.0, 0.9, 0.4), target.global_position)
 		"flicker":
@@ -3732,7 +3736,7 @@ func _sync_support_state() -> void:
 # --- Auto-target -----------------------------------------------------------------------
 # Using something that needs an enemy target while you have none picks the
 # closest enemy it could legally be used on: alive, in range and in line of sight
-# (and, for Stoke and Rekindle, with one of your burns to work on).
+# (and, for Stoke, with your Burning to work on).
 
 func _needs_enemy_target(id: String) -> bool:
 	if id in SUPPORT_CASTS or Abilities.is_trinket_slot(id):
@@ -3764,8 +3768,6 @@ func _auto_target(id: String) -> void:
 			var est: Node = e.get_node_or_null("Status")
 			if est == null or not est.has_from("burning", self):
 				continue
-		if id == "rekindle" and fire_caster._rekindle_targets(e).is_empty():
-			continue
 		if (id == DecayKit.CALL_DUE_ID or id == DecayKit.SPILL_ID or id == DecayKit.TAKE_IT_BACK_ID) and decay.decay_on(e) <= 0.0:
 			continue   # (these work on my Decay: an enemy without it is no use)
 		var d := global_position.distance_squared_to(e.global_position)
@@ -3782,29 +3784,36 @@ var _empowered := {}   # Cold Precision: ability id -> time its hits stop being 
 ## Fire's crit rules as pure maths (adjust_crit and the tests use this).
 ## Returns [crit chance, bonus damage %] for a direct hit of ability `id` at a
 ## crit chance of `chance`, with the Tempered Flame talent's two numbers.
-##   Vent Flames: always crits, +(crit chance x VENT_FLAMES_CRIT_DAMAGE)% damage.
+##   Vent Flames: always crits (its Fury bonus is FireFuryKit's).
 ##   Firebolt + Tempered Flame: `temper_less`% less crit chance, +(crit chance x
-##   `temper_bonus`%)% damage. Both bonuses use the full crit chance.
-static func fire_crit_rules(id: String, chance: float, temper_less: float = 0.0, temper_bonus: float = 0.0) -> Array:
+##   `temper_bonus`%)% damage. The bonus uses the full crit chance.
+##   Ember Volley's embers: `ember_pct` more crit chance (Wild Embers) or less (Damped Embers, negative).
+static func fire_crit_rules(id: String, chance: float, temper_less: float = 0.0, temper_bonus: float = 0.0,
+		ember_pct: float = 0.0) -> Array:
 	var full := clampf(chance, 0.0, 100.0)
 	if id == "ventflames":
-		return [100.0, full * Balance.VENT_FLAMES_CRIT_DAMAGE]
+		return [100.0, 0.0]
 	if Abilities.is_a(id, "fireball") and temper_less > 0.0:
 		return [chance * (1.0 - temper_less / 100.0), full * temper_bonus / 100.0]
+	if id == "embervolley" and ember_pct != 0.0:
+		return [maxf(chance + ember_pct, 0.0), 0.0]
 	return [chance, 0.0]
 
 func adjust_crit(info: RefCounted, chance: float) -> float:
 	var id := str(info.ability_id)
-	if id == "permafrost" or id == "stoke" or id == "anvil" or id == "quench":
-		return 0.0                               # (Stoke, Anvil and Quench never crit)
-	if not info.is_dot and (id == "ventflames" or Abilities.is_a(id, "fireball")):
-		var fire := fire_crit_rules(id, chance, _talent("fire_tempered_flame"), _talent("fire_tempered_flame", "values2"))
+	fire_fury.store_crit(info, chance)   # Fury is worked out from the chance before the changes below
+	if id == "permafrost" or id == "stoke" or id == "anvil" or id == "quench" or id == "kilnblast":
+		return 0.0                               # (Stoke, Anvil, Quench and Kiln Blast never crit)
+	if not info.is_dot and (id == "ventflames" or id == "embervolley" or Abilities.is_a(id, "fireball")):
+		var ember_pct := _talent("fire_wild_embers") - _talent("fire_damped_embers")
+		var fire := fire_crit_rules(id, chance, _talent("fire_tempered_flame"), _talent("fire_tempered_flame", "values2"), ember_pct)
 		if float(fire[1]) > 0.0:
-			info.add_bonus(float(fire[1]), "Vent Flames" if id == "ventflames" else "Tempered Flame")
+			info.add_bonus(float(fire[1]), "Tempered Flame")
 		chance = float(fire[0])
 	chance = rogue.adjust_crit(info, chance)   # Over the Shoulder (Martial Utility): a sure crit
 	chance = sharp.adjust_crit(info, chance)   # Sharpshooter: Heavy Draw at full Streak, a sure crit
 	chance = frost_steel.adjust_crit(info, chance)   # Frost DPS: Glinting Rime
+	chance = wheel.adjust_crit(info, chance)   # Sharp Fragments (the Wheel's Cracks)
 	var tags: PackedStringArray = info.tags
 	if fire_cooldowns.cool_head_active() and FireCooldownsKit.is_fire_action(tags):
 		return 0.0                               # Cool Head: no Fire crits at all (ticks and Vent Flames included)

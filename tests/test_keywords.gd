@@ -99,9 +99,9 @@ func test_related_goes_both_ways() -> void:
 	# Through "requires", even when the text does not name the ability.
 	var brand := "t:" + Talents.id_for_key("fire_deep_brand")
 	assert_true(Keywords.related("a:brand").has(brand))
-	# Talent to talent.
-	var coals := "t:" + Talents.id_for_key("fire_banked_coals")
-	assert_true(Keywords.related(coals).has("t:" + Talents.id_for_key("fire_afterburn")))
+	# A choice talent (one of the two in a slot), through "requires" too.
+	var damped := "t:" + Talents.id_for_key("fire_damped_embers")
+	assert_true(Keywords.related("a:embervolley").has(damped))
 	assert_false(Keywords.related("a:ventflames").has("a:ventflames"), "never itself")
 
 ## A talent that only works with one ability says so, and takes no points
@@ -113,7 +113,7 @@ func test_single_ability_talents_need_the_ability() -> void:
 	pd.level = 50
 	pd.learned_abilities.clear()
 	# Open its row first (row 2 needs 3 points in row 1).
-	var first := Talents.id_for_key("fire_banked_mana")
+	var first := Talents.id_for_key("fire_stoked_breath")
 	pd.talents = {first: 2, Talents.id_for_key("frost_absorb"): 1}
 	assert_eq(pd.can_invest(id), "Requires Vent Flames to be learned")
 	pd.learned_abilities.append("ventflames")

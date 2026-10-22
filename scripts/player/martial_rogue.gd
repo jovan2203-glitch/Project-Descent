@@ -56,6 +56,8 @@ var _kill_last := ""                 # the Kill form used last in this window
 var _kill_extra := 0.0               # seconds variety has added to this window
 var _kill_flow := 0                  # Flow spent on this window (In the Zone)
 var _double_until := 0.0             # Kick Off: my next throw before this throws two daggers
+var _hitting := ""                   # MELEE / THROWN while a Rogue hit is being dealt (Thrown Weight, Close Work)
+var _cold_read := 0                  # Cold Read: Rogue hits still to build double Flow
 var _whetstone := 0
 var _sure_crit_until := 0.0
 var _dead_until := 0.0
@@ -67,9 +69,9 @@ var _told := 0.0
 # Rules as static functions (tests/test_rogue.gd).
 
 ## Flow after a hit that gives `gain` (`switch`: it came from a different range than my
-## last; `extra`: more for it, In and Out).
-static func flow_after(flow: int, gain: int, switch: bool, extra: int = 0) -> int:
-	return mini(flow + gain + (Balance.FLOW_SWITCH + maxi(extra, 0) if switch else 0), Balance.FLOW_MAX)
+## last; `extra`: more for it, In and Out; `most`: the cap, Deep Flow).
+static func flow_after(flow: int, gain: int, switch: bool, extra: int = 0, most: int = Balance.FLOW_MAX) -> int:
+	return mini(flow + gain + (Balance.FLOW_SWITCH + maxi(extra, 0) if switch else 0), most)
 
 ## Is a hit from `now_range` a range switch after one from `last`?
 static func is_switch(last: String, now_range: String) -> bool:
@@ -91,9 +93,9 @@ static func variety_add(last_form: String, form: String, added: float, extra: fl
 static func in_the_zone_crit(flow: int, per: float) -> float:
 	return float(maxi(flow, 0)) * maxf(per, 0.0)
 
-## Daggers in an enemy after `add` more stick in it.
-static func daggers_after(n: int, add: int) -> int:
-	return clampi(n + add, 0, Balance.DAGGER_MAX)
+## Daggers in an enemy after `add` more stick in it (`most`: the cap, Spare Knives).
+static func daggers_after(n: int, add: int, most: int = Balance.DAGGER_MAX) -> int:
+	return clampi(n + add, 0, most)
 
 ## Flow Whirl / Knife Spread gives for `hit` enemies.
 static func whirl_flow(hit: int) -> int:
@@ -137,6 +139,14 @@ func _now() -> float:
 
 func flow() -> int:
 	return _flow
+
+## Most Flow I can hold (+ Deep Flow).
+func flow_max() -> int:
+	return Balance.FLOW_MAX + int(round(player._talent("martial_deep_flow")))
+
+## Most of my daggers one enemy can hold (+ Spare Knives).
+func dagger_max() -> int:
+	return Balance.DAGGER_MAX + int(round(player._talent("martial_spare_knives")))
 
 func in_kill() -> bool:
 	return _kill_until > _now()
@@ -215,7 +225,7 @@ func _rogue_use(id: String, res: Resource) -> void:
 				for _hand in 2:
 					landed += player.deal_damage(foe, float(res.damage), id)
 				player._slash_effect(_blade_col())
-				_rip(foe, Balance.DAGGER_MAX)
+				_rip(foe, dagger_max())
 				if landed > 0:
 					_landed(MELEE, Balance.TWIN_STAB_FLOW)
 		"whirl", "redwhirl":
@@ -241,8 +251,8 @@ func _rogue_use(id: String, res: Resource) -> void:
 		"goin":
 			_open_kill(window_time(_flow))
 		"hityourstride":
-			_set_flow(Balance.FLOW_MAX)
-			_open_kill(window_time(Balance.FLOW_MAX, Balance.HIT_YOUR_STRIDE_MULT))
+			_set_flow(flow_max())
+			_open_kill(window_time(flow_max(), Balance.HIT_YOUR_STRIDE_MULT))
 		"closeitout":
 			var left := kill_left()
 			_end_kill()
@@ -256,7 +266,11 @@ func _rogue_use(id: String, res: Resource) -> void:
 			_roll_with_it()
 		"snatch":
 			if foe:
-				_snatch(foe, str(SNATCH_ITEMS[randi() % SNATCH_ITEMS.size()]))
+				var picks := SNATCH_ITEMS.duplicate()
+				picks.shuffle()
+				_snatch(foe, str(picks[0]))
+				if randf() * 100.0 < player._talent("martial_light_fingers"):   # Light Fingers: a second thing
+					_snatch(foe, str(picks[1]))
 		"pintheshadow":
 			if foe:
 				_throw_fx(foe)
@@ -281,7 +295,9 @@ func _blade_col() -> Color:
 
 ## A melee hit of mine (`gain` Flow if it lands).
 func _melee_hit(foe: Node3D, coef: float, id: String, gain: int) -> void:
+	_hitting = MELEE
 	var dealt: int = player.deal_damage(foe, coef, id)
+	_hitting = ""
 	player._slash_effect(_blade_col())
 	if dealt > 0:
 		_landed(MELEE, gain)
@@ -295,7 +311,10 @@ func _throw(foe: Node3D, coef: float, id: String, n: int, gain: int, picture_onl
 			break
 		if i == 0 or not picture_only_once:
 			_throw_fx(foe)
-		if player.deal_damage(foe, coef, id) > 0:
+		_hitting = THROWN
+		var hit_now := player.deal_damage(foe, coef, id)
+		_hitting = ""
+		if hit_now > 0:
 			landed += 1
 	if landed > 0:
 		_stick(foe, landed)
@@ -315,7 +334,7 @@ func _stick(e: Node3D, n: int) -> void:
 		return
 	var key := e.get_instance_id()
 	var have := daggers_in(e)
-	_daggers[key] = {"e": e, "n": daggers_after(have, n), "until": _now() + Balance.DAGGER_TIME}
+	_daggers[key] = {"e": e, "n": daggers_after(have, n, dagger_max()), "until": _now() + Balance.DAGGER_TIME}
 	_show_daggers(e)
 
 ## Rip up to `most` of my daggers out of `e`: each deals DAGGER_RIP ("Ripped Out").
@@ -336,12 +355,17 @@ func _show_daggers(e: Node3D) -> void:
 ## A Rogue hit landed from `where`: Flow (none in a Kill window).
 func _landed(where: String, gain: int) -> void:
 	var switch := is_switch(_last_range, where)
+	if switch:
+		player._gain("energy", player._talent("martial_footloose"))   # Footloose
 	_last_range = where
 	_flow_at = _now()
 	_decay_at = _flow_at + Balance.FLOW_HOLD + player._talent("martial_steady_pace")   # + Steady Pace
 	if in_kill():
 		return
-	_set_flow(flow_after(_flow, gain, switch, int(round(player._talent("martial_in_and_out")))))   # In and Out
+	if _cold_read > 0:
+		_cold_read -= 1
+		gain *= 2   # Cold Read: after a Kill window
+	_set_flow(flow_after(_flow, gain, switch, int(round(player._talent("martial_in_and_out"))), flow_max()))   # In and Out
 
 ## Whirl / Red Whirl: everyone around me, or Knife Spread with nobody close.
 func _whirl(id: String, res: Resource) -> void:
@@ -352,7 +376,7 @@ func _whirl(id: String, res: Resource) -> void:
 		for e in foes:
 			if player.deal_damage(e, float(res.damage) * share, id) > 0:
 				hit += 1
-			_rip(e, Balance.DAGGER_MAX)
+			_rip(e, dagger_max())
 		player._ring_effect(float(res.radius), _blade_col())
 		if hit > 0:
 			_landed(MELEE, whirl_flow(hit))
@@ -361,7 +385,10 @@ func _whirl(id: String, res: Resource) -> void:
 	var hit2 := 0
 	for e in _spread_targets():
 		_throw_fx(e)
-		if player.deal_damage(e, coef, id) > 0:
+		_hitting = THROWN
+		var spread_hit := player.deal_damage(e, coef, id)
+		_hitting = ""
+		if spread_hit > 0:
 			hit2 += 1
 			_stick(e, 1)
 	if hit2 > 0:
@@ -437,19 +464,21 @@ func _face(at: Vector3) -> void:
 # --- The Kill -------------------------------------------------------------------------
 
 func _set_flow(n: int) -> void:
-	_flow = clampi(n, 0, Balance.FLOW_MAX)
+	_flow = clampi(n, 0, flow_max())
 	_show_flow()
 
 func _open_kill(time: float) -> void:
 	_kill_flow = _flow   # (In the Zone counts it through the window)
 	_set_flow(0)
-	_kill_until = _now() + time
+	_kill_until = _now() + time + player._talent("martial_hot_start")   # + Hot Start
 	_kill_last = ""
 	_kill_extra = 0.0
 	_show_kill()
 	player._ring_effect(1.6, RogueIcons.KILL)
 
 func _end_kill() -> void:
+	if _kill_until > 0.0:
+		_cold_read = int(round(player._talent("martial_cold_read")))   # Cold Read
 	_kill_until = 0.0
 	_kill_last = ""
 	if player.status:
@@ -478,7 +507,7 @@ func _show_flow() -> void:
 		player.status.remove(FLOW_FX)
 		return
 	if not player.status.has(FLOW_FX):
-		var fx := StatusContainer.make_buff(FLOW_FX, "Flow", FLOW_FX, 0.0, 3600.0, Balance.FLOW_MAX, RogueIcons.FLOW)
+		var fx := StatusContainer.make_buff(FLOW_FX, "Flow", FLOW_FX, 0.0, 3600.0, Balance.FLOW_MAX + 2, RogueIcons.FLOW)   # (+2: Deep Flow)
 		fx.stat_modifiers = {}
 		fx.tags = PackedStringArray(["Physical"])
 		fx.description = "You deal %s%% more damage per stack. Go In spends it on a Kill window." % Stats.num(Balance.FLOW_PCT)
@@ -627,6 +656,20 @@ func _on_damage_modify(info: RefCounted) -> void:
 		return
 	if _flow > 0:
 		info.add_bonus(Balance.FLOW_PCT * float(_flow), "Flow")
+	if not info.is_dot and not str(info.ability_id).begins_with("auto_"):
+		# Thrown Weight / Close Work: where the hit came from (a Rogue throw, or any melee ability).
+		if _hitting == THROWN:
+			var thrown := player._talent("martial_thrown_weight")
+			if thrown > 0.0:
+				info.add_bonus(thrown, "Thrown Weight")
+		elif info.tags.has("Melee") and info.tags.has("Ability"):
+			var close := player._talent("martial_close_work")
+			if close > 0.0:
+				info.add_bonus(close, "Close Work")
+	# Easy Pickings: an enemy carrying enough of my daggers.
+	var pick := player._talent("martial_easy_pickings")
+	if pick > 0.0 and is_instance_valid(info.target) and daggers_in(info.target) >= Balance.EASY_PICKINGS_DAGGERS:
+		info.add_bonus(pick, "Easy Pickings")
 	if _whetstone > 0 and not info.is_dot:
 		info.add_bonus(Balance.WHETSTONE_PCT, SNATCH_NAMES["whetstone"])
 		_whetstone -= 1
@@ -644,7 +687,10 @@ func _on_damage_dealt_rogue(info: RefCounted) -> void:
 		_get_up()
 	if info.crit and not info.is_dot and in_kill() \
 			and (Abilities.ROGUE_IDS.has(str(info.ability_id)) or str(info.ability_id) == RIP_ID):
-		player._gain("energy", Balance.KILL_CRIT_ENERGY)
+		player._gain("energy", Balance.KILL_CRIT_ENERGY + player._talent("martial_fresh_legs"))   # + Fresh Legs
+	elif info.crit and not info.is_dot and not in_kill() and Abilities.ROGUE_IDS.has(str(info.ability_id)):
+		if randf() * 100.0 < player._talent("martial_pressure_point"):   # Pressure Point
+			_set_flow(_flow + 1)
 
 # --- Every frame ----------------------------------------------------------------------
 
@@ -686,7 +732,7 @@ func _sync() -> void:
 		return
 	_shown = want
 	if player.is_inside_tree():
-		RogueFx.show_flow(player, _flow if want != "" else 0, Balance.FLOW_MAX, in_kill() and want != "")
+		RogueFx.show_flow(player, _flow if want != "" else 0, flow_max(), in_kill() and want != "")
 	_tell()
 
 func _tell() -> void:

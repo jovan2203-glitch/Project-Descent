@@ -470,6 +470,7 @@ const HIT_NAMES := {
 	"afterglow": "Afterglow",
 	"slag_shatter": "Slag Shatter",
 	"dot_smoldering_debris": "Smoldering Debris",
+	"dot_blowback": "Blowback",
 	"slag_mending": "Slag Mending",
 	"splintering": "Splintering",
 	"permafrost": "Permafrost",
@@ -514,6 +515,8 @@ const HIT_NAMES := {
 	"splinterheal": "Splinterheal",
 	"evergreen": "Evergreen",
 	"catchyourbreath": "Catch Your Breath",
+	"getup": "Get Up",
+	"secondarrow": "Second Arrow",
 	"stomproots": "Stomp Roots",
 	"giantsslam": "Giant's Slam",
 	"sap": "Sap",
@@ -579,7 +582,7 @@ static func spell_color(id: String) -> Color:
 	match base:
 		"auto_melee", "auto_ranged":
 			return Color(0.75, 0.72, 0.66)
-		"burning", "afterglow", "slag_mending", "slag_shatter", "smoldering_debris":
+		"burning", "afterglow", "slag_mending", "slag_shatter", "smoldering_debris", "blowback":
 			return Abilities.color_of("fireball")
 		"chilled", "frozen", "frozen_shatter", "splintering", "permafrost", "deepfreeze", "icefloe", "rimeshards", "runoff", "splinterheal", "hoar_blade":
 			return Abilities.color_of("frostbolt")
@@ -605,6 +608,10 @@ static func spell_color(id: String) -> Color:
 			return Abilities.RogueIcons.STEEL   # (Martial DPS: daggers ripped out)
 		"oiljar":
 			return Color(1.0, 0.5, 0.15)   # (Martial DPS: Snatch)
+		"getup":
+			return Abilities.BrawlerIcons.ELBOW   # (Martial tank: Get Up)
+		"secondarrow":
+			return Color(0.85, 0.8, 0.65)   # (Martial archer: Second Arrow)
 		"catchyourbreath":
 			return Color(0.55, 1.0, 0.6)   # (Martial, open talent)
 		"poisoned":

@@ -3,110 +3,7 @@ class_name FireCasterKit
 
 # Moved out of scripts/player.gd as it was (player = the player node). Hooked up from
 # player.gd through its var "fire_caster".
-# --- Slow Fuse: a charge that grows with your hits, then explodes ---------------------
-# One charge per enemy. It explodes SLOW_FUSE_TIME seconds after it was planted
-# for the ability's damage + SLOW_FUSE_GROW per growth. Your direct hits on
-# that enemy grow it (not damage over time, not the explosion itself): without
-# the Volatile Fuse talent every hit that doesn't crit does; the talent moves
-# that over to Fire crits (fuse_grow_chance). Planting again on the same enemy
-# sets the old charge off first.
-
-const FUSE_FX_ID := "slow_fuse"
-var _fuses := {}   # enemy instance id -> {"target": Node3D, "grows": int, "at": explode time, "base": float}
-
-## Chance (%) that a direct hit grows your Slow Fuse. `talent_pct` = Volatile Fuse (0 = not taken).
-static func fuse_grow_chance(crit: bool, is_fire: bool, talent_pct: float) -> float:
-	if crit:
-		return talent_pct if is_fire else 0.0
-	return clampf(100.0 - talent_pct, 0.0, 100.0)
-
-## The explosion (as a coefficient) of a charge that grew `grows` times.
-static func fuse_size(base: float, grows: int) -> float:
-	return base + Balance.SLOW_FUSE_GROW * clampi(grows, 0, Balance.SLOW_FUSE_MAX_GROWS)
-
-func _plant_fuse(tgt: Node3D) -> void:
-	if tgt == null or not is_instance_valid(tgt) or not tgt.is_alive():
-		return
-	var key := tgt.get_instance_id()
-	if _fuses.has(key):
-		_explode_fuse(key)   # the old charge goes off now
-		if not is_instance_valid(tgt) or not tgt.is_alive():
-			return
-	_fuses[key] = {"target": tgt, "grows": 0, "base": float(Abilities.get_resource("slowfuse").damage),
-		"at": Time.get_ticks_msec() / 1000.0 + Balance.SLOW_FUSE_TIME}
-	# The debuff shows the charge and its size to the whole party.
-	_apply_effect_hit(tgt, preload("res://scripts/core/effects.gd").get_effect(FUSE_FX_ID), "slowfuse",
-		PackedStringArray(["Fire", "Spell"]))
-	player._ring_effect(0.8, Abilities.color_of("slowfuse"), tgt.global_position)
-
-## A direct hit of mine landed (called for every one): it may grow the charge on that enemy.
-func _fuse_on_hit(info: RefCounted) -> void:
-	if _fuses.is_empty() or int(info.amount) <= 0 or str(info.ability_id) == "slowfuse":
-		return
-	if int(info.part) == 1:
-		return   # a split hit (Frostfire Bolt) is one hit: its Fire half is the one that counts here
-	if info.target == null or not is_instance_valid(info.target):
-		return
-	var key: int = info.target.get_instance_id()
-	if not _fuses.has(key):
-		return
-	var f: Dictionary = _fuses[key]
-	if int(f["grows"]) >= Balance.SLOW_FUSE_MAX_GROWS:
-		return
-	var chance := fuse_grow_chance(bool(info.crit), str(info.damage_type) == "fire", player._talent("fire_fuse_crit"))
-	if chance <= 0.0 or randf() * 100.0 >= chance:
-		return
-	f["grows"] = int(f["grows"]) + 1
-	var net := player._net()
-	if net:
-		net.set_effect_stacks(info.target, player, FUSE_FX_ID, int(f["grows"]) + 1)   # enemy effects live on the host
-	else:
-		var st: Node = info.target.get_node_or_null("Status")
-		if st:
-			st.set_stacks_from(FUSE_FX_ID, player, int(f["grows"]) + 1)
-
-func _tick_fuses() -> void:
-	if _fuses.is_empty():
-		return
-	var now := Time.get_ticks_msec() / 1000.0
-	for key in _fuses.keys():
-		var f: Dictionary = _fuses[key]
-		if not is_instance_valid(f["target"]) or not f["target"].is_alive():
-			_fuses.erase(key)
-		elif now >= float(f["at"]):
-			_explode_fuse(key)
-
-func _explode_fuse(key: int) -> void:
-	var f: Dictionary = _fuses[key]
-	_fuses.erase(key)
-	var tgt: Variant = f["target"]
-	if not is_instance_valid(tgt) or not tgt.is_alive():
-		return
-	var net := player._net()
-	if net:
-		net.remove_effect(tgt, player, FUSE_FX_ID)
-	else:
-		var st: Node = tgt.get_node_or_null("Status")
-		if st:
-			st.remove_from(FUSE_FX_ID, player)
-	player._ring_effect(1.6, Abilities.color_of("slowfuse"), tgt.global_position)
-	player._ring_effect(0.9, Color(1.0, 0.9, 0.4), tgt.global_position)
-	_flashover(tgt)   # (before the blast: the target may not survive it)
-	player.deal_damage(tgt, fuse_size(float(f["base"]), int(f["grows"])), "slowfuse", true)
-
-## Flashover talent: Slow Fuse going off on a target with my Immolate may set
-## each other enemy near it alight too.
-func _flashover(tgt: Node3D) -> void:
-	var chance := player._talent("fire_flashover")
-	if chance <= 0.0:
-		return
-	var st: Node = tgt.get_node_or_null("Status")
-	if st == null or not st.has_from("immolate", player):
-		return
-	for e in player._enemies_near(tgt.global_position, Balance.IMMOLATE_SPREAD_RADIUS, tgt):
-		if randf() * 100.0 < chance:
-			player.deal_damage(e, 0.0, "immolate", true)   # no damage: just its on-hit effect
-			player._ring_effect(0.7, Abilities.color_of("immolate"), e.global_position)
+# --- Shared: a status effect put on an enemy as a hit -------------------------------
 
 ## Put status effect `res` on an enemy as a hit with no damage. It goes through
 ## the combat pipeline, so in a party it reaches the host (who owns enemy
@@ -123,40 +20,6 @@ func _apply_effect_hit(e: Node, res: Resource, ability_id: String, tags: PackedS
 	info.can_block = false
 	info.effects.append(res)
 	player._combat().deal(info)
-
-# --- Rekindle: refresh my burns around the target ------------------------------------
-
-## Enemies within REKINDLE_RADIUS of `tgt` (and `tgt` itself) that carry one of my burns.
-func _rekindle_targets(tgt: Node3D) -> Array:
-	var out: Array = []
-	if tgt == null or not is_instance_valid(tgt):
-		return out
-	var around: Array = [tgt]
-	around.append_array(player._enemies_near(tgt.global_position, Balance.REKINDLE_RADIUS, tgt))
-	for e in around:
-		var st: Node = e.get_node_or_null("Status")
-		if st == null:
-			continue
-		for fx_id in Balance.REKINDLE_EFFECTS:
-			if st.has_from(str(fx_id), player):
-				out.append(e)
-				break
-	return out
-
-func _rekindle(tgt: Node3D) -> void:
-	var Effects = preload("res://scripts/core/effects.gd")
-	for e in _rekindle_targets(tgt):
-		var st: Node = e.get_node_or_null("Status")
-		for fx_id in Balance.REKINDLE_EFFECTS:
-			var res: Resource = Effects.get_effect(str(fx_id))
-			if res == null or not st.has_from(str(fx_id), player):
-				continue
-			# Applying my own burn again starts it over at full duration.
-			var entry: Dictionary = st.effects.get(StatusContainer.key_for(res, player), {})
-			_apply_effect_hit(e, res, "rekindle", entry.get("tags", PackedStringArray()))
-		player._ring_effect(0.7, Abilities.color_of("rekindle"), e.global_position)
-	if is_instance_valid(tgt):
-		player._ring_effect(Balance.REKINDLE_RADIUS, Abilities.color_of("rekindle"), tgt.global_position)
 
 # --- Wall of Fire -----------------------------------------------------------------------
 # A cast: the wall goes across your target (if you have one in range and in
@@ -293,40 +156,14 @@ func _pressure_valve(info: RefCounted) -> void:
 	_valve_last = key
 	_vent_reduce(cut)
 
-var _banked_mana_last := ""   # "<ability>@<frame>" of the last spell that fed Banked Mana
-
-## Mana a spell that cost `cost` gives back with Banked Mana at `pct` percent.
-static func banked_mana_refund(cost: float, pct: float) -> float:
-	return maxf(cost, 0.0) * maxf(pct, 0.0) / 100.0
-
-## Banked Mana talent: a Fire spell of mine just failed to crit, so part of its
-## mana cost comes back. Once per use, however many enemies it hit (an Ember
-## Volley counts once); not procs, not ticks, not spells that cost no mana.
-func _banked_mana(info: RefCounted) -> void:
-	var pct := player._talent("fire_banked_mana")
-	if pct <= 0.0 or info.is_proc:
-		return
-	var id := str(info.ability_id)
-	if Abilities.resource_of(id) != "mana":
-		return
-	var key := "%s@%d" % [id, Engine.get_process_frames()]
-	if id == "embervolley":
-		key = "embervolley#%d" % _volley_serial
-	if key == _banked_mana_last:
-		return
-	_banked_mana_last = key
-	var back := banked_mana_refund(player.resource_cost(id), pct)
-	if back > 0.0:
-		player._gain("mana", back)
-
-## Is one of my burns (Balance.REKINDLE_EFFECTS: Immolate, Burning) on `enemy`? (Warm Blood)
+## Is one of my burns (Balance.FIRE_BURNS: Immolate, Burning) on `enemy`? (Warm Blood)
 func _my_burn_on(enemy: Variant) -> bool:   # untyped: may be a freed enemy
 	if enemy == null or not is_instance_valid(enemy) or not (enemy is Node):
 		return false
 	var st: Node = enemy.get_node_or_null("Status")
 	if st == null:
 		return false
-	for fx_id in Balance.REKINDLE_EFFECTS:
+	for fx_id in Balance.FIRE_BURNS:
 		if st.has_from(str(fx_id), player):
 			return true
 	return false
@@ -356,20 +193,6 @@ func charges_text(id: String) -> String:
 		var running := mini(player.arcane_caster.arcane_cooldowns(ArcaneCasterKit.CONVERGENCE_ID), Balance.CONVERGENCE_MAX)
 		return str(running) if running > 0 else ""
 	return ""
-
-# --- Banked Coals (Fire talent) ----------------------------------------------------------
-
-## Stacks left after `stacks` are spent with Banked Coals at `pct` percent (rounded down).
-static func banked_stacks(stacks: int, pct: float) -> int:
-	return int(floor(stacks * pct / 100.0 + 0.0001))
-
-## The StatusContainer asks when a "consume on use" buff of mine is used up:
-## Banked Coals keeps part of the Smoldering Focus / Afterburn stacks.
-func stacks_kept_on_use(res: Resource, stacks: int) -> int:
-	var id := str(res.id)
-	if id != "smoldering_focus" and id != "afterburn":
-		return 0
-	return banked_stacks(stacks, player._talent("fire_banked_coals"))
 
 # --- Ember Volley (Fire channel) ------------------------------------------------------
 # A channel that launches EMBER_VOLLEY_HITS embers, spread evenly over it (so

@@ -29,6 +29,7 @@ const KICKED_DOWN_FX := "kicked_down"
 const TAKEN_DOWN_FX := "taken_down"
 const REVERSAL_ID := "reversal"          # Throw on a boss (its own meter line: Details.HIT_NAMES)
 const CATCH_ID := "catch"
+const GET_UP_ID := "getup"               # Get Up's heal (its own meter line: Details.HIT_NAMES)
 const BRAWLER_TAGS := ["Ability", "Physical", "Melee"]
 ## The buttons (the moves have none).
 const BUTTONS := ["punch", "brawlkick", "elbow", "catch", "onemore", "toughitout", "comeon", "fightingstyle"]
@@ -54,6 +55,7 @@ var _last_move := ""              # One More repeats it ...
 var _last_caught_enemy: Node = null   # ... with its caught hit
 var _last_caught_amount := 0
 var _was_in_combat := false
+var _ground_more := 0.0           # Ground Game: seconds on the knockdown being applied now
 var _shown := ""
 var _told := 0.0
 
@@ -192,6 +194,7 @@ func _brawler_use(id: String, res: Resource) -> void:
 			if player._has_valid_target():
 				player.deal_damage(player.target, float(res.damage), id)
 				_strike_look(id)
+			player._gain("fury", player._talent("martial_quick_feet"))   # Quick Feet
 			_add_input(id)
 		CATCH_ID:
 			var foe: Node = player.target
@@ -261,6 +264,7 @@ func _do_move(move: String, again: bool) -> void:
 				player._gain("fury", -Balance.HAYMAKER_FURY)
 				_hit(foe, float(res.damage), move)
 				player._ring_effect(1.2, BrawlerIcons.GOLD, foe.global_position if foe else Vector3.INF)
+				_clear_bruise(player._talent("martial_last_laugh"))   # Last Laugh
 			else:
 				done = "rapidfists"   # no Fury for it
 				_hit(foe, float(Abilities.get_resource("rapidfists").damage), "rapidfists")
@@ -268,10 +272,13 @@ func _do_move(move: String, again: bool) -> void:
 			var reach := float(res.radius) + Abilities.radius_bonus(move)   # + Wide Stance
 			var foes: Array = player._enemies_within(reach)
 			var share := Balance.aoe_share(foes.size())
+			var landed := 0
 			for e in foes:
-				player.deal_damage(e, float(res.damage) * share, move)
+				if player.deal_damage(e, float(res.damage) * share, move) > 0:
+					landed += 1
 				if move == "roundhouse":
 					_knock(e, KICKED_DOWN_FX, move)
+			player._gain("fury", crowd_work_fury(landed, player._talent("martial_crowd_work")))   # Crowd Work
 			player._ring_effect(reach, BrawlerIcons.KICK)
 		"clinch":
 			if foe:
@@ -284,10 +291,15 @@ func _do_move(move: String, again: bool) -> void:
 			_bruise *= 1.0 - shake_off_pct(player.frost_melee._capstone("martial_soak_it_up")) / 100.0   # (Soak It Up's capstone)
 			player._ring_effect(1.5, BrawlerIcons.ELBOW)
 			_show_bruise()
+			player._gain("fury", player._talent("martial_back_up"))   # Back Up
+			var heal := float(player.max_health) * player._talent("martial_get_up") / 100.0   # Get Up
+			if heal >= 1.0:
+				player.strings._heal_exact(player, int(round(heal)), GET_UP_ID)
 		"turnitaround":
 			if foe and caught > 0:
 				var info = player._combat().ability_hit_info(player, foe, 1.0, move)
-				info.unit = float(caught) * Balance.TURN_IT_AROUND_PCT / 100.0 * player.outgoing_damage_mult()   # (exact: the tank rule by hand)
+				info.unit = float(caught) * Balance.TURN_IT_AROUND_PCT / 100.0 * player.outgoing_damage_mult() \
+					* (1.0 + player._talent("martial_counter_puncher") / 100.0)   # (exact: the tank rule and Counter Puncher by hand)
 				info.exact = true
 				info.add_power = false
 				info.can_block = false
@@ -310,11 +322,32 @@ func _hit(foe: Node, coef: float, id: String) -> void:
 	if foe != null:
 		player.deal_damage(foe, coef, id)
 
-## Knock `e` down (never a boss).
+## Knock `e` down (never a boss). Ground Game keeps Throw's and Takedown's down longer.
 func _knock(e: Node, fx_id: String, from_id: String) -> void:
 	if e == null or not is_instance_valid(e) or not e.is_alive() or str(e.get("rank")) == "boss":
 		return
+	_ground_more = player._talent("martial_ground_game") if (from_id == "throw" or from_id == "takedown") else 0.0
 	player.fire_caster._apply_effect_hit(e, Effects.get_effect(fx_id), from_id, PackedStringArray(BRAWLER_TAGS), "physical")
+	_ground_more = 0.0
+
+## Extra seconds on an effect I am applying right now (Player.effect_duration_bonus): Ground Game.
+func duration_bonus(_res: Resource) -> float:
+	return _ground_more
+
+## Last Laugh: clear `pct` % of my Bruise.
+func _clear_bruise(pct: float) -> void:
+	if pct <= 0.0 or _bruise <= 0.0:
+		return
+	_bruise *= 1.0 - clampf(pct, 0.0, 100.0) / 100.0
+	_show_bruise()
+
+## Crowd Work: Fury a Sweep / Roundhouse that hit `hit` enemies gives at `per` each.
+static func crowd_work_fury(hit: int, per: float) -> float:
+	return float(clampi(hit, 0, Balance.CROWD_WORK_MAX)) * maxf(per, 0.0)
+
+## Hardened: does a Bruise of `bruise` count with `max_health`?
+static func hardened_on(bruise: float, max_health: float) -> bool:
+	return max_health > 0.0 and bruise / max_health * 100.0 > Balance.HARDENED_BRUISE_PCT
 
 ## Throw: the caught enemy flies away from me and knocks down where it lands. A boss: Reversal.
 func _throw(foe: Node, res: Resource) -> void:
@@ -374,11 +407,21 @@ func before_hit_lands(info: RefCounted) -> void:
 	_landing_caught = true
 	_catch_enemy = null
 
-## How much less I take from `info` (Clinch): [percent, label] or [].
+## How much less I take from `info` (Clinch, Iron Chin, Hardened): [percent, label] or [].
 func incoming_bonus(info: RefCounted) -> Array:
-	if _clinched != null and is_instance_valid(_clinched) and info.source == _clinched and _now() < _clinch_until:
-		return [-Balance.CLINCH_PCT, Abilities.ability_name("clinch")]
-	return []
+	var pct := 0.0
+	var label := ""
+	var clinching := _clinched != null and is_instance_valid(_clinched) and _now() < _clinch_until
+	if clinching and info.source == _clinched:
+		pct += Balance.CLINCH_PCT
+		label = Abilities.ability_name("clinch")
+	if clinching:
+		pct += player._talent("martial_iron_chin")   # Iron Chin: from every enemy while I clinch one
+	if is_out() and hardened_on(_bruise, float(player.max_health)):
+		pct += player._talent("martial_hardened")    # Hardened: while my Bruise is big
+	if pct <= 0.0:
+		return []
+	return [-pct, label if label != "" else "Brawler"]
 
 ## take_damage: what of `amount` lands now; the rest goes into Bruise. The caught hit
 ## lands in full, and so do Bruise's own ticks.
@@ -396,7 +439,7 @@ func bruise_take(amount: int) -> int:
 	var split := bruise_split(amount, pct)
 	if int(split[1]) > 0:
 		_bruise += float(split[1])
-		_bruise_left = Balance.BRUISE_TIME
+		_bruise_left = Balance.BRUISE_TIME + player._talent("martial_slow_burn")   # + Slow Burn
 		if _bruise_tick <= 0.0:
 			_bruise_tick = Balance.BRUISE_TICK
 		_show_bruise()
@@ -452,7 +495,7 @@ func _tick_bruise() -> void:
 		amt += _bruise
 		_bruise = 0.0
 	var tough := _now() < _tough_until
-	player._gain("fury", bruise_fury(amt, float(player.max_health), tough))
+	player._gain("fury", bruise_fury(amt, float(player.max_health), tough) * (1.0 + player._talent("martial_calluses") / 100.0))   # + Calluses
 	if tough:
 		return   # Tough It Out: it doesn't hurt
 	_bruise_carry += scarred(amt, player._talent("martial_scar_tissue"))   # Scar Tissue

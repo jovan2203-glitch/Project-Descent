@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"hair_trigger"
 display_name = "Rune of the Hair Trigger"
-description = "{n:ventflames} has {b:HAIR_TRIGGER_CHARGES} charges. Each charge recharges on its own, one after the other."
+description = "{n:ventflames} has {b:HAIR_TRIGGER_CHARGES} charges, recharging one after the other, but each spends only half your Fury (and deals its bonus for what it spent)."
 color = Color(1, 0.55, 0.2, 1)
 rarity = 2
 unlock_level = 10

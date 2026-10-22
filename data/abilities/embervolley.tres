@@ -6,14 +6,14 @@
 script = ExtResource("1_s")
 id = &"embervolley"
 display_name = "Ember Volley"
-description = "Channels a volley of {b:EMBER_VOLLEY_HITS} embers at the target over {cast} sec, each dealing {hit} Fire damage. Every ember can critically strike on its own."
+description = "Channels a volley of {b:EMBER_VOLLEY_HITS} embers at the target over {cast} sec, each dealing {hit} Fire damage. Every ember can critically strike on its own, and each one that does not gives you a third as much Fury as a spell."
 tags = PackedStringArray("Fire", "Spell", "Projectile")
 cast_type = 2
 cast_time = 3.0
 cooldown = 12.0
 requires_target = true
-resource_type = 1
-resource_cost = 3
+resource_type = 3
+resource_cost = 0
 damage = 0.35
 cast_range = 30.0
 tick_interval = 0.5

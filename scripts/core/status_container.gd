@@ -692,7 +692,7 @@ func collect_damage_mods(info: RefCounted, incoming: bool) -> void:
 			_consume_queue[id] = true
 
 ## A "consume on use" effect was used: it ends, unless its carrier keeps some
-## of the stacks (stacks_kept_on_use(res, stacks) -> int; Banked Coals).
+## of the stacks (stacks_kept_on_use(res, stacks) -> int; nothing uses it right now).
 func _use_up(id: String) -> void:
 	var e: Dictionary = effects[id]
 	var stacks := int(e["stacks"])

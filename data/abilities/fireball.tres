@@ -7,14 +7,14 @@
 script = ExtResource("1_s")
 id = &"fireball"
 display_name = "Firebolt"
-description = "Hurls a bolt of fire at the target, dealing {hit} Fire damage and Burning it for {dot} Fire damage {fx_every} for {fx_time} sec."
+description = "Hurls a bolt of fire at the target, dealing {hit} Fire damage and Burning it for {dot} Fire damage {fx_every} for {fx_time} sec. Gives you Fury if it does not critically strike."
 tags = PackedStringArray("Fire", "Spell", "Projectile")
 cast_type = 1
 cast_time = 2.0
 cooldown = 0.0
 requires_target = true
-resource_type = 1
-resource_cost = 1
+resource_type = 3
+resource_cost = 0
 damage = 1.25
 cast_range = 20.0
 on_hit_effect = ExtResource("2_fx")

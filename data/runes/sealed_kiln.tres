@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"sealed_kiln"
+display_name = "Rune of the Sealed Kiln"
+description = "Your critical strikes no longer Vent your Fury, but your Fire spells give you {b:SEALED_KILN_PCT}% less of it."
+color = Color(0.85, 0.42, 0.2, 1)
+rarity = 2
+unlock_level = 10
+trigger = 6

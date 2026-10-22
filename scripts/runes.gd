@@ -24,6 +24,7 @@ const PATHS := {
 	"dull_edge": "res://data/runes/dull_edge.tres",
 	"dull_mind": "res://data/runes/dull_mind.tres",
 	"hair_trigger": "res://data/runes/hair_trigger.tres",
+	"sealed_kiln": "res://data/runes/sealed_kiln.tres",
 	"level_head": "res://data/runes/level_head.tres",
 	# Rune spells (PASSIVE: the rune teaches a spell while it is on your gear, see TEACHES)
 	"frostfire_bolt": "res://data/runes/frostfire_bolt.tres",
@@ -69,7 +70,7 @@ const PATHS := {
 }
 const ALL := ["frost", "fury", "swiftness", "warding", "stormfire", "frostbound_insight",
 	"permafrost", "cold_precision", "frozen_aegis", "everlasting_rime", "ice_shelf", "hoar_blade", "lone_floe",
-	"dull_edge", "dull_mind", "hair_trigger", "level_head", "frostfire_bolt", "polarity", "resonance", "bottled_lightning", "afterimage", "momentum", "carried_sigil", "two_way_mirror", "open_wound", "rot", "long_fall", "overload", "dusk_till_dawn", "resounding", "overture", "bright_burst", "fourth_facet",
+	"dull_edge", "dull_mind", "hair_trigger", "sealed_kiln", "level_head", "frostfire_bolt", "polarity", "resonance", "bottled_lightning", "afterimage", "momentum", "carried_sigil", "two_way_mirror", "open_wound", "rot", "long_fall", "overload", "dusk_till_dawn", "resounding", "overture", "bright_burst", "fourth_facet",
 	"menace_physical", "menace_fire", "menace_frost", "menace_lightning", "menace_arcane",
 	"menace_shadow", "menace_nature", "menace_holy"]
 
@@ -325,6 +326,14 @@ static func draw_glyph(c: CanvasItem, center: Vector2, r: float, id: String) -> 
 				var at := center + Vector2(sx * r * 0.2, r * 0.1)
 				c.draw_polyline(PackedVector2Array([at + Vector2(-r * 0.14, r * 0.3), at + Vector2(0, -r * 0.4),
 					at + Vector2(r * 0.14, r * 0.3), at + Vector2(-r * 0.14, r * 0.3)]), col, w)
+		"sealed_kiln":
+			# A kiln's arched mouth barred shut, a small flame kept inside
+			c.draw_arc(center + Vector2(0, r * 0.2), r * 0.4, PI, TAU, 12, col, w)
+			c.draw_line(center + Vector2(-r * 0.4, r * 0.2), center + Vector2(-r * 0.4, r * 0.5), col, w)
+			c.draw_line(center + Vector2(r * 0.4, r * 0.2), center + Vector2(r * 0.4, r * 0.5), col, w)
+			c.draw_polyline(PackedVector2Array([center + Vector2(-r * 0.12, r * 0.4), center + Vector2(0, -r * 0.05),
+				center + Vector2(r * 0.12, r * 0.4), center + Vector2(-r * 0.12, r * 0.4)]), Color(1.0, 0.75, 0.3), w)
+			c.draw_line(center + Vector2(-r * 0.5, r * 0.15), center + Vector2(r * 0.5, r * 0.15), Color(0.95, 0.92, 0.85), w * 1.3)
 		"frostfire_bolt":
 			# Half snowflake, half flame
 			var ice := Color(0.6, 0.9, 1.0)

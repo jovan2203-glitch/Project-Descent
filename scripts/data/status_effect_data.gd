@@ -26,7 +26,7 @@ enum StackMode {
 @export var stack_mode: StackMode = StackMode.REFRESH
 @export var max_stacks: int = 1
 ## Every caster has their own copy on the target (damage over time always
-## does). For effects that belong to one player, like a Slow Fuse charge.
+## does). For effects that belong to one player, like a Countdown mark.
 @export var per_caster: bool = false
 ## The stack count is an amount of damage, not a number of stacks (Decay: what
 ## it still has to deal). Icons show it as a number ("1.2k") and their tooltips

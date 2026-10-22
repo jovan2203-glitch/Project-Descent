@@ -98,12 +98,14 @@ func deal(info: RefCounted) -> RefCounted:
 		crit_chance = float(src.adjust_crit(info, crit_chance))
 	var can_crit: bool = info.can_crit and src_ok
 	info.crit = can_crit and roll_crit < crit_chance
-	# The attacker may make a crit hit harder (crit_hit_bonus(info) -> [pct, label]
-	# or []; Ill Will). Asked for exact hits too, which skip the modifiers below.
+	# The attacker may make a crit hit harder (crit_hit_bonus(info) -> [pct, label,
+	# pct, label, ...] or []; Ill Will, Keen Edge, Keen Strikes: each its own line).
+	# Asked for exact hits too, which skip the modifiers below.
 	if info.crit and src.has_method("crit_hit_bonus"):
 		var cb: Array = src.crit_hit_bonus(info)
-		if cb.size() >= 2 and float(cb[0]) > 0.0:
-			info.add_bonus(float(cb[0]), str(cb[1]))
+		for i in range(0, cb.size() - 1, 2):
+			if float(cb[i]) > 0.0:
+				info.add_bonus(float(cb[i]), str(cb[i + 1]))
 	# 2. Spell Power / Attack Power (60/20 for spells, 20/60 for abilities;
 	#    DoT ticks get a share of it).
 	var power := 0.0

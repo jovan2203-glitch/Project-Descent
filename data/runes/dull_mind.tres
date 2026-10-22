@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"dull_mind"
 display_name = "Rune of the Dull Mind"
-description = "Your critical strike chance cannot go above {b:DULL_EDGE_CRIT_CAP}%. All critical strike chance beyond that becomes Spell Power instead. Effects that always critically strike still do."
+description = "Your critical strike chance cannot go above {b:DULL_EDGE_CRIT_CAP}%. All critical strike chance beyond that becomes Spell Power instead. Effects that always critically strike still do. Your Fire spells give you Fury as if your critical strike chance were not capped."
 color = Color(0.62, 0.66, 0.78, 1)
 rarity = 2
 unlock_level = 10

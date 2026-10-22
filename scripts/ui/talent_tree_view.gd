@@ -26,6 +26,7 @@ var _title: Label
 var _canvas: Control
 var _cells := {}      # talent id -> Panel
 var _cell := 34.0
+var _bc := 34.0       # the open book's cell (smaller in a wider book)
 
 static func cell_size(height: float) -> float:
 	return clampf(floorf(height / Talents.ROWS), 28.0, 44.0)
@@ -107,11 +108,13 @@ func show_book(cat: String) -> void:
 	for id in _cells:
 		_cells[id].queue_free()
 	_cells.clear()
-	var size_px := _cell - 6.0
-	for r in Talents.ROWS:
+	# A wider book (the column-group layout) gets smaller cells in the same width.
+	_bc = _cell * Talents.COLUMNS / maxf(Talents.columns_of(cat), Talents.COLUMNS)
+	var size_px := _bc - 6.0
+	for r in Talents.rows_of(cat):
 		for id in Talents.in_row(cat, r):
 			var cell := Panel.new()
-			cell.position = Vector2(Talents.col_of(id), Talents.tier_of(id)) * _cell + Vector2(3, 3)
+			cell.position = Vector2(Talents.col_of(id), Talents.tier_of(id)) * _bc + Vector2(3, 3)
 			cell.size = Vector2(size_px, size_px)
 			if TalentIcons.has_icon(id):
 				var icon := Control.new()
@@ -120,7 +123,7 @@ func show_book(cat: String) -> void:
 				icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				icon.draw.connect(func(): TalentIcons.draw(icon, id))
 				cell.add_child(icon)
-			var rank := UI.label("", 9 if _cell >= 34.0 else 8, Color.WHITE)
+			var rank := UI.label("", 9 if _bc >= 34.0 else 8, Color.WHITE)
 			rank.name = "Rank"
 			rank.set_anchors_preset(Control.PRESET_FULL_RECT)
 			rank.offset_right = -3
@@ -174,14 +177,19 @@ func refresh() -> void:
 func _draw_canvas() -> void:
 	if category == "":
 		return
-	var w := _cell * Talents.COLUMNS
-	for r in range(1, Talents.ROWS):
-		_canvas.draw_line(Vector2(0, r * _cell), Vector2(w, r * _cell), Color(CELL_BORDER, 0.45), 1.0)
+	var w := _bc * Talents.columns_of(category)
+	for r in range(1, Talents.rows_of(category)):
+		_canvas.draw_line(Vector2(0, r * _bc), Vector2(w, r * _bc), Color(CELL_BORDER, 0.45), 1.0)
+	# The column-group layout: a faint line between spec groups.
+	var groups := Talents.groups_of(category)
+	for i in range(1, groups.size()):
+		var x := int(groups[i][1]) * _bc
+		_canvas.draw_line(Vector2(x, 0), Vector2(x, Talents.rows_of(category) * _bc), Color(CELL_BORDER, 0.3), 1.0)
 	var pd := _pd()
-	var half := (_cell - 6.0) / 2.0
+	var half := (_bc - 6.0) / 2.0
 	for l in Talents.links_in_tree(category):
-		var a := (Vector2(Talents.col_of(l[0]), Talents.tier_of(l[0])) + Vector2(0.5, 0.5)) * _cell
-		var b := (Vector2(Talents.col_of(l[1]), Talents.tier_of(l[1])) + Vector2(0.5, 0.5)) * _cell
+		var a := (Vector2(Talents.col_of(l[0]), Talents.tier_of(l[0])) + Vector2(0.5, 0.5)) * _bc
+		var b := (Vector2(Talents.col_of(l[1]), Talents.tier_of(l[1])) + Vector2(0.5, 0.5)) * _bc
 		var dir := (b - a).normalized()
 		var k := half / maxf(maxf(absf(dir.x), absf(dir.y)), 0.001)
 		var from := a + dir * k

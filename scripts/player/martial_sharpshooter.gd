@@ -30,6 +30,7 @@ const FOLLOW_UP_ID := "followup"
 const LOOSE_ID := "loose"
 const BREATHE_ID := "breathe"
 const FAST_HANDS_ID := "fasthands"
+const SECOND_ARROW_ID := "secondarrow"   # Second Arrow (talent): its own meter line (Details.HIT_NAMES)
 const STREAK_FX := "sharp_streak"
 const BREATHE_FX := "sharp_breathe"
 const FAST_FX := "sharp_fast_hands"
@@ -46,6 +47,7 @@ var _breathe_until := 0.0
 var _fast_until := 0.0
 var _pierce_hits := 0                # enemies my last Pierce hit (its cut grows per enemy)
 var _sure_heavy := false             # a Heavy Draw at full Streak is in flight: sure crit
+var _ready_for := {}                 # Waiting Game: shot id -> seconds it has stayed ready
 var _was_in_combat := false
 var _shown := ""
 var _told := 0.0
@@ -64,13 +66,20 @@ static func cut_result(left: float, cut: float) -> Dictionary:
 static func reset_result(left: float, full: float) -> Dictionary:
 	return {"left": 0.0, "overcut": 0.0 if left > 0.0 else maxf(full, 0.0)}
 
-## Overcut after adding `add` seconds to `have` (capped).
-static func overcut_after(have: float, add: float) -> float:
-	return clampf(have + maxf(add, 0.0), 0.0, Balance.OVERCUT_MAX)
+## Overcut after adding `add` seconds to `have` (capped at `most`; Deep Hold raises it).
+static func overcut_after(have: float, add: float, most: float = Balance.OVERCUT_MAX) -> float:
+	return clampf(have + maxf(add, 0.0), 0.0, most)
 
-## % more damage a shot deals for `sec` seconds of Overcut (`per`: % a second; Patience raises it).
-static func overcut_bonus(sec: float, per: float = Balance.OVERCUT_PCT) -> float:
-	return clampf(sec, 0.0, Balance.OVERCUT_MAX) * per
+## % more damage a shot deals for `sec` seconds of Overcut (`per`: % a second; Patience
+## raises it; `most`: the cap, Deep Hold).
+static func overcut_bonus(sec: float, per: float = Balance.OVERCUT_PCT, most: float = Balance.OVERCUT_MAX) -> float:
+	return clampf(sec, 0.0, most) * per
+
+## Long Range: % more damage at `dist` metres, `per` % for every LONG_RANGE_STEP past LONG_RANGE_FROM.
+static func long_range_pct(dist: float, per: float) -> float:
+	if dist <= Balance.LONG_RANGE_FROM:
+		return 0.0
+	return floorf((dist - Balance.LONG_RANGE_FROM) / Balance.LONG_RANGE_STEP) * maxf(per, 0.0)
 
 ## Seconds Pierce takes off Spread for hitting `hits` enemies.
 static func pierce_cut(hits: int) -> float:
@@ -80,12 +89,12 @@ static func pierce_cut(hits: int) -> float:
 
 ## Streak after using `id`. Loose takes away a `loose_part`-th of it, rounded up (half;
 ## Easy Release: a third or a quarter).
-static func streak_after(streak: int, id: String, loose_part: int = 2) -> int:
+static func streak_after(streak: int, id: String, loose_part: int = 2, most: int = Balance.STREAK_MAX) -> int:
 	if id == LOOSE_ID:
 		var part := maxi(loose_part, 2)
 		return streak - (streak + part - 1) / part
 	if Abilities.SHARP_ENGINE.has(id):
-		return mini(streak + 1, Balance.STREAK_MAX)
+		return mini(streak + 1, most)
 	return streak
 
 ## How much longer cuts are (Fast Hands).
@@ -134,6 +143,14 @@ func breathe_armed() -> bool:
 func overcut_per() -> float:
 	return Balance.OVERCUT_PCT + player._talent("martial_patience")
 
+## Most Overcut one shot holds (+ Deep Hold).
+func overcut_max() -> float:
+	return Balance.OVERCUT_MAX + player._talent("martial_deep_hold")
+
+## Most Streak I can build (+ Long Streak).
+func streak_max() -> int:
+	return Balance.STREAK_MAX + int(round(player._talent("martial_long_streak")))
+
 ## Spread's arrows with my talents (Extra Arrows).
 func spread_arrows() -> int:
 	return Balance.SHARP_SPREAD_ARROWS + int(round(player._talent("martial_extra_arrows")))
@@ -156,7 +173,7 @@ func is_out() -> bool:
 ## Bar text: the Overcut on an engine shot ("+40%").
 func charges_text(id: String) -> String:
 	var sec := overcut_of(id)
-	return "+%d%%" % int(round(overcut_bonus(sec, overcut_per()))) if sec > 0.0 and Abilities.SHARP_ENGINE.has(id) else ""
+	return "+%d%%" % int(round(overcut_bonus(sec, overcut_per(), overcut_max()))) if sec > 0.0 and Abilities.SHARP_ENGINE.has(id) else ""
 
 ## The seconds shot `src` would take off each shot it feeds if it hit now (no crit):
 ## {target: seconds} (the HUD's ticks). Heavy Draw's reset shows as the full cooldown.
@@ -263,7 +280,7 @@ func _used(id: String) -> void:
 		_sync()
 		return
 	_streak_at = _now()
-	_set_streak(streak_after(_streak, id, maxi(int(round(player._talent("martial_easy_release"))), 2)))   # (Easy Release)
+	_set_streak(streak_after(_streak, id, maxi(int(round(player._talent("martial_easy_release"))), 2), streak_max()))   # (Easy Release, Long Streak)
 	if Abilities.SHARP_ENGINE.has(id):
 		_last_engine = id
 	_sync()
@@ -274,7 +291,9 @@ func _spend_overcut(id: String) -> float:
 	if sec <= 0.0:
 		return 1.0
 	_overcut.erase(id)
-	return 1.0 + overcut_bonus(sec, overcut_per()) / 100.0
+	if sec >= Balance.CLEAN_RELEASE_OVERCUT:
+		_set_streak(_streak + int(round(player._talent("martial_clean_release"))))   # Clean Release
+	return 1.0 + overcut_bonus(sec, overcut_per(), overcut_max()) / 100.0
 
 func _face(at: Vector3) -> void:
 	var dir := at - player.global_position
@@ -355,28 +374,50 @@ func _on_damage_dealt_sharp(info: RefCounted) -> void:
 		FOLLOW_UP_ID:
 			if _follow_target != "":
 				_cut(_follow_target, Balance.SHARP_FOLLOW_CUT, crit)
+	var lucky := player._talent("martial_lucky_shot")
+	if crit and lucky > 0.0:
+		for t in Abilities.SHARP_ENGINE:
+			if t != id:
+				_cut(str(t), lucky, false, false)   # Lucky Shot (it doesn't spend Breathe)
+	var second := player._talent("martial_second_arrow")
+	if second > 0.0 and info.target != null and is_instance_valid(info.target) and randf() * 100.0 < second:
+		player.deal_damage(info.target, float(info.base) * Balance.SECOND_ARROW_PCT / 100.0, SECOND_ARROW_ID, true,
+			"physical", PackedStringArray(info.tags))   # Second Arrow (a proc: it feeds nothing)
 	_sync()
+
+## Hard Target: is `e` above HARD_TARGET_HEALTH % health?
+static func hard_target(e: Object) -> bool:
+	var hp: Variant = e.get("health")
+	var most: Variant = e.get("max_health")
+	if hp == null or most == null or float(most) <= 0.0:
+		return false
+	return float(hp) / float(most) * 100.0 > Balance.HARD_TARGET_HEALTH
 
 ## Bring shot `id` back `sec` seconds sooner (`reset`: at once). Past ready, it's Overcut.
 ## An armed Breathe makes this cut a reset. Shots I haven't learned aren't touched.
-func _cut(id: String, sec: float, reset: bool) -> void:
+func _cut(id: String, sec: float, reset: bool, use_breathe: bool = true) -> void:
 	var pd := player.get_node_or_null("/root/PlayerData")
 	if pd and not pd.has_ability(id):
 		return
-	if not reset and breathe_armed():
+	if not reset and use_breathe and breathe_armed():
 		reset = true
 		_breathe_until = 0.0
 		if player.status:
 			player.status.remove(BREATHE_FX)
 	var left := float(player.cooldowns.get(id, 0.0))
+	var longer := 1.0 + player._talent("martial_quick_release") / 100.0   # Quick Release
 	var r := reset_result(left, Abilities.cooldown_of(Abilities.get_resource(id))) if reset \
-		else cut_result(left, sec * cut_mult(fast_hands()))
+		else cut_result(left, sec * cut_mult(fast_hands()) * longer)
+	if reset and use_breathe and randf() * 100.0 < player._talent("martial_run_it_back"):
+		var nxt: Array = Abilities.SHARP_LINKS.get(id, [])
+		if not nxt.is_empty():
+			_cut(str(nxt[0]), Balance.RUN_IT_BACK_CUT, false, false)   # Run It Back
 	if float(r["left"]) <= 0.0:
 		player.cooldowns.erase(id)
 	else:
 		player.cooldowns[id] = float(r["left"])
 	if float(r["overcut"]) > 0.0:
-		_overcut[id] = overcut_after(overcut_of(id), float(r["overcut"]))
+		_overcut[id] = overcut_after(overcut_of(id), float(r["overcut"]), overcut_max())
 
 ## A Heavy Draw at full Streak is a sure crit (Player.adjust_crit); Keen Eye: my shots crit more.
 func adjust_crit(info: RefCounted, chance: float) -> float:
@@ -387,23 +428,43 @@ func adjust_crit(info: RefCounted, chance: float) -> float:
 		return chance
 	return chance + 100.0
 
-## SignalBus.damage_modify: my Streak makes my hits harder.
+## SignalBus.damage_modify: my Streak makes my hits harder (+ On a Roll); my shots get
+## Long Range, Hard Target and Hold Steady.
 func _on_damage_modify(info: RefCounted) -> void:
-	if info.source != player or _streak <= 0:
+	if info.source != player:
 		return
-	info.add_bonus(Balance.STREAK_PCT * float(_streak), "Streak")
+	if _streak > 0:
+		info.add_bonus((Balance.STREAK_PCT + player._talent("martial_on_a_roll")) * float(_streak), "Streak")
+	var id := str(info.ability_id)
+	if not (Abilities.SHARP_ENGINE.has(id) or id == LOOSE_ID) or bool(info.is_dot):
+		return
+	var tgt: Variant = info.target
+	if tgt == null or not is_instance_valid(tgt) or not (tgt is Node3D):
+		return
+	var far := long_range_pct(player.global_position.distance_to((tgt as Node3D).global_position), player._talent("martial_long_range"))
+	if far > 0.0:
+		info.add_bonus(far, "Long Range")
+	var hard := player._talent("martial_hard_target")
+	if hard > 0.0 and hard_target(tgt):
+		info.add_bonus(hard, "Hard Target")
+	var steady := player._talent("martial_hold_steady")
+	if steady > 0.0:
+		for other in _overcut:
+			if str(other) != id and float(_overcut[other]) >= Balance.HOLD_STEADY_OVERCUT:
+				info.add_bonus(steady, "Hold Steady")
+				break
 
 # --- Streak ---------------------------------------------------------------------------
 
 func _set_streak(n: int) -> void:
-	_streak = clampi(n, 0, Balance.STREAK_MAX)
+	_streak = clampi(n, 0, streak_max())
 	if player.status == null:
 		return
 	if _streak <= 0:
 		player.status.remove(STREAK_FX)
 		return
 	if not player.status.has(STREAK_FX):
-		var fx := StatusContainer.make_buff(STREAK_FX, "Streak", STREAK_FX, 0.0, 3600.0, Balance.STREAK_MAX, SharpIcons.GOLD)
+		var fx := StatusContainer.make_buff(STREAK_FX, "Streak", STREAK_FX, 0.0, 3600.0, Balance.STREAK_MAX + 2, SharpIcons.GOLD)   # (+2: Long Streak)
 		fx.stat_modifiers = {}
 		fx.tags = PackedStringArray(["Physical"])
 		fx.description = "You deal %s%% more damage per stack. Loose halves it." % Stats.num(Balance.STREAK_PCT)
@@ -434,9 +495,27 @@ func _tick_sharp(_delta: float) -> void:
 	_was_in_combat = fighting
 	if _streak > 0 and now - _streak_at > Balance.STREAK_HOLD + player._talent("martial_no_letup"):   # + No Letup
 		_set_streak(0)
+	_waiting_game(_delta, fighting)
 	_sync()
 	if now - _told >= TELL_EVERY and _shown != "":
 		_tell()
+
+## Waiting Game: a shot that stays ready in a fight gains Overcut every WAITING_GAME_TIME.
+func _waiting_game(delta: float, fighting: bool) -> void:
+	var add := player._talent("martial_waiting_game")
+	if add <= 0.0 or not fighting or player.is_dead() or not is_out():
+		_ready_for.clear()
+		return
+	var pd := player.get_node_or_null("/root/PlayerData")
+	for id in Abilities.SHARP_ENGINE:
+		if (pd and not pd.has_ability(id)) or float(player.cooldowns.get(id, 0.0)) > 0.0:
+			_ready_for.erase(id)
+			continue
+		var t := float(_ready_for.get(id, 0.0)) + delta
+		if t >= Balance.WAITING_GAME_TIME:
+			t -= Balance.WAITING_GAME_TIME
+			_overcut[id] = overcut_after(overcut_of(id), add, overcut_max())
+		_ready_for[id] = t
 
 ## What the party sees: my Streak in the quiver, and a gold bowstring while a held shot
 ## has a lot of Overcut. Told when it changes.
@@ -452,7 +531,7 @@ func _sync() -> void:
 		return
 	_shown = want
 	if player.is_inside_tree():
-		SharpFx.show_streak(player, _streak if want != "" else 0, Balance.STREAK_MAX, _gold() and want != "")
+		SharpFx.show_streak(player, _streak if want != "" else 0, streak_max(), _gold() and want != "")
 	_tell()
 
 func _tell() -> void:

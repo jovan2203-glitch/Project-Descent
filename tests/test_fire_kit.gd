@@ -84,7 +84,7 @@ func test_new_fire_talents() -> void:
 		"fire_cool_under_fire": ["fire_r3c4", [7.0, 13.0, 20.0]],   # moved down a row (Talents.MOVED)
 		"fire_thick_slag": ["fire_r2c6", [20.0, 40.0, 60.0]],
 		"fire_hot_iron": ["fire_r4c6", [15.0, 30.0, 45.0, 60.0]],
-		"fire_flashover": ["fire_r6c5", [10.0, 20.0, 30.0]],
+		"fire_blowback": ["fire_r6c5", [20.0, 35.0, 50.0]],
 		"fire_clinker": ["fire_r6c6", [7.0, 13.0, 20.0]],
 	}
 	for key in want:

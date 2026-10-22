@@ -44,7 +44,7 @@ func test_number_formatting() -> void:
 
 func test_balance_placeholders() -> void:
 	assert_eq(TextFill.constants("{b:AOE_TARGET_CAP} enemies"), "%d enemies" % Balance.AOE_TARGET_CAP)
-	assert_eq(TextFill.constants("{b%:VENT_FLAMES_CRIT_DAMAGE}%"), "%s%%" % TextFill.num(Balance.VENT_FLAMES_CRIT_DAMAGE * 100.0))
+	assert_eq(TextFill.constants("{b%:PERMAFROST_CRIT_FACTOR}%"), "%s%%" % TextFill.num(Balance.PERMAFROST_CRIT_FACTOR * 100.0))
 	assert_eq(TextFill.constants("{b2:CLINKER_RADIUS} m"), "%s m" % TextFill.num(Balance.CLINKER_RADIUS * 2.0))
 	assert_eq(TextFill.constants("{bth:COLD_PRECISION_EVERY}"), TextFill.ordinal(Balance.COLD_PRECISION_EVERY))
 	assert_eq(TextFill.constants("{bev:CLINKER_TICK}"), TextFill.every(Balance.CLINKER_TICK))
@@ -173,7 +173,7 @@ func test_talent_texts_follow_their_values() -> void:
 ## that have a number to scale. Pure utility shows no Scaling section.
 func test_only_abilities_with_numbers_show_scaling() -> void:
 	for id in ["groundingsurge", "blink", "coolhead", "counterspell", "rimelock", "deepwinter",
-			"winterhide", "icebarrier", "crucible", "flashfreeze", "rekindle"]:
+			"winterhide", "icebarrier", "crucible", "flashfreeze"]:
 		assert_false(Abilities.has_scaling(id), "%s has nothing to scale" % id)
 		assert_false(Abilities.tooltip_bbcode(id, true).contains("Scaling"), "%s: no Scaling section" % id)
 	for id in ["frostbolt", "froststrike", "immolate", "hoarfrost", "snowward", "cinderwing",

@@ -48,10 +48,10 @@ func test_only_the_casters_machine_deals_a_dot() -> void:
 func test_per_caster_effects_get_their_own_copy() -> void:
 	var a: Node = track(Node.new())
 	var b: Node = track(Node.new())
-	var fuse: Resource = load("res://data/effects/slow_fuse.tres")
-	assert_true(bool(fuse.get("per_caster")), "Slow Fuse is one per caster")
+	var mark: Resource = load("res://data/effects/countdown.tres")
+	assert_true(bool(mark.get("per_caster")), "Countdown is one per caster")
 	var mine: Resource = StatusEffectScript.new()
-	mine.id = &"slow_fuse"
+	mine.id = &"test_charge"
 	mine.per_caster = true
 	mine.duration = 5.0
 	mine.max_stacks = 99
@@ -59,11 +59,11 @@ func test_per_caster_effects_get_their_own_copy() -> void:
 	var st := _status()
 	st.apply(mine, a)
 	st.apply(mine, b)
-	assert_true(st.set_stacks_from("slow_fuse", a, 4))
+	assert_true(st.set_stacks_from("test_charge", a, 4))
 	assert_eq(int(st.effects[StatusContainer.key_for(mine, a)]["stacks"]), 4)
 	assert_eq(int(st.effects[StatusContainer.key_for(mine, b)]["stacks"]), 1, "the other player's charge is untouched")
-	assert_true(st.remove_from("slow_fuse", a))
-	assert_true(st.has_from("slow_fuse", b))
+	assert_true(st.remove_from("test_charge", a))
+	assert_true(st.has_from("test_charge", b))
 	var plain: Resource = StatusEffectScript.new()
 	plain.id = &"chilled"
 	assert_eq(StatusContainer.key_for(plain, a), "chilled", "ordinary effects are shared")

@@ -89,9 +89,9 @@ func test_every_category_has_a_full_tree() -> void:
 	for cat in preload("res://scripts/categories.gd").ORDER:
 		for r in Talents.ROWS:
 			var n := Talents.in_row(cat, r).size()
-			assert_true(n >= Talents.MIN_PER_ROW and n <= Talents.MAX_PER_ROW, "%s row %d has 2-7 talents" % [cat, r + 1])
+			assert_true(n >= Talents.MIN_PER_ROW and n <= mini(Talents.MAX_PER_ROW, Talents.columns_of(cat)), "%s row %d has 2 to one per column" % [cat, r + 1])
 			var cols: Array = Talents.layout(cat)[r].duplicate()
-			var mirrored: Array = cols.map(func(c): return Talents.COLUMNS - 1 - int(c))
+			var mirrored: Array = cols.map(func(c): return Talents.columns_of(cat) - 1 - int(c))
 			mirrored.sort()
 			cols.sort()
 			assert_eq(cols, mirrored, "%s row %d is symmetrical" % [cat, r + 1])
@@ -121,7 +121,7 @@ func test_martial_book_replaces_warrior_rogue_and_ranger() -> void:
 	for id in Abilities.ALL:
 		var cat := Abilities.category_of(id)
 		assert_true(cat == "" or cat == Categories.RUNE or Categories.ORDER.has(cat), "%s: book '%s' exists" % [id, cat])
-	assert_eq(Talents.in_tree("martial").size(), 31, "one tree for the three of them")
+	assert_eq(Talents.in_tree("martial").size(), 84, "one tree for the four specs, in column groups")
 	# The shelf shows the books in two even rows.
 	assert_eq(Categories.shelf_columns(8), 4)
 	assert_eq(Categories.shelf_columns(10), 5)

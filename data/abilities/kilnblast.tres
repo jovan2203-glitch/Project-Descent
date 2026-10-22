@@ -6,14 +6,14 @@
 script = ExtResource("1_s")
 id = &"kilnblast"
 display_name = "Kiln Blast"
-description = "Hurls a blast of kiln fire at the target, dealing {hit} Fire damage. Deals {kiln_pct}% more if the target has your {n:immolate}."
+description = "Hurls a blast of kiln fire at the target, dealing {hit} Fire damage. Deals {kiln_pct}% more if the target has your {n:immolate}. Cannot critically strike."
 tags = PackedStringArray("Fire", "Spell", "Projectile")
 cast_type = 1
 cast_time = 3.5
 cooldown = 3.0
 requires_target = true
-resource_type = 1
-resource_cost = 3
+resource_type = 3
+resource_cost = 40
 damage = 3.0
 cast_range = 30.0
 damage_type = &"fire"

@@ -127,7 +127,7 @@ func test_new_talents() -> void:
 		"fire_stoked_kiln": ["fire_r8c5", [7.0, 13.0, 20.0]],
 		"fire_slag_mending": ["fire_r7c6", [0.7, 1.3, 2.0]],
 		"fire_deep_brand": ["fire_r3c7", [2.0, 4.0, 6.0]],
-		"fire_banked_mana": ["fire_r1c5", [5.0, 10.0]],
+		"fire_stoked_breath": ["fire_r1c5", [10.0, 20.0]],
 		"fire_warm_blood": ["fire_r4c4", [2.0, 4.0, 6.0]],
 		"fire_white_heat": ["fire_r9c2", [5.0, 10.0, 15.0]],
 	}
@@ -163,14 +163,11 @@ func test_talent_maths() -> void:
 	# Pitch Arrow's pitch lasts as long as its cooldown (Thick Pitch was folded into it): it can be kept up.
 	assert_eq(float(Abilities.get_resource("pitcharrow").on_hit_effect.get("duration")), float(Abilities.get_resource("pitcharrow").cooldown))
 	assert_eq(Talents.id_for_key("fire_thick_pitch"), "", "Thick Pitch is gone")
-	# Banked Mana: part of the mana cost comes back.
-	assert_eq(FireCasterKit.banked_mana_refund(200.0, 5.0), 10.0)
-	assert_eq(FireCasterKit.banked_mana_refund(200.0, 10.0), 20.0)
-	assert_eq(FireCasterKit.banked_mana_refund(0.0, 10.0), 0.0, "a free cast gives nothing back")
-	assert_eq(Abilities.resource_of("fireball"), "mana", "Firebolt costs mana: it can refund")
-	assert_ne(Abilities.resource_of("searingstrike"), "mana", "abilities don't")
-	# Warm Blood counts my burns: the same ones Rekindle refreshes.
-	assert_true(Balance.REKINDLE_EFFECTS.has("burning") and Balance.REKINDLE_EFFECTS.has("immolate"))
+	# Stoked Breath (was Banked Mana): non-crits give more Fury.
+	assert_true(is_equal_approx(FireFuryKit.fury_gain(20.0, false, 20.0, false), FireFuryKit.fury_gain(20.0, false, 0.0, false) * 1.2))
+	assert_eq(Talents.id_for_key("fire_banked_mana"), "", "Banked Mana is gone")
+	# Warm Blood counts my burns.
+	assert_true(Balance.FIRE_BURNS.has("burning") and Balance.FIRE_BURNS.has("immolate"))
 	# White Heat: only at the maximum Heat, and no Fire slot is left empty.
 	assert_eq(FireMeleeKit.white_heat_bonus(Balance.HEAT_MAX_STACKS, 15.0), 15.0)
 	assert_eq(FireMeleeKit.white_heat_bonus(Balance.HEAT_MAX_STACKS - 1, 15.0), 0.0, "one stack short: nothing")

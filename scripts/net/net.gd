@@ -1583,7 +1583,7 @@ func _sup_remove_effect(t: int, member: int, id: String, effect_id: String) -> v
 		st.remove_from(effect_id, body_of(member))
 
 ## Set the stacks of `source`'s copy of a status effect on an enemy without
-## touching its timer (Slow Fuse growing). Lives on the host like every enemy effect.
+## touching its timer. Lives on the host like every enemy effect.
 func set_effect_stacks(enemy: Node, source: Node, effect_id: String, stacks: int) -> void:
 	if enemy == null or not is_instance_valid(enemy):
 		return

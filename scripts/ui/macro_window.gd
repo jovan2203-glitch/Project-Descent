@@ -454,7 +454,7 @@ func _build_picker() -> PanelContainer:
 	for id in Abilities.ALL:
 		keys.append("a:" + str(id))
 	for id in Talents.db():
-		if TalentIcons.has_icon(str(id)):
+		if TalentIcons.has_icon(str(id)) and not Talents.is_choice_slot(str(id)):   # (a choice slot: its two talents are listed)
 			keys.append("t:" + str(id))
 	for key in keys:
 		var k: String = key

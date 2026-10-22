@@ -104,6 +104,10 @@ static func simulate(ids: Array, role: String, profile: String, spec_name := "",
 	var idle := 0.0
 	var starved := 0.0
 	var venom_spec := ids.has("venomburst")
+	# Steady Flame's Fury (FireFuryKit): non-crit Fire spells build it from crit chance,
+	# crits Vent part of it, Vent Flames spends it all; none is lost while casting.
+	var fury_caster := ids.has("ventflames")
+	var fire_crit := minf(Stats.crit_chance(PackedStringArray(["Fire", "Spell"]), stat_of), 100.0) / 100.0
 	while t < FIGHT:
 		# Auto-attacks up to now.
 		while swing_every > 0.0 and next_swing <= t:
@@ -120,12 +124,15 @@ static func simulate(ids: Array, role: String, profile: String, spec_name := "",
 				starved += step
 		else:
 			var id: String = pick["id"]
+			var fury_before := float(res["fury"])
 			_pay(pick, res)
 			ready_at[id] = t + float(pick["cooldown"])
 			if float(pick["dot_time"]) > 0.0:
 				dot_until[id] = t + float(pick["dot_time"])
 			step = float(pick["exec"])
 			var d := float(pick["dmg"])
+			if fury_caster and Abilities.tags_of(id).has("Fire") and Abilities.tags_of(id).has("Spell"):
+				d = _fire_fury(id, d, fury_before, fire_crit, res)
 			var h := float(pick["heal"])
 			dmg_total += d
 			threat_total += d * float(pick["threat"])
@@ -139,7 +146,8 @@ static func simulate(ids: Array, role: String, profile: String, spec_name := "",
 		# Resources come back over the step.
 		res["mana"] = minf(float(res["mana"]) + Balance.MANA_REGEN * step, mana_max)
 		res["energy"] = minf(float(res["energy"]) + Balance.ENERGY_REGEN * step, Balance.RESOURCE_MAX)
-		res["fury"] = maxf(float(res["fury"]) - Balance.FURY_DECAY * step, 0.0)
+		if not (fury_caster and not pick.is_empty()):
+			res["fury"] = maxf(float(res["fury"]) - Balance.FURY_DECAY * step, 0.0)
 		if venom_spec and _all_poisons_up(dot_until, t):
 			res["venom"] = minf(float(res["venom"]) + Balance.VENOM_PER_TICK * 3.0 * haste * step, Balance.VENOM_MAX)
 		t += step
@@ -155,6 +163,28 @@ static func simulate(ids: Array, role: String, profile: String, spec_name := "",
 		"avg_hit": dmg_uses_total / maxf(uses, 1), "sources": sources, "idle": idle / FIGHT, "starved": starved / FIGHT,
 		"unsimulated": unsimulated}
 
+## Steady Flame: one press of Fire spell `id` (damage `d` at the usual crit odds) with
+## `fury` held before it; updates res["fury"] by the expected gain and Venting and
+## returns its damage. Vent Flames always crits and scales on what it spent.
+static func _fire_fury(id: String, d: float, fury: float, c: float, res: Dictionary) -> float:
+	var vent := c * Balance.FIRE_FURY_VENT_PCT / 100.0   # expected share Vented per hit that can crit
+	if id == "ventflames":
+		res["fury"] = 0.0
+		return d / (1.0 + c) * 2.0 * FireFuryKit.vent_coef(1.0, fury)
+	if NEVER_CRIT.has(id):
+		return d   # (button() already left its crit out)
+	var hits := Balance.EMBER_VOLLEY_HITS if id == "embervolley" else 1
+	var f := float(res["fury"])
+	for i in hits:
+		if FireFuryKit.builds_fury(id):
+			f += (1.0 - c) * FireFuryKit.fury_gain(c * 100.0, id == "embervolley", 0.0, false)
+		f *= 1.0 - vent
+	res["fury"] = clampf(f, 0.0, Balance.RESOURCE_MAX)
+	return d
+
+## Hits that never crit (Player.adjust_crit).
+const NEVER_CRIT := ["stoke", "kilnblast", "anvil", "quench"]
+
 ## What one press of `id` is worth, or {} if it does no damage and no healing.
 static func button(id: String, w: Dictionary, stat_of: Callable, haste: float, max_hp: float) -> Dictionary:
 	var r := Abilities.get_resource(id)
@@ -165,7 +195,7 @@ static func button(id: String, w: Dictionary, stat_of: Callable, haste: float, m
 		return {}
 	var tags := PackedStringArray(r.tags)
 	var unit := Stats.level_hit(LEVEL)
-	var crit := 1.0 + minf(Stats.crit_chance(tags, stat_of), 100.0) / 100.0
+	var crit := 1.0 if NEVER_CRIT.has(id) else 1.0 + minf(Stats.crit_chance(tags, stat_of), 100.0) / 100.0
 	var power := Stats.power_bonus(tags, stat_of)
 	var coef := float(o.get("coef", -2.0))
 	if coef == -2.0:
@@ -189,6 +219,8 @@ static func button(id: String, w: Dictionary, stat_of: Callable, haste: float, m
 	var gcd := 0.0 if Abilities.OFF_GCD.has(id) else maxf(Balance.GCD_BASE / Stats.haste_mult(float(stat_of.call(Stats.HASTE)) * Balance.GCD_HASTE_SHARE), Balance.GCD_MIN)
 	var res_name := Abilities.resource_of(id)
 	var cost := Abilities.cost_of(id)
+	if id == "ventflames":
+		cost = Balance.VENT_FURY_MIN   # (it spends all of it: _fire_fury)
 	if SPECS_INFO.VENOM_COSTS.has(id):
 		res_name = "venom"
 		cost = float(SPECS_INFO.VENOM_COSTS[id])
@@ -211,6 +243,8 @@ static func _best(buttons: Array, role: String, t: float, res: Dictionary, ready
 		if b["res"] != "" and float(b["cost"]) > float(res.get(b["res"], 0.0)) + 0.0001:
 			continue
 		var worth := float(b["heal"]) if role == "healer" else float(b["dmg"])
+		if id == "ventflames":
+			worth = FireFuryKit.vent_coef(worth, float(res.get("fury", 0.0)))   # (worth more the fuller the bar)
 		if role == "tank":
 			worth += float(b["self_heal"]) * 0.5
 		var v := worth / float(b["exec"])

@@ -193,46 +193,75 @@ Each weapon has a rider that works while it is held, for every ability (any book
 - Weapons are learned whole (Skill Cards): Greataxe 2, Greatsword 4, Halberd 6, Maul 8. The Wheel holds the learned ones, in order.
 - Readability: a Cracks buff (one stack per Crack), the Wheel strip (weapons in order, the held one large with its uses left and Cracks) and the Crack count on the Break button.
 
-## Talents (Martial tree) - BUILT 2026-10-21
-Numbers are drafts (talents.gd, balance.gd). Layout: the Wheel down the left edge (columns 1-2), the Rogue in column 3, the open talents down the middle (column 4), the Brawler in column 5, the Sharpshooter down the right edge (columns 6-7). Row 1 holds each spec's 4-rank talent (capstone at 4), the bottom row its 5-rank one. No links. Code: each spec's component; the open talents and the damage bonuses (each its own meter line): scripts/player/martial_talents_open.gd. Save v10 refunds points in the old empty Martial slots.
+## Talents (Martial tree) - REBUILT 2026-10-22 on the column-group layout
+The first book on the column-group layout (docs/design/systems.md, "Talents"). Numbers are drafts (talents.gd, balance.gd).
+- **Layout:** 10 rows × 9 columns. The Wheel takes columns 1-2, the Rogue 3-4, the open talents 5, the Brawler 6-7 and the Sharpshooter 8-9.
+- **Groups:** rows 1-9 hold two talents per spec. Row 10 holds each spec's 5-rank capstone, which needs 25 points in that spec. Faint lines separate the groups, and the spec names sit above them.
+- **Size:** 84 talents. Each spec has 19 (50-55 ranks); the open column has 8. Only 15 need one ability (18%). No links.
+- **Code:** each spec's component, plus scripts/player/martial_talents_open.gd for the open talents and the damage-line bonuses. Every damage bonus has its own meter line.
 
-### The Wheel
-- Hard Break (4, needs the Greataxe; r1c1): finishers deal 5/10/15% more. Capstone: a finisher that breaks a weapon with 6+ Cracks gives 20 Fury.
-- Well Drilled (2; r2c2): Weapon Arts add 1/2 Cracks.
-- Wide Cleave (2, Greataxe; r4c1): Axe Cleave hits 1/2 more enemies.
-- Keen Edge (3, Greatsword; r5c2): while it is held, crits deal 7/13/20% more.
-- Twice Over (3, Halberd; r7c1): Second Hit chance 23/27/30% (from 20%).
-- Rattled (3, Maul; r8c2): hits build 17/33/50% more Stagger.
-- Turning Wheel (5; r10c1): each weapon that breaks gives a stack for 15 s (one per weapon, up to 4): 0.5/1/1.5/2/2.5% more damage each (10% with all four).
+### The Wheel (keywords: Fury, Cracks, finishers, weapons breaking, riders, Stagger, Weapon Arts)
+| Row | Left | Right |
+|---|---|---|
+| 1 | Hard Break (4): finishers +5/10/15%; capstone: a 6+ Crack finisher gives 20 Fury | Iron Grip (3): Fillers give 2/4/6 more Fury |
+| 2 | Well Drilled (2): Weapon Arts add 1/2 Cracks | Heavy Hands (3): Heavy Fillers +5/10/15% |
+| 3 | Fresh Steel (2): a weapon flies in with 1/2 Cracks | Sharp Fragments (3): +0.5/1/1.5% crit per Crack on the held weapon |
+| 4 | Wide Cleave (2, Greataxe): Axe Cleave hits 1/2 more | Weight Behind It (3): ability hits +1/2/3% per use the held weapon has taken |
+| 5 | Keen Edge (3, Greatsword): crits +7/13/20% while held | Breaking Point (3): the ability taking a weapon's last use (or Break) +10/20/30% |
+| 6 | Twice Over (3, Halberd): Second Hit 23/27/30% | Ringing Blows (3): each Axe Cleave / Second Hit gives 1/2/3 Fury |
+| 7 | Rattled (3, Maul): +17/33/50% Stagger | Off Balance (3): +5/10/15% to an enemy you knocked down |
+| 8 | Spare Parts (3): a breaking weapon gives 1/2/3 Fury per Crack | Big Swing (2): Heavy Fillers 25/50% chance of one more Crack |
+| 9 | Clean Swap (3): 3 s after a weapon breaks, abilities +4/8/12% | Gather Pace (2): Weapon Art cooldowns 10/20% shorter |
+| 10 | Turning Wheel (5): each weapon broken in the last 15 s gives 0.5-2.5% more damage | |
 
-### Rogue
-- Clean Kill (4, Go In; r1c3): Kill forms deal 5/10/15% more. Capstone: Close It Out leaves 3 Flow.
-- In and Out (2, any Rogue; r3c3): a range switch gives 2/3 extra Flow (from 1).
-- Barbed (3, Cut; r4c3): Ripped Out deals 20/40/60% more.
-- Steady Pace (3, any Rogue; r6c3): Flow holds 3.7/4.3/5 s before it drops (from 3).
-- Mix It Up (3, Go In; r7c3): Variety adds 0.65/0.85/1 s per different Kill form (cap stays 5 s).
-- Deep Pockets (r9c3): folded into Snatch (10 s cooldown); the slot is empty.
-- In the Zone (5; r10c3): each Flow stack gives 0.1/0.2/0.3/0.4/0.5% crit chance (5% at 10); in a Kill window the Flow spent on it counts.
+### Rogue (keywords: Energy, Flow, Kill window and Kill forms, stuck daggers, range switch, thrown and melee hits)
+| Row | Left | Right |
+|---|---|---|
+| 1 | Clean Kill (4): Kill forms +5/10/15%; capstone: Close It Out leaves 3 Flow | Thrift (3): Energy costs 1/2/3 less (any ability that costs Energy) |
+| 2 | In and Out (2): a range switch gives 2/3 Flow | Spare Knives (2): 4/5 daggers stick in one enemy |
+| 3 | Barbed (3): Ripped Out +20/40/60% | Thrown Weight (3): thrown hits +5/10/15% |
+| 4 | Steady Pace (3): Flow holds 3.7/4.3/5 s | Close Work (3): melee ability hits +5/10/15% |
+| 5 | Mix It Up (3): Variety +0.65/0.85/1 s | Fresh Legs (3): Kill-window crits refund 12/14/16 Energy |
+| 6 | Deep Flow (2): Flow up to 11/12 | Hot Start (3): Kill windows 0.5/1/1.5 s longer |
+| 7 | Easy Pickings (3): +5/10/15% to an enemy with 3+ of your daggers | Footloose (3): a range switch gives 3/6/9 Energy |
+| 8 | Finish Strong (3, Close It Out): +10/20/30% | Cold Read (2): after a Kill window, the next 1/2 Rogue hits build double Flow |
+| 9 | Light Fingers (2, Snatch): 25/50% chance to lift two things | Pressure Point (3): outside a Kill window, crits 10/20/30% chance of one more Flow |
+| 10 | In the Zone (5): each Flow gives 0.1-0.5% crit | |
 
-### Brawler
-- Soak It Up (4, Punch; r1c5): Bruise takes 42/44/46% of each hit (from 40%). Capstone: Shake Off clears 40% (from 30%).
-- Tight Clinch (3, Elbow; r3c5): Clinch lasts 4.7/5.3/6 s (from 4).
-- Soft Catch (3, Catch; r4c5): 17/33/50% of a caught hit still goes into Bruise. Turn It Around and Takedown still count the whole hit.
-- Knockout (3, Punch; r6c5): Haymaker deals 10/20/30% more.
-- Wide Stance (3, Kick; r7c5): Sweep and Roundhouse reach 0.7/1.3/2 m further.
-- Round Two (r9c5): folded into One More (9 s cooldown); the slot is empty.
-- Scar Tissue (5; r10c5): Bruise deals 2/4/6/8/10% less damage (its Fury stays the same).
+### Brawler (keywords: Fury, Bruise, strikes, chain moves and strong moves, Catch, knockdowns, threat)
+| Row | Left | Right |
+|---|---|---|
+| 1 | Soak It Up (4): Bruise takes 42/44/46%; capstone: Shake Off clears 40% | Quick Feet (3): strikes give 1/2/3 more Fury |
+| 2 | Tight Clinch (3, Elbow): Clinch 4.7/5.3/6 s | Heavy Bag (3): strong moves +5/10/15% |
+| 3 | Soft Catch (3, Catch): 17/33/50% of a caught hit still goes into Bruise | Calluses (3): Bruise ticks give 10/20/30% more Fury |
+| 4 | Knockout (3, Punch): Haymaker +10/20/30% | Wide Stance (3): Sweep / Roundhouse reach 0.7/1.3/2 m further |
+| 5 | Slow Burn (2): Bruise over 7.5/9 s | Counter Puncher (3, Catch): Catch strings +10/20/30% |
+| 6 | Crowd Work (3): Sweep / Roundhouse 2/4/6 Fury per enemy hit (up to 3) | Get Up (2): Shake Off heals 3/6% max health (its own meter line) |
+| 7 | Bad Intentions (3): chain moves +10/20/30% threat | Hardened (2): with Bruise above 20% of max health, take 3/6% less |
+| 8 | Iron Chin (3): while clinching, take 2/4/6% less from every enemy | Last Laugh (3): Haymaker clears 5/10/15% of Bruise |
+| 9 | Back Up (3): Shake Off gives 5/10/15 Fury | Ground Game (2): Throw / Takedown knock down 0.5/1 s longer |
+| 10 | Scar Tissue (5): Bruise deals 2-10% less | |
 
-### Sharpshooter
-- Full Draw (4, Heavy Draw; r1c7): Heavy Draw deals 5/10/15% more. Capstone: its cuts are 3 s (from 2).
-- Broadhead (3, Pierce; r2c6): Pierce's line is 0.5/1/1.5 m wider.
-- Patience (3, Quick Shot; r4c7): Overcut gives 9/10/11% per second (from 8%), still up to 12.5 s.
-- Extra Arrows (2, Spread; r5c6): Spread shoots 1/2 more arrows, across as many enemies; each cuts Heavy Draw.
-- No Letup (3, any Sharpshooter; r7c7): the Streak lasts 4.7/5.3/6 s without a shot (from 4).
-- Easy Release (2, Loose; r8c6): Loose takes a third / a quarter of the Streak (rounded up) instead of half.
-- Keen Eye (5; r10c7): Sharpshooter shots have 1/2/3/4/5% more crit chance.
+### Sharpshooter (keywords: cuts, resets, Overcut, Streak, engine shots, Loose)
+| Row | Left | Right |
+|---|---|---|
+| 1 | Full Draw (4, Heavy Draw): +5/10/15%; capstone: its cuts are 3 s | Quick Release (3): cuts 5/10/15% longer |
+| 2 | Broadhead (3, Pierce): line 0.5/1/1.5 m wider | Deep Hold (2): Overcut up to 15/17.5 s |
+| 3 | Patience (3): Overcut 9/10/11% per second | On a Roll (3): each Streak 2.2/2.4/2.6% |
+| 4 | Extra Arrows (2, Spread): 1/2 more arrows | Lucky Shot (3): a crit also cuts every other shot 1/2/3 s |
+| 5 | No Letup (3): Streak holds 4.7/5.3/6 s | Long Range (3): +1/2/3% per 5 m beyond 10 m |
+| 6 | Easy Release (2, Loose): Loose takes a third / a quarter | Waiting Game (3): a shot gains 1/2/3 s of Overcut every 3 s it stays ready |
+| 7 | Clean Release (3): firing a shot with 6+ s of Overcut gives 1/2/3 Streak | Long Streak (2): Streak up to 11/12 |
+| 8 | Second Arrow (3): engine shots 5/10/15% chance of a second arrow at 30% (its own meter line) | Hard Target (3): +5/10/15% to enemies above 80% health |
+| 9 | Run It Back (3): a full reset 10/20/30% chance to cut the next shot in the chain 2 s | Hold Steady (2): while a shot holds 6+ s of Overcut, the other shots +4/8% |
+| 10 | Keen Eye (5): shots +1-5% crit | |
 
-### Open talents (any spec)
-- Conditioning (3; r2c4): 2/4/6% more maximum health.
-- Catch Your Breath (2; r5c4): dropping below 35% health heals 10/20% of max health over 6 s (a heal over time, own meter line); once every 60 s.
-- Pinned Down (2, Pin the Shadow; r9c4): Pin the Shadow takes 4/5 hits to break and lasts 2/4 s longer. (The extra hits are a per-application count in StatusContainer, sent to the host with the duration.)
+### Open talents (any spec; column 5)
+- Weapon Training (3): auto-attacks +4/8/12% (its own meter line).
+- Conditioning (3): +2/4/6% max health.
+- Keen Strikes (3): ability crits +3/6/9%.
+- Hardy (3): natural health regen 10/20/30% faster.
+- Catch Your Breath (2): below 35% health, heal 10/20% of max health over 6 s, once a minute.
+- Footing (2): 3/6% movement speed.
+- Grit (2): below 50% health, 3/6% more damage. (Not a crowd-control duration talent: that would copy Shadow's Left Hanging.)
+- Pinned Down (2, Pin the Shadow): 4/5 hits to break, 2/4 s longer.

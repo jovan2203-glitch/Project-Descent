@@ -245,14 +245,20 @@ func test_equip_refused_over_rune_limit() -> void:
 	assert_eq(pd.equip_from_inventory(1), "")
 	ItemDB.records = saved
 
-func test_smoldering_focus_only_boosts_fire_spell_crits() -> void:
+## A crit-only buff scaled by crit chance (the container's side; Afterburn is its
+## non-crit mirror) only boosts Fire spell crits.
+func test_crit_only_scaled_buff_boosts_fire_spell_crits() -> void:
 	var st := _status()
 	var carrier_script := GDScript.new()
 	carrier_script.source_code = "@tool\nextends Node\nfunc get_stat(n: String) -> float:\n\treturn 20.0 if n == 'crit_chance' else 0.0\n"
 	carrier_script.reload()
 	st.get_parent().set_script(carrier_script)
-	var fx := _fx("smoldering_focus")
-	fx.mod_scale_factor = 0.5   # the Smoldering Focus talent at rank 5 (player.gd sets it from the rank)
+	var fx := _fx("afterburn")
+	fx.id = &"test_crit_focus"
+	fx.mod_crit_only = true
+	fx.mod_non_crit_only = false
+	fx.mod_scale_inverse = false
+	fx.mod_scale_factor = 0.5
 	for i in 3:
 		st.apply(fx)
 	var normal := _hit(CK.FIRE, [CK.TAG_SPELL])

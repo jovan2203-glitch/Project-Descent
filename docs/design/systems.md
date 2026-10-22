@@ -47,7 +47,20 @@ Open gaps: Arcane has no party tool; Holy's only crowd control is Binding Ring a
 - Goal: about 65 of the 80 points fully build one spec; hybrids give up a little in one spec to gain a little in another. Taking talents from other books is normal. Most talents should key off a resource, keyword or damage type (they reach every build using it); at most about a quarter are "Requires X" talents, and those change how the ability works. Runes connect specs; talents never reference another book's content.
 - Pass 1 (done): 2-rank "Requires X" talents became 3 ranks with the same max (rank 3 = the old rank 2), except the ones whose steps are whole numbers (extra targets, darts, Reflections, Cracks, Flow, arrows, Incense, Energy per zap, Pin hits, Easy Release). In and Out, Steady Pace, No Letup and Long Memory no longer require one ability (they work off Flow, Streak and Traces).
 - Folded into their abilities (slots left empty for new keyword talents; their icons are kept in TalentIcons.SPARE): Furnace Heart (Cinder Guard costs 20 Fury), Thick Pitch (pitch lasts 12 s), Thick Hide (Winter Hide 40 s cooldown), Honed Edge (Charged Edge gives 30 Energy), Deep Well (Collapse pulls 5 m), Cut Short (Hush: 4 s off when it interrupts), Quick Return (Return to Bloom 4 s cast), Big Herd (Wild Herd 90 s), Deep Pockets (Snatch 10 s), Round Two (One More 9 s), Last Rites (Last Verse 2 min), Swift Light (Step of Light 10 s), High Censer (Raise the Censer 1 min, cost 1.3 mana points).
-- Next: new keyword talents per spec, and the layout (each book on one screen, specs as column groups with faint lines between them, capstones need 25 points in their spec).
+- Choice talents (2026-10-22): one slot can hold two talents (`{"choice": [a, b]}` in `Talents.TALENTS`; ids `<slot>a` / `<slot>b`, `Talents.options_of`). Points go into only one of the two; refunding it frees the other. Hover the slot to pick (a popup with both); the slot shows both icons split, or the chosen one. The slot counts toward row unlocks like any talent; choice slots take no links. First one: Fire r5c5, Damped Embers or Wild Embers.
+- Column-group layout (2026-10-22; Martial first, the pilot):
+  - A book's specs sit side by side as column groups (`Talents.GROUPS`, a per-book grid via `Talents.columns_of`), with the open talents in their own group. The tree page draws faint lines between the groups and each group's name and points on top.
+  - Rows 1-9 hold the spec's talents; row 10 its 5-rank capstone. A capstone needs `Balance.CAPSTONE_GATE` (25) points in its spec's group, the capstone itself not counted (`PlayerData.gate_points`). The global row unlock stays for everything.
+  - Size: about 19 talents and 50-55 ranks per spec, so a pure spec reaches ~65 points with open or other-book picks. At most a quarter need one ability.
+  - Books not in `GROUPS` keep the old 10×7 tree until their own pass.
+- Keywords talents key off (each spec's own, plus the shared ones):
+  - Shared: damage types, Fury, Energy, mana, spells, abilities, melee, thrown, auto-attacks, crits, knockdowns, health thresholds.
+  - The Wheel: Cracks, finishers (Break), weapons breaking, uses, riders (Axe Cleave, Second Hit), Stagger, Fillers / Heavy Fillers, Weapon Arts.
+  - Rogue: Flow, Kill window, Kill forms, stuck daggers, range switch.
+  - Brawler: Bruise, strikes, chain moves, strong moves, Catch strings, Clinch, Shake Off.
+  - Sharpshooter: cuts, full resets, Overcut, Streak, engine shots, Loose.
+  - The other books get their lists in their own pass.
+- Next: the same pass for the other seven books (keyword talents, column groups), one book at a time.
 
 ## Abilities, spellbook, action bars
 - Level-up draft offers new abilities. Skill Cards are equipped as a loadout in their own main-menu tab.

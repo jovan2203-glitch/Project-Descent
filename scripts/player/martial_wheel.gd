@@ -41,6 +41,7 @@ var _stagger := {}          # enemy instance id -> [Stagger, when I last hit it]
 var _cracks_fx: Resource = null
 var _sword_fx: Resource = null
 var _broken := {}           # Turning Wheel: weapon -> when its stack runs out
+var _broke_at := -100.0     # when a weapon of mine last broke (Clean Swap)
 var _was_in_combat := false
 var _shown := ""            # what the picture / the party last saw
 var _told := 0.0
@@ -147,10 +148,22 @@ func _turn(burst: bool) -> void:
 		player._net_fx("wheel_burst", player.global_position, null, {"w": held_weapon()})
 	if burst:
 		_note_broken(held_weapon())
+		_broke_at = Time.get_ticks_msec() / 1000.0
+		player._gain("fury", float(_cracks) * player._talent("martial_spare_parts"))   # Spare Parts
 	_held = next_index(_held, ws.size())
 	_uses = 0
-	_set_cracks(0)
+	_set_cracks(int(round(player._talent("martial_fresh_steel"))) if burst else 0)   # Fresh Steel
 	_sync()
+
+## Clean Swap: did a weapon of mine break in the last `seconds`?
+func broke_lately(seconds: float) -> bool:
+	return Time.get_ticks_msec() / 1000.0 - _broke_at <= seconds
+
+## Breaking Point: does using `id` now take the held weapon's last use (or Break it)?
+func takes_last_use(id: String) -> bool:
+	if not is_out() or not counts_as_use(id):
+		return false
+	return BREAKS.has(id) or _uses >= Balance.WHEEL_USES - 1
 
 ## Out of combat: the HUD's Wheel strip turns it to the next weapon.
 func turn_out_of_combat() -> bool:
@@ -325,8 +338,10 @@ func _wheel_use(id: String, res: Resource) -> void:
 	var slot := Abilities.wheel_slot_index(id)
 	if slot == 0:
 		_set_cracks(_cracks + Balance.CRACKS_QUICK)
+		player._gain("fury", player._talent("martial_iron_grip"))   # Iron Grip
 	elif slot == 1:
-		_set_cracks(_cracks + Balance.CRACKS_FULL)
+		var big := 1 if randf() * 100.0 < player._talent("martial_big_swing") else 0   # Big Swing
+		_set_cracks(_cracks + Balance.CRACKS_FULL + big)
 	elif slot == 2:
 		_set_cracks(_cracks + int(round(player._talent("martial_well_drilled"))))   # Well Drilled
 
@@ -473,13 +488,22 @@ func _on_damage_dealt_wheel(info: RefCounted) -> void:
 				return
 			var near: Array = player._enemies_near(tgt.global_position, Balance.AXE_CLEAVE_REACH, tgt)
 			for e in near.slice(0, axe_cleave_targets(player._talent("martial_wide_cleave"))):   # + Wide Cleave
-				player.deal_damage(e, float(info.base) * Balance.AXE_CLEAVE_PCT / 100.0, AXE_CLEAVE_ID, true, str(info.damage_type), tags)
+				if player.deal_damage(e, float(info.base) * Balance.AXE_CLEAVE_PCT / 100.0, AXE_CLEAVE_ID, true, str(info.damage_type), tags) > 0:
+					player._gain("fury", player._talent("martial_ringing_blows"))   # Ringing Blows
 		"wheelhalberd":
 			if tgt.is_alive() and randf() * 100.0 < Balance.HALBERD_AGAIN_PCT + player._talent("martial_twice_over"):   # + Twice Over
-				player.deal_damage(tgt, float(info.base), SECOND_HIT_ID, true, str(info.damage_type), tags)
+				if player.deal_damage(tgt, float(info.base), SECOND_HIT_ID, true, str(info.damage_type), tags) > 0:
+					player._gain("fury", player._talent("martial_ringing_blows"))   # Ringing Blows
 		"wheelmaul":
 			var extra := Balance.STAGGER_MAUL_EXTRA if MAUL_MOVES.has(str(info.ability_id)) else 0.0
 			_add_stagger(tgt, stagger_add(Balance.STAGGER_PER_HIT + extra, player._talent("martial_rattled")))   # Rattled
+
+## Sharp Fragments: each Crack on the held weapon gives crit chance (Player.adjust_crit).
+func adjust_crit(info: RefCounted, chance: float) -> float:
+	var per := player._talent("martial_sharp_fragments")
+	if per <= 0.0 or _cracks <= 0 or bool(info.is_dot) or not is_out():
+		return chance
+	return chance + float(_cracks) * per
 
 ## Keen Edge: a crit of mine while I hold the Greatsword hits harder (Player.crit_hit_bonus).
 func crit_hit_bonus(_info: RefCounted) -> Array:

@@ -150,7 +150,7 @@ static func _sword(c: Control, at: Vector2, k: float, angle: float, col: Color) 
 static func _halberd(c: Control, at: Vector2, k: float, angle: float, col: Color) -> void:
 	_haft(c, at, k, angle, 17, -12)
 	c.draw_colored_polygon(_turned(at, k, angle, [Vector2(0, -12), Vector2(9, -14), Vector2(10, -6), Vector2(0, -6)]), col)   # blade
-	c.draw_colored_polygon(_turned(at, k, angle, [Vector2(0, -12), Vector2(-6, -11), Vector2(-8, -15), Vector2(0, -9)]), col.darkened(0.15))   # hook
+	c.draw_colored_polygon(_turned(at, k, angle, [Vector2(0, -12), Vector2(-8, -15), Vector2(-6, -11), Vector2(0, -9)]), col.darkened(0.15))   # hook
 	c.draw_colored_polygon(_turned(at, k, angle, [Vector2(-1.5, -12), Vector2(1.5, -12), Vector2(0, -19)]), col.lightened(0.3))   # spike
 
 static func _maul(c: Control, at: Vector2, k: float, angle: float, col: Color) -> void:

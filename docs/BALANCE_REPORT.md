@@ -6,9 +6,9 @@ Idle = time with nothing to press: "waiting on cooldowns" when every button was 
 
 | Book | Spec | Role | Avg use (no gear) | No gear | Geared | Top sources (geared) | Flags | Not simulated |
 |---|---|---|---|---|---|---|---|---|
-| Fire | Steady Flame | dps | 839 | 396 DPS | 2583 DPS | Firebolt 56%, Kiln Blast 21%, Blaze 11% | geared DPS high, hits big | Cool Head, Rekindle, Crucible, Cooling Slag, Bellows |
-| Fire | Slagforged | tank | 142 | 117 DPS, 524 TPS, 0 self-HPS | 636 DPS, 2923 TPS, 0 self-HPS | Auto Attack 38%, Brand 35%, Anvil 15% |  | Cooling Slag, Bellows |
-| Fire | Forge Heat | dps | 323 | 323 DPS | 1822 DPS | Auto Attack 38%, Quench 33%, Searing Strike 23% |  | Cooling Slag, Bellows |
+| Fire | Steady Flame | dps | 914 | 498 DPS | 2650 DPS | Firebolt 56%, Vent Flames 23%, Blaze 21% | geared DPS high, hits big | Cool Head, Crucible, Cooling Slag, Bellows |
+| Fire | Slagforged | tank | 140 | 116 DPS, 518 TPS, 0 self-HPS | 608 DPS, 2687 TPS, 0 self-HPS | Auto Attack 39%, Brand 37%, Anvil 11% |  | Cooling Slag, Bellows |
+| Fire | Forge Heat | dps | 323 | 323 DPS | 1822 DPS | Auto Attack 38%, Flare 33%, Searing Strike 23% |  | Cooling Slag, Bellows |
 | Fire | Pitch and Cinder | dps | 284 | 242 DPS | 1335 DPS | Auto Attack 51%, Flaming Arrow 31%, Furnace Breath 7% | geared DPS low, idle 32% (waiting on cooldowns) | Cooling Slag, Bellows |
 | Frost | Hard Winter | dps | 466 | 272 DPS | 1932 DPS | Frost Bolt 48%, Coldspike 40%, Hoarfrost 5% |  | Deepwinter, Rimelock, Flash Freeze, Winter Hide, Glacial Plate, Snow Ward |
 | Frost | Cold Comfort | healer | 0 | 272 HPS | 1419 HPS | Meltwater 74%, Rimefall 15%, Break the Ice 11% | idle 38% (resource-starved) | Frost Lattice, Frost Tide, Spring Thaw, Rimelock, Flash Freeze, Winter Hide, Glacial Plate, Snow Ward |
@@ -42,6 +42,6 @@ Idle = time with nothing to press: "waiting on cooldowns" when every button was 
 
 ## Averages (geared, complete specs only)
 
-- DPS: average 2124 DPS, median 1919 (18 specs; 3 incomplete left out)
-- Tanks: average 716 DPS, median 740 (7 specs; 0 incomplete left out), average 3048 TPS
+- DPS: average 2127 DPS, median 1919 (18 specs; 3 incomplete left out)
+- Tanks: average 712 DPS, median 740 (7 specs; 0 incomplete left out), average 3014 TPS
 - Healers: average 1620 HPS, median 1508 (5 specs; 0 incomplete left out)

@@ -182,12 +182,15 @@ func test_every_written_talent_is_in_the_tree() -> void:
 			var layout: Array = Talents.layout(cat)
 			if row < 0 or row >= layout.size() or not (layout[row] as Array).has(col):
 				problems.append("%s %s is not a slot of the %s layout" % [cat, rc, cat])
-			var entry: Array = Talents.TALENTS[cat][slot]
-			if entry.size() > 3 and entry[3] is Dictionary and (entry[3] as Dictionary).has("key"):
-				var key := str(entry[3]["key"])
-				if keys.has(key):
-					problems.append("key %s used by %s and %s %s" % [key, keys[key], cat, rc])
-				keys[key] = "%s %s" % [cat, rc]
+			# A choice slot holds two talents ({"choice": [a, b]}), each with its own key.
+			var def: Variant = Talents.TALENTS[cat][slot]
+			var entries: Array = def["choice"] if def is Dictionary else [def]
+			for entry in entries:
+				if entry.size() > 3 and entry[3] is Dictionary and (entry[3] as Dictionary).has("key"):
+					var key := str(entry[3]["key"])
+					if keys.has(key):
+						problems.append("key %s used by %s and %s %s" % [key, keys[key], cat, rc])
+					keys[key] = "%s %s" % [cat, rc]
 	_report(problems, "Talent slots and keys")
 
 # --- Skill Cards, meter lines ------------------------------------------------------------
