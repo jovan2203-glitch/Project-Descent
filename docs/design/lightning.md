@@ -38,10 +38,10 @@ Values in Frost Bolts (FB) are conversation shorthand; real numbers live in bala
 - Rare Afterimage (shared with Arcane): Phase Step or Lightning's blink leaves an image for 4 s; next spell also cast by it at 50%.
 - Menace (Lightning): +30% threat.
 
-## Not built yet (picked open talents)
-- Spillover (3): a direct crit sends 5/10/15% of its damage to another enemy within 6 m.
-- Change of Pace (3): using a different spell/ability than the last gives 1/2/3% damage for 6 s, stacking 3 times; repeating resets it.
-- Dig In (3): after standing still 2 s, +2/4/6% damage until you move.
+## Open talents (built)
+- Spillover (3, r3c4): a direct crit sends 5/10/15% of its damage to another enemy within 6 m.
+- Change of Pace (3, r1c4): using a different spell/ability than the last gives 1/2/3% damage for 6 s, stacking 3 times; repeating resets it.
+- Dig In (3, r4c4): after standing still 2 s, +2/4/6% damage until you move.
 
 ## Utility (the book's "Utility" divider) - BUILT 2026-10-17
 - Static Snare (Lightning's root) - instant, 20 s cooldown, 20 Energy, 30 m. Roots the target 2 s; when it ends, the charge leaps once to the nearest other enemy within 8 m and roots it 2 s. Code: scripts/player/utility.gd.

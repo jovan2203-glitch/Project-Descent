@@ -1564,7 +1564,7 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		"encore_pct": TextFill.num(Balance.ENCORE_PCT + talent("arcane_standing_ovation")),              # Standing Ovation
 		"call_due_pct": TextFill.num(Balance.CALL_DUE_BONUS_PCT + talent("shadow_interest")),            # Interest
 		"bottomless_time": TextFill.num(Balance.BOTTOMLESS_TIME + talent("shadow_no_floor")),            # No Floor
-		"spill_pct": TextFill.num(Balance.SPILL_PCT + talent("shadow_running_over")),                    # Running Over
+		"spill_pct": TextFill.num(Balance.SPILL_PCT + talent("shadow_running_over")),                    # Wider Still
 		"chain_time": TextFill.num(Balance.OFF_THE_CHAIN_TIME + talent("shadow_slipped_leash")),         # Slipped Leash
 		"late_cut_delay": TextFill.num(maxf(Balance.LATE_CUT_DELAY - talent("arcane_no_loose_ends"), 0.1)),   # No Loose Ends
 		"double_time": TextFill.num(Balance.DOUBLE_TIME_TIME + talent("arcane_dress_rehearsal")),        # Dress Rehearsal

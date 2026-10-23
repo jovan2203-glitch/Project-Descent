@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_s")
 id = &"lightning_rod"
-display_name = "Lightning Rod"
+display_name = "Grounded Arrow"
 description = "A {n:stormarrow} is stuck in it: the {n:lightningbolt} of the archer who shot it arcs to the enemies around it."
 color = Color(0.45, 0.55, 1, 1)
 is_debuff = true

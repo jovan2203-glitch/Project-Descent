@@ -777,7 +777,7 @@ func talent_rank(id: String) -> int:
 		return n
 	return int(talents.get(id, 0))
 
-## A talent's current number by its key (e.g. talent_value("frost_slow") -> 10.0
+## A talent's current number by its key (e.g. talent_value("frost_discipline") -> 3.0
 ## at rank 2), 0 if not taken. `field` "values2" = the talent's second number.
 ## A talent that "requires" an ability you don't know gives 0.
 func talent_value(key: String, field: String = "values") -> float:

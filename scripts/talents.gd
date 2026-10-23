@@ -92,7 +92,7 @@ const DEFAULT_LAYOUT := [
 ##              never carry over).
 ##              The healer (Cold Comfort) has the middle of rows 1-2 (Deep Cracks
 ##              linked to Shard Spray) and both edges of rows 9-10. Rows 9-10
-##              are full (7), which is why MAX_PER_ROW is 7.
+##              are full (7, the old grid's widest row).
 ##   Lightning  melee down the left, the parry tank down the right (column 4 and
 ##              the right edge), the caster and the bow down the middle.
 ##   Arcane     the caster in the middle (rows 1-4 so far), the dodge tank down
@@ -324,7 +324,7 @@ const TALENTS := {
 		# --- Pitch and Cinder.
 		"r1c8": ["Sticky Pitch", 4, "Each layer of your Pitch makes your burns tick {v}% faster on top of the usual {b:PITCH_LAYER_SPEED_PCT}%.",
 			{"key": "fire_sticky_pitch", "values": [0.5, 1.0, 1.5, 2.0]}],
-		"r1c9": ["Light String", 3, "Your arrows that cost Energy cost {v} less.",
+		"r1c9": ["Easy Draw", 3, "Your arrows that cost Energy cost {v} less.",
 			{"key": "fire_light_string", "values": [2.0, 4.0, 6.0]}],
 		"r2c8": ["Big Flash", 3, "Your Ignites deal {v}% more damage.",
 			{"key": "fire_big_flash", "values": [10.0, 20.0, 30.0]}],
@@ -522,10 +522,10 @@ const TALENTS := {
 			"capstone": "The third strike also gives you {b:THIRD_BEAT_ENERGY} Energy."}],
 		"r6c1": ["Redline", 3, "Every ability that spends Energy while {n:overdrive} is active makes it last {v} sec longer, up to {b:REDLINE_MAX} sec more in total.",
 			{"key": "lightning_redline", "values": [0.3, 0.7, 1.0], "requires": "overdrive"}],
-		# More generic ones, filling out rows 1-3. Live Current and Quick Step are plain
+		# More generic ones, filling out rows 1-3. Quick Pulse and Quick Step are plain
 		# stats; Storm-Tempered is worked out in PlayerData._compute_total_stats;
 		# Charged Strikes in Player._on_auto_landed; Calm Current in Player._on_damage_modify.
-		"r1c3": ["Live Current", 3, "Increases your Haste by {v}%.",
+		"r1c3": ["Quick Pulse", 3, "Increases your Haste by {v}%.",
 			{"key": "lightning_live_current", "values": [1.0, 2.0, 3.0], "stats": {"haste": 1.0}}],
 		"r1c5": ["Charged Strikes", 3, "Your auto-attacks give you {v} Energy.",
 			{"key": "lightning_charged_strikes", "values": [1.0, 2.0, 3.0]}],
@@ -549,7 +549,7 @@ const TALENTS := {
 		# talents"). Each ties the arrow to a spell: Flicker, Lightning Bolt, Capacitor.
 		"r9c4": ["Snap Shot", 3, "{n:flicker} resets the cooldown of {n:stormarrow} and makes your next {n:stormarrow} within {b:SNAP_SHOT_TIME} sec cost {v} less Energy.",
 			{"key": "lightning_snap_shot", "values": [10.0, 20.0, 30.0], "requires": "stormarrow"}],
-		"r7c4": ["Lightning Rod", 3, "{n:stormarrow} stays stuck in its target for {e:lightning_rod.time} sec. Your {n:lightningbolt} hitting that target also arcs to every enemy within {b:LIGHTNING_ROD_RADIUS} m of it for {v}% of the damage it dealt.",
+		"r7c4": ["Grounded Arrow", 3, "{n:stormarrow} stays stuck in its target for {e:lightning_rod.time} sec. Your {n:lightningbolt} hitting that target also arcs to every enemy within {b:LIGHTNING_ROD_RADIUS} m of it for {v}% of the damage it dealt.",
 			{"key": "lightning_rod", "values": [13.0, 27.0, 40.0], "requires": "stormarrow"}],
 		"r9c6": ["Loaded Quiver", 2, "Taking your Energy back from {n:capacitor} loads {v} {n:stormarrow} for {b:LOADED_QUIVER_TIME} sec: each costs no Energy and ignores its cooldown.",
 			{"key": "lightning_loaded_quiver", "values": [1.0, 2.0], "requires": "stormarrow"}],
@@ -621,7 +621,7 @@ const TALENTS := {
 		"r2c1": ["Sharp Edges", 3, "Your Reflections deal {v}% more damage when they shatter.",
 			{"key": "arcane_sharp_edges", "values": [10.0, 20.0, 30.0],
 			"capstone": "A shatter reaches enemies within {b:SHARP_EDGES_RADIUS} m of you instead of {b:REFLECTION_SHATTER_RADIUS} m."}],
-		"r3c1": ["Clockwork", 2, "Each of your Reflections that shatters takes {v} sec more off the cooldowns of your Arcane spells and abilities.",
+		"r3c1": ["Spare Seconds", 2, "Each of your Reflections that shatters takes {v} sec more off the cooldowns of your Arcane spells and abilities.",
 			{"key": "arcane_clockwork", "values": [0.25, 0.5]}],
 		"r4c1": ["Spare Copy", 2, "When you dodge an attack, there is a {v}% chance that the Reflection which takes it is not used up. It still shatters.",
 			{"key": "arcane_spare_copy", "values": [10.0, 20.0]}],
@@ -744,9 +744,9 @@ const TALENTS := {
 		"r10c5": ["Inevitable", 5, "Enemies you first damaged more than {b:INEVITABLE_TIME} sec ago take {v}% more damage from you.",
 			{"key": "shadow_inevitable", "values": [2.0, 4.0, 6.0, 8.0, 10.0]}],
 		# The Shadow caster's Decay (player.gd, "Shadow caster: Decay"), down the
-		# middle of rows 4-8, with one talent in the bottom row. Seep, Loose Grains:
+		# middle of rows 4-8, with one talent in the bottom row. Lure:
 		# Player._on_damage_dealt_shadow; Interest, Small Change: _call_due; Next of
-		# Kin: _decay_jump; Bitter End, Rot Through: _tick_decay; No Floor:
+		# Kin: _decay_jump; Bitter End, Hooked Claws: _tick_decay; No Floor:
 		# _start_bottomless.
 		"r4c3": ["Lure", 3, "The periodic damage of {n:corruption} adds {v}% of what it deals to your Breach under the target while it is open.",
 			{"key": "shadow_seep", "values": [17.0, 33.0, 50.0], "requires": "corruption"}],
@@ -755,7 +755,7 @@ const TALENTS := {
 			"capstone": "If that Breach was still open, your next {n:blight} within {b:INTEREST_TIME} sec is instant.", "capstone_requires": "blight"}],
 		# (r4c5 is empty: Impatience went with Usher In, the spell it was about.)
 		# Hush, Spill and Gnaw: one talent each, either side of the middle.
-		# Running Over: _spill; Bite Down: _tick_decay, adjust_crit.
+		# Wider Still: _spill; Bite Down: _tick_decay, adjust_crit.
 		# (r5c2 is empty: Cut Short was folded into Hush's cooldown.)
 		"r5c6": ["Wider Still", 3, "{n:spill} copies {v+b:SPILL_PCT}% of what is left in your Breach, instead of {b:SPILL_PCT}%.",
 			{"key": "shadow_running_over", "values": [7.0, 13.0, 20.0], "requires": "spill",
@@ -1443,7 +1443,7 @@ const LINKS_MOVED := {
 	"frost_r9c6": "frost_r7c6",   # Frozen Instinct: row 9 -> row 7, under Cold Snap
 	"lightning_r5c4": "lightning_r6c4",   # Quick Fuse: row 5 -> row 6
 	"lightning_r6c4": "lightning_r5c4",   # Tight Coil: row 6 -> row 5
-	"lightning_r9c4": "lightning_r7c4",   # Lightning Rod: row 9 -> row 7
+	"lightning_r9c4": "lightning_r7c4",   # Grounded Arrow: row 9 -> row 7
 	"lightning_r7c4": "lightning_r9c4",   # Snap Shot: row 7 -> row 9
 	"lightning_r8c6": "lightning_r6c7",   # Second Stroke: row 8 -> row 6, under Counter-Charge
 	"lightning_r6c7": "lightning_r8c5",   # Tempo: row 6 -> row 8, under Earth Return

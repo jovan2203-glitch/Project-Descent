@@ -194,7 +194,7 @@ const PARTING_SPARK_ID := "parting_spark"
 const STORM_ARROW_ID := "stormarrow"
 const LOADED_QUIVER_FX := "loaded_quiver"
 const SNAP_SHOT_FX := "snap_shot"
-## Lightning Rod: the effect a Storm Arrow leaves on its target (data/effects),
+## Grounded Arrow: the effect a Storm Arrow leaves on its target (data/effects),
 ## and the name its arcs carry on the damage meter.
 const ROD_FX := "lightning_rod"
 

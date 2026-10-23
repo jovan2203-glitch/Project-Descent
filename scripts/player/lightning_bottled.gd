@@ -119,7 +119,7 @@ func _on_damage_dealt_lightning(info: RefCounted) -> void:
 	if id == "auto_melee" or id == "auto_ranged":
 		player.lightning_melee._on_auto_landed(info)   # Twin Current, Overdrive
 	elif id == "lightningbolt":
-		player.storm_arrow_kit._lightning_rod_arc(info)   # Lightning Rod: it arcs off a target with my Storm Arrow in it
+		player.storm_arrow_kit._lightning_rod_arc(info)   # Grounded Arrow: it arcs off a target with my Storm Arrow in it
 	elif id == LightningCasterKit.LIVE_WIRE_ID:
 		_wire_landed(info.target)
 	elif id == "dot_" + LightningCasterKit.LIVE_WIRE_FX:

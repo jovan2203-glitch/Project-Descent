@@ -1346,7 +1346,7 @@ func resource_cost(id: String, with_storm_cycle: bool = true) -> float:
 	if cost > 0.0 and Abilities.resource_of(id) == "energy":
 		cost = maxf(cost - _talent("martial_thrift"), 0.0)                                                  # Thrift
 		if Abilities.tags_of(id).has("Ranged"):
-			cost = maxf(cost - _talent("fire_light_string"), 0.0)                                         # Light String: arrows
+			cost = maxf(cost - _talent("fire_light_string"), 0.0)                                         # Easy Draw: arrows
 		cost = LightningCasterKit.surge_energy_cost(cost, lightning_caster.surge_active())                   # Grounding Surge
 		if with_storm_cycle and bottled_kit.storm_cycle_ready():
 			cost = 0.0                                                   # Storm Cycle: this one is free

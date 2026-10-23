@@ -146,7 +146,7 @@ func test_parting_spark() -> void:
 
 ## Fifth batch: three talents for Storm Arrow (the Lightning bow), each tied to a spell.
 const WANT_BOW := {
-	"lightning_snap_shot": ["lightning_r9c4", 3, [10.0, 20.0, 30.0], "stormarrow"],   # swapped with Lightning Rod (Talents.LINKS_MOVED)
+	"lightning_snap_shot": ["lightning_r9c4", 3, [10.0, 20.0, 30.0], "stormarrow"],   # swapped with Grounded Arrow (Talents.LINKS_MOVED)
 	"lightning_rod": ["lightning_r7c4", 3, [13.0, 27.0, 40.0], "stormarrow"],
 	"lightning_loaded_quiver": ["lightning_r9c6", 2, [1.0, 2.0], "stormarrow"],
 }
@@ -202,7 +202,7 @@ func test_lightning_rod() -> void:
 	assert_eq(float(fx.duration), 8.0)
 	assert_eq(Balance.LIGHTNING_ROD_RADIUS, 4.0)
 	assert_eq(TextFill.leftover(TextFill.effect(fx)), "", "the effect's text is filled in")
-	assert_eq(Details.spell_name("lightning_rod"), "Lightning Rod", "the arcs are named after the talent on the meter")
+	assert_eq(Details.spell_name("lightning_rod"), "Grounded Arrow", "the arcs are named after the talent on the meter")
 	assert_eq(StormArrowKit.lightning_rod_damage(200, 20.0), 40.0, "20% of the bolt")
 	assert_eq(StormArrowKit.lightning_rod_damage(200, 40.0), 80.0)
 	assert_eq(StormArrowKit.lightning_rod_damage(200, 0.0), 0.0, "no talent, no arc")

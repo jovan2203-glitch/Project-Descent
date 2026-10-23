@@ -484,7 +484,7 @@ const HIT_NAMES := {
 	"overload": "Overload",
 	"earth_return": "Earth Return",
 	"parting_spark": "Parting Spark",
-	"lightning_rod": "Lightning Rod",
+	"lightning_rod": "Grounded Arrow",
 	"afterimage": "Afterimage",
 	"chain_reaction": "Chain Reaction",
 	"reflection_shatter": "Reflection Shatter",

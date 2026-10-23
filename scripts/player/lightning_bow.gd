@@ -58,13 +58,13 @@ func _storm_arrow_fired(cd_before: float) -> void:
 	elif player.status.has(LightningCasterKit.SNAP_SHOT_FX):
 		player.status.remove(LightningCasterKit.SNAP_SHOT_FX)
 
-## Lightning Rod: damage each arc deals when a Lightning Bolt hit for `amount`,
+## Grounded Arrow: damage each arc deals when a Lightning Bolt hit for `amount`,
 ## at `pct` % of it, with `count` enemies around (more than AOE_TARGET_CAP share
 ## that many arcs).
 static func lightning_rod_damage(amount: int, pct: float, count: int = 1) -> float:
 	return maxf(float(amount) * maxf(pct, 0.0) / 100.0, 0.0) * Balance.aoe_share(count)
 
-## Lightning Rod: my Lightning Bolt hit a target with MY Storm Arrow stuck in it
+## Grounded Arrow: my Lightning Bolt hit a target with MY Storm Arrow stuck in it
 ## (own only). An exact share of the hit arcs to the enemies around it: dealt as
 ## procs, so the arcs feed nothing else and their crit is already in the hit.
 func _lightning_rod_arc(info: RefCounted) -> void:

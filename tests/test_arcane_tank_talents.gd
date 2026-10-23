@@ -21,7 +21,7 @@ const PlayerDataScript = preload("res://scripts/player_data.gd")
 # [key, name, ranks, the ability it needs, slot, values]
 const TALENTS := [
 	["arcane_sharp_edges", "Sharp Edges", 3, "", "arcane_r2c1", [10.0, 20.0, 30.0]],
-	["arcane_clockwork", "Clockwork", 2, "", "arcane_r3c1", [0.25, 0.5]],
+	["arcane_clockwork", "Spare Seconds", 2, "", "arcane_r3c1", [0.25, 0.5]],
 	["arcane_spare_copy", "Spare Copy", 2, "", "arcane_r4c1", [10.0, 20.0]],
 	["arcane_second_self", "Second Self", 3, "doubleup", "arcane_r5c2", [10.0, 20.0, 30.0]],
 	["arcane_wide_rings", "Wide Rings", 3, "ripple", "arcane_r7c1", [0.7, 1.3, 2.0]],

@@ -462,7 +462,7 @@ const OVERFLOW_TIME := 8.0               # Overflow: seconds the shield made of 
 const PARTING_SPARK_RADIUS := 4.0        # Parting Spark: metres around the spot Flicker left that get zapped
 const LOADED_QUIVER_TIME := 10.0         # Loaded Quiver: seconds its free Storm Arrows wait for you
 const SNAP_SHOT_TIME := 5.0              # Snap Shot: seconds the cheaper Storm Arrow waits for you
-const LIGHTNING_ROD_RADIUS := 4.0        # Lightning Rod: metres around the target its arcs reach (how long the arrow stays in: EFFECTS)
+const LIGHTNING_ROD_RADIUS := 4.0        # Grounded Arrow: metres around the target its arcs reach (how long the arrow stays in: EFFECTS)
 
 ## Rune of Bottled Lightning (Rare): Capacitor makes the next Discharge instant.
 const BOTTLED_LIGHTNING_TIME := 8.0      # seconds the instant Discharge waits for you
@@ -878,13 +878,13 @@ const LONG_FALL_PCT := 50.0               # % of the Decay that has to cover the
 const ROT_RUNE_PCT := 5.0                 # % of that damage, for each copy of the rune equipped
 
 ## The Shadow book's talents (their ranks' numbers are in talents.gd; these are
-## the fixed parts). Decay's: Tainted Steel, Seep, Interest, Small Change, Loose
-## Grains, Next of Kin, Bitter End, No Floor, Rot Through. Open ones (they work
+## the fixed parts). Decay's: Baited Steel, Lure, Interest, Small Change,
+## Next of Kin, Bitter End, No Floor, Hooked Claws, Wider Still. Open ones (they work
 ## with every book's spells and abilities): Slow Death, Wasting, Finish It,
 ## Spite, Carrion, Inevitable.
 const INTEREST_TIME := 5.0                # Interest's capstone: seconds the instant Blight waits for you
 const NEXT_OF_KIN_SECOND_PCT := 50.0      # Next of Kin's capstone: % of what moved on that the next nearest enemy gets as well
-const RUNNING_OVER_OPEN_TIME := 5.0       # Running Over's capstone: seconds every copy Spill makes is open for at least
+const RUNNING_OVER_OPEN_TIME := 5.0       # Wider Still's capstone: seconds every copy Widen makes is open for at least
 const FINISH_IT_HEALTH_PCT := 25.0        # Finish It: works on enemies below this % of their health
 const SPITE_TIME := 4.0                   # Spite: seconds the boost waits for your next spell or ability
 const SPITE_HITS := 0.4                   # ... seconds in which every hit of the spell or ability that uses it gets it (one that hits several enemies)
@@ -1741,7 +1741,7 @@ const EFFECTS := {
 	"res://data/effects/rime_shell.tres": {"duration": 15.0, "damage_pct": -20.0},
 	"res://data/effects/rime_shell_foe.tres": {"duration": 15.0, "damage_pct": 5.0},
 	"res://data/effects/thawing.tres": {"duration": 15.0},
-	"res://data/effects/lightning_rod.tres": {"duration": 8.0},   # Lightning Rod: how long a Storm Arrow stays stuck in its target
+	"res://data/effects/lightning_rod.tres": {"duration": 8.0},   # Grounded Arrow: how long a Storm Arrow stays stuck in its target
 	"res://data/effects/coldmarked.tres": {"duration": 12.0},     # Coldmark: how long the mark stays on the target
 	"res://data/effects/countdown.tres": {"duration": COUNTDOWN_TIME},   # Countdown: the mark lasts until it detonates
 	"res://data/effects/aftershock.tres": {"duration": AFTERSHOCK_TIME, "slow": -AFTERSHOCK_SLOW_STEP},   # Aftershock (talent): rank 1's slow; higher ranks scale it

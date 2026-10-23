@@ -69,7 +69,7 @@ func _on_hit_extra(enemy: Node, at: Vector3, id: String) -> void:
 						Balance.COUNTER_CHARGE_ARC)
 					arcs += 1
 		"stormarrow":
-			# Lightning Rod: the arrow stays stuck in the target (the effect goes
+			# Grounded Arrow: the arrow stays stuck in the target (the effect goes
 			# through the combat pipeline, so in a party it reaches the host).
 			if player._talent("lightning_rod") > 0.0:
 				player.fire_caster._apply_effect_hit(enemy, preload("res://scripts/core/effects.gd").get_effect(LightningCasterKit.ROD_FX), LightningCasterKit.ROD_FX,
