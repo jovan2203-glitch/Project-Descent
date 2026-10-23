@@ -1,4 +1,4 @@
-# Patch notes — 23 October 2026 (2)
+# Patch notes — 23 October 2026 (0.0.22)
 
 The Frost talent tree moves to the column-group layout: its five specs sit side by side, each with 19 talents and a capstone, and most talents now work with the book's keywords instead of a single ability. Every talent point in every book is refunded on your next load. Damage is given at level 50 before gear.
 
