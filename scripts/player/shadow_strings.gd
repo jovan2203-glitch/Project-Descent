@@ -774,6 +774,7 @@ func _show_strings() -> void:
 func _heal_exact(tgt: Variant, amount: int, id: String) -> void:   # untyped: may be a freed node
 	if amount <= 0 or tgt == null or not is_instance_valid(tgt) or not (tgt is Node):
 		return
+	amount = int(round(amount * player.frost_talents.heal_mult(tgt)))   # Thaw Water, Ice Bath, Close Weave
 	player.holy_talents._overflowing(tgt, amount, id)   # Overflowing: the overhealing becomes a shield
 	player.holy_talents._second_breath(tgt, amount, id)   # Second Breath: a big save gives mana back
 	if is_same(tgt, player) or (tgt as Node).is_in_group("friendly"):

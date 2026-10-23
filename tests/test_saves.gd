@@ -57,10 +57,7 @@ func test_v11_refunds_the_folded_talents() -> void:
 	assert_eq(int(ranks.get("fire_r1c1", 0)), 3, "other talents keep their points")
 	assert_eq(Talents.FOLDED_INTO_ABILITIES.size(), 13)
 	for id in Talents.FOLDED_INTO_ABILITIES:
-		if id.begins_with("martial_") or id.begins_with("fire_"):   # books moved to column groups (Talents.GROUPS): their slots hold new talents
-			continue
-		if id == "frost_r8c4":   # Cold Fury took Thick Hide's slot later (save version 12+); old points were refunded here
-			assert_eq(Talents.id_for_key("frost_cold_fury"), id)
+		if id.begins_with("martial_") or id.begins_with("fire_") or id.begins_with("frost_"):   # books moved to column groups (Talents.GROUPS): their slots hold new talents
 			continue
 		assert_true(bool(Talents.get_talent(id).get("placeholder", false)), "%s is an empty slot now" % id)
 

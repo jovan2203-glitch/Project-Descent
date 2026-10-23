@@ -165,7 +165,21 @@ const DEEP_FREEZE_BLIZZARD_MULT := 0.5   # ... at this share of Whiteout's damag
 const COLD_SNAP_MIN_GCD := 0.25          # Cold Snap never shortens a GCD below this
 const ICE_FLOE_TIME := 3.0               # Ice Floe: move speed buff after a shield on you breaks
 const COLD_DRAW_EVERY := 1.0            # Cold Draw: seconds between its resource gains
-const FROZEN_INSTINCT_TIME := 8.0        # Frozen Instinct: seconds to use the instant Frost Bolt
+const FROZEN_INSTINCT_TIME := 8.0        # Frozen Instinct: seconds to use the instant Frost spell
+## Frost talents of the column-group tree (2026-10-23).
+const SPLINTER_DAMAGE := 0.1             # Splintering: Frost damage (coefficient) of each splinter
+const SNOWDRIFT_CROWD := 2               # Snowdrift: other enemies near the target it needs ...
+const SNOWDRIFT_RADIUS := 8.0            # ... within this many metres
+const COLD_FRONT_MAX := 5                # Cold Front: enemies you have Chilled or Frozen that count, at most
+const COLD_WELL_EVERY := 1.0             # Cold Well: seconds between its mana gains
+const LAST_SHELTER_HEALTH := 50.0        # Last Shelter / Cold Rush: an ally below this % health
+const MELTDOWN_EVERY := 2.0              # Meltdown: seconds between its mana gains
+const SHIVER_EVERY := 2.0                # Shiver: seconds between its Glaze
+const COLD_SWING_HITS := 2               # Cold Swing: enemies a melee ability has to hit
+const THAW_STRIKE_TIME := 10.0           # Thaw Strike: seconds the cheaper finisher waits
+const STEADY_FOOTING_LAYERS := 3         # Steady Footing: Ice Layers you need to hold
+const SPLITTING_ARROW_RANGE := 8.0       # Splitting Arrow: metres to the second enemy
+const SLEET_ARROWS_RANGE := 8.0          # Sleet Arrows: metres from the target to the enemies also Chilled
 
 ## Frost, second batch.
 const COLDSPIKE_FROZEN_PCT := 25.0       # Coldspike: % more damage to a target YOU have Frozen

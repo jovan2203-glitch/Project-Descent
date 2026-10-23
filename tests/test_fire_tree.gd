@@ -130,7 +130,7 @@ func test_column_groups() -> void:
 		assert_contains(Talents.tooltip(id, 0), "Needs %d points in %s" % [Balance.CAPSTONE_GATE, g])
 	assert_false(Talents.capstone_gated(Talents.id_for_key("fire_stoked_breath")))
 	assert_false(Talents.capstone_gated(Talents.id_for_key("fire_tempered")), "the Open column has no gate")
-	assert_eq(Talents.TREE_VERSION, 6, "the new tree refunds every point")
+	assert_true(Talents.TREE_VERSION >= 6, "the new tree refunds every point")
 	for link in Talents.links():
 		assert_false(str(link[0]).begins_with("fire_") or str(link[1]).begins_with("fire_"), "no links in the column-group tree")
 

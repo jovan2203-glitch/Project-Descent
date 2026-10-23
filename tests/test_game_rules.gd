@@ -244,7 +244,7 @@ func test_frost_row3_row4_talent_values() -> void:
 	assert_eq(pd.talent_value("frost_discipline"), 3.0, "mana cost -3% at rank 2")
 	assert_eq(pd.talent_value("frost_discipline", "values2"), 10.0, "threat -10% at rank 2")
 	# Frozen Mind: Spell Power = 6% of Intellect at rank 3.
-	pd.talents["frost_r4c1"] = 3
+	pd.talents[Talents.id_for_key("frost_int_sp")] = 3
 	pd.attribute_points = {"intellect": 10}
 	pd.changed.emit()
 	var t: Dictionary = pd.total_stats()
@@ -259,23 +259,26 @@ func test_chilled_effect_id() -> void:
 func test_frost_talent_values() -> void:
 	var pd := _pd()
 	pd.level = 10
-	assert_eq(Talents.id_for_key("frost_haste"), "frost_r1c3")
-	assert_eq(Talents.id_for_key("frost_absorb"), "frost_r1c7")
+	assert_eq(Talents.id_for_key("frost_haste"), "frost_r1c5")
+	assert_eq(Talents.id_for_key("frost_absorb"), "frost_r3c5")
 	assert_eq(pd.talent_value("frost_absorb"), 0.0)
-	pd.invest_talent("frost_r1c7")
-	pd.invest_talent("frost_r1c7")
+	pd.talents = {"frost_r1c1": 3, "frost_r2c1": 3, Talents.id_for_key("frost_absorb"): 2}   # (rows 1-2 open row 3)
+	pd.learn_ability("frostbolt")
 	assert_eq(pd.talent_value("frost_absorb"), 10.0, "Rime Ward rank 2")
-	pd.invest_talent("frost_r1c3")
+	pd.invest_talent("frost_r1c5")
 	pd.changed.emit()
 	assert_true(absf(float(pd.total_stats().get("haste", 0.0)) - 0.7) < 0.001, "Frozen Focus rank 1 = +0.7% haste")
 
-func test_shard_proc_talent_needs_ice_shards() -> void:
+## Splintering Cold works off Ice Shard charges (a keyword), not one ability; Shardstorm still needs Ice Shards.
+func test_shard_proc_talent_is_a_keyword_talent() -> void:
 	var pd := _pd()
-	pd.level = 10
-	pd.talents = {"frost_r1c3": 2, "frost_r1c7": 1, Talents.id_for_key("frost_shard_proc"): 1}
-	assert_eq(pd.talent_value("frost_shard_proc"), 0.0, "Ice Shards not known")
+	pd.level = 20
+	pd.talents = {"frost_r1c1": 3, "frost_r2c1": 3, "frost_r3c1": 3, Talents.id_for_key("frost_shard_proc"): 1,
+		Talents.id_for_key("frost_shardstorm"): 1}
+	assert_eq(pd.talent_value("frost_shard_proc"), 10.0, "no ability needed")
+	assert_eq(pd.talent_value("frost_shardstorm"), 0.0, "Ice Shards not known")
 	pd.learn_ability("iceshards")
-	assert_eq(pd.talent_value("frost_shard_proc"), 10.0)
+	assert_eq(pd.talent_value("frost_shardstorm"), 7.0)
 
 func test_validate_talents_refunds_when_over_budget() -> void:
 	var pd := _pd()

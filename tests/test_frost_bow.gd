@@ -182,15 +182,16 @@ const Talents = preload("res://scripts/talents.gd")
 const TalentIcons = preload("res://scripts/talent_icons.gd")
 const PlayerDataScript = preload("res://scripts/player_data.gd")
 
-## key -> [slot, ranks, values, required ability]. They sit together on the right of rows 1-5.
+## key -> [slot, ranks, values, required ability]. Winter Hunt's column group (the
+## right edge), rows 1-5 (the rest of the group: tests/test_frost_tree.gd).
 const BOW_TALENTS := {
-	"frost_cold_draw": ["frost_r1c5", 3, [2.0, 4.0, 6.0], ""],
-	"frost_pinning_frost": ["frost_r2c5", 3, [13.0, 27.0, 40.0], "icepin"],
-	"frost_black_ice": ["frost_r2c6", 3, [33.0, 67.0, 100.0], "icyretreat"],
-	"frost_clean_shatter": ["frost_r3c6", 3, [7.0, 13.0, 20.0], "shattershot"],
-	"frost_cold_harvest": ["frost_r4c5", 3, [3.0, 7.0, 10.0], "rimefletch"],
-	"frost_thin_ice": ["frost_r5c5", 3, [0.3, 0.7, 1.0], "glacialdraw"],
-	"frost_marked_prey": ["frost_r5c6", 3, [10.0, 20.0, 30.0], "coldmark"],
+	"frost_cold_draw": ["frost_r1c10", 3, [2.0, 4.0, 6.0], ""],
+	"frost_frozen_quarry": ["frost_r1c11", 3, [4.0, 8.0, 12.0], ""],
+	"frost_pinning_frost": ["frost_r2c10", 3, [5.0, 10.0, 15.0], ""],
+	"frost_black_ice": ["frost_r2c11", 3, [33.0, 67.0, 100.0], "icyretreat"],
+	"frost_clean_shatter": ["frost_r3c10", 3, [7.0, 13.0, 20.0], "shattershot"],
+	"frost_cold_harvest": ["frost_r4c10", 3, [3.0, 7.0, 10.0], "rimefletch"],
+	"frost_thin_ice": ["frost_r5c10", 3, [0.3, 0.7, 1.0], "glacialdraw"],
 }
 
 func test_the_bow_talents_sit_together() -> void:
@@ -208,8 +209,8 @@ func test_the_bow_talents_sit_together() -> void:
 		var tip := Talents.tooltip(id, 1)
 		assert_eq(TextFill.leftover(tip), "", "%s: every placeholder is filled" % key)
 		assert_false(tip.contains("?"), "%s: %s" % [key, tip])
-		# The same area: the right half of the book, in the top five rows.
-		assert_true(Talents.col_of(id) >= 4, "%s is on the right" % key)
+		# Winter Hunt's group, in the top five rows.
+		assert_eq(Talents.group_of(id), "Winter Hunt", "%s is in Winter Hunt's columns" % key)
 		assert_true(Talents.tier_of(id) <= 4, "%s is in rows 1-5" % key)
 	assert_eq(Talents.get_talent(Talents.id_for_key("frost_clean_shatter")).get("values2", []), [1.5, 2.5, 4.0])
 	var d := func(key: String) -> String: return Talents.description(Talents.id_for_key(key))
@@ -221,8 +222,8 @@ func test_the_bow_talents_sit_together() -> void:
 	assert_contains(d.call("frost_clean_shatter"), "1.5 / 2.5 / 4 sec")
 	assert_contains(d.call("frost_cold_harvest"), "3 / 7 / 10 Energy")
 	assert_contains(d.call("frost_thin_ice"), "0.3 / 0.7 / 1 sec faster")
-	assert_contains(d.call("frost_marked_prey"), "10 / 20 / 30% more damage")
-	assert_contains(d.call("frost_marked_prey"), Abilities.ability_name("iceshards"))
+	assert_contains(d.call("frost_frozen_quarry"), "4 / 8 / 12% more damage")
+	assert_contains(d.call("frost_pinning_frost"), "targets you have rooted")
 
 func test_talent_maths() -> void:
 	var p := _player()
@@ -239,14 +240,12 @@ func test_talent_maths() -> void:
 	pd.level = 50
 	pd.learned_abilities.clear()
 	pd.talents = {Talents.id_for_key("frost_cold_draw"): 3, Talents.id_for_key("frost_thin_ice"): 3,
-		Talents.id_for_key("frost_marked_prey"): 3}
+		Talents.id_for_key("frost_frozen_quarry"): 3}
 	assert_eq(pd.talent_value("frost_cold_draw"), 6.0)
+	assert_eq(pd.talent_value("frost_frozen_quarry"), 12.0, "a keyword talent needs no ability")
 	assert_eq(pd.talent_value("frost_thin_ice"), 0.0, "Glacial Draw is not learned")
-	assert_eq(pd.talent_value("frost_marked_prey"), 0.0, "Coldmark is not learned")
 	pd.learned_abilities.append("glacialdraw")
-	pd.learned_abilities.append("coldmark")
 	assert_eq(pd.talent_value("frost_thin_ice"), 1.0)
-	assert_eq(pd.talent_value("frost_marked_prey"), 30.0)
 	pd.free()
 
 ## The Frost book was rearranged for the bow talents (save version 4 -> 5): removed
@@ -270,14 +269,10 @@ func test_old_saves_keep_their_frost_points() -> void:
 	var v5: Dictionary = Talents.rearranged(old, Talents.FROST_BOW_MOVED, Talents.FROST_BOW_REMOVED)
 	assert_eq(v5, {"frost_r1c3": 3, "frost_r2c3": 3, "frost_r2c5": 2, "frost_r1c2": 2, "frost_r3c2": 1,
 		"frost_r5c3": 2, "fire_r1c1": 3})
-	# The next step (5 -> 6, Talents.LINKS_MOVED) then moved Bitter Cold to the left edge of row 1.
+	# The next steps moved Frost talents again; then the column-group tree refunded every
+	# point (Talents.TREE_VERSION), so LINKS_MOVED keeps no Frost entries any more.
 	var now: Dictionary = Talents.rearranged(v5, Talents.LINKS_MOVED, [])
-	assert_eq(now, {"frost_r1c3": 3, "frost_r2c3": 3, "frost_r2c5": 2, "frost_r1c1": 2, "frost_r3c2": 1,
-		"frost_r5c3": 2, "fire_r1c1": 3})
-	assert_eq(Talents.id_for_key("frost_bolt_cast"), "frost_r2c3", "Quickened Frost")
-	assert_eq(Talents.id_for_key("frost_chilled_dmg"), "frost_r1c1", "Bitter Cold")
-	assert_eq(Talents.id_for_key("frost_hoarfrost"), "frost_r3c2", "Deep Hoarfrost")
-	assert_eq(Talents.id_for_key("frost_third_bite"), "frost_r5c3", "Third Bite")
+	assert_eq(now, v5, "nothing Frost moves on the 5 -> 6 step now")
 	for id in now:
 		assert_true(Talents.exists(str(id)), "%s is a slot of today's book" % id)
 		assert_true(int(now[id]) <= Talents.max_rank(str(id)), "%s: no more ranks than the talent has" % id)

@@ -108,6 +108,27 @@ static func rimefall_share(shells: int) -> float:
 static func stillwater_ok(health: float, max_health: float) -> bool:
 	return max_health > 0.0 and health > 0.0 and health * 100.0 < max_health * Balance.STILLWATER_HEALTH_PCT
 
+## Seconds before Rime Veil forms again (Layered Veil: sooner).
+func _veil_every() -> float:
+	return maxf(Balance.RIME_VEIL_EVERY - player._talent("frost_layered_veil"), 0.5)
+
+## Does `who` carry one of my Frost shields (Rime Shell, Rime Veil, Rimefall, Shard Spray)? (Ice Bath)
+func has_my_frost_shield(who: Variant) -> bool:
+	if who == null or not is_instance_valid(who):
+		return false
+	if has_my_shell(who) or _veils.has((who as Node).get_instance_id()):
+		return true
+	var st: Node = player.status if is_same(who, player) else (who as Node).get_node_or_null("Status")
+	return st != null and (st.has_from(RIMEFALL_FX, player) or st.has_from(SHARD_SPRAY_FX, player) or st.has_from(RIME_VEIL_FX, player))
+
+## Is `who` linked by my Frost Lattice right now? (Close Weave)
+func is_linked(who: Variant) -> bool:
+	return who != null and is_instance_valid(who) and _linked().has(who)
+
+## Seconds between Runoff's heals (Snowmelt: `faster_pct` % faster).
+static func runoff_every(faster_pct: float) -> float:
+	return 1.0 / (1.0 + maxf(faster_pct, 0.0) / 100.0)
+
 ## How many allies Frost Lattice links (Wide Lattice adds `extra`).
 static func lattice_size(extra: float) -> int:
 	return Balance.LATTICE_LINKS + int(round(maxf(extra, 0.0)))
@@ -149,14 +170,16 @@ func shell_broke(who: Node3D, amount: int) -> void:
 		return
 	_shells.erase(who.get_instance_id())
 	_unlink(who)
-	var near := player.prism_kit._allies_near(who.global_position, Balance.RIME_SHARDS_RADIUS)
-	var each := shards_each(amount, near.size(), player._talent("frost_deep_cracks"))   # Deep Cracks
+	player.frost_talents._shell_broke()   # Meltdown
+	var radius := Balance.RIME_SHARDS_RADIUS + player._talent("frost_shard_reach")   # + Shard Reach
+	var near := player.prism_kit._allies_near(who.global_position, radius)
+	var each := shards_each(amount, near.size(), player._talent("frost_deep_cracks") + player._talent("frost_frozen_hearth"))   # Deep Cracks, Frozen Hearth
 	var spray := int(round(each * player._talent("frost_shard_spray") / 100.0))   # Shard Spray: a share of the heal as a shield
 	for a in near:
 		player.strings._heal_exact(a, each, RIME_SHARDS_ID)
 		if spray > 0:
 			_frost_shield(a, SHARD_SPRAY_FX, spray, Balance.SHARD_SPRAY_TIME)
-	player._ring_effect(Balance.RIME_SHARDS_RADIUS, ICE, who.global_position)
+	player._ring_effect(radius, ICE, who.global_position)
 
 ## My Rime Shell on `who` ran out with `left` still in it: Runoff heals them over time.
 func shell_runoff(who: Node3D, left: int) -> void:
@@ -168,7 +191,8 @@ func shell_runoff(who: Node3D, left: int) -> void:
 	var ticks := maxi(int(round(Balance.RUNOFF_TIME)), 1)
 	if total <= 0:
 		return
-	_runoffs.append({"who": who, "per": maxi(int(round(float(total) / ticks)), 1), "left": ticks, "next": _now() + 1.0})
+	var every := runoff_every(player._talent("frost_snowmelt"))   # Snowmelt: the same ticks, closer together
+	_runoffs.append({"who": who, "per": maxi(int(round(float(total) / ticks)), 1), "left": ticks, "next": _now() + every, "every": every})
 	if player.frost_melee._capstone("frost_slow_runoff"):
 		player._gain("mana", player.mana_unit())   # Slow Runoff's capstone: a mana point back
 
@@ -235,10 +259,16 @@ func _drain_shell(who: Node3D, amount: int) -> void:
 func _shield_amount(share: float, id: String) -> int:
 	return int(round(player._combat().heal_amount(player, Balance.REFERENCE_HEAL * share, id) * player.absorb_mult()))
 
-## A shield of mine (`fx_id`: Rime Veil, Rimefall, Shard Spray) of `amount` on `who` for `time` sec.
+## A shield of mine (`fx_id`: Rime Veil, Rimefall, Shard Spray) of `amount` on `who` for `time` sec
+## (Frozen Hearth and Last Shelter: bigger; Deep Snow: Rimefall's bigger; Long Frost: longer).
 func _frost_shield(who: Node3D, fx_id: String, amount: int, time: float) -> void:
 	if who == null or not is_instance_valid(who) or amount <= 0 or time <= 0.0:
 		return
+	var mult: float = player.frost_talents.shield_mult(who)
+	if fx_id == RIMEFALL_FX:
+		mult += player._talent("frost_deep_snow") / 100.0
+	amount = int(round(amount * mult))
+	time += player._talent("frost_long_frost")
 	if is_same(who, player):
 		frost_shield_on(player.status, player, fx_id, amount, time)
 	elif who.is_in_group("friendly"):
@@ -319,7 +349,7 @@ func _frost_healer_use(id: String, res: Resource) -> void:
 	match id:
 		RIME_VEIL_ID:
 			var amount := _shield_amount(Balance.RIME_VEIL_SHARE, RIME_VEIL_ID)
-			_veils[who.get_instance_id()] = {"who": who, "amount": amount, "until": _now() + Balance.RIME_VEIL_TIME, "next": _now() + Balance.RIME_VEIL_EVERY}
+			_veils[who.get_instance_id()] = {"who": who, "amount": amount, "until": _now() + Balance.RIME_VEIL_TIME, "next": _now() + _veil_every()}
 			_frost_shield(who, RIME_VEIL_FX, amount, Balance.RIME_VEIL_TIME)
 			player._combat().float_text(who, "%s (%d)" % [Abilities.ability_name(RIME_VEIL_ID), amount], ICE, false)
 		BREAK_ICE_ID:
@@ -444,12 +474,12 @@ func _tick_frost_healer() -> void:
 		if now >= float(g["until"]) or not is_instance_valid(g["who"]) or not g["who"].is_alive():
 			_veils.erase(key)
 		elif now >= float(g["next"]):
-			g["next"] = float(g["next"]) + Balance.RIME_VEIL_EVERY
+			g["next"] = float(g["next"]) + _veil_every()
 			_frost_shield(g["who"], RIME_VEIL_FX, int(g["amount"]), float(g["until"]) - now)   # the ice forms again
 	for r in _runoffs.duplicate():
 		if now < float(r["next"]):
 			continue
-		r["next"] = float(r["next"]) + 1.0
+		r["next"] = float(r["next"]) + float(r.get("every", 1.0))
 		r["left"] = int(r["left"]) - 1
 		if is_instance_valid(r["who"]) and r["who"].is_alive():
 			player.strings._heal_exact(r["who"], int(r["per"]), RUNOFF_ID)

@@ -36,6 +36,7 @@ var fire_runes: FireRunesKit = _kit(FireRunesKit) as FireRunesKit
 var fire_caster: FireCasterKit = _kit(FireCasterKit) as FireCasterKit
 var fire_fury: FireFuryKit = _kit(FireFuryKit) as FireFuryKit
 var fire_talents: FireTalentsKit = _kit(FireTalentsKit) as FireTalentsKit
+var frost_talents: FrostTalentsKit = _kit(FrostTalentsKit) as FrostTalentsKit
 var fire_tank: FireTankKit = _kit(FireTankKit) as FireTankKit
 var fire_melee: FireMeleeKit = _kit(FireMeleeKit) as FireMeleeKit
 var fire_bow: FireBowKit = _kit(FireBowKit) as FireBowKit
@@ -164,6 +165,7 @@ func crit_hit_bonus(info: RefCounted) -> Array:
 	out.append_array(wheel.crit_hit_bonus(info))           # Keen Edge (the Greatsword)
 	out.append_array(martial_talents.crit_hit_bonus(info))   # Keen Strikes
 	out.append_array(fire_talents.crit_hit_bonus(info))   # Cold Steel
+	out.append_array(frost_talents.crit_hit_bonus(info))   # Cold Eye
 	return out
 
 # Forwards to DecayKit (called from other scripts).
@@ -1331,7 +1333,7 @@ func can_afford(id: String, report: bool = false) -> bool:
 ## base mana each) and get Cold Discipline's discount for spells; Energy / Fury
 ## costs are that many Energy / Fury of their 100 (Grounding Surge halves Energy costs).
 func resource_cost(id: String, with_storm_cycle: bool = true) -> float:
-	if Abilities.is_a(id, "frostbolt") and (frost_bow._instinct_cast or (not casting and frost_bow.frozen_instinct_ready())):
+	if FrostBowKit.instinct_applies(id) and (frost_bow._instinct_cast or (not casting and frost_bow.frozen_instinct_ready())):
 		return 0.0   # Frozen Instinct: free
 	if id == FireCooldownsKit.CRUCIBLE_ID and fire_cooldowns._crucible_standing():
 		return 0.0   # moving a Crucible that still stands is free
@@ -1352,6 +1354,7 @@ func resource_cost(id: String, with_storm_cycle: bool = true) -> float:
 			cost = 0.0                                                   # Storm Cycle: this one is free
 	if cost > 0.0 and Abilities.resource_of(id) == "fury":
 		cost = maxf(cost - _talent("fire_lean_fuel"), 0.0)                                                 # Lean Fuel
+		cost = frost_talents.finisher_cost(id, cost)                                                         # Thaw Strike
 	if cost <= 0.0 or Abilities.resource_of(id) != "mana":
 		return cost * pacts_kit._pact_cost_mult(Abilities.resource_of(id))   # (my Pact: Sidestep)
 	cost *= mana_unit() * pacts_kit._pact_cost_mult("mana")                  # (my Pact: Sidestep, Reservoir)
@@ -1362,6 +1365,8 @@ func resource_cost(id: String, with_storm_cycle: bool = true) -> float:
 			cost *= 1.0 - float(pd.talent_value("frost_discipline")) / 100.0   # Cold Discipline
 	if HolyTalentsKit.is_holy_heal(id):
 		cost *= 1.0 - _talent("holy_clear_mind") / 100.0   # Clear Mind (both Holy healers)
+	if FrostTalentsKit.is_frost_care(id):
+		cost *= 1.0 - _talent("frost_cold_hands") / 100.0   # Cold Hands
 	return cost
 
 ## One mana "point" at your level (10% of your base mana).
@@ -1611,6 +1616,7 @@ func _on_damage_modify(info: RefCounted) -> void:
 		if dr > 0.0 and frost_melee._slowed_recently(info.source):
 			info.add_bonus(-dr, "Numbing Cold")
 		fire_talents._fire_talents_incoming(info)   # Heat Shimmer
+		frost_talents._frost_talents_incoming(info)   # Steady Footing
 		# Heat Sink: part of every hit is stored instead (see _on_hit_taken).
 		if status and status.has(FireCooldownsKit.HEAT_SINK_ID):
 			info.add_bonus(-Balance.HEAT_SINK_PCT, "Heat Sink")
@@ -1724,6 +1730,7 @@ func _on_damage_modify(info: RefCounted) -> void:
 		if white > 0.0:
 			info.add_bonus(white, "White Heat")
 	fire_talents._fire_talents_outgoing(info)   # the Fire talents' bonuses (column-group tree)
+	frost_talents._frost_talents_outgoing(info)   # the Frost talents' bonuses (column-group tree)
 	# Shatterpoint: every shatter hit (tagged "Shatter", whatever its name) hits harder.
 	if info.tags.has("Shatter"):
 		var sp := _talent("frost_shatterpoint")
@@ -1754,26 +1761,9 @@ func _on_damage_modify(info: RefCounted) -> void:
 		var kst: Node = info.target.get_node_or_null("Status")
 		if kst and kst.has_from("immolate", self):
 			info.add_bonus(Balance.KILN_BLAST_IMMOLATE_PCT, "Kiln Blast")
-	# Third Bite: the Winter's Bite that Freezes hits harder.
-	if id == "froststrike" and frost_runes._bite_freezing:
-		var third := _talent("frost_third_bite")
-		if third > 0.0:
-			info.add_bonus(third, "Third Bite")
-	# Pinning Frost: Frost Arrow hits a target rooted by my Icepin harder (own only).
-	if id == "frostarrow" and info.target and is_instance_valid(info.target):
-		var pin := _talent("frost_pinning_frost")
-		if pin > 0.0 and frost_runes._icepin_root_on(info.target):
-			info.add_bonus(pin, "Pinning Frost")
 	# Shatter Shot: more damage to a target I have Frozen (own only).
 	if id == FrostBowKit.SHATTER_SHOT_ID:
 		frost_bow._shatter_shot_modify(info)
-	# Marked Prey: my Ice Shards hit the target carrying MY Coldmark harder.
-	if id == "iceshards" and info.target and is_instance_valid(info.target):
-		var prey := _talent("frost_marked_prey")
-		if prey > 0.0:
-			var mark_st: Node = info.target.get_node_or_null("Status")
-			if mark_st and mark_st.has_from(FrostBowKit.COLDMARK_FX, self):
-				info.add_bonus(prey, "Marked Prey")
 	# Coldspike: more damage to a target I have Frozen (own only).
 	if id == "coldspike" and info.target and is_instance_valid(info.target):
 		var cst: Node = info.target.get_node_or_null("Status")
@@ -1881,7 +1871,8 @@ func _try_auto_attack(moving: bool) -> void:
 		auto_windup = 0.0
 		return
 	auto_windup += delta
-	if auto_windup < LightningMeleeKit.auto_interval(float(w["attack_interval"]), haste_mult(), lightning_melee.overdrive_active(), lightning_tank.attack_speed_bonus()):   # (Overdrive, Tempo: faster swings)
+	if auto_windup < LightningMeleeKit.auto_interval(float(w["attack_interval"]), haste_mult(), lightning_melee.overdrive_active(),
+			lightning_tank.attack_speed_bonus() + frost_talents.attack_speed_vs(enemy)):   # (Overdrive, Tempo, Quick Rime, Swift Ice: faster swings)
 		return
 	auto_windup = 0.0
 	# Snap to face the enemy we're hitting.
@@ -1897,7 +1888,8 @@ func _try_auto_attack(moving: bool) -> void:
 		_slash_effect(FireMeleeKit.heat_tint(fire_melee.heat_stacks()))   # the swing glows hotter with Heat
 	# Auto-attacks and auto-shots build fury when you're playing a fury user.
 	if _has_fury_spender():
-		_gain("fury", AUTO_ATTACK_FURY + (_talent("fire_hammer_rhythm") if w["weapon"] != "ranged" else 0.0))   # + Hammer Rhythm (auto-swings)
+		_gain("fury", AUTO_ATTACK_FURY + (_talent("fire_hammer_rhythm") if w["weapon"] != "ranged" else 0.0)   # + Hammer Rhythm (auto-swings)
+			+ frost_talents.auto_fury(enemy, w["weapon"] == "ranged"))   # + Rime Grip
 
 ## Fury per auto-attack / auto-shot (only with a fury spender on the action bar).
 const AUTO_ATTACK_FURY := Balance.AUTO_ATTACK_FURY
@@ -2201,10 +2193,11 @@ func _begin_spell(spell: String, display_name: String, duration: float, channel:
 		duration = StringsKit.heave_cast(duration, strings.strings_on(_cast_target), frost_melee._capstone("shadow_heave"))   # Heave's capstone
 	elif spell == DecayKit.ERODE_ID:
 		duration = StringsKit.deep_call_cast(duration, _talent("shadow_deep_call"), decay.decay_open_on(target))   # Deep Call
+	duration = maxf(duration - frost_talents.cold_rush(spell, _cast_target if _cast_kind in ["self", "ally"] else null), 0.2)   # Cold Rush
 	duration /= haste_mult()
 	if Abilities.INSTANT_ON_ALLIES.has(spell) and (_cast_kind in ["self", "ally"] or (spell == "rimeshell" and frost_healer.frost_tide_on())):
 		duration = 0.05   # Rime Shell: instant on an ally or me (Frost Tide: on enemies too; released next frame)
-	if Abilities.is_a(spell, "frostbolt") and frost_bow.frozen_instinct_ready():
+	if FrostBowKit.instinct_applies(spell) and frost_bow.frozen_instinct_ready():
 		duration = 0.05   # Frozen Instinct: instant (released next frame)
 		frost_bow._instinct_cast = true
 	fire_cooldowns._conc_cast = not frost_bow._instinct_cast and fire_cooldowns.concentrated_fire_ready(spell)
@@ -2242,7 +2235,7 @@ func _begin_spell(spell: String, display_name: String, duration: float, channel:
 	_bus().cast_started.emit(spell, duration)
 
 func _cancel_cast() -> void:
-	frost_bow._instinct_cast = false   # Frozen Instinct stays for the next Frost Bolt
+	frost_bow._instinct_cast = false   # Frozen Instinct stays for the next Frost spell
 	fire_cooldowns._conc_cast = false       # so does the Concentrated Fire stack
 	fire_cooldowns._cinder_cast = false     # and Cinder Step's cast on the move
 	storm_arrow_kit._flicker_cast = false    # and Flicker's instant Lightning Bolt
@@ -2304,8 +2297,8 @@ func _release_cast() -> void:
 		status.remove(FireCooldownsKit.CINDER_ID)       # Cinder Step: that was the cast on the move
 	if glint and status:
 		status.spend_stacks(ArcaneCasterKit.GLINT_FX, 1)   # Glint: so was this (Keep Moving: one of its casts)
-	if Abilities.is_a(spell, "frostbolt") and (frost_bow._instinct_cast or frost_bow.frozen_instinct_ready()):
-		status.remove(FrostBowKit.INSTINCT_ID)   # Frozen Instinct used up (this bolt was free)
+	if FrostBowKit.instinct_applies(spell) and (frost_bow._instinct_cast or frost_bow.frozen_instinct_ready()):
+		status.remove(FrostBowKit.INSTINCT_ID)   # Frozen Instinct used up (this spell was free)
 	frost_bow._instinct_cast = false
 	if spell in RezKit.IDS:
 		rez_kit.finish(spell)
@@ -3460,6 +3453,8 @@ func _release_support(spell: String) -> void:
 		"rimeshell":
 			var absorb: int = int(round(_combat().heal_amount(self, float(Abilities.HEALS["rimeshell"]), "rimeshell") \
 				* absorb_mult() * (Balance.EVERLASTING_RIME_MULT if everlasting else 1.0)))
+			if kind != "enemy":
+				absorb = int(round(absorb * frost_talents.shield_mult(tgt if kind == "ally" else self)))   # Frozen Hearth, Last Shelter
 			var armor := _talent("frost_shield_armor")   # Hardened Frost
 			match kind:
 				"enemy":

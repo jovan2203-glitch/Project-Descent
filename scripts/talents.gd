@@ -26,12 +26,12 @@ const Stats = preload("res://scripts/core/stats.gd")
 const ROWS := 10
 const COLUMNS := 7
 const MIN_PER_ROW := 2
-const MAX_PER_ROW := 9   # (a book on the column-group layout: up to one per column)
+const MAX_PER_ROW := 11   #(a book on the column-group layout: up to one per column)
 const POINTS_TO_UNLOCK_NEXT := 3
 ## Bump this whenever a talent is added, moved, removed or changed. A profile saved
 ## with another number gets all its talent points back on its next load
 ## (SaveSystem), so talent changes never need a save migration.
-const TREE_VERSION := 6
+const TREE_VERSION := 7
 const POINTS_AT_LEVEL_1 := 5
 const POINTS_PER_LEVEL := 1
 ## Every this many levels (2, 4, 6...) gives one extra point on top.
@@ -78,21 +78,7 @@ const DEFAULT_LAYOUT := [
 ## the two slots, so when a talent moves, check its lines still run clear of the
 ## other talents (tests/test_talent_links.gd does).
 ##   Fire       on the column-group layout (GROUPS), like Martial: see LAYOUTS.
-##   Frost      the bow talents together on the right of rows 1-5 (columns 4-5),
-##              shields down the right edge (column 6), Ice Shards down the
-##              middle, Hoarfrost down column 1. The melee DPS (Frostbitten
-##              Steel, Glaze) has column 2 of rows 3, 7, 8 and 9 and column 1 of
-##              rows 6 and 10; the tank (Glacier Wall, Ice Layers) the mirror
-##              slots (column 4 of rows 3, 8 and 9, column 5 of rows 6, 7 and 10)
-##              and the middle of row 8 (Cold Fury). Frozen Instinct moved one column left in
-##              row 7, straight under Cold Snap, so their link no longer runs
-##              through the new slots of rows 6 and 7 (SaveSystem._migrate_11_to_12).
-##              Cold Fury took the middle of row 8, Thick Hide's old slot (its
-##              points were refunded in SaveSystem._migrate_10_to_11, so they
-##              never carry over).
-##              The healer (Cold Comfort) has the middle of rows 1-2 (Deep Cracks
-##              linked to Shard Spray) and both edges of rows 9-10. Rows 9-10
-##              are full (7, the old grid's widest row).
+##   Frost      on the column-group layout (GROUPS), like Martial and Fire: see LAYOUTS.
 ##   Lightning  melee down the left, the parry tank down the right (column 4 and
 ##              the right edge), the caster and the bow down the middle.
 ##   Arcane     the caster in the middle (rows 1-4 so far), the dodge tank down
@@ -136,9 +122,13 @@ const LAYOUTS := {
 	"fire": [[0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8],
 		[0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8],
 		[0, 1, 2, 3, 5, 6, 7, 8], [1, 3, 5, 7]],
-	# (Cold Comfort's talents took the middle of rows 1-2 and both edges of rows 9-10;
-	# Cold Fury moved to the middle of row 8, Thick Hide's old slot, to free row 1 for them.)
-	"frost": [[0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [0, 2, 4, 6], [1, 2, 4, 5], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [0, 2, 3, 4, 6], [0, 1, 2, 3, 4, 5, 6], [0, 1, 2, 3, 4, 5, 6]],
+	# (Frost, the first book with five specs: GROUPS, 11 columns. Hard Winter in columns 0-1,
+	# Cold Comfort 2-3, the open talents 4, Frostbitten Steel 5-6, Glacier Wall 7-8, Winter
+	# Hunt 9-10. Rows 1-9 are full; row 10 holds each spec's capstone.)
+	"frost": [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+		[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+		[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+		[1, 3, 5, 7, 9]],
 	"lightning": [[1, 2, 3, 4, 5], [0, 2, 4, 6], [0, 2, 3, 4, 6], [2, 3, 4], [1, 3, 5], [0, 3, 6], [2, 3, 4], [1, 2, 4, 5], [1, 3, 5], [2, 3, 4]],
 	"arcane": [[0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 2, 4, 6], [0, 1, 3, 5, 6], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [0, 2, 4, 6], [1, 2, 4, 5], [0, 2, 4, 6], [1, 2, 3, 4, 5]],
 	"shadow": [[0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5]],
@@ -362,132 +352,246 @@ const TALENTS := {
 			{"key": "fire_pitch_black", "values": [1.0, 2.0, 3.0, 4.0, 5.0]}],
 	},
 	"frost": {
-		"r1c3": ["Frozen Focus", 3, "Increases your Haste by {v}%.",
-			{"key": "frost_haste", "values": [0.7, 1.4, 2.1], "stats": {"haste": 0.7}}],
-		"r1c7": ["Rime Ward", 3, "Shields you apply absorb {v}% more damage.",
-			{"key": "frost_absorb", "values": [5.0, 10.0, 15.0]}],
-		# Cold Comfort, the Frost healer (scripts/player/frost_healer.gd): Rime Shell's two
-		# at the top of the middle (linked), the rest on the edges of rows 9-10.
-		"r1c4": ["Deep Cracks", 3, "When your {n:rimeshell} breaks on an ally, its Rime Shards heal {v}% more.",
-			{"key": "frost_deep_cracks", "values": [10.0, 20.0, 30.0], "requires": "rimeshell"}],
-		"r9c7": ["Cold Spread", 3, "{n:breaktheice} heals allies up to {v} m farther away.",
-			{"key": "frost_cold_spread", "values": [2.0, 4.0, 6.0], "requires": "breaktheice"}],
-		"r9c1": ["Slow Runoff", 3, "When your {n:rimeshell} runs out on an ally, its Runoff heals {v}% more.",
-			{"key": "frost_slow_runoff", "values": [20.0, 40.0, 60.0], "requires": "rimeshell",
-			"capstone": "Each Runoff also gives you back as much mana as {n:breaktheice} costs."}],
-		"r2c4": ["Shard Spray", 3, "Rime Shards also leave a shield on each ally they heal, absorbing {v}% of what they healed for {b:SHARD_SPRAY_TIME} sec.",
-			{"key": "frost_shard_spray", "values": [20.0, 35.0, 50.0], "requires": "rimeshell"}],
-		"r10c1": ["Splinterheal", 3, "Your shatters heal the lowest-health ally within {b:SPLINTERHEAL_RADIUS} m of the enemy for {v}% of the damage they deal.",
-			{"key": "frost_splinterheal", "values": [20.0, 35.0, 50.0]}],
-		"r10c7": ["Wide Lattice", 1, "{n:frostlattice} links one more ally.",
-			{"key": "frost_wide_lattice", "values": [1.0], "requires": "frostlattice"}],
-		"r3c4": ["Splintering Cold", 3, "All of your spells have a {v}% chance to generate an Ice Shard charge.",
-			{"key": "frost_shard_proc", "values": [10.0, 15.0, 20.0], "requires": "iceshards"}],
-		"r2c3": ["Quickened Frost", 3, "Reduces the cast time of your {n:frostbolt} by {v} sec.",
-			{"key": "frost_bolt_cast", "values": [0.1, 0.2, 0.3], "requires": "frostbolt"}],
-		"r2c2": ["Cold Discipline", 3, "Reduces the mana cost of your spells by {v}% and the threat generated by your Frost spells by {v2}%.",
-			{"key": "frost_discipline", "values": [2.0, 3.0, 4.0], "values2": [5.0, 10.0, 15.0]}],
+		# The column-group layout (GROUPS, 11 columns): Hard Winter (the caster) in
+		# columns 1-2, Cold Comfort (the healer) in 3-4, the open talents down column 5,
+		# Frostbitten Steel (melee) in 6-7, Glacier Wall (the tank) in 8-9 and Winter
+		# Hunt (the bow) in 10-11 (the open column fills rows 1-9, so every row stays
+		# symmetrical). Rows 1-9 hold two talents per spec; row 10 its 5-rank
+		# capstone, which needs Balance.CAPSTONE_GATE points in the spec. Most key off
+		# the book's words (Chilled, Frozen, shatters, Ice Shard charges, Rime Shell,
+		# Thawing, Frost shields, Glaze, finishers, Ice Layers, arrows, roots...).
+		# Code: frost_talents.gd (the hits' bonuses and the Freeze / thaw events) and
+		# each spec's component (frost_healer.gd, frost_steel.gd, frost_glacier.gd,
+		# frost_bow.gd, frost_runes_talents.gd).
+		# --- Hard Winter.
 		"r1c1": ["Bitter Cold", 3, "You deal {v}% increased damage to targets you have Chilled.",
 			{"key": "frost_chilled_dmg", "values": [2.0, 4.0, 6.0]}],
-		"r4c1": ["Frozen Mind", 3, "Increases your Spell Power by {v}% of your Intellect.",
-			{"key": "frost_int_sp", "values": [2.0, 4.0, 6.0]}],
-		# (values = what is added to Rime Edge's own damage.)
-		"r4c3": ["Honed Rime", 3, "The extra hit of your {n:rimeedge} deals {v+dmg:rimeedge} Frost damage, instead of {dmg:rimeedge}.",
-			{"key": "frost_honed_rime", "values": [0.05, 0.1, 0.15], "requires": "rimeedge"}],
-		"r3c2": ["Deep Hoarfrost", 3, "Increases the damage of {n:hoarfrost} by {v}% and its duration by {v2} sec.",
+		"r1c2": ["Glass Cold", 3, "Your Frost spells deal {v}% more damage to targets you have Frozen.",
+			{"key": "frost_glass_cold", "values": [3.0, 6.0, 9.0]}],
+		"r2c1": ["Quickened Frost", 3, "Reduces the cast time of your {n:frostbolt} by {v} sec.",
+			{"key": "frost_bolt_cast", "values": [0.1, 0.2, 0.3], "requires": "frostbolt"}],
+		"r2c2": ["Frozen Instinct", 3, "When you Freeze an enemy, you have a {v}% chance to make your next Frost spell with a cast time, cast within {b:FROZEN_INSTINCT_TIME} sec, instant and free.",
+			{"key": "frost_instinct", "values": [17.0, 33.0, 50.0]}],
+		"r3c1": ["Deep Hoarfrost", 3, "Increases the damage of {n:hoarfrost} by {v}% and its duration by {v2} sec.",
 			{"key": "frost_hoarfrost", "values": [15.0, 20.0, 25.0], "values2": [2.0, 3.0, 4.0], "requires": "hoarfrost"}],
-		"r5c2": ["Brittle Rime", 3, "Your direct damage has a {v}% chance to trigger the burst of your {n:hoarfrost} on the target. {n:hoarfrost} stays on the target and still bursts when it expires.",
+		"r3c2": ["Brittle Rime", 3, "Your direct damage has a {v}% chance to trigger the burst of your {n:hoarfrost} on the target. {n:hoarfrost} stays on the target and still bursts when it expires.",
 			{"key": "frost_hoarfrost_burst", "values": [5.0, 10.0, 15.0], "requires": "hoarfrost"}],
-		"r7c2": ["Clean Break", 3, "{n:icebreaker} refunds {v} Fury when it hits a target you have Frozen.",
-			{"key": "frost_clean_break", "values": [7.0, 13.0, 20.0], "requires": "icebreaker"}],
+		"r4c1": ["Splintering Cold", 3, "All of your spells have a {v}% chance to give you an Ice Shard charge.",
+			{"key": "frost_shard_proc", "values": [10.0, 15.0, 20.0]}],
+		"r4c2": ["Shardstorm", 3, "Every {b:SHARDSTORM_EVERY} Ice Shards you fire grant you {v}% Haste for {b:SHARDSTORM_TIME} sec.",
+			{"key": "frost_shardstorm", "values": [7.0, 9.0, 10.5], "requires": "iceshards"}],
 		# (values = what is added to Coldspike's 25%.)
-		"r6c3": ["Piercing Cold", 3, "{n:coldspike} deals {v+b:COLDSPIKE_FROZEN_PCT}% more damage to a target you have Frozen, instead of {b:COLDSPIKE_FROZEN_PCT}%.",
+		"r5c1": ["Piercing Cold", 3, "{n:coldspike} deals {v+b:COLDSPIKE_FROZEN_PCT}% more damage to a target you have Frozen, instead of {b:COLDSPIKE_FROZEN_PCT}%.",
 			{"key": "frost_piercing_cold", "values": [7.0, 13.0, 20.0], "requires": "coldspike"}],
+		"r5c2": ["Ice Needles", 3, "Your Frost spells that critically strike have a {v}% chance to give you an Ice Shard charge.",
+			{"key": "frost_ice_needles", "values": [33.0, 66.0, 100.0]}],
+		"r6c1": ["Splintering", 2, "Your Ice Shards that hit a target you have Frozen or Rime Shelled splinter, hitting {v} random other enemies within {b:SPLINTER_RANGE} m for {bdmg:SPLINTER_DAMAGE} Frost damage each.",
+			{"key": "frost_splinter", "values": [1.0, 2.0], "requires": "iceshards"}],
+		"r6c2": ["Cold Snap", 3, "Freezing a target reduces your next global cooldown by {v} sec.",
+			{"key": "frost_cold_snap", "values": [0.1, 0.2, 0.3]}],
+		"r7c1": ["Snowdrift", 3, "Your Frost spells deal {v}% more damage to a target with {b:SNOWDRIFT_CROWD} or more other enemies within {b:SNOWDRIFT_RADIUS} m of it.",
+			{"key": "frost_snowdrift", "values": [4.0, 8.0, 12.0]}],
+		"r7c2": ["Cold Front", 3, "Your Frost spells deal {v}% more damage for each enemy you have Chilled or Frozen, up to {b:COLD_FRONT_MAX}.",
+			{"key": "frost_cold_front", "values": [1.0, 2.0, 3.0]}],
 		"r8c1": ["Lingering Frost", 3, "Your Chilled lasts {v} sec longer.",
 			{"key": "frost_long_chill", "values": [1.0, 2.0, 3.0]}],
-		"r6c5": ["Cold Snap", 3, "Freezing a target reduces your next global cooldown by {v} sec.",
-			{"key": "frost_cold_snap", "values": [0.1, 0.2, 0.3]}],
-		"r7c4": ["Splintering", 1, "Your Ice Shards that hit a target you have Frozen or Rime Shelled splinter, hitting one random other enemy within {b:SPLINTER_RANGE} m for {vdmg:iceshards} Frost damage.",
-			{"key": "frost_splinter", "values": [0.1], "requires": "iceshards"}],
-		"r6c4": ["Shardstorm", 3, "Every {b:SHARDSTORM_EVERY} Ice Shards you fire grant you {v}% Haste for {b:SHARDSTORM_TIME} sec.",
-			{"key": "frost_shardstorm", "values": [7.0, 9.0, 10.5], "requires": "iceshards"}],
-		"r4c7": ["Hardened Frost", 4, "Your absorb shields increase the armor of whoever they protect (you or an ally) by {v}% for their duration.",
-			{"key": "frost_shield_armor", "values": [2.0, 4.0, 6.0, 8.0]}],
-		"r9c2": ["Chilling Presence", 3, "You generate {v}% more threat against enemies you slowed in the last {b:SLOW_MEMORY} sec.",
-			{"key": "frost_slow_threat", "values": [5.0, 10.0, 15.0]}],
-		"r9c6": ["Numbing Cold", 3, "You take {v}% less damage from enemies you slowed in the last {b:SLOW_MEMORY} sec.",
-			{"key": "frost_slow_dr", "values": [2.0, 4.0, 6.0]}],
-		"r8c7": ["Ice Floe", 2, "When an absorb shield you put on yourself breaks, you gain {v}% move speed for {b:ICE_FLOE_TIME} sec and the enemy that broke it is Chilled.",
-			{"key": "frost_ice_floe", "values": [10.0, 20.0]}],
-		"r9c4": ["Shatterpoint", 3, "Your shatters (Rime Shell breaking, {n:shatteringwave}, {n:shatteringslam}) deal {v}% more damage.",
+		"r8c2": ["Hard Freeze", 3, "Your Frozen lasts {v} sec longer.",
+			{"key": "frost_hard_freeze", "values": [0.5, 1.0, 1.5]}],
+		"r9c1": ["Cold Well", 3, "Freezing an enemy gives you {vmana} mana. This can happen once every {b:COLD_WELL_EVERY} sec.",
+			{"key": "frost_cold_well", "values": [0.1, 0.2, 0.3]}],
+		"r9c2": ["Shatterpoint", 3, "Your shatters (Rime Shell breaking, {n:shatteringwave}, {n:shatteringslam}) deal {v}% more damage.",
 			{"key": "frost_shatterpoint", "values": [10.0, 20.0, 30.0],
 			"capstone": "Every shatter also gives you an Ice Shard charge.",
 			"capstone_requires": "iceshards"}],
-		"r7c5": ["Frozen Instinct", 3, "When you Freeze an enemy, you have a {v}% chance to make your next {n:frostbolt} within {b:FROZEN_INSTINCT_TIME} sec instant and free.",
-			{"key": "frost_instinct", "values": [17.0, 33.0, 50.0], "requires": "frostbolt"}],
-		"r10c3": ["Glacial Heart", 3, "Slows on you are {v}% weaker.",
-			{"key": "frost_glacial_heart", "values": [5.0, 10.0, 15.0],
-			"capstone": "You gain {b:GLACIAL_HEART_HASTE}% Haste for every slow you have on an enemy, per target and per slow (Chilled and Frozen count separately)."}],
-		# The Frost bow: its talents sit together on the right of rows 1-5 (columns 5-6)
-		# (player.gd, "Frost, the bow"). Cold Draw is generic (any hit, any resource:
-		# values2 = mana points); the others each work with one arrow ability.
-		"r1c5": ["Cold Draw", 3, "Your hits on a target you have Chilled or Frozen give you {v} Energy, {v} Fury and {v2mana} mana. This can happen once every {b:COLD_DRAW_EVERY} sec.",
-			{"key": "frost_cold_draw", "values": [2.0, 4.0, 6.0], "values2": [0.1, 0.2, 0.3]}],
-		"r2c6": ["Black Ice", 3, "The first Chill the ice of your {n:icyretreat} puts on each enemy has a {v}% chance to be a Freeze instead.",
-			{"key": "frost_black_ice", "values": [33.0, 67.0, 100.0], "requires": "icyretreat"}],
-		"r3c6": ["Clean Shatter", 3, "When {n:shattershot} breaks your Freeze, it refunds {v} Energy and takes {v2} sec off its own cooldown.",
-			{"key": "frost_clean_shatter", "values": [7.0, 13.0, 20.0], "values2": [1.5, 2.5, 4.0], "requires": "shattershot"}],
-		"r4c5": ["Cold Harvest", 3, "Each shot of your {n:rimefletch} that Freezes its target gives you {v} Energy.",
-			{"key": "frost_cold_harvest", "values": [3.0, 7.0, 10.0], "requires": "rimefletch"}],
-		"r5c5": ["Thin Ice", 3, "{n:glacialdraw} casts {v} sec faster on a target you have Chilled.",
-			{"key": "frost_thin_ice", "values": [0.3, 0.7, 1.0], "requires": "glacialdraw"}],
-		"r5c6": ["Marked Prey", 3, "Your {n:iceshards} deal {v}% more damage to the target carrying your {n:coldmark}.",
-			{"key": "frost_marked_prey", "values": [10.0, 20.0, 30.0], "requires": "coldmark"}],
-		# (Pinning Frost and Third Bite moved off the middle of rows 2 and 5 when those
-		# rows were widened; rows 8 and 10 still have their middle talent.)
-		"r2c5": ["Pinning Frost", 3, "{n:frostarrow} deals {v}% more damage to a target rooted by your {n:icepin}.",
-			{"key": "frost_pinning_frost", "values": [13.0, 27.0, 40.0], "requires": "icepin"}],
-		"r5c3": ["Third Bite", 3, "The {n:froststrike} that Freezes its target deals {v}% more damage.",
-			{"key": "frost_third_bite", "values": [27.0, 53.0, 80.0], "requires": "froststrike"}],
-		"r10c4": ["Hard Freeze", 3, "Your Frozen lasts {v} sec longer.",
-			{"key": "frost_hard_freeze", "values": [0.5, 1.0, 1.5]}],
-		"r10c5": ["Deep Freeze", 5, "Your Frost spells and abilities have a {v}% chance to Freeze the target.",
+		"r10c2": ["Deep Freeze", 5, "Your Frost spells and abilities have a {v}% chance to Freeze the target.",
 			{"key": "frost_deep_freeze", "values": [1.0, 2.0, 3.0, 4.0, 5.0],
 			"capstone": "Every {bth:DEEP_FREEZE_BLIZZARD_EVERY} Ice Shard you fire also casts a {n:blizzard} at its target at {b%:DEEP_FREEZE_BLIZZARD_MULT}% effectiveness.",
 			"capstone_requires": "blizzard"}],
-		# Frost melee: Frostbitten Steel (Glaze) left of the middle, Glacier Wall (Ice
-		# Layers) right of it (scripts/player/frost_steel.gd, frost_glacier.gd).
-		"r3c3": ["Cold Sweep", 3, "When {n:hoarcleave} hits an enemy you had already Chilled, it has a {v}% chance to Freeze it instead of Chilling it.",
-			{"key": "frost_cold_sweep", "values": [10.0, 20.0, 30.0], "requires": "hoarcleave"}],
-		# (values = Glaze added to Bitter Edge's own.)
-		"r6c2": ["Biting Hold", 2, "{n:bitteredge} gives you {v} more Glaze.",
-			{"key": "frost_biting_hold", "values": [1.0, 2.0], "requires": "bitteredge"}],
-		"r7c3": ["Long Glaze", 3, "Your Glaze lasts {v} sec longer.",
+		# --- Cold Comfort (frost_healer.gd). Frost shields: Rime Shell, Rime Veil,
+		# Rimefall and Shard Spray.
+		"r1c3": ["Deep Cracks", 3, "When your {n:rimeshell} breaks on an ally, its Rime Shards heal {v}% more.",
+			{"key": "frost_deep_cracks", "values": [10.0, 20.0, 30.0]}],
+		"r1c4": ["Shard Spray", 3, "Your Rime Shards also leave a shield on each ally they heal, absorbing {v}% of what they healed for {b:SHARD_SPRAY_TIME} sec.",
+			{"key": "frost_shard_spray", "values": [20.0, 35.0, 50.0]}],
+		"r2c3": ["Slow Runoff", 3, "When your {n:rimeshell} runs out on an ally, its Runoff heals {v}% more.",
+			{"key": "frost_slow_runoff", "values": [20.0, 40.0, 60.0],
+			"capstone": "Each Runoff also gives you back as much mana as {n:breaktheice} costs."}],
+		"r2c4": ["Thaw Water", 3, "Your heals on an ally with your Thawing heal {v}% more.",
+			{"key": "frost_thaw_water", "values": [4.0, 8.0, 12.0]}],
+		"r3c3": ["Last Shelter", 3, "Your Frost shields absorb {v}% more on an ally below {b:LAST_SHELTER_HEALTH}% health.",
+			{"key": "frost_last_shelter", "values": [5.0, 10.0, 15.0]}],
+		"r3c4": ["Cold Hands", 3, "Your Frost spells that heal or shield cost {v}% less mana.",
+			{"key": "frost_cold_hands", "values": [3.0, 6.0, 9.0]}],
+		"r4c3": ["Cold Spread", 3, "{n:breaktheice} heals allies up to {v} m farther away.",
+			{"key": "frost_cold_spread", "values": [2.0, 4.0, 6.0], "requires": "breaktheice"}],
+		"r4c4": ["Meltdown", 3, "When your {n:rimeshell} breaks, you gain {vmana} mana. This can happen once every {b:MELTDOWN_EVERY} sec.",
+			{"key": "frost_meltdown", "values": [0.1, 0.2, 0.3]}],
+		"r5c3": ["Long Frost", 3, "Your Rime Veil, Rimefall and Shard Spray shields last {v} sec longer.",
+			{"key": "frost_long_frost", "values": [2.0, 4.0, 6.0]}],
+		"r5c4": ["Shard Reach", 2, "Your Rime Shards reach allies {v} m farther away.",
+			{"key": "frost_shard_reach", "values": [2.0, 4.0]}],
+		"r6c3": ["Wide Lattice", 2, "{n:frostlattice} links {v} more allies.",
+			{"key": "frost_wide_lattice", "values": [1.0, 2.0], "requires": "frostlattice"}],
+		"r6c4": ["Snowmelt", 3, "Your Runoff heals {v}% faster, for the same total.",
+			{"key": "frost_snowmelt", "values": [15.0, 30.0, 45.0]}],
+		"r7c3": ["Layered Veil", 2, "{n:rimeveil} forms again {v} sec sooner.",
+			{"key": "frost_layered_veil", "values": [0.5, 1.0], "requires": "rimeveil"}],
+		"r7c4": ["Ice Bath", 3, "Your heals on an ally carrying one of your Frost shields heal {v}% more.",
+			{"key": "frost_ice_bath", "values": [3.0, 6.0, 9.0]}],
+		"r8c3": ["Deep Snow", 3, "{n:rimefall}'s shields absorb {v}% more.",
+			{"key": "frost_deep_snow", "values": [10.0, 20.0, 30.0], "requires": "rimefall"}],
+		"r8c4": ["Cold Rush", 3, "Your Frost spells that heal or shield cast {v} sec faster on an ally below {b:LAST_SHELTER_HEALTH}% health.",
+			{"key": "frost_cold_rush", "values": [0.1, 0.2, 0.3]}],
+		"r9c3": ["Close Weave", 3, "Your heals on an ally linked by your {n:frostlattice} heal {v}% more.",
+			{"key": "frost_close_weave", "values": [5.0, 10.0, 15.0], "requires": "frostlattice"}],
+		"r9c4": ["Splinterheal", 3, "Your shatters heal the lowest-health ally within {b:SPLINTERHEAL_RADIUS} m of the enemy for {v}% of the damage they deal.",
+			{"key": "frost_splinterheal", "values": [20.0, 35.0, 50.0]}],
+		"r10c4": ["Frozen Hearth", 5, "Your Frost shields absorb {v}% more and your Rime Shards heal {v}% more.",
+			{"key": "frost_frozen_hearth", "values": [2.0, 4.0, 6.0, 8.0, 10.0]}],
+		# --- Open talents: themed to the book (cold, shields, slows) but they work with
+		# every book's spells and abilities.
+		"r1c5": ["Frozen Focus", 3, "Increases your Haste by {v}%.",
+			{"key": "frost_haste", "values": [0.7, 1.4, 2.1], "stats": {"haste": 0.7}}],
+		"r2c5": ["Frozen Mind", 3, "Increases your Spell Power by {v}% of your Intellect.",
+			{"key": "frost_int_sp", "values": [2.0, 4.0, 6.0]}],
+		"r3c5": ["Rime Ward", 3, "Shields you apply absorb {v}% more damage.",
+			{"key": "frost_absorb", "values": [5.0, 10.0, 15.0]}],
+		"r4c5": ["Hardened Frost", 4, "Your absorb shields increase the armor of whoever they protect (you or an ally) by {v}% for their duration.",
+			{"key": "frost_shield_armor", "values": [2.0, 4.0, 6.0, 8.0]}],
+		"r5c5": ["Ice Floe", 2, "When an absorb shield you put on yourself breaks, you gain {v}% move speed for {b:ICE_FLOE_TIME} sec and the enemy that broke it is Chilled.",
+			{"key": "frost_ice_floe", "values": [10.0, 20.0]}],
+		"r6c5": ["Numbing Cold", 3, "You take {v}% less damage from enemies you slowed in the last {b:SLOW_MEMORY} sec.",
+			{"key": "frost_slow_dr", "values": [2.0, 4.0, 6.0]}],
+		"r7c5": ["Glacial Heart", 3, "Slows on you are {v}% weaker.",
+			{"key": "frost_glacial_heart", "values": [5.0, 10.0, 15.0],
+			"capstone": "You gain {b:GLACIAL_HEART_HASTE}% Haste for every slow you have on an enemy, per target and per slow (Chilled and Frozen count separately)."}],
+		"r8c5": ["Cold Discipline", 3, "Reduces the mana cost of your spells by {v}% and the threat generated by your Frost spells by {v2}%.",
+			{"key": "frost_discipline", "values": [2.0, 3.0, 4.0], "values2": [5.0, 10.0, 15.0]}],
+		"r9c5": ["Winter Coat", 3, "You take {v}% less damage from spells.",
+			{"key": "frost_winter_coat", "values": [1.0, 2.0, 3.0]}],
+		# --- Frostbitten Steel (frost_steel.gd). Finishers: Calving and Icebreaker.
+		"r1c6": ["Sharp Glaze", 3, "Your Frost abilities deal {v}% more damage for each Glaze you hold.",
+			{"key": "frost_sharp_glaze", "values": [1.0, 2.0, 3.0]}],
+		"r1c7": ["Third Bite", 3, "Your Frost abilities that Freeze their target deal {v}% more damage.",
+			{"key": "frost_third_bite", "values": [20.0, 40.0, 60.0]}],
+		"r2c6": ["Long Glaze", 3, "Your Glaze lasts {v} sec longer.",
 			{"key": "frost_long_glaze", "values": [2.0, 4.0, 6.0]}],
-		"r8c3": ["Ice Fall", 3, "{n:calving} deals {v}% more damage to its target for each other enemy it hits, up to {b:ICE_FALL_MAX_OTHERS}.",
+		"r2c7": ["Glaze Hunger", 3, "When you gain Glaze, you have a {v}% chance to gain one more.",
+			{"key": "frost_glaze_hunger", "values": [10.0, 20.0, 30.0]}],
+		"r3c6": ["Cold Sweep", 3, "When {n:hoarcleave} hits an enemy you had already Chilled, it has a {v}% chance to Freeze it instead of Chilling it.",
+			{"key": "frost_cold_sweep", "values": [10.0, 20.0, 30.0], "requires": "hoarcleave"}],
+		"r3c7": ["Hard Glaze", 3, "Each Glaze your finishers spend gives you {v} Fury.",
+			{"key": "frost_hard_glaze", "values": [2.0, 4.0, 6.0]}],
+		# (values = what is added to Rime Edge's own damage.)
+		"r4c6": ["Honed Rime", 3, "The extra hit of your {n:rimeedge} deals {v+dmg:rimeedge} Frost damage, instead of {dmg:rimeedge}.",
+			{"key": "frost_honed_rime", "values": [0.05, 0.1, 0.15], "requires": "rimeedge"}],
+		"r4c7": ["Clean Break", 3, "Your finishers give you {v} Fury back when they hit a target you have Frozen.",
+			{"key": "frost_clean_break", "values": [7.0, 13.0, 20.0]}],
+		"r5c6": ["Ice Fall", 3, "{n:calving} deals {v}% more damage to its target for each other enemy it hits, up to {b:ICE_FALL_MAX_OTHERS}.",
 			{"key": "frost_ice_fall", "values": [4.0, 8.0, 12.0], "requires": "calving"}],
-		"r9c3": ["Long Dark", 3, "{n:blackfrost} lasts {v} sec longer.",
+		"r5c7": ["Splitting Cold", 3, "Your finishers deal {v}% more damage to a target you have Frozen.",
+			{"key": "frost_splitting_cold", "values": [4.0, 8.0, 12.0]}],
+		# (values = Glaze added to Bitter Edge's own.)
+		"r6c6": ["Biting Hold", 2, "{n:bitteredge} gives you {v} more Glaze.",
+			{"key": "frost_biting_hold", "values": [1.0, 2.0], "requires": "bitteredge"}],
+		"r6c7": ["Shiver", 3, "Your critical strikes on a target you have Frozen have a {v}% chance to give you a Glaze. This can happen once every {b:SHIVER_EVERY} sec.",
+			{"key": "frost_shiver", "values": [33.0, 66.0, 100.0]}],
+		"r7c6": ["Rime Grip", 3, "Your auto-attacks on a target you have Chilled give you {v} more Fury.",
+			{"key": "frost_rime_grip", "values": [1.0, 2.0, 3.0]}],
+		"r7c7": ["Cold Swing", 3, "Your melee abilities that hit {b:COLD_SWING_HITS} or more enemies give you {v} Fury.",
+			{"key": "frost_cold_swing", "values": [3.0, 6.0, 9.0]}],
+		"r8c6": ["Long Dark", 3, "{n:blackfrost} lasts {v} sec longer.",
 			{"key": "frost_long_dark", "values": [1.5, 2.5, 4.0], "requires": "blackfrost"}],
-		"r10c2": ["Glinting Rime", 5, "Each Glaze you hold gives your Frost abilities {v}% more critical strike chance.",
+		"r8c7": ["Thaw Strike", 3, "When a target you have Frozen thaws, your next finisher within {b:THAW_STRIKE_TIME} sec costs {v} less Fury.",
+			{"key": "frost_thaw_strike", "values": [5.0, 10.0, 15.0]}],
+		"r9c6": ["Quick Rime", 3, "Each Glaze you hold gives you {v}% attack speed.",
+			{"key": "frost_quick_rime", "values": [0.3, 0.6, 0.9]}],
+		"r9c7": ["Frost Heave", 3, "A finisher that spends {b:GLAZE_MAX} Glaze has a {v}% chance to Freeze its target.",
+			{"key": "frost_frost_heave", "values": [33.0, 66.0, 100.0]}],
+		"r10c6": ["Glinting Rime", 5, "Each Glaze you hold gives your Frost abilities {v}% more critical strike chance.",
 			{"key": "frost_glinting_rime", "values": [0.2, 0.4, 0.6, 0.8, 1.0],
 			"capstone": "An {n:icebreaker} that spends {b:GLAZE_MAX} Glaze always critically strikes.",
 			"capstone_requires": "icebreaker"}],
-		# (values = what is added to Rimequake's own % per Layer.)
-		"r6c6": ["Deep Tremor", 3, "{n:rimequake} deals {v+b:RIMEQUAKE_PCT_PER_LAYER}% more damage for each Ice Layer you have, instead of {b:RIMEQUAKE_PCT_PER_LAYER}%.",
-			{"key": "frost_deep_tremor", "values": [3.0, 7.0, 10.0], "requires": "rimequake"}],
-		"r3c5": ["Packed Ice", 3, "Each Ice Layer {n:shatteringslam} shatters into its target deals {v}% more damage.",
+		# --- Glacier Wall (frost_glacier.gd).
+		"r1c8": ["Packed Ice", 3, "Each Ice Layer {n:shatteringslam} shatters into its target deals {v}% more damage.",
 			{"key": "frost_packed_ice", "values": [13.0, 27.0, 40.0], "requires": "shatteringslam"}],
-		"r7c6": ["Turned Backs", 2, "{n:coldshoulder} also makes the {v} enemies nearest its target attack you and Chills them.",
-			{"key": "frost_turned_backs", "values": [1.0, 2.0], "requires": "coldshoulder"}],
-		"r8c4": ["Cold Fury", 3, "Each of your Ice Layers that breaks gives you {v} more Fury.",
+		"r1c9": ["Cold Fury", 3, "Each of your Ice Layers that breaks gives you {v} more Fury.",
 			{"key": "frost_cold_fury", "values": [2.0, 4.0, 6.0]}],
-		"r8c5": ["Regelation", 3, "Each Ice Layer that forms again during {n:hardrime} gives you {v} Fury.",
+		"r2c8": ["Lasting Ice", 3, "Your Ice Layers last {v} sec longer.",
+			{"key": "frost_lasting_ice", "values": [3.0, 6.0, 9.0]}],
+		"r2c9": ["Deep Ice", 2, "You can hold {v} more Ice Layers.",
+			{"key": "frost_deep_ice", "values": [1.0, 2.0]}],
+		# (values = what is added to Rimequake's own % per Layer.)
+		"r3c8": ["Deep Tremor", 3, "{n:rimequake} deals {v+b:RIMEQUAKE_PCT_PER_LAYER}% more damage for each Ice Layer you have, instead of {b:RIMEQUAKE_PCT_PER_LAYER}%.",
+			{"key": "frost_deep_tremor", "values": [3.0, 7.0, 10.0], "requires": "rimequake"}],
+		"r3c9": ["Spent Ice", 3, "Each Ice Layer you shatter into a target gives you {v} Fury.",
+			{"key": "frost_spent_ice", "values": [2.0, 4.0, 6.0]}],
+		"r4c8": ["Hoar Coat", 3, "Each Ice Layer you gain heals you for {v}% of your maximum health.",
+			{"key": "frost_hoar_coat", "values": [0.3, 0.6, 1.0]}],
+		"r4c9": ["Cold Retort", 3, "Each of your Ice Layers that breaks deals {vdmg:shatteringslam} Frost damage to the attacker.",
+			{"key": "frost_cold_retort", "values": [0.05, 0.1, 0.15]}],
+		"r5c8": ["Turned Backs", 2, "{n:coldshoulder} also makes the {v} enemies nearest its target attack you and Chills them.",
+			{"key": "frost_turned_backs", "values": [1.0, 2.0], "requires": "coldshoulder"}],
+		"r5c9": ["Rime Pressure", 3, "Your spells and abilities generate {v}% more threat for each Ice Layer you hold.",
+			{"key": "frost_rime_pressure", "values": [1.0, 2.0, 3.0]}],
+		"r6c8": ["Regelation", 3, "Each Ice Layer that forms again during {n:hardrime} gives you {v} Fury.",
 			{"key": "frost_regelation", "values": [3.0, 7.0, 10.0], "requires": "hardrime"}],
-		"r9c5": ["Old Ice", 3, "{n:glacialbulwark} lasts {v} sec longer.",
+		"r6c9": ["Reforming", 3, "Each of your Ice Layers that breaks has a {v}% chance to form again at once.",
+			{"key": "frost_reforming", "values": [5.0, 10.0, 15.0]}],
+		"r7c8": ["Cracking Ice", 3, "Each of your Ice Layers that breaks takes {v} sec off the cooldowns of your Frost abilities.",
+			{"key": "frost_cracking_ice", "values": [0.1, 0.2, 0.3]}],
+		"r7c9": ["Steady Footing", 3, "While you hold {b:STEADY_FOOTING_LAYERS} or more Ice Layers, you take {v}% less damage.",
+			{"key": "frost_steady_footing", "values": [2.0, 4.0, 6.0]}],
+		"r8c8": ["Old Ice", 3, "{n:glacialbulwark} lasts {v} sec longer.",
 			{"key": "frost_old_ice", "values": [1.5, 2.5, 4.0], "requires": "glacialbulwark"}],
-		"r10c6": ["Deep Strata", 5, "Your Ice Layers absorb {v}% more damage.",
+		"r8c9": ["Rime Armor", 3, "Each Ice Layer you hold increases your Armor by {v}%.",
+			{"key": "frost_rime_armor", "values": [1.0, 2.0, 3.0]}],
+		"r9c8": ["Chilling Presence", 3, "You generate {v}% more threat against enemies you slowed in the last {b:SLOW_MEMORY} sec.",
+			{"key": "frost_slow_threat", "values": [5.0, 10.0, 15.0]}],
+		"r9c9": ["Full Strata", 3, "While you hold all the Ice Layers you can, your abilities deal {v}% more damage.",
+			{"key": "frost_full_strata", "values": [5.0, 10.0, 15.0]}],
+		"r10c8": ["Deep Strata", 5, "Your Ice Layers absorb {v}% more damage.",
 			{"key": "frost_deep_strata", "values": [2.0, 4.0, 6.0, 8.0, 10.0],
 			"capstone": "When your last Ice Layer breaks, you gain one back at once. This can happen once every {b:DEEP_STRATA_COOLDOWN} sec."}],
+		# --- Winter Hunt (frost_bow.gd). Arrows: arrow abilities and auto-shots.
+		"r1c10": ["Cold Draw", 3, "Your hits on a target you have Chilled or Frozen give you {v} Energy, {v} Fury and {v2mana} mana. This can happen once every {b:COLD_DRAW_EVERY} sec.",
+			{"key": "frost_cold_draw", "values": [2.0, 4.0, 6.0], "values2": [0.1, 0.2, 0.3]}],
+		"r1c11": ["Frozen Quarry", 3, "Your arrows deal {v}% more damage to targets you have Frozen.",
+			{"key": "frost_frozen_quarry", "values": [4.0, 8.0, 12.0]}],
+		"r2c10": ["Pinning Frost", 3, "Your arrows deal {v}% more damage to targets you have rooted.",
+			{"key": "frost_pinning_frost", "values": [5.0, 10.0, 15.0]}],
+		"r2c11": ["Black Ice", 3, "The first Chill the ice of your {n:icyretreat} puts on each enemy has a {v}% chance to be a Freeze instead.",
+			{"key": "frost_black_ice", "values": [33.0, 67.0, 100.0], "requires": "icyretreat"}],
+		"r3c10": ["Clean Shatter", 3, "When {n:shattershot} breaks your Freeze, it refunds {v} Energy and takes {v2} sec off its own cooldown.",
+			{"key": "frost_clean_shatter", "values": [7.0, 13.0, 20.0], "values2": [1.5, 2.5, 4.0], "requires": "shattershot"}],
+		"r3c11": ["Frost Fletching", 3, "Your auto-shots deal {v}% more damage to targets you have Chilled.",
+			{"key": "frost_frost_fletching", "values": [3.0, 6.0, 9.0]}],
+		"r4c10": ["Cold Harvest", 3, "Each shot of your {n:rimefletch} that Freezes its target gives you {v} Energy.",
+			{"key": "frost_cold_harvest", "values": [3.0, 7.0, 10.0], "requires": "rimefletch"}],
+		"r4c11": ["Rime Tips", 3, "Your auto-shots have a {v}% chance to Chill their target.",
+			{"key": "frost_rime_tips", "values": [5.0, 10.0, 15.0]}],
+		"r5c10": ["Thin Ice", 3, "{n:glacialdraw} casts {v} sec faster on a target you have Chilled.",
+			{"key": "frost_thin_ice", "values": [0.3, 0.7, 1.0], "requires": "glacialdraw"}],
+		"r5c11": ["Marked Ice", 3, "Your arrow abilities that hit a target you have Chilled have a {v}% chance to give you an Ice Shard charge.",
+			{"key": "frost_marked_ice", "values": [10.0, 20.0, 30.0]}],
+		"r6c10": ["Winter Quiver", 3, "Your arrow abilities that critically strike give you {v} Energy.",
+			{"key": "frost_winter_quiver", "values": [4.0, 8.0, 12.0]}],
+		"r6c11": ["Splitting Arrow", 3, "Your arrows that hit a target you have Frozen splinter into one other enemy within {b:SPLITTING_ARROW_RANGE} m, dealing {v}% of their damage as Frost damage.",
+			{"key": "frost_splitting_arrow", "values": [10.0, 20.0, 30.0]}],
+		"r7c10": ["Deep Pin", 3, "Your roots last {v} sec longer.",
+			{"key": "frost_deep_pin", "values": [1.0, 2.0, 3.0]}],
+		"r7c11": ["Numb Prey", 3, "Your auto-shots deal {v}% more damage to targets you have Frozen.",
+			{"key": "frost_numb_prey", "values": [3.0, 6.0, 9.0]}],
+		"r8c10": ["Swift Ice", 3, "Your auto-shots and auto-attacks are {v}% faster against a target you have Chilled.",
+			{"key": "frost_swift_ice", "values": [2.0, 4.0, 6.0]}],
+		"r8c11": ["Ice Hunger", 3, "Freezing an enemy gives you {v} Energy.",
+			{"key": "frost_ice_hunger", "values": [5.0, 10.0, 15.0]}],
+		"r9c10": ["Cold Eye", 3, "Your arrows that critically strike a target you have Frozen deal {v}% more damage.",
+			{"key": "frost_cold_eye", "values": [5.0, 10.0, 15.0]}],
+		"r9c11": ["Sleet Arrows", 2, "Your arrow abilities that Chill their target also Chill the {v} enemies nearest it, within {b:SLEET_ARROWS_RANGE} m.",
+			{"key": "frost_sleet_arrows", "values": [1.0, 2.0]}],
+		"r10c10": ["Bitter Hunt", 5, "Your arrows deal {v}% more damage for each of your slows on the target (Chilled, Frozen and rooted each count).",
+			{"key": "frost_bitter_hunt", "values": [1.0, 2.0, 3.0, 4.0, 5.0]}],
 	},
 	"lightning": {
 		# Open talents: themed to the book (jumping on, tempo, standing your ground)
@@ -1284,19 +1388,7 @@ const TALENTS := {
 ## "key" (it follows the talent when its slot changes) or a talent id.
 ## A line must not run behind another talent, and the bottom row has no links.
 const LINKS := [
-	# --- Frost ---
-	# Shields, down the right edge.
-	["frost_absorb", "frost_shield_armor"],
-	["frost_shield_armor", "frost_ice_floe"],
-	# Ice Shards, down the middle.
-	["frost_shard_proc", "frost_shardstorm"],
-	["frost_shardstorm", "frost_splinter"],
-	# Hoarfrost.
-	["frost_hoarfrost", "frost_hoarfrost_burst"],
-	# Freezing a target.
-	["frost_cold_snap", "frost_instinct"],
-	# Cold Comfort: Rime Shards.
-	["frost_deep_cracks", "frost_shard_spray"],
+	# (Frost, Fire and Martial are on the column-group layout: no links.)
 	# --- Lightning ---
 	# The parry tank: parry talents down column 4, Return Stroke's two down the edge.
 	["lightning_long_reach", "lightning_closed_circuit"],
@@ -1361,12 +1453,14 @@ static func layout(category: String) -> Array:
 # in GROUPS keep the old 10 x COLUMNS grid until their own pass.
 
 ## Columns of a book's grid.
-const GRID_COLUMNS := {"martial": 9, "fire": 9}
+const GRID_COLUMNS := {"martial": 9, "fire": 9, "frost": 11}
 
 ## Book -> its groups: [name, first column, last column] (0-based, left to right).
 const GROUPS := {
 	"martial": [["The Wheel", 0, 1], ["Rogue", 2, 3], ["Open", 4, 4], ["Brawler", 5, 6], ["Sharpshooter", 7, 8]],
 	"fire": [["Steady Flame", 0, 1], ["Slagforged", 2, 3], ["Open", 4, 4], ["Forge Heat", 5, 6], ["Pitch and Cinder", 7, 8]],
+	"frost": [["Hard Winter", 0, 1], ["Cold Comfort", 2, 3], ["Open", 4, 4], ["Frostbitten Steel", 5, 6],
+		["Glacier Wall", 7, 8], ["Winter Hunt", 9, 10]],
 }
 const OPEN_GROUP := "Open"
 
@@ -1428,19 +1522,6 @@ const FROST_BOW_MOVED := {
 ## Old id -> new id; nothing was removed. Like FROST_BOW_MOVED this is applied
 ## once, to saves made before the change: most old slots now hold another talent.
 const LINKS_MOVED := {
-	"frost_r1c2": "frost_r1c1",   # Bitter Cold: to the left edge of row 1
-	"frost_r1c6": "frost_r1c5",   # Cold Draw: one column left
-	"frost_r1c5": "frost_r1c7",   # Rime Ward: to the right edge of row 1
-	"frost_r7c4": "frost_r4c7",   # Hardened Frost: row 7 -> row 4, under Rime Ward
-	"frost_r9c2": "frost_r8c7",   # Ice Floe: row 9 -> row 8, under Hardened Frost
-	"frost_r4c7": "frost_r5c2",   # Brittle Rime: under Deep Hoarfrost
-	"frost_r5c2": "frost_r7c2",   # Clean Break: row 5 -> row 7
-	"frost_r7c2": "frost_r6c4",   # Shardstorm: row 7 -> row 6, under Splintering Cold
-	"frost_r7c6": "frost_r7c4",   # Splintering: to the middle, under Shardstorm
-	"frost_r6c4": "frost_r8c1",   # Lingering Frost: row 6 -> row 8
-	"frost_r8c1": "frost_r9c2",   # Chilling Presence: row 8 -> row 9
-	"frost_r8c7": "frost_r9c6",   # Numbing Cold: row 8 -> row 9
-	"frost_r9c6": "frost_r7c6",   # Frozen Instinct: row 9 -> row 7, under Cold Snap
 	"lightning_r5c4": "lightning_r6c4",   # Quick Fuse: row 5 -> row 6
 	"lightning_r6c4": "lightning_r5c4",   # Tight Coil: row 6 -> row 5
 	"lightning_r9c4": "lightning_r7c4",   # Grounded Arrow: row 9 -> row 7
@@ -1733,11 +1814,13 @@ static func fill(text: String, t: Dictionary) -> String:
 		return text
 	var vals: Array = t.get("values", [])
 	text = text.replace("{v}", _join(vals)).replace("{v2}", _join(t.get("values2", [])))
-	if text.contains("{v2mana}"):   # values2 as mana points, shown as real mana at your level
-		var mana: Array[String] = []
-		for v in t.get("values2", []):
-			mana.append(str(int(round(float(v) * Stats.mana_unit(Stats._player_level())))))
-		text = text.replace("{v2mana}", " / ".join(mana))
+	for field in ["values", "values2"]:   # {vmana} / {v2mana}: values as mana points, shown as real mana at your level
+		var tag := "{vmana}" if field == "values" else "{v2mana}"
+		if text.contains(tag):
+			var mana: Array[String] = []
+			for v in t.get(field, []):
+				mana.append(str(int(round(float(v) * Stats.mana_unit(Stats._player_level())))))
+			text = text.replace(tag, " / ".join(mana))
 	if _fill_re == null:
 		_fill_re = RegEx.create_from_string("\\{(v\\+b|vdmg|v\\+dmg|dmg|bdmg):([A-Za-z0-9_]+)\\}")
 	var out := ""

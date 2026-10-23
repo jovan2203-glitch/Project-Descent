@@ -144,6 +144,8 @@ func _rime_edge_on_hit(info: RefCounted) -> void:
 	if dealt > 0:
 		player.frost_steel._rime_edge_glaze(was_cold)   # Frost DPS: a chance at Glaze
 
+var _icebreaker_on_frozen := false   # the Icebreaker being dealt broke my Freeze (Splitting Cold)
+
 ## Icebreaker's coefficient: weapon damage x the ability's multiplier, or x
 ## ICEBREAKER_FROZEN_MULT on a target I have Frozen (+ the ability's flat part).
 static func icebreaker_coef(weapon_damage: float, mult: float, flat: float, frozen: bool) -> float:
@@ -157,16 +159,18 @@ func _icebreaker(w: Dictionary, res: Resource) -> void:
 	var at: Vector3 = player.target.global_position
 	if frozen:
 		_end_freeze(player.target)
+	var foe: Node3D = player.target
 	var glazed := player.frost_steel._icebreaker_glaze()   # Frost DPS: it spends all my Glaze
-	player.deal_damage(player.target, icebreaker_coef(float(w.get("damage", 0.0)), float(res.weapon_damage_multiplier),
+	var spent: int = player.frost_steel._spending
+	_icebreaker_on_frozen = frozen   # Splitting Cold reads this (the Freeze is already gone)
+	player.deal_damage(foe, icebreaker_coef(float(w.get("damage", 0.0)), float(res.weapon_damage_multiplier),
 		float(res.damage), frozen) * glazed, "icebreaker")
+	_icebreaker_on_frozen = false
 	player.frost_steel._icebreaker_done()
+	player.frost_steel._finisher_landed(foe, spent, frozen)   # Clean Break, Frost Heave
 	player._slash_effect(Abilities.color_of("icebreaker"))
 	player._slash_effect(Color(0.95, 0.97, 1.0))
 	if frozen:
-		var back := player._talent("frost_clean_break")
-		if back > 0.0:
-			player._gain("fury", back)   # Clean Break: part of its Fury comes back
 		player._ring_effect(1.1, Color(0.85, 0.95, 1.0), at)
 		player._ring_effect(0.6, Color(0.95, 0.97, 1.0), at)
 

@@ -1222,6 +1222,8 @@ static func effect_time_bonus(res: Resource, talent_of: Callable) -> float:
 		bonus += float(talent_of.call("frost_long_chill", "values"))   # Lingering Frost
 	if id == "frozen":
 		bonus += float(talent_of.call("frost_hard_freeze", "values"))  # Hard Freeze
+	if bool(res.get("root")):
+		bonus += float(talent_of.call("frost_deep_pin", "values"))     # Deep Pin: every root of mine
 	if id == "grasped":
 		bonus += float(talent_of.call("nature_firm_hold", "values"))   # Firm Hold
 	if id == "pinned_shadow":

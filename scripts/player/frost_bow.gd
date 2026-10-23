@@ -235,10 +235,15 @@ static func thin_ice_cast(cast: float, less: float, chilled: bool) -> float:
 static func clean_shatter_cooldown(left: float, off: float) -> float:
 	return maxf(left - maxf(off, 0.0), 0.0)
 
-# --- Frozen Instinct: freezes can make the next Frost Bolt instant and free ------------
+# --- Frozen Instinct: freezes can make the next Frost spell with a cast time instant and free
 
 const INSTINCT_ID := "frozen_instinct"
-var _instinct_cast := false   # the current Frost Bolt cast is the instant Frozen Instinct one
+var _instinct_cast := false   # the current cast is the instant Frozen Instinct one
+
+## Can Frozen Instinct make spell `id` instant and free (a Frost spell with a cast time)?
+static func instinct_applies(id: String) -> bool:
+	var res := Abilities.get_resource(id)
+	return res != null and float(res.cast_time) > 0.0 and FrostTalentsKit.is_frost_spell(res.tags)
 
 func _grant_frozen_instinct() -> void:
 	if player.status == null or player.is_dead():
@@ -246,10 +251,10 @@ func _grant_frozen_instinct() -> void:
 	var fx := StatusContainer.make_buff(INSTINCT_ID, "Frozen Instinct", INSTINCT_ID, 0.0,
 		Balance.FROZEN_INSTINCT_TIME, 1, Color(0.6, 0.9, 1.0))
 	fx.stat_modifiers = {}
-	fx.description = "Your next %s is instant and free." % Abilities.ability_name("frostbolt")
+	fx.description = "Your next Frost spell with a cast time is instant and free."
 	player.status.apply(fx, player)
 
-## Is the next Frost Bolt instant and free?
+## Is the next Frost spell with a cast time instant and free?
 func frozen_instinct_ready() -> bool:
 	return player.status != null and player.status.has(INSTINCT_ID)
 

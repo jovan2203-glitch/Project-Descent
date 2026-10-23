@@ -33,7 +33,7 @@ static func _key_of(id: String) -> String:
 ## Every talent key with a picture below.
 const ICONED := ["frost_deep_cracks", "frost_cold_spread", "frost_slow_runoff", "frost_shard_spray", "frost_splinterheal", "frost_wide_lattice",
 	"frost_haste", "frost_cold_draw", "frost_black_ice", "frost_clean_shatter", "frost_cold_harvest",
-	"frost_thin_ice", "frost_marked_prey", "frost_absorb", "frost_shard_proc", "frost_bolt_cast",
+	"frost_thin_ice", "frost_absorb", "frost_shard_proc", "frost_bolt_cast",
 	"frost_discipline", "frost_chilled_dmg", "frost_int_sp", "frost_honed_rime",
 	"frost_hoarfrost", "frost_hoarfrost_burst", "frost_clean_break", "frost_piercing_cold",
 	"frost_long_chill", "frost_cold_snap", "frost_splinter", "frost_shardstorm", "frost_shield_armor",
@@ -42,6 +42,15 @@ const ICONED := ["frost_deep_cracks", "frost_cold_spread", "frost_slow_runoff", 
 	"frost_pinning_frost", "frost_third_bite", "frost_hard_freeze",
 	"frost_cold_sweep", "frost_ice_fall", "frost_long_dark", "frost_glinting_rime", "frost_biting_hold", "frost_long_glaze",
 	"frost_packed_ice", "frost_deep_tremor", "frost_turned_backs", "frost_cold_fury", "frost_regelation", "frost_old_ice", "frost_deep_strata",
+	"frost_glass_cold", "frost_ice_needles", "frost_snowdrift", "frost_cold_front", "frost_cold_well", "frost_thaw_water",
+	"frost_last_shelter", "frost_cold_hands", "frost_meltdown", "frost_long_frost", "frost_shard_reach", "frost_snowmelt",
+	"frost_layered_veil", "frost_ice_bath", "frost_deep_snow", "frost_cold_rush", "frost_close_weave", "frost_frozen_hearth",
+	"frost_sharp_glaze", "frost_glaze_hunger", "frost_hard_glaze", "frost_splitting_cold", "frost_shiver", "frost_rime_grip",
+	"frost_cold_swing", "frost_thaw_strike", "frost_quick_rime", "frost_frost_heave", "frost_lasting_ice", "frost_deep_ice",
+	"frost_spent_ice", "frost_hoar_coat", "frost_cold_retort", "frost_rime_pressure", "frost_reforming", "frost_cracking_ice",
+	"frost_steady_footing", "frost_rime_armor", "frost_full_strata", "frost_frozen_quarry", "frost_frost_fletching", "frost_rime_tips",
+	"frost_marked_ice", "frost_winter_quiver", "frost_splitting_arrow", "frost_deep_pin", "frost_numb_prey", "frost_swift_ice",
+	"frost_ice_hunger", "frost_cold_eye", "frost_sleet_arrows", "frost_bitter_hunt", "frost_winter_coat",
 	"fire_smoldering_focus", "fire_tempered_flame", "fire_afterburn",
 	"fire_banked_coals", "fire_volley_targets", "fire_damped_embers", "fire_wild_embers",
 	"fire_pressure_valve", "fire_heat_shimmer", "fire_thick_slag", "fire_hot_iron", "fire_blowback", "fire_clinker",
@@ -117,7 +126,7 @@ const ICONED := ["frost_deep_cracks", "frost_cold_spread", "frost_slow_runoff", 
 
 ## Pictures kept from talents that were folded into their abilities, free for new
 ## talents (draw one under its new key). Not given to any talent today.
-const SPARE := ["frost_thick_hide", "lightning_honed_edge",
+const SPARE := ["frost_thick_hide", "frost_marked_prey", "lightning_honed_edge",
 	"arcane_deep_well", "shadow_cut_short", "nature_quick_return", "nature_big_herd", "martial_deep_pockets",
 	"martial_round_two", "holy_last_rites", "holy_swift_light", "holy_high_censer"]
 
@@ -2504,6 +2513,230 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			c.draw_line(mid + Vector2(0, -6) * k, mid + Vector2(0, 12) * k, Color(WHITE, 0.7), 1.2 * k, true)
 			c.draw_line(mid + Vector2(-9, -6) * k, mid + Vector2(0, 4) * k, Color(WHITE, 0.5), 1.2 * k, true)
 			c.draw_line(mid + Vector2(9, -6) * k, mid + Vector2(0, 4) * k, Color(WHITE, 0.5), 1.2 * k, true)
+		# --- Frost, the column-group tree (2026-10-23) ---
+		"frost_winter_coat":   # Winter Coat: a thick fur-lined coat, a spell spark glancing off it
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-10, -12), Vector2(10, -12), Vector2(14, 14), Vector2(-14, 14)]), Color(light, 0.7))
+			c.draw_line(mid + Vector2(0, -12) * k, mid + Vector2(0, 14) * k, WHITE, 1.4 * k, true)
+			_star(c, mid + Vector2(12, -12) * k, 4.0 * k, Color(0.8, 0.6, 1.0), 4)
+		"frost_glass_cold":   # Glass Cold: a bolt striking a glassy frozen block
+			_pane(c, mid + Vector2(5, 4) * k, Vector2(10, 12), Color(col, 0.5), WHITE, 1.6 * k)
+			_shard(c, mid + Vector2(2, 0) * k, Vector2(0.7, 0.7), 14.0 * k, 3.5 * k, light, WHITE, k)
+		"frost_ice_needles":   # Ice Needles: a crit star throwing off thin needles of ice
+			_star(c, mid + Vector2(-5, 5) * k, 9.0 * k, WHITE, 4)
+			for i in 3:
+				_shard(c, mid + Vector2(6 + i * 4, -14 + i * 6) * k, Vector2(0.8, -0.6), 9.0 * k, 1.6 * k, light, WHITE, k)
+		"frost_snowdrift":   # Snowdrift: a heap of snow with three small shapes caught in it
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-16, 14), Vector2(-8, 2), Vector2(2, 6), Vector2(10, -2), Vector2(16, 14)]), Color(WHITE, 0.85))
+			for x in [-9.0, 0.0, 9.0]:
+				c.draw_circle(mid + Vector2(x, -8) * k, 3.0 * k, Color(col, 0.8))
+		"frost_cold_front":   # Cold Front: a wall of cold air sweeping over a row of snowflakes
+			c.draw_arc(mid + Vector2(-20, 0) * k, 22.0 * k, -PI * 0.35, PI * 0.35, 12, light, 3.0 * k, true)
+			for i in 3:
+				_flake(c, mid + Vector2(2 + i * 6, -10 + i * 10) * k, 4.0 * k, WHITE, 1.4 * k)
+		"frost_cold_well":   # Cold Well: a well of ice with a mana drop rising out of it
+			c.draw_rect(Rect2(mid + Vector2(-12, 4) * k, Vector2(24, 11) * k), Color(col, 0.6), true)
+			c.draw_rect(Rect2(mid + Vector2(-12, 4) * k, Vector2(24, 11) * k), WHITE, false, 1.4 * k)
+			_drop(c, mid + Vector2(0, -6) * k, k * 0.6, Color(0.35, 0.55, 1.0), WHITE, k)
+		"frost_thaw_water":   # Thaw Water: a melting shell dripping into a heal
+			c.draw_arc(mid + Vector2(0, -4) * k, 11.0 * k, PI, TAU, 14, light, 2.4 * k, true)
+			_drop(c, mid + Vector2(0, 6) * k, k * 0.55, Color(col, 0.8), WHITE, k)
+			_plus(c, mid + Vector2(10, 10) * k, 4.0 * k, Color(0.45, 1.0, 0.45), 2.0 * k)
+		"frost_last_shelter":   # Last Shelter: a shield over a low red health bar
+			_shield(c, mid + Vector2(0, -3) * k, k * 0.75, Color(col, 0.5), WHITE)
+			c.draw_rect(Rect2(mid + Vector2(-13, 11) * k, Vector2(26, 4) * k), Color(0.15, 0.1, 0.1), true)
+			c.draw_rect(Rect2(mid + Vector2(-13, 11) * k, Vector2(9, 4) * k), Color(0.9, 0.25, 0.2), true)
+		"frost_cold_hands":   # Cold Hands: an open hand with a small mana drop, half of it frosted
+			c.draw_arc(mid + Vector2(0, 6) * k, 11.0 * k, 0, PI, 12, light, 3.0 * k, true)
+			for x in [-8.0, -3.0, 2.0, 7.0]:
+				c.draw_line(mid + Vector2(x, 6) * k, mid + Vector2(x * 1.15, -3) * k, light, 2.4 * k, true)
+			_drop(c, mid + Vector2(0, -8) * k, k * 0.4, Color(0.35, 0.55, 1.0), WHITE, k)
+		"frost_meltdown":   # Meltdown: a broken shell, a mana drop falling out of it
+			c.draw_arc(mid + Vector2(-3, -2) * k, 12.0 * k, PI * 0.7, PI * 1.6, 10, light, 2.4 * k, true)
+			c.draw_arc(mid + Vector2(3, -2) * k, 12.0 * k, PI * 1.75, PI * 2.4, 10, light, 2.4 * k, true)
+			_drop(c, mid + Vector2(0, 4) * k, k * 0.6, Color(0.35, 0.55, 1.0), WHITE, k)
+		"frost_long_frost":   # Long Frost: a shield with a long clock beside it
+			_shield(c, mid + Vector2(-5, 0) * k, k * 0.75, Color(col, 0.5), WHITE)
+			_clock(c, mid + Vector2(9, -8) * k, 6.0 * k, light, k)
+			c.draw_line(mid + Vector2(9, -8) * k, mid + Vector2(9, -12) * k, WHITE, 1.4 * k, true)
+		"frost_shard_reach":   # Shard Reach: shards flying out to a far ring
+			c.draw_arc(mid, 15.0 * k, 0, TAU, 28, Color(light, 0.6), 1.4 * k, true)
+			for i in 4:
+				var a := TAU * i / 4.0 + PI / 4.0
+				_shard(c, mid + Vector2(cos(a), sin(a)) * 14.0 * k, Vector2(cos(a), sin(a)), 8.0 * k, 2.0 * k, light, WHITE, k)
+		"frost_snowmelt":   # Snowmelt: quick drops running off a melting ball of snow
+			c.draw_circle(mid + Vector2(0, -6) * k, 8.0 * k, Color(WHITE, 0.85))
+			for x in [-7.0, 0.0, 7.0]:
+				_drop(c, mid + Vector2(x, 9) * k, k * 0.3, Color(col, 0.85), WHITE, k * 0.6)
+			c.draw_line(mid + Vector2(12, -2) * k, mid + Vector2(16, 6) * k, light, 1.6 * k, true)
+		"frost_layered_veil":   # Layered Veil: three thin veils, one forming again
+			for i in 3:
+				c.draw_arc(mid + Vector2(0, 8 - i * 6) * k, 12.0 * k, PI, TAU, 14, Color(light, 0.5 + i * 0.25), 2.0 * k, true)
+			c.draw_line(mid + Vector2(12, -12) * k, mid + Vector2(15, -15) * k, WHITE, 1.6 * k, true)
+		"frost_ice_bath":   # Ice Bath: a tub of icy water with a heal rising out of it
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-14, 2), Vector2(14, 2), Vector2(10, 14), Vector2(-10, 14)]), Color(col, 0.65))
+			c.draw_line(mid + Vector2(-14, 2) * k, mid + Vector2(14, 2) * k, WHITE, 1.6 * k, true)
+			_plus(c, mid + Vector2(0, -8) * k, 5.0 * k, Color(0.45, 1.0, 0.45), 2.4 * k)
+		"frost_deep_snow":   # Deep Snow: snow falling onto a thick shield
+			_shield(c, mid + Vector2(0, 4) * k, k * 0.7, Color(col, 0.6), WHITE)
+			for p in [Vector2(-10, -12), Vector2(0, -15), Vector2(10, -12)]:
+				_flake(c, mid + (p as Vector2) * k, 3.0 * k, WHITE, 1.2 * k)
+		"frost_cold_rush":   # Cold Rush: a heal plus with speed lines over a low health bar
+			_plus(c, mid + Vector2(3, -4) * k, 7.0 * k, Color(0.45, 1.0, 0.45), 3.0 * k)
+			for y in [-8.0, -4.0, 0.0]:
+				c.draw_line(mid + Vector2(-16, y) * k, mid + Vector2(-8, y) * k, light, 1.4 * k, true)
+			c.draw_rect(Rect2(mid + Vector2(-12, 11) * k, Vector2(7, 4) * k), Color(0.9, 0.25, 0.2), true)
+		"frost_close_weave":   # Close Weave: three shells tied by a tight weave, a heal in the middle
+			for p in [Vector2(-10, -8), Vector2(10, -8), Vector2(0, 10)]:
+				c.draw_arc(mid + (p as Vector2) * k, 5.0 * k, 0, TAU, 12, light, 1.8 * k, true)
+			c.draw_polyline(_p(mid, k, [Vector2(-10, -8), Vector2(10, -8), Vector2(0, 10), Vector2(-10, -8)]), Color(WHITE, 0.6), 1.2 * k, true)
+			_plus(c, mid, 3.0 * k, Color(0.45, 1.0, 0.45), 1.8 * k)
+		"frost_frozen_hearth":   # Frozen Hearth: a hearth with a cold blue fire, a shield over it
+			c.draw_rect(Rect2(mid + Vector2(-14, 4) * k, Vector2(28, 11) * k), Color(0.3, 0.32, 0.38), true)
+			_fire(c, mid + Vector2(0, 3) * k, k * 0.6, light, WHITE)
+			c.draw_arc(mid + Vector2(0, 2) * k, 15.0 * k, PI * 1.05, PI * 1.95, 14, WHITE, 2.0 * k, true)
+		"frost_sharp_glaze":   # Sharp Glaze: a blade edge, three glints of rime along it
+			c.draw_line(mid + Vector2(-14, 14) * k, mid + Vector2(14, -14) * k, Color(0.8, 0.88, 1.0), 4.0 * k, true)
+			for i in 3:
+				_star(c, mid + Vector2(-6 + i * 7, 6 - i * 7) * k, 3.5 * k, WHITE, 4)
+		"frost_glaze_hunger":   # Glaze Hunger: a glint splitting into two
+			_star(c, mid + Vector2(-5, 3) * k, 8.0 * k, WHITE, 4)
+			_star(c, mid + Vector2(8, -8) * k, 5.0 * k, light, 4)
+			_plus(c, mid + Vector2(10, 9) * k, 3.5 * k, light, 1.8 * k)
+		"frost_hard_glaze":   # Hard Glaze: glints poured into a drop of fury
+			for i in 3:
+				_star(c, mid + Vector2(-10 + i * 6, -10) * k, 3.0 * k, WHITE, 4)
+			_drop(c, mid + Vector2(4, 5) * k, k * 0.6, Color(0.9, 0.3, 0.2), WHITE, k)
+		"frost_splitting_cold":   # Splitting Cold: a heavy blade splitting a frozen block
+			_pane(c, mid + Vector2(0, 5) * k, Vector2(12, 10), Color(col, 0.55), WHITE, 1.4 * k)
+			c.draw_line(mid + Vector2(0, -16) * k, mid + Vector2(0, 14) * k, Color(0.85, 0.9, 1.0), 3.0 * k, true)
+		"frost_shiver":   # Shiver: a frozen shape trembling, a glint shaken off it
+			for x in [-2.0, 2.0]:
+				c.draw_rect(Rect2(mid + Vector2(-9 + x, -6) * k, Vector2(14, 20) * k), Color(col, 0.35), false, 1.4 * k)
+			_star(c, mid + Vector2(10, -11) * k, 5.0 * k, WHITE, 4)
+		"frost_rime_grip":   # Rime Grip: a fist on a hilt, rime on the knuckles, a drop of fury
+			c.draw_circle(mid + Vector2(-3, 2) * k, 8.0 * k, light)
+			for x in [-8.0, -3.0, 2.0]:
+				c.draw_circle(mid + Vector2(x, -5) * k, 2.2 * k, WHITE)
+			_drop(c, mid + Vector2(10, -6) * k, k * 0.35, Color(0.9, 0.3, 0.2), WHITE, k * 0.7)
+		"frost_cold_swing":   # Cold Swing: a wide arc through two shapes
+			c.draw_arc(mid + Vector2(0, 10) * k, 16.0 * k, PI * 1.1, PI * 1.9, 16, WHITE, 3.0 * k, true)
+			for x in [-8.0, 8.0]:
+				c.draw_circle(mid + Vector2(x, 0) * k, 4.0 * k, Color(col, 0.75))
+		"frost_thaw_strike":   # Thaw Strike: a melting block and a cheap, quick blade
+			c.draw_rect(Rect2(mid + Vector2(-14, -2) * k, Vector2(12, 14) * k), Color(col, 0.5), true)
+			_drop(c, mid + Vector2(-8, 12) * k, k * 0.25, Color(col, 0.9), WHITE, k * 0.6)
+			c.draw_line(mid + Vector2(2, 12) * k, mid + Vector2(14, -12) * k, Color(0.85, 0.9, 1.0), 3.0 * k, true)
+		"frost_quick_rime":   # Quick Rime: a blade with rime and fast swing lines
+			c.draw_line(mid + Vector2(-10, 12) * k, mid + Vector2(10, -12) * k, Color(0.85, 0.9, 1.0), 3.5 * k, true)
+			for i in 3:
+				c.draw_arc(mid + Vector2(-2, 0) * k, (8.0 + i * 4.0) * k, -PI * 0.1, PI * 0.35, 6, Color(light, 0.8 - i * 0.2), 1.4 * k, true)
+		"frost_frost_heave":   # Frost Heave: the ground heaving up into an ice block under a blade
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-16, 15), Vector2(-6, 2), Vector2(6, 2), Vector2(16, 15)]), Color(col, 0.6))
+			_star(c, mid + Vector2(0, -8) * k, 7.0 * k, WHITE, 5)
+		"frost_lasting_ice":   # Lasting Ice: stacked layers with an hourglass
+			for i in 3:
+				c.draw_rect(Rect2(mid + Vector2(-15, 8 - i * 6) * k, Vector2(18, 4) * k), Color(col, 0.5 + i * 0.15), true)
+			_hourglass(c, mid + Vector2(10, 0) * k, k * 0.55, light, WHITE)
+		"frost_deep_ice":   # Deep Ice: a tall stack of layers, the top ones new
+			for i in 7:
+				c.draw_rect(Rect2(mid + Vector2(-10, 13 - i * 4) * k, Vector2(20, 3) * k), Color(col, 0.4 + i * 0.08) if i < 5 else WHITE, true)
+		"frost_spent_ice":   # Spent Ice: layers driven into a target, fury flying out
+			for i in 3:
+				c.draw_rect(Rect2(mid + Vector2(-15 + i * 5, -6) * k, Vector2(3, 12) * k), Color(col, 0.6 + i * 0.1), true)
+			c.draw_circle(mid + Vector2(8, 0) * k, 6.0 * k, Color(light, 0.5))
+			_drop(c, mid + Vector2(12, -10) * k, k * 0.3, Color(0.9, 0.3, 0.2), WHITE, k * 0.6)
+		"frost_hoar_coat":   # Hoar Coat: a coat of frost layers with a heal on it
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-10, -12), Vector2(10, -12), Vector2(14, 14), Vector2(-14, 14)]), Color(col, 0.55))
+			for y in [-4.0, 4.0]:
+				c.draw_line(mid + Vector2(-12, y) * k, mid + Vector2(12, y) * k, WHITE, 1.2 * k, true)
+			_plus(c, mid + Vector2(0, -2) * k, 4.0 * k, Color(0.45, 1.0, 0.45), 2.2 * k)
+		"frost_cold_retort":   # Cold Retort: a cracked layer firing a shard back at a red glare
+			c.draw_rect(Rect2(mid + Vector2(-15, -10) * k, Vector2(6, 20) * k), Color(col, 0.6), true)
+			c.draw_line(mid + Vector2(-13, -4) * k, mid + Vector2(-10, 4) * k, WHITE, 1.2 * k, true)
+			_shard(c, mid + Vector2(10, 0) * k, Vector2(1, 0), 14.0 * k, 3.0 * k, light, WHITE, k)
+			c.draw_circle(mid + Vector2(13, -10) * k, 2.5 * k, Color(1.0, 0.35, 0.25))
+		"frost_rime_pressure":   # Rime Pressure: layers under a glaring eye
+			for i in 3:
+				c.draw_rect(Rect2(mid + Vector2(-12, 12 - i * 5) * k, Vector2(24, 3) * k), Color(col, 0.6), true)
+			c.draw_arc(mid + Vector2(0, -6) * k, 8.0 * k, PI * 1.1, PI * 1.9, 10, WHITE, 2.0 * k, true)
+			c.draw_arc(mid + Vector2(0, -12) * k, 8.0 * k, PI * 0.1, PI * 0.9, 10, WHITE, 2.0 * k, true)
+			c.draw_circle(mid + Vector2(0, -9) * k, 2.4 * k, Color(1.0, 0.35, 0.25))
+		"frost_reforming":   # Reforming: a broken layer snapping back with a circling arrow
+			c.draw_rect(Rect2(mid + Vector2(-9, -2) * k, Vector2(18, 5) * k), Color(col, 0.7), true)
+			c.draw_arc(mid, 13.0 * k, PI * 0.2, PI * 1.7, 18, WHITE, 2.0 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(10, 9), Vector2(14, 4), Vector2(15, 11)]), WHITE)
+		"frost_cracking_ice":   # Cracking Ice: a cracking layer and a clock running fast
+			c.draw_rect(Rect2(mid + Vector2(-15, 4) * k, Vector2(18, 6) * k), Color(col, 0.7), true)
+			c.draw_polyline(_p(mid, k, [Vector2(-10, 4), Vector2(-7, 7), Vector2(-9, 10)]), WHITE, 1.2 * k, true)
+			_clock(c, mid + Vector2(8, -6) * k, 7.0 * k, light, k)
+			c.draw_line(mid + Vector2(8, -6) * k, mid + Vector2(12, -10) * k, WHITE, 1.6 * k, true)
+		"frost_steady_footing":   # Steady Footing: two boots planted on three layers
+			for i in 3:
+				c.draw_rect(Rect2(mid + Vector2(-14, 14 - i * 4) * k, Vector2(28, 3) * k), Color(col, 0.6), true)
+			for x in [-6.0, 6.0]:
+				c.draw_rect(Rect2(mid + Vector2(x - 3, -10) * k, Vector2(6, 12) * k), light, true)
+		"frost_rime_armor":   # Rime Armor: a breastplate made of ice bricks
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-12, -12), Vector2(12, -12), Vector2(10, 12), Vector2(0, 15), Vector2(-10, 12)]), Color(col, 0.55))
+			for y in [-5.0, 2.0, 9.0]:
+				c.draw_line(mid + Vector2(-11, y) * k, mid + Vector2(11, y) * k, WHITE, 1.2 * k, true)
+		"frost_full_strata":   # Full Strata: five full layers, a blade over them
+			for i in 5:
+				c.draw_rect(Rect2(mid + Vector2(-12, 13 - i * 4) * k, Vector2(24, 3) * k), Color(col, 0.5 + i * 0.1), true)
+			c.draw_line(mid + Vector2(-12, -14) * k, mid + Vector2(12, -6) * k, WHITE, 3.0 * k, true)
+		"frost_frozen_quarry":   # Frozen Quarry: an arrow into a frozen block
+			_pane(c, mid + Vector2(6, -6) * k, Vector2(9, 10), Color(col, 0.55), WHITE, 1.4 * k)
+			_arrow_line(c, mid, k * 0.8, Color(0.75, 0.6, 0.4), light)
+		"frost_frost_fletching":   # Frost Fletching: frosted feathers on an arrow
+			_arrow_line(c, mid, k, Color(0.75, 0.6, 0.4), WHITE)
+			_flake(c, mid + Vector2(-12, 10) * k, 5.0 * k, light, 1.4 * k)
+		"frost_rime_tips":   # Rime Tips: an arrowhead coated in rime
+			c.draw_colored_polygon(_p(mid, k, [Vector2(0, -16), Vector2(9, 2), Vector2(-9, 2)]), light)
+			c.draw_line(mid + Vector2(0, 2) * k, mid + Vector2(0, 16) * k, Color(0.75, 0.6, 0.4), 2.5 * k, true)
+			_flake(c, mid + Vector2(0, -6) * k, 4.0 * k, WHITE, 1.2 * k)
+		"frost_marked_ice":   # Marked Ice: an arrow into a chilled target, a shard coming out
+			c.draw_circle(mid + Vector2(5, -5) * k, 9.0 * k, Color(col, 0.4))
+			_arrow_line(c, mid, k * 0.75, Color(0.75, 0.6, 0.4), light)
+			_shard(c, mid + Vector2(15, -15) * k, Vector2(0.7, -0.7), 7.0 * k, 2.0 * k, WHITE, light, k)
+		"frost_winter_quiver":   # Winter Quiver: a quiver of icy arrows, an Energy spark
+			c.draw_rect(Rect2(mid + Vector2(-8, -4) * k, Vector2(12, 18) * k), Color(0.45, 0.35, 0.25), true)
+			for x in [-5.0, -1.0, 3.0]:
+				c.draw_line(mid + Vector2(x, -4) * k, mid + Vector2(x, -15) * k, light, 2.0 * k, true)
+			_star(c, mid + Vector2(11, -6) * k, 5.0 * k, Color(1.0, 0.9, 0.4), 4)
+		"frost_splitting_arrow":   # Splitting Arrow: an arrow hitting ice and splitting off a shard
+			_pane(c, mid + Vector2(-2, 2) * k, Vector2(8, 10), Color(col, 0.55), WHITE, 1.4 * k)
+			c.draw_line(mid + Vector2(-16, 2) * k, mid + Vector2(-6, 2) * k, Color(0.75, 0.6, 0.4), 2.4 * k, true)
+			_shard(c, mid + Vector2(15, -10) * k, Vector2(0.8, -0.6), 9.0 * k, 2.2 * k, light, WHITE, k)
+		"frost_deep_pin":   # Deep Pin: an arrow pinned deep in the ground, a long clock
+			c.draw_line(mid + Vector2(-16, 10) * k, mid + Vector2(16, 10) * k, light, 2.0 * k, true)
+			c.draw_line(mid + Vector2(-4, -14) * k, mid + Vector2(-4, 14) * k, Color(0.75, 0.6, 0.4), 2.5 * k, true)
+			_clock(c, mid + Vector2(8, -6) * k, 6.0 * k, WHITE, k)
+		"frost_numb_prey":   # Numb Prey: a frozen shape struck by small auto-shots
+			_figure(c, mid + Vector2(4, 0) * k, 14.0 * k, light, 2.0 * k)
+			c.draw_rect(Rect2(mid + Vector2(-6, -14) * k, Vector2(20, 28) * k), Color(col, 0.35), true)
+			for y in [-6.0, 4.0]:
+				c.draw_line(mid + Vector2(-16, y) * k, mid + Vector2(-8, y) * k, WHITE, 1.6 * k, true)
+		"frost_swift_ice":   # Swift Ice: an arrow with speed lines over a snowflake
+			_flake(c, mid + Vector2(6, 6) * k, 7.0 * k, Color(light, 0.7), 1.6 * k)
+			for y in [-10.0, -5.0, 0.0]:
+				c.draw_line(mid + Vector2(-16, y) * k, mid + Vector2(14 - absf(y), y) * k, WHITE, 1.4 * k, true)
+		"frost_ice_hunger":   # Ice Hunger: a frozen block with Energy pips drawn out of it
+			_pane(c, mid + Vector2(-4, 2) * k, Vector2(10, 12), Color(col, 0.55), WHITE, 1.4 * k)
+			for i in 3:
+				c.draw_circle(mid + Vector2(10, -10 + i * 7) * k, 2.4 * k, Color(1.0, 0.9, 0.4))
+		"frost_cold_eye":   # Cold Eye: a pale eye with a crit star in it
+			c.draw_arc(mid + Vector2(0, 8) * k, 14.0 * k, PI * 1.15, PI * 1.85, 12, WHITE, 2.0 * k, true)
+			c.draw_arc(mid + Vector2(0, -8) * k, 14.0 * k, PI * 0.15, PI * 0.85, 12, WHITE, 2.0 * k, true)
+			_star(c, mid, 5.0 * k, light, 4)
+		"frost_sleet_arrows":   # Sleet Arrows: one arrow and sleet spraying out to two more shapes
+			_arrow_line(c, mid, k * 0.7, Color(0.75, 0.6, 0.4), light)
+			for p in [Vector2(14, 0), Vector2(0, -14)]:
+				c.draw_circle(mid + (p as Vector2) * k, 3.5 * k, Color(col, 0.6))
+				_flake(c, mid + (p as Vector2) * k, 3.0 * k, WHITE, 1.0 * k)
+		"frost_bitter_hunt":   # Bitter Hunt: a target ringed by frost, a root and an arrow
+			c.draw_arc(mid, 13.0 * k, 0, TAU, 24, light, 2.0 * k, true)
+			c.draw_arc(mid, 8.0 * k, 0, TAU, 20, WHITE, 1.6 * k, true)
+			c.draw_line(mid + Vector2(-6, 14) * k, mid + Vector2(-3, 8) * k, Color(0.45, 0.35, 0.25), 2.0 * k, true)
+			_arrow_line(c, mid, k * 0.6, Color(0.75, 0.6, 0.4), WHITE)
 		"frost_deep_freeze":   # Deep Freeze: a body frozen in an ice block
 			c.draw_colored_polygon(_p(mid, k, [Vector2(-12, -9), Vector2(-5, -15), Vector2(13, -15), Vector2(13, 8),
 				Vector2(6, 15), Vector2(-12, 15)]), Color(col, 0.55))

@@ -114,7 +114,7 @@ func test_single_ability_talents_need_the_ability() -> void:
 	pd.learned_abilities.clear()
 	# Open its row first (row 2 needs 3 points in row 1).
 	var first := Talents.id_for_key("fire_stoked_breath")
-	pd.talents = {first: 2, Talents.id_for_key("frost_absorb"): 1}
+	pd.talents = {first: 2, "frost_r1c1": 1}
 	assert_eq(pd.can_invest(id), "Requires Vent Flames to be learned")
 	pd.learned_abilities.append("ventflames")
 	assert_eq(pd.can_invest(id), "")

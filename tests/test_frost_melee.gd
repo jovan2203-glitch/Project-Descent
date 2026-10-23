@@ -180,13 +180,14 @@ const TALENTS := [
 	["frost_deep_tremor", "rimequake", 3],
 ]
 
-## Where the melee talents sit (the tree's layout comment in talents.gd says why).
+## Where the melee talents sit: Frostbitten Steel's and Glacier Wall's column groups
+## (the whole tree: tests/test_frost_tree.gd).
 const SLOTS := {
-	"frost_cold_fury": "frost_r8c4", "frost_cold_sweep": "frost_r3c3", "frost_packed_ice": "frost_r3c5",
-	"frost_biting_hold": "frost_r6c2", "frost_deep_tremor": "frost_r6c6", "frost_long_glaze": "frost_r7c3",
-	"frost_turned_backs": "frost_r7c6", "frost_ice_fall": "frost_r8c3", "frost_regelation": "frost_r8c5",
-	"frost_long_dark": "frost_r9c3", "frost_old_ice": "frost_r9c5", "frost_glinting_rime": "frost_r10c2",
-	"frost_deep_strata": "frost_r10c6", "frost_instinct": "frost_r7c5",
+	"frost_cold_fury": "frost_r1c9", "frost_cold_sweep": "frost_r3c6", "frost_packed_ice": "frost_r1c8",
+	"frost_biting_hold": "frost_r6c6", "frost_deep_tremor": "frost_r3c8", "frost_long_glaze": "frost_r2c6",
+	"frost_turned_backs": "frost_r5c8", "frost_ice_fall": "frost_r5c6", "frost_regelation": "frost_r6c8",
+	"frost_long_dark": "frost_r8c6", "frost_old_ice": "frost_r8c8", "frost_glinting_rime": "frost_r10c6",
+	"frost_deep_strata": "frost_r10c8",
 }
 
 func test_talents() -> void:
@@ -214,7 +215,7 @@ func test_frozen_instinct_keeps_its_points() -> void:
 	var ss: Node = track(SaveSystemScript.new())
 	ss._migrate_11_to_12(cfg)
 	assert_eq(cfg.get_value("talents", "ranks", {}), {"frost_r7c5": 2}, "the points follow Frozen Instinct")
-	assert_eq(Talents.get_talent("frost_r7c6").get("name", ""), "Turned Backs")
+	# (The column-group tree then refunded every point: Talents.TREE_VERSION.)
 
 func test_runes() -> void:
 	for id in ["ice_shelf", "hoar_blade", "lone_floe"]:

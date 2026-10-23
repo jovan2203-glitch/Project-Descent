@@ -70,14 +70,18 @@ func cold_on(foe: Variant) -> bool:
 	var st: Node = foe.get_node_or_null("Status")
 	return st != null and (st.has_from("chilled", player) or st.has_from("frozen", player))
 
-## Gain `more` Glaze; its time starts over (Long Glaze: longer).
+## Gain `more` Glaze; its time starts over (Long Glaze: longer; Glaze Hunger: maybe one more).
 func _gain_glaze(more: int) -> void:
 	if player.status == null or more <= 0 or player.is_dead():
 		return
+	if randf() * 100.0 < player._talent("frost_glaze_hunger"):
+		more += 1
 	var want := glaze_after(glaze(), more)
-	if _glaze_fx == null:
+	# Quick Rime: each stack is a little attack speed (the effect is rebuilt when its rank changes).
+	var quick := player._talent("frost_quick_rime")
+	if _glaze_fx == null or not is_equal_approx(float(_glaze_fx.stat_modifiers.get(LightningTankKit.ATTACK_SPEED, 0.0)), quick):
 		_glaze_fx = StatusContainer.make_buff(GLAZE_FX, "Glaze", GLAZE_FX, 0.0, Balance.GLAZE_TIME, Balance.GLAZE_MAX, GLAZE_COLOR)
-		_glaze_fx.stat_modifiers = {}
+		_glaze_fx.stat_modifiers = {LightningTankKit.ATTACK_SPEED: quick} if quick > 0.0 else {}
 		_glaze_fx.tags = PackedStringArray(["Frost"])
 		_glaze_fx.description = "Rime on your blade. Icebreaker and Calving spend all of it for more damage."
 	if not player.status.apply(_glaze_fx, player):
@@ -86,12 +90,26 @@ func _gain_glaze(more: int) -> void:
 		player.status.set_stacks(GLAZE_FX, want)
 	player.status.set_remaining(GLAZE_FX, Balance.GLAZE_TIME + player._talent("frost_long_glaze"))   # + Long Glaze
 
-## Use up all my Glaze. Returns how much there was.
+## A finisher uses up all my Glaze. Returns how much there was (Hard Glaze: Fury for
+## each; Thaw Strike's cheaper finisher is spent).
 func _spend_glaze() -> int:
 	var n := glaze()
 	if n > 0:
 		player.status.remove(GLAZE_FX)
+		player._gain("fury", player._talent("frost_hard_glaze") * n)
+	player.frost_talents._finisher_used()
 	return n
+
+## After a finisher that spent `spent` Glaze landed on `foe` (`was_frozen`: I had it
+## Frozen before the blow): Clean Break gives Fury back, Frost Heave may Freeze it.
+func _finisher_landed(foe: Variant, spent: int, was_frozen: bool) -> void:
+	if was_frozen:
+		var back := player._talent("frost_clean_break")
+		if back > 0.0:
+			player._gain("fury", back)
+	if spent >= Balance.GLAZE_MAX and foe != null and is_instance_valid(foe) and foe.is_alive() \
+			and randf() * 100.0 < player._talent("frost_frost_heave"):
+		player.frost_runes._apply_freeze(foe, PackedStringArray(FROST_MELEE_TAGS))
 
 ## Winter's Bite landed (frost_runes._winters_bite): Glaze if the target was already cold.
 func _bite_landed(was_cold: bool) -> void:
@@ -172,6 +190,7 @@ func _calving(w: Dictionary, res: Resource) -> void:
 	var hit := _around_target(0.0 if lone else Balance.CALVING_RADIUS)
 	if hit.is_empty():
 		return
+	var was_frozen: bool = player.frost_talents.frozen_by_me(hit[0])
 	var spent := _spend_glaze()
 	var coef := player._weapon_hit(w, res) * glaze_mult(spent, Balance.CALVING_PCT_PER_GLAZE) * Balance.aoe_share(hit.size())
 	if lone:
@@ -182,6 +201,7 @@ func _calving(w: Dictionary, res: Resource) -> void:
 		var mult := ice_fall_mult(hit.size() - 1, player._talent("frost_ice_fall")) if i == 0 else 1.0   # + Ice Fall
 		player.deal_damage(hit[i], coef * mult, CALVING_ID)
 	_spending = 0
+	_finisher_landed(hit[0], spent, was_frozen)   # Clean Break, Frost Heave
 	player._slash_effect(Abilities.color_of(CALVING_ID))
 	player._ring_effect(1.0 if lone else Balance.CALVING_RADIUS, Abilities.color_of(CALVING_ID), at)
 	player._ring_effect(0.6, Color(0.95, 0.97, 1.0), at)

@@ -24,26 +24,7 @@ func test_new_talents_sit_in_layout_slots() -> void:
 		assert_false(bool(t.get("placeholder", true)), "%s is a real talent" % key)
 		assert_eq(Array(t.get("values", [])).size(), int(t["max_rank"]), "%s has one value per rank" % key)
 
-func test_splintering_cold_links() -> void:
-	var src := Talents.id_for_key("frost_shard_proc")
-	assert_eq(src, "frost_r3c4")
-	# Ice Shards run down the middle: Splintering Cold -> Shardstorm -> Splintering.
-	var storm := Talents.id_for_key("frost_shardstorm")
-	assert_true(Talents.targets_of(src).has(storm), "links to Shardstorm")
-	assert_true(Talents.targets_of(storm).has(Talents.id_for_key("frost_splinter")), "Shardstorm links to Splintering")
-	assert_eq(storm, "frost_r6c4", "Shardstorm under Splintering Cold")
-	assert_eq(Talents.id_for_key("frost_splinter"), "frost_r7c4", "Splintering under Shardstorm")
-	assert_eq(Talents.id_for_key("frost_shield_armor"), "frost_r4c7", "Hardened Frost on the right edge, under Rime Ward")
-	assert_eq(Talents.id_for_key("frost_discipline"), "frost_r2c2", "Cold Discipline in row 2")
-	assert_eq(Talents.links_in_tree("frost").size(), 7, "seven lines drawn in the Frost book")
-
-func test_links_dont_skip_rows() -> void:
-	var PD = load("res://scripts/player_data.gd")
-	var ranks := {"frost_r1c3": 3, "frost_r2c2": 3, "frost_r3c4": 3,
-		Talents.id_for_key("frost_shardstorm"): 3, Talents.id_for_key("frost_splinter"): 1}
-	assert_true(PD.talents_valid(ranks), "maxed Splintering Cold opens Shardstorm, and maxed Shardstorm opens Splintering")
-	ranks[Talents.id_for_key("frost_piercing_cold")] = 1   # row 6, next to Shardstorm, not linked
-	assert_false(PD.talents_valid(ranks), "points in link-opened talents don't open their rows")
+## (Where each talent sits, and that the book has no links: tests/test_frost_tree.gd.)
 
 func test_talent_icons() -> void:
 	const TalentIcons = preload("res://scripts/talent_icons.gd")
@@ -52,8 +33,7 @@ func test_talent_icons() -> void:
 	for id in Talents.in_tree("frost"):
 		var placeholder := bool(Talents.get_talent(id).get("placeholder", true))
 		assert_eq(TalentIcons.has_icon(id), not placeholder, "%s: designed talents have an icon, empty ones don't" % id)
-	assert_eq(Talents.id_for_key("frost_glacial_heart"), "frost_r10c3", "Glacial Heart in the bottom row")
-	assert_eq(Talents.id_for_key("frost_deep_freeze"), "frost_r10c5", "Deep Freeze in the bottom row")
+	assert_eq(Talents.id_for_key("frost_deep_freeze"), "frost_r10c2", "Deep Freeze: Hard Winter's capstone")
 
 func test_capstones() -> void:
 	for key in ["frost_glacial_heart", "frost_deep_freeze"]:

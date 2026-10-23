@@ -86,15 +86,19 @@ func layers() -> int:
 	return layers_in(player.status.absorb_left(LAYERS_FX), _layer_size)
 
 func _cap() -> int:
-	return max_layers(player.frost_melee._has_rune(ICE_SHELF_RUNE))
+	return max_layers(player.frost_melee._has_rune(ICE_SHELF_RUNE)) + int(round(player._talent("frost_deep_ice")))   # + Deep Ice
 
-## The Layers' effect (Hardened Frost's armor while they last).
+## Seconds the Layers last (Lasting Ice: longer).
+func _layers_time() -> float:
+	return Balance.ICE_LAYERS_TIME + player._talent("frost_lasting_ice")
+
+## The Layers' effect: armor for each one (Hardened Frost, Rime Armor).
 func _fx() -> Resource:
-	var armor := player._talent("frost_shield_armor")
+	var armor := player._talent("frost_shield_armor") + player._talent("frost_rime_armor")
 	var cap := _cap()
 	if _layers_fx == null or int(_layers_fx.max_stacks) != cap \
 			or not is_equal_approx(float(_layers_fx.stat_modifiers.get("armor%", 0.0)), armor):
-		_layers_fx = StatusContainer.make_buff(LAYERS_FX, "Ice Layers", "armor%", armor, Balance.ICE_LAYERS_TIME, cap, LAYER_COLOR)
+		_layers_fx = StatusContainer.make_buff(LAYERS_FX, "Ice Layers", "armor%", armor, _layers_time(), cap, LAYER_COLOR)
 		if armor <= 0.0:
 			_layers_fx.stat_modifiers = {}
 		_layers_fx.tags = PackedStringArray(["Frost"])
@@ -111,11 +115,16 @@ func _gain_layers(more: int) -> void:
 	var total := absorb_after(left, _layer_size, more, _cap())
 	if total <= 0 or not player.status.apply(_fx(), player):
 		return
+	var before := layers_in(left, _layer_size)
 	player.status.set_absorb(LAYERS_FX, total)
 	_layers = layers_in(total, _layer_size)
 	player.status.set_stacks(LAYERS_FX, _layers)
-	player.status.set_remaining(LAYERS_FX, Balance.ICE_LAYERS_TIME)
+	player.status.set_remaining(LAYERS_FX, _layers_time())
 	player._ring_effect(0.9, LAYER_COLOR)
+	# Hoar Coat: each Layer gained heals me.
+	var coat := player._talent("frost_hoar_coat") * maxi(_layers - before, 0)
+	if coat > 0.0:
+		player._combat().heal(player, player, float(player.max_health) * coat / 100.0, "hoarcoat", true)
 
 ## Take every Layer off without them "breaking" (Shattering Slam spends them).
 ## Returns how many there were.
@@ -166,10 +175,29 @@ func _glacier_hit_taken(info: RefCounted) -> void:
 	if player.status.has(BULWARK_FX):
 		for i in lost:
 			_bulwark_shatter()
+	_layers_broke(foe, lost)
 	# Deep Strata (full rank): the last Layer breaking gives one straight back, now and then.
-	if now_have == 0 and t >= _strata_ready and player.frost_melee._capstone("frost_deep_strata"):
+	if layers() == 0 and t >= _strata_ready and player.frost_melee._capstone("frost_deep_strata"):
 		_strata_ready = t + Balance.DEEP_STRATA_COOLDOWN
 		_gain_layers(1)
+
+## `lost` of my Layers just broke under a hit from `foe`: Cold Retort hits back,
+## Cracking Ice shortens my Frost abilities' cooldowns, Reforming may bring them back.
+func _layers_broke(foe: Variant, lost: int) -> void:
+	var retort := player._talent("frost_cold_retort")
+	if retort > 0.0 and foe != null and is_instance_valid(foe) and foe.is_in_group("enemies") and foe.is_alive():
+		player.deal_damage(foe, retort * lost, FrostTalentsKit.COLD_RETORT_ID, true, "frost", PackedStringArray(["Ability", "Frost"]))
+	var crack := player._talent("frost_cracking_ice") * lost
+	if crack > 0.0:
+		for id in player.cooldowns.keys():
+			if Abilities.tags_of(str(id)).has("Frost") and Abilities.tags_of(str(id)).has("Ability"):
+				player.cooldowns[id] = maxf(float(player.cooldowns[id]) - crack, 0.0)
+	var back := 0
+	for i in lost:
+		if randf() * 100.0 < player._talent("frost_reforming"):
+			back += 1
+	if back > 0:
+		_gain_layers(back)
 
 ## Glacial Bulwark: a Layer that breaks shatters around me.
 func _bulwark_shatter() -> void:
@@ -258,6 +286,7 @@ func _shattering_slam(tgt: Node3D, w: Dictionary, res: Resource) -> void:
 	if spent > 0:
 		player.frost_melee._hit_with_threat(tgt, slam_layers_coef(spent, player._talent("frost_packed_ice")), SHATTER_SLAM_ID,
 			SHATTER_SLAM_THREAT, "frost", PackedStringArray(["Ability", "Frost", "Melee"]))   # + Packed Ice
+		player._gain("fury", player._talent("frost_spent_ice") * spent)   # Spent Ice
 		player._ring_effect(0.6 + 0.15 * spent, LAYER_COLOR, at)
 	if iced.is_empty():
 		return

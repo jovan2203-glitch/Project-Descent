@@ -1,8 +1,8 @@
 @tool
 extends McpTestSuite
 
-# The four Frost talents in the middle of rows 2, 5, 8 and 10:
-# Pinning Frost, Third Bite, Thick Hide, Hard Freeze.
+# Pinning Frost, Third Bite and Hard Freeze (once the middle of the old tree's short
+# rows; on the column-group tree since 2026-10-23), and Thick Hide (folded).
 
 const Talents = preload("res://scripts/talents.gd")
 const TalentIcons = preload("res://scripts/talent_icons.gd")
@@ -14,12 +14,12 @@ func suite_name() -> String:
 	return "frost_more_talents"
 
 const NEW := {
-	"frost_pinning_frost": ["frost_r2c5", "Pinning Frost", [13.0, 27.0, 40.0], "icepin"],     # off the middle since rows 2 and 5 were widened
-	"frost_third_bite": ["frost_r5c3", "Third Bite", [27.0, 53.0, 80.0], "froststrike"],
-	"frost_hard_freeze": ["frost_r10c4", "Hard Freeze", [0.5, 1.0, 1.5], ""],
+	"frost_pinning_frost": ["frost_r2c10", "Pinning Frost", [5.0, 10.0, 15.0], ""],   # any root of mine (was Icepin's)
+	"frost_third_bite": ["frost_r1c7", "Third Bite", [20.0, 40.0, 60.0], ""],         # any Frost ability that Freezes (was Winter's Bite's)
+	"frost_hard_freeze": ["frost_r8c2", "Hard Freeze", [0.5, 1.0, 1.5], ""],
 }
 
-func test_they_sit_in_the_middle_of_the_short_rows() -> void:
+func test_where_they_sit() -> void:
 	for key in NEW:
 		var id := Talents.id_for_key(key)
 		assert_eq(id, str(NEW[key][0]), "%s is where it should be" % key)
@@ -28,27 +28,15 @@ func test_they_sit_in_the_middle_of_the_short_rows() -> void:
 		assert_eq(t["values"], NEW[key][2])
 		assert_eq(int(t["max_rank"]), (NEW[key][2] as Array).size())
 		assert_eq(str(t.get("requires", "")), str(NEW[key][3]))
-		if key == "frost_hard_freeze":
-			assert_eq(Talents.col_of(id), 3, "the middle column")
 		assert_true(TalentIcons.has_icon(id), "%s has an icon" % key)
 		assert_eq(TextFillLeft.leftover(Talents.description(id)), "", "no placeholder left in its text")
 
 const TextFillLeft = preload("res://scripts/core/text_fill.gd")
 
-## Every Frost row is still mirror-symmetric around the middle, 2-4 talents wide.
-func test_frost_tree_stays_symmetrical() -> void:
-	var rows: Array = Talents.layout("frost")
-	assert_eq(rows.size(), Talents.ROWS)
-	var total := 0
-	for r in rows:
-		var cols: Array = r
-		total += cols.size()
-		assert_true(cols.size() >= Talents.MIN_PER_ROW and cols.size() <= Talents.MAX_PER_ROW)
-		for c in cols:
-			assert_true(cols.has(Talents.COLUMNS - 1 - int(c)), "column %d has its mirror" % int(c))
-	assert_eq(total, 52, "the melee DPS's and tank's talents, the 6 bow talents and Cold Comfort's 6 (every slot filled)")
+## Every slot of the Frost book holds a talent, and the removed ones stay gone.
+func test_frost_tree_is_full() -> void:
 	for id in Talents.in_tree("frost"):
-		assert_false(bool(Talents.get_talent(id)["placeholder"]) and not Talents.FOLDED_INTO_ABILITIES.has(id), "%s is designed (or was folded into its ability)" % id)
+		assert_false(bool(Talents.get_talent(id)["placeholder"]), "%s is designed" % id)
 	# Endless Winter, Winter's Clarity and Deep Chill were removed.
 	for gone in ["frost_blizzard_radius", "frost_mana_cost", "frost_slow"]:
 		assert_eq(Talents.id_for_key(gone), "", "%s is gone" % gone)

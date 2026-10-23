@@ -87,6 +87,7 @@ func _on_damage_dealt_frost(info: RefCounted) -> void:
 	player.frost_bow._rimefletch_shot(info)    # Rimefletch: my auto-shots carry an extra Frost hit
 	player.frost_more._rime_edge_on_hit(info)   # Rime Edge: my melee hits carry an extra Frost hit
 	player.frost_steel._hoar_blade_on_hit(info)   # Rune of the Hoar Blade: auto-attacks at full Glaze
+	player.frost_talents._on_hit(info)   # the Frost talents that answer a hit landing (Ice Needles, Shiver, the bow...)
 	if not is_instance_valid(tgt) or not tgt.is_alive():
 		return   # (that extra hit can be the killing blow)
 	if info.has_meta("permafrost_pct"):
@@ -213,13 +214,12 @@ func _free_blizzard(aim: Node3D) -> void:
 	if net:
 		net.send_fx("blizzard", at, null, "", {"r": bliz.radius})
 
-## Splintering: a shard that hit a Frozen / Rime Shelled enemy hits another one nearby.
+## Splintering: a shard that hit a Frozen / Rime Shelled enemy hits others nearby (one per rank).
 func _splinter(at: Vector3, from_id: int) -> void:
 	var others := player._enemies_near(at, Balance.SPLINTER_RANGE).filter(func(e): return e.get_instance_id() != from_id)
-	if others.is_empty():
-		return
-	player.deal_damage(others.pick_random(), player._talent("frost_splinter"), "splintering", true, "frost",
-		PackedStringArray(["Frost", "Spell"]))
+	others.shuffle()
+	for e in others.slice(0, int(round(player._talent("frost_splinter")))):
+		player.deal_damage(e, Balance.SPLINTER_DAMAGE, "splintering", true, "frost", PackedStringArray(["Frost", "Spell"]))
 
 ## Deep Freeze: Freeze the target (a 0-damage hit carrying Frozen, so it works in a party too).
 func _apply_freeze(tgt: Node, tags: PackedStringArray) -> void:
@@ -240,7 +240,6 @@ func _apply_freeze(tgt: Node, tags: PackedStringArray) -> void:
 
 const WINTERS_BITE_ID := "winters_bite"
 var _bite_fx: Resource
-var _bite_freezing := false   # the Winter's Bite being dealt right now is the one that Freezes
 
 # --- Pinning Frost: which enemies my Icepin has rooted ------------------------------------
 # Rooted is one effect for everything that roots, so the Icepin that caused it
@@ -294,9 +293,7 @@ func _winters_bite(tgt: Node, coef: float) -> void:
 	var info = player._combat().ability_hit_info(player, tgt, coef, "froststrike")
 	if freeze:
 		info.effects = [FrostMeleeKit.FROZEN_FX]   # instead of its Chill
-	_bite_freezing = freeze   # Third Bite reads this while the hit is worked out
 	player._combat().deal(info)
-	_bite_freezing = false
 	if not info.avoided():
 		player.frostfire_kit._on_hit_extra(tgt, at, "froststrike")
 		player.frost_steel._bite_landed(was_cold)   # Frost DPS: Glaze

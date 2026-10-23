@@ -137,7 +137,7 @@ func test_the_talents() -> void:
 		assert_ne(Talents.id_for_key(key), "", "%s is in the tree" % key)
 	assert_eq(Talents.get_talent(Talents.id_for_key("frost_wide_lattice"))["requires"], "frostlattice")
 	assert_eq(Talents.get_talent(Talents.id_for_key("frost_cold_spread"))["requires"], "breaktheice")
-	assert_true(Talents.targets_of(Talents.id_for_key("frost_deep_cracks")).has(Talents.id_for_key("frost_shard_spray")), "Deep Cracks opens Shard Spray")
+	assert_eq(Talents.group_of(Talents.id_for_key("frost_deep_cracks")), "Cold Comfort", "in Cold Comfort's columns (no links on the column-group tree)")
 
 # --- Frost Lattice: a hit on one linked shell is taken from all of them --------------------------
 

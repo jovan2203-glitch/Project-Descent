@@ -10,9 +10,6 @@ const PlayerDataScript = preload("res://scripts/player_data.gd")
 
 ## Every link, as talent keys: [from, to].
 const WANT := [
-	["frost_absorb", "frost_shield_armor"], ["frost_shield_armor", "frost_ice_floe"],
-	["frost_shard_proc", "frost_shardstorm"], ["frost_shardstorm", "frost_splinter"],
-	["frost_hoarfrost", "frost_hoarfrost_burst"], ["frost_cold_snap", "frost_instinct"], ["frost_deep_cracks", "frost_shard_spray"],
 	["lightning_long_reach", "lightning_closed_circuit"], ["lightning_closed_circuit", "lightning_earth_return"],
 	["lightning_earth_return", "lightning_tempo"], ["lightning_counter_charge", "lightning_second_stroke"],
 	["lightning_running_start", "lightning_whip_crack"], ["lightning_quick_fuse", "lightning_rod"],
@@ -34,12 +31,6 @@ const WANT := [
 ## Where every talent that changed slot landed in LINKS_MOVED: key -> id (a later
 ## move, Talents.FROST_MELEE_MOVED, can take it on from there).
 const MOVED_TO := {
-
-	"frost_chilled_dmg": "frost_r1c1", "frost_cold_draw": "frost_r1c5", "frost_absorb": "frost_r1c7",
-	"frost_shield_armor": "frost_r4c7", "frost_ice_floe": "frost_r8c7", "frost_hoarfrost_burst": "frost_r5c2",
-	"frost_clean_break": "frost_r7c2", "frost_shardstorm": "frost_r6c4", "frost_splinter": "frost_r7c4",
-	"frost_long_chill": "frost_r8c1", "frost_slow_threat": "frost_r9c2", "frost_slow_dr": "frost_r9c6",
-	"frost_instinct": "frost_r7c6",   # (then one column left: Talents.FROST_MELEE_MOVED)
 	"lightning_quick_fuse": "lightning_r6c4", "lightning_tight_coil": "lightning_r5c4",
 	"lightning_rod": "lightning_r7c4", "lightning_snap_shot": "lightning_r9c4",
 	"lightning_second_stroke": "lightning_r6c7", "lightning_tempo": "lightning_r8c5",
@@ -119,33 +110,31 @@ func test_no_line_runs_behind_another_talent() -> void:
 				assert_true(gap >= 5.0, "%s -> %s passes %.1f px from %s (cells %s)" % [Talents.get_talent(l[0])["name"],
 					Talents.get_talent(l[1])["name"], gap, Talents.get_talent(other)["name"], cell])
 
-## Maxing a talent opens the next one of its line long before its row does.
+## Maxing a talent opens the next one of its line before its row does: Arcane's
+## Sharp Edges -> Spare Seconds -> Spare Copy, down the left edge of rows 2-4.
 func test_a_linked_talent_opens_before_its_row() -> void:
 	var pd = PlayerDataScript.new()
-	pd.level = 1   # 5 points
-	pd.talents = {}
-	var ward := _id("frost_absorb")
-	var hard := _id("frost_shield_armor")
-	var floe := _id("frost_ice_floe")
-	assert_eq(Talents.tier_of(ward), 0)
-	assert_eq(Talents.tier_of(hard), 3)
-	assert_ne(pd.can_invest(hard), "", "row 4 is locked")
-	for i in 3:
-		assert_eq(pd.invest_talent(ward), "")
-	assert_false(pd.tier_unlocked(3), "row 4 is still locked")
-	assert_eq(pd.can_invest(hard), "", "a maxed Rime Ward opens Hardened Frost")
-	assert_ne(pd.can_invest(floe), "", "Ice Floe waits for Hardened Frost to be maxed")
-	assert_eq(pd.invest_talent(hard), "")
-	assert_eq(pd.invest_talent(hard), "")
-	assert_eq(pd.talent_points_left(), 0)
-	assert_ne(pd.can_refund(ward), "", "Hardened Frost hangs on the maxed Rime Ward")
-	assert_true(PlayerDataScript.talents_valid(pd.talents))
 	pd.level = 10
-	for i in 2:
-		assert_eq(pd.invest_talent(hard), "")
-	assert_eq(pd.can_invest(floe), "", "and the line goes on: Ice Floe, five rows early")
-	# Points in talents opened by a link never open the rows below them.
-	assert_false(pd.tier_unlocked(2), "row 3 still needs 3 points in row 2")
+	pd.learned_abilities.clear()
+	var first := ""
+	for id in Talents.in_row("arcane", 0):
+		if Talents.required_ability(id) == "" and Talents.max_rank(id) >= 3 and Talents.sources_of(id).is_empty():
+			first = id
+			break
+	var sharp := _id("arcane_sharp_edges")
+	var spare := _id("arcane_clockwork")
+	var copy := _id("arcane_spare_copy")
+	assert_eq([Talents.tier_of(sharp), Talents.tier_of(spare), Talents.tier_of(copy)], [1, 2, 3])
+	for i in 3:
+		assert_eq(pd.invest_talent(first), "")
+	assert_ne(pd.can_invest(copy), "", "row 4 is locked")
+	for i in 3:
+		assert_eq(pd.invest_talent(sharp), "")
+	for i in Talents.max_rank(spare):
+		assert_eq(pd.invest_talent(spare), "")
+	assert_false(pd.tier_unlocked(3), "row 4 is still locked (only %d points in row 3)" % Talents.max_rank(spare))
+	assert_eq(pd.can_invest(copy), "", "a maxed Spare Seconds opens Spare Copy")
+	assert_true(PlayerDataScript.talents_valid(pd.talents))
 	pd.free()
 
 ## The talents that changed slot (save version 5 -> 6) are where LINKS_MOVED says,
@@ -153,7 +142,7 @@ func test_a_linked_talent_opens_before_its_row() -> void:
 func test_moved_talents_and_old_saves() -> void:
 	const SaveSystemScript = preload("res://scripts/save_system.gd")
 	assert_true(SaveSystemScript.VERSION >= 6)
-	assert_eq(Talents.LINKS_MOVED.size(), MOVED_TO.size(), "(the Fire entries went with the column-group tree, which refunded every point)")
+	assert_eq(Talents.LINKS_MOVED.size(), MOVED_TO.size(), "(the Fire and Frost entries went with their column-group trees, which refunded every point)")
 	var news: Array = Talents.LINKS_MOVED.values()
 	for key in MOVED_TO:
 		var later := str(Talents.FROST_MELEE_MOVED.get(MOVED_TO[key], MOVED_TO[key]))
@@ -163,11 +152,10 @@ func test_moved_talents_and_old_saves() -> void:
 		assert_true(Talents.exists(str(Talents.LINKS_MOVED[old])), "%s is a slot of today's book" % Talents.LINKS_MOVED[old])
 		assert_eq(news.count(Talents.LINKS_MOVED[old]), 1, "no two talents land in %s" % Talents.LINKS_MOVED[old])
 		assert_false(Talents.MOVED.has(str(old)), "the every-load table never touches %s" % old)
-	# A v5 save: Hardened Frost 4, Splintering 1, Shardstorm 2, Tempo 3,
-	# and one talent that stayed put.
-	var old_save := {"frost_r7c4": 4, "frost_r7c6": 1, "frost_r7c2": 2, "lightning_r6c7": 3, "frost_r1c3": 3}
+	# A v5 save: Tempo 3 and one talent that stayed put (the Frost and Fire entries went
+	# with their column-group trees, which refunded every point).
+	var old_save := {"lightning_r6c7": 3, "lightning_r1c2": 3}
 	var now: Dictionary = Talents.rearranged(old_save, Talents.LINKS_MOVED, [])
-	assert_eq(now, {_id("frost_shield_armor"): 4, _id("frost_splinter"): 1, _id("frost_shardstorm"): 2,
-		_id("lightning_tempo"): 3, "frost_r1c3": 3})
+	assert_eq(now, {_id("lightning_tempo"): 3, "lightning_r1c2": 3})
 	for id in now:
 		assert_true(int(now[id]) <= Talents.max_rank(str(id)), "%s: no more ranks than the talent has" % id)

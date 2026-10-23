@@ -174,9 +174,9 @@ func test_new_talents() -> void:
 	const Talents = preload("res://scripts/talents.gd")
 	const TalentIcons = preload("res://scripts/talent_icons.gd")
 	var want := {
-		"frost_honed_rime": ["frost_r4c3", [0.05, 0.1, 0.15], "rimeedge"],
-		"frost_clean_break": ["frost_r7c2", [7.0, 13.0, 20.0], "icebreaker"],   # moved down two rows (Talents.LINKS_MOVED)
-		"frost_piercing_cold": ["frost_r6c3", [7.0, 13.0, 20.0], "coldspike"],
+		"frost_honed_rime": ["frost_r4c6", [0.05, 0.1, 0.15], "rimeedge"],
+		"frost_clean_break": ["frost_r4c7", [7.0, 13.0, 20.0], ""],   # every finisher now (the column-group tree)
+		"frost_piercing_cold": ["frost_r5c1", [7.0, 13.0, 20.0], "coldspike"],
 	}
 	for key in want:
 		var id := Talents.id_for_key(key)

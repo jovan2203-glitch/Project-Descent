@@ -467,6 +467,10 @@ func player_color(pd: Dictionary, kind: String) -> Color:
 const HIT_NAMES := {
 	"frozen_shatter": "Frozen Shatter",
 	"hoar_blade": "Hoar Blade",   # (Frost DPS: the Rune of the Hoar Blade)
+	"splittingarrow": "Splitting Arrow",   # (Frost archer talent: an arrow into a Frozen enemy splinters)
+	"coldretort": "Cold Retort",   # (Frost tank talent: a Layer breaking hits the attacker)
+	"hoarcoat": "Hoar Coat",   # (Frost tank talent: Layers gained heal you)
+	"rimetips": "Rime Tips",
 	"red_edge": "Red Edge",   # (Fire DPS: its extra Fire damage on auto-attacks)
 	"pitch_ignite": "Ignite",   # (Fire archer: Pitch bursting)
 	"hot_shafts": "Hot Shafts",   # (Fire archer talent: Fire damage on auto-shots)
@@ -588,7 +592,7 @@ static func spell_color(id: String) -> Color:
 			return Color(0.75, 0.72, 0.66)
 		"burning", "afterglow", "slag_mending", "slag_shatter", "smoldering_debris", "blowback", "red_edge", "pitch_ignite", "hot_shafts", "overheat":
 			return Abilities.color_of("fireball")
-		"chilled", "frozen", "frozen_shatter", "splintering", "permafrost", "deepfreeze", "icefloe", "rimeshards", "runoff", "splinterheal", "hoar_blade":
+		"chilled", "frozen", "frozen_shatter", "splintering", "permafrost", "deepfreeze", "icefloe", "rimeshards", "runoff", "splinterheal", "hoar_blade", "splittingarrow", "coldretort", "hoarcoat", "rimetips":
 			return Abilities.color_of("frostbolt")
 		"overload", "earth_return", "parting_spark", "lightning_rod", "spillover":
 			return Abilities.color_of("lightningbolt")

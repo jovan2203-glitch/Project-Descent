@@ -31,18 +31,25 @@ var _my_slows := {}         # "enemy id|effect key" -> expires
 var _slowed_at := {}        # enemy instance id -> when I last slowed it
 var _glacial_haste := 0.0   # Glacial Heart capstone: Haste from my slows on enemies
 var _cold_snap := 0.0       # Cold Snap: seconds off the next GCD
+var _my_frozen := {}        # enemy instance ids I have Frozen (to see them thaw: Thaw Strike)
+var _cold_count := 0        # enemies I have Chilled or Frozen (Cold Front)
 
 func _scan_my_slows() -> void:
 	# Nothing reacts to my slows: skip the scan.
 	if player._talent("frost_cold_snap") <= 0.0 and player._talent("frost_slow_threat") <= 0.0 \
 			and player._talent("frost_slow_dr") <= 0.0 and not _capstone("frost_glacial_heart") \
-			and player._talent("frost_instinct") <= 0.0 and not _has_rune("frozen_aegis"):
+			and player._talent("frost_instinct") <= 0.0 and not _has_rune("frozen_aegis") \
+			and not player.frost_talents.wants_slow_scan():
 		_my_slows.clear()
 		_slowed_at.clear()
+		_my_frozen.clear()
+		_cold_count = 0
 		_glacial_haste = 0.0
 		return
 	var now := Time.get_ticks_msec() / 1000.0
 	var seen := {}
+	var frozen := {}
+	var cold := {}
 	var count := 0
 	for e in player.get_tree().get_nodes_in_group("enemies"):
 		if not e.is_alive():
@@ -64,10 +71,20 @@ func _scan_my_slows() -> void:
 			count += 1
 			var key := "%d|%s" % [eid, str(k)]
 			seen[key] = expires
+			if str(res.id) == "frozen":
+				frozen[eid] = true
+			if str(res.id) == "frozen" or str(res.id) == "chilled":
+				cold[eid] = true
 			var before: Variant = _my_slows.get(key)
 			if before == null or expires > float(before) + 0.25:
 				_on_slow_applied(e, str(res.id))
 	_my_slows = seen
+	for eid in _my_frozen:
+		var foe: Object = instance_from_id(eid)
+		if not frozen.has(eid) and is_instance_valid(foe) and foe.is_alive():
+			player.frost_talents._on_thaw()   # Thaw Strike: a Freeze of mine ended (not by the enemy dying)
+	_my_frozen = frozen
+	_cold_count = cold.size()
 	_glacial_haste = count * Balance.GLACIAL_HEART_HASTE if _capstone("frost_glacial_heart") else 0.0
 	for id in _slowed_at.keys():
 		if now - float(_slowed_at[id]) > Balance.SLOW_MEMORY:
@@ -77,6 +94,7 @@ func _on_slow_applied(enemy: Node, effect_id: String) -> void:
 	_slowed_at[enemy.get_instance_id()] = Time.get_ticks_msec() / 1000.0
 	if effect_id != "frozen":
 		return
+	player.frost_talents._on_freeze(enemy)   # Cold Well, Ice Hunger
 	var cs := player._talent("frost_cold_snap")
 	if cs > 0.0:
 		_cold_snap = maxf(_cold_snap, cs)
@@ -94,6 +112,10 @@ func _slowed_recently(enemy: Variant) -> bool:   # untyped: may be a freed enemy
 		return false
 	var at: Variant = _slowed_at.get(enemy.get_instance_id())
 	return at != null and Time.get_ticks_msec() / 1000.0 - float(at) <= Balance.SLOW_MEMORY
+
+## How many enemies I have Chilled or Frozen right now (Cold Front).
+func cold_count() -> int:
+	return _cold_count
 
 ## Glacial Heart: slows on me are this much as strong (StatusContainer asks).
 func slow_taken_mult() -> float:
