@@ -45,7 +45,9 @@ func _spend_all_energy() -> float:
 	player.resources["energy"] = energy_left_after_all(have, surge_active())
 	player.lightning_melee._redline()   # (spending all of it is spending Energy too)
 	player.bottled_kit._storm_cycle_spent(have - float(player.resources["energy"]))   # Storm Cycle counts what really left the bar
-	return have
+	player.lightning_talents.energy_spent(have - float(player.resources["energy"]))   # Built Charge, Spinning Up, Draw Down
+	player.lightning_talents.spent_all()   # Afterflow
+	return LightningTalentsKit.deep_draw(have, player._talent("lightning_deep_draw"))   # Deep Draw: it counts as more
 
 ## Damage coefficient of a Discharge that spent `energy`.
 static func discharge_coef(energy: float) -> float:
@@ -108,15 +110,15 @@ func _launch_ball_lightning() -> void:
 	var at := Vector3(player.global_position.x, Combat.feet_y(player) + BALL_LIGHTNING.FLOAT_HEIGHT, player.global_position.z) + _ball_dir
 	var tick := maxf(Balance.BALL_LIGHTNING_TICK / player.haste_mult(), 0.1)   # zaps come faster with Haste
 	BALL_LIGHTNING.spawn(player.get_tree().current_scene, at, _ball_dir, player, float(res.damage), float(res.radius),
-		Balance.BALL_LIGHTNING_TIME, tick, Balance.BALL_LIGHTNING_SPEED)
+		Balance.BALL_LIGHTNING_TIME + player.lightning_talents.lingering(), tick, Balance.BALL_LIGHTNING_SPEED)   # (+ Lingering Storm)
 	# The party sees the orb; its damage and my Energy come from here.
 	player._net_fx(BALL_LIGHTNING_ID, at, null, {"dir": _ball_dir, "r": float(res.radius),
-		"time": Balance.BALL_LIGHTNING_TIME, "tick": tick, "speed": Balance.BALL_LIGHTNING_SPEED})
+		"time": Balance.BALL_LIGHTNING_TIME + player.lightning_talents.lingering(), "tick": tick, "speed": Balance.BALL_LIGHTNING_SPEED})
 
 ## My Ball Lightning zapped `zaps` enemies: each zap gives Energy back.
 func ball_lightning_zapped(zaps: int) -> void:
 	if not player.is_dead():
-		player._gain("energy", ball_zap_energy(player._talent("lightning_tight_coil")) * maxi(zaps, 0))   # + Tight Coil
+		player._gain("energy", player.lightning_talents.spell_energy(ball_zap_energy(player._talent("lightning_tight_coil")) * maxi(zaps, 0)))   # + Tight Coil, Feedback
 
 ## Energy one zap of Ball Lightning gives, with Tight Coil adding `more`.
 static func ball_zap_energy(more: float) -> float:

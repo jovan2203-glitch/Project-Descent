@@ -20,19 +20,18 @@ const PlayerDataScript = preload("res://scripts/player_data.gd")
 
 # [key, name, ranks, the ability it needs, slot, values]
 const TALENTS := [
-	["arcane_sharp_edges", "Sharp Edges", 3, "", "arcane_r2c1", [10.0, 20.0, 30.0]],
-	["arcane_clockwork", "Spare Seconds", 2, "", "arcane_r3c1", [0.25, 0.5]],
-	["arcane_spare_copy", "Spare Copy", 2, "", "arcane_r4c1", [10.0, 20.0]],
-	["arcane_second_self", "Second Self", 3, "doubleup", "arcane_r5c2", [10.0, 20.0, 30.0]],
-	["arcane_wide_rings", "Wide Rings", 3, "ripple", "arcane_r7c1", [0.7, 1.3, 2.0]],
-	["arcane_on_the_beat", "On the Beat", 3, "missedbeat", "arcane_r8c2", [10.0, 20.0, 30.0]],
-	["arcane_head_count", "Head Count", 3, "fullset", "arcane_r9c1", [1.5, 2.5, 4.0]],
-	["arcane_light_feet", "Light Feet", 3, "", "arcane_r2c7", [1.0, 2.0, 3.0]],
-	["arcane_empty_room", "Empty Room", 3, "", "arcane_r3c7", [4.0, 8.0, 12.0]],
-	["arcane_bent_light", "Bent Light", 2, "", "arcane_r4c7", [1.0, 2.0]],
-	["arcane_understudy", "Understudy", 3, "standin", "arcane_r5c6", [1.5, 2.5, 4.0]],
-	["arcane_loud_exit", "Loud Exit", 1, "tradeplaces", "arcane_r7c7", [1.0]],
-	["arcane_good_likeness", "Good Likeness", 3, "decoy", "arcane_r8c6", [0.7, 1.3, 2.0]],
+	["arcane_sharp_edges", "Sharp Edges", 3, "", "arcane_r1c5", [10.0, 20.0, 30.0]],
+	["arcane_clockwork", "Spare Seconds", 2, "", "arcane_r1c6", [0.25, 0.5]],
+	["arcane_spare_copy", "Spare Copy", 2, "", "arcane_r9c4", [10.0, 20.0]],
+	["arcane_second_self", "Second Self", 3, "", "arcane_r2c4", [10.0, 20.0, 30.0]],
+	["arcane_wide_rings", "Wide Rings", 3, "ripple", "arcane_r4c4", [0.7, 1.3, 2.0]],
+	["arcane_on_the_beat", "On the Beat", 3, "missedbeat", "arcane_r6c5", [10.0, 20.0, 30.0]],
+	["arcane_head_count", "Head Count", 3, "", "arcane_r2c6", [0.5, 1.0, 1.5]],
+	["arcane_light_feet", "Light Feet", 3, "", "arcane_r1c4", [1.0, 2.0, 3.0]],
+	["arcane_empty_room", "Empty Room", 3, "", "arcane_r3c6", [4.0, 8.0, 12.0]],
+	["arcane_bent_light", "Bent Light", 2, "", "arcane_r4c6", [1.0, 2.0]],
+	["arcane_understudy", "Understudy", 3, "standin", "arcane_r7c5", [1.5, 2.5, 4.0]],
+	["arcane_good_likeness", "Good Likeness", 3, "decoy", "arcane_r8c5", [0.7, 1.3, 2.0]],
 ]
 const CAPSTONES := ["arcane_sharp_edges", "arcane_wide_rings", "arcane_on_the_beat", "arcane_good_likeness"]
 const SHATTER_TAGS := ["Arcane", "Ability", "AoE"]
@@ -71,7 +70,7 @@ func _has_method(path: String, method: String) -> bool:
 # --- The tree ---------------------------------------------------------------------------
 
 func test_they_are_in_the_tree() -> void:
-	assert_eq(TALENTS.size(), 13)
+	assert_eq(TALENTS.size(), 12)   # (Loud Exit was folded into Trade Places)
 	for row in TALENTS:
 		var id := _id(str(row[0]))
 		assert_eq(id, str(row[4]), "%s sits in its slot" % row[1])
@@ -91,34 +90,25 @@ func test_they_are_in_the_tree() -> void:
 		assert_eq(_typed_number(str(t.get("desc", ""))), "", "%s: no typed numbers" % row[1])
 		assert_eq(_typed_number(str(t.get("capstone", ""))), "", "%s: no typed numbers in the capstone" % row[1])
 
-## The tank runs down both edges; rows 2, 3 and 9 got their edge slots for it.
+## The tank's talents are on Hall of Mirrors' ribbon (the hand mirror), above its capstone.
 func test_where_they_sit() -> void:
-	var layout: Array = Talents.layout("arcane")
-	assert_eq(layout[1], [0, 1, 3, 5, 6])
-	assert_eq(layout[2], [0, 2, 4, 6])
-	assert_eq(layout[8], [0, 2, 4, 6])
 	for row in TALENTS:
-		var col := Talents.col_of(str(row[4]))
-		assert_true(col <= 1 or col >= 5, "%s is on an edge of the book" % row[1])
+		assert_eq(Talents.group_of(str(row[4])), "Hall of Mirrors", "%s is on the tank's ribbon" % row[1])
 		assert_true(Talents.tier_of(str(row[4])) < Talents.ROWS - 1, "%s is above the bottom row" % row[1])
-	# The caster's talents kept their slots.
-	for pair in [["arcane_seventh_sigil", "arcane_r1c3"], ["arcane_etched_darts", "arcane_r2c2"],
-			["arcane_polished_glass", "arcane_r3c3"], ["arcane_aftershock", "arcane_r4c4"]]:
-		assert_eq(_id(str(pair[0])), str(pair[1]))
-	# The last edge slot went to Crowd of One's talent.
-	assert_eq(_id("arcane_full_crowd"), "arcane_r9c7")
+	assert_eq(Talents.group_of(_id("arcane_full_crowd")), "Hall of Mirrors")
+	assert_eq(Talents.group_of(_id("arcane_silvered")), "Hall of Mirrors", "its capstone")
 	for id in Talents.in_tree("arcane"):
 		assert_eq(TalentIcons.has_icon(id), not bool(Talents.get_talent(id).get("placeholder", true)),
 			"%s: designed talents have an icon, empty ones don't" % id)
 
 func test_links() -> void:
-	for pair in [["arcane_sharp_edges", "arcane_clockwork"], ["arcane_clockwork", "arcane_spare_copy"],
-			["arcane_light_feet", "arcane_empty_room"], ["arcane_empty_room", "arcane_bent_light"]]:
+	for pair in [["arcane_sharp_edges", "arcane_glass_dust"], ["arcane_quick_answer", "arcane_spare_copy"],
+			["arcane_last_copy", "arcane_crowded_room"]]:
 		var from := _id(str(pair[0]))
 		var to := _id(str(pair[1]))
 		assert_true(Talents.targets_of(from).has(to), "%s -> %s" % pair)
 		assert_true(Talents.tier_of(from) < Talents.tier_of(to), "%s is the higher one" % pair[0])
-		assert_eq(Talents.col_of(from), Talents.col_of(to), "straight down the edge")
+		assert_eq(Talents.col_of(from), Talents.col_of(to), "straight down the ribbon")
 
 # --- Left edge: making and shattering Reflections ------------------------------------------
 
@@ -153,11 +143,11 @@ func test_spare_copy() -> void:
 func test_second_self() -> void:
 	assert_eq(Balance.SECOND_SELF_REFLECTIONS, 2)
 	var p := _player()
-	assert_eq(ArcaneTankKit.double_up_reflections(0.0, 0.0), 1)
-	assert_eq(ArcaneTankKit.double_up_reflections(30.0, 29.0), 2)
-	assert_eq(ArcaneTankKit.double_up_reflections(30.0, 30.0), 1)
-	assert_eq(ArcaneTankKit.double_up_reflections(15.0, 14.0), 2)
-	assert_contains(_desc("arcane_second_self"), "10 / 20 / 30% chance to create 2 Reflections")
+	assert_eq(ArcaneTankKit.second_self_more(0.0, 0.0), 0)
+	assert_eq(ArcaneTankKit.second_self_more(30.0, 29.0), 1, "one more")
+	assert_eq(ArcaneTankKit.second_self_more(30.0, 30.0), 0)
+	assert_eq(ArcaneTankKit.second_self_more(15.0, 14.0), 1)
+	assert_contains(_desc("arcane_second_self"), "When you create a Reflection, there is a 10 / 20 / 30% chance to create one more")
 
 func test_wide_rings() -> void:
 	assert_eq(Balance.WIDE_RINGS_ENEMIES, 2)
@@ -189,7 +179,7 @@ func test_head_count() -> void:
 	assert_eq(ArcaneTankKit.head_count_heal(1000, 0.0, 4), 0)
 	assert_eq(Details.spell_name("head_count"), "Head Count", "its own line on the meter")
 	assert_true(_has_method("res://scripts/player.gd", "_full_set"))
-	assert_contains(_desc("arcane_head_count"), "1.5 / 2.5 / 4% of your maximum health")
+	assert_contains(_desc("arcane_head_count"), "Each Reflection you create heals you for 0.5 / 1 / 1.5% of your maximum health")
 
 # --- Right edge: staying alive ------------------------------------------------------------
 
@@ -243,12 +233,12 @@ func test_understudy() -> void:
 	assert_contains(_desc("arcane_understudy"), "1.5 / 2.5 / 4 sec off its cooldown")
 	assert_contains(_desc("arcane_understudy"), Abilities.ability_name("standin"))
 
-func test_loud_exit() -> void:
-	assert_contains(_desc("arcane_loud_exit"), Abilities.ability_name("tradeplaces"))
-	assert_contains(_desc("arcane_loud_exit"), "shatter")
+## Loud Exit was folded into Trade Places: the Reflections it gives up always shatter.
+func test_loud_exit_folded_into_trade_places() -> void:
+	assert_eq(_id("arcane_loud_exit"), "", "the talent is gone")
+	assert_contains(str(Abilities.get_resource("tradeplaces").description), "each one shatters")
+	assert_true(TalentIcons.SPARE.has("arcane_loud_exit"), "its icon is kept for a new talent")
 	assert_true(_has_method("res://scripts/player.gd", "_shatter_burst"), "what a shatter does, without using one up")
-	# Trade Places' own text no longer says the opposite.
-	assert_false(str(Abilities.get_resource("tradeplaces").description).contains("do not shatter"))
 
 func test_good_likeness() -> void:
 	var p := _player()

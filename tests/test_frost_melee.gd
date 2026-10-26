@@ -183,11 +183,11 @@ const TALENTS := [
 ## Where the melee talents sit: Frostbitten Steel's and Glacier Wall's column groups
 ## (the whole tree: tests/test_frost_tree.gd).
 const SLOTS := {
-	"frost_cold_fury": "frost_r1c9", "frost_cold_sweep": "frost_r3c6", "frost_packed_ice": "frost_r1c8",
-	"frost_biting_hold": "frost_r6c6", "frost_deep_tremor": "frost_r3c8", "frost_long_glaze": "frost_r2c6",
-	"frost_turned_backs": "frost_r5c8", "frost_ice_fall": "frost_r5c6", "frost_regelation": "frost_r6c8",
-	"frost_long_dark": "frost_r8c6", "frost_old_ice": "frost_r8c8", "frost_glinting_rime": "frost_r10c6",
-	"frost_deep_strata": "frost_r10c8",
+	"frost_cold_fury": "frost_r2c12", "frost_cold_sweep": "frost_r3c8", "frost_packed_ice": "frost_r1c12",
+	"frost_biting_hold": "frost_r6c8", "frost_deep_tremor": "frost_r4c11", "frost_long_glaze": "frost_r2c9",
+	"frost_turned_backs": "frost_r6c11", "frost_ice_fall": "frost_r5c8", "frost_regelation": "frost_r6c13",
+	"frost_long_dark": "frost_r8c9", "frost_old_ice": "frost_r8c12", "frost_glinting_rime": "frost_r10c9",
+	"frost_deep_strata": "frost_r10c12",
 }
 
 func test_talents() -> void:

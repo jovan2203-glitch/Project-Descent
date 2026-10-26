@@ -41,8 +41,8 @@ func test_smoldering_focus_bonus_is_split_evenly() -> void:
 
 func test_tempered_flame_is_a_top_row_fire_talent() -> void:
 	var id := Talents.id_for_key("fire_tempered_flame")
-	assert_eq(id, "fire_r1c2", "the top of Steady Flame's group")
-	assert_eq(Talents.tier_of(id), 0, "top row")
+	assert_eq(id, "fire_r2c1", "under Stoked Breath, at the top of Steady Flame's flame")
+	assert_eq(Talents.tier_of(id), 1, "second row")
 	assert_eq(Talents.max_rank(id), 3, "0 / 3")
 	assert_eq(Talents.value_at(id, 1), 40.0)
 	assert_eq(Talents.value_at(id, 3), 60.0)
@@ -53,8 +53,8 @@ func test_tempered_flame_is_a_top_row_fire_talent() -> void:
 
 ## Four of the open talents (no ability needed), at the top of the open column.
 func test_generic_fire_talents() -> void:
-	var slots := {"fire_flash_point": "fire_r1c5", "fire_forge_hardened": "fire_r2c5",
-		"fire_lingering_embers": "fire_r3c5", "fire_controlled_burn": "fire_r4c5"}
+	var slots := {"fire_flash_point": "fire_r1c7", "fire_forge_hardened": "fire_r2c7",
+		"fire_lingering_embers": "fire_r3c7", "fire_controlled_burn": "fire_r4c7"}
 	for key in slots:
 		var id := Talents.id_for_key(str(key))
 		assert_eq(id, str(slots[key]), "%s has its slot" % key)
@@ -70,7 +70,7 @@ func test_generic_fire_talents() -> void:
 	# Cool Under Fire is gone (a defensive in a DPS tree), and nothing is moved any
 	# more: the column-group tree refunded every point (TREE_VERSION).
 	assert_eq(Talents.id_for_key("fire_cool_under_fire"), "")
-	assert_eq(Talents.current_id("fire_r2c4"), "fire_r2c4", "Deep Brand's slot keeps its own points")
+	assert_eq(Talents.current_id("fire_r2c5"), "fire_r2c5", "Deep Brand's slot keeps its own points")
 
 func test_every_designed_fire_talent_has_an_icon() -> void:
 	for id in Talents.in_tree("fire"):
@@ -148,7 +148,7 @@ func test_concentrated_fire_stacks() -> void:
 
 func test_afterburn_sits_right_of_smoldering_focus() -> void:
 	var id := Talents.id_for_key("fire_afterburn")
-	assert_eq(id, "fire_r3c2", "Steady Flame's group, beside Banked Coals")
+	assert_eq(id, "fire_r4c3", "Steady Flame's group, beside Banked Coals")
 	assert_eq(Talents.max_rank(id), 3, "0 / 3 (was 5): the same top")
 	assert_true(is_equal_approx(Talents.value_at(id, 1), 0.17))
 	assert_true(is_equal_approx(Talents.value_at(id, 3), 0.5), "rank 3 = (100 - crit chance) x 0.5")
@@ -226,9 +226,9 @@ func test_slag_skin() -> void:
 
 func test_banked_coals() -> void:
 	var id := Talents.id_for_key("fire_banked_coals")
-	assert_eq(id, "fire_r3c1", "Steady Flame's group")
+	assert_eq(id, "fire_r4c1", "Steady Flame's group")
 	var row := Talents.in_row("fire", Talents.ROWS - 1)
-	assert_eq(row, ["fire_r10c2", "fire_r10c4", "fire_r10c6", "fire_r10c8"] as Array[String], "the bottom row: one capstone per spec")
+	assert_eq(row, ["fire_r10c2", "fire_r10c5", "fire_r10c9", "fire_r10c12"] as Array[String], "the bottom row: one capstone per spec")
 	assert_eq(row[0], Talents.id_for_key("fire_smoldering_focus"))
 	assert_eq(Talents.max_rank(id), 2)
 	assert_eq(Talents.value_at(id, 1), 25.0)
@@ -367,7 +367,7 @@ func test_fire_runes() -> void:
 
 func test_scattered_embers() -> void:
 	var id := Talents.id_for_key("fire_volley_targets")
-	assert_eq(id, "fire_r4c2", "beside the Ember Volley choice talent")
+	assert_eq(id, "fire_r5c2", "beside the Ember Volley choice talent")
 	assert_eq(Talents.max_rank(id), 2, "0 / 2")
 	assert_eq(Talents.value_at(id, 1), 1.0, "1 more target")
 	assert_eq(Talents.value_at(id, 2), 2.0, "2 more targets")

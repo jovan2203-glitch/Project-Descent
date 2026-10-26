@@ -37,6 +37,8 @@ var fire_caster: FireCasterKit = _kit(FireCasterKit) as FireCasterKit
 var fire_fury: FireFuryKit = _kit(FireFuryKit) as FireFuryKit
 var fire_talents: FireTalentsKit = _kit(FireTalentsKit) as FireTalentsKit
 var frost_talents: FrostTalentsKit = _kit(FrostTalentsKit) as FrostTalentsKit
+var lightning_talents: LightningTalentsKit = _kit(LightningTalentsKit) as LightningTalentsKit
+var arcane_talents: ArcaneTalentsKit = _kit(ArcaneTalentsKit) as ArcaneTalentsKit
 var fire_tank: FireTankKit = _kit(FireTankKit) as FireTankKit
 var fire_melee: FireMeleeKit = _kit(FireMeleeKit) as FireMeleeKit
 var fire_bow: FireBowKit = _kit(FireBowKit) as FireBowKit
@@ -166,6 +168,8 @@ func crit_hit_bonus(info: RefCounted) -> Array:
 	out.append_array(martial_talents.crit_hit_bonus(info))   # Keen Strikes
 	out.append_array(fire_talents.crit_hit_bonus(info))   # Cold Steel
 	out.append_array(frost_talents.crit_hit_bonus(info))   # Cold Eye
+	out.append_array(lightning_talents.crit_hit_bonus(info))   # Charged Steel
+	out.append_array(arcane_talents.crit_hit_bonus(info))   # Sharp Mind
 	return out
 
 # Forwards to DecayKit (called from other scripts).
@@ -370,6 +374,7 @@ var cast_point := Vector3.ZERO
 var aoe_indicator: MeshInstance3D
 var target_ring: MeshInstance3D
 const Combat = preload("res://scripts/combat_utils.gd")
+const CastFX = preload("res://scripts/core/cast_fx.gd")
 
 @export var max_health: int = 10
 var health: int = max_health
@@ -618,6 +623,11 @@ func _ready() -> void:
 	_bus().damage_modify.connect(rogue._on_damage_modify)   # ... Flow and Whetstone
 	_bus().ability_used.connect(rogue._on_ability_used)   # ... acting ends Play Dead
 	_bus().damage_dealt.connect(sharp._on_damage_dealt_sharp)   # Martial archer: hits bring other shots back sooner
+	# Cast / release / heal flair for every ability (only pictures: CastFX).
+	_bus().cast_started.connect(_cast_fx_start)
+	_bus().cast_finished.connect(_cast_fx_release)
+	_bus().cast_interrupted.connect(func(_id): _cast_fx_end())
+	_bus().heal_done.connect(_heal_fx)
 	_bus().damage_modify.connect(sharp._on_damage_modify)   # ... and the Streak
 	_bus().ability_used.connect(frost_runes._cold_precision_on_use)
 	_bus().damage_dealt.connect(frost_runes._on_damage_dealt_frost)
@@ -633,6 +643,12 @@ func _ready() -> void:
 	_bus().dungeon_cleared.connect(func(_summary): pacts_kit._pact_cleared = true)   # Pact of the Restless: nothing left to fight
 	_bus().cast_finished.connect(arcane_caster._on_cast_for_arcane)
 	_bus().cast_finished.connect(fire_lightning_talents._change_of_pace)
+	_bus().cast_finished.connect(lightning_talents._on_cast_finished)   # Charged Air
+	_bus().ability_used.connect(lightning_talents._on_ability_used)   # Cut the Line
+	_bus().damage_dealt.connect(lightning_talents._on_damage_dealt)   # Snap Cast
+	_bus().cast_finished.connect(arcane_talents._on_cast_finished)   # Second Hand
+	_bus().ability_used.connect(arcane_talents._on_ability_used)   # On the Dot
+	_bus().damage_dealt.connect(arcane_talents._on_damage_dealt)   # Glass Dust, Twin Blades
 	_bus().cast_started.connect(overload_kit._on_cast_for_static)
 	_bus().cast_finished.connect(overload_kit._on_cast_for_static)
 	_bus().damage_dealt.connect(fire_tank._slag_skin_retaliate)
@@ -892,6 +908,8 @@ func use_ability(id: String) -> void:
 	# An instant ability went off (casts start the GCD in _begin_spell).
 	if _acted and on_gcd(id) and gcd_left <= 0.0:
 		_start_gcd()
+		gcd_total = lightning_talents.gcd_for(id, gcd_total)   # Short Fuse: Lightning weapon abilities
+		gcd_left = gcd_total
 		if id == StringsKit.STRING_ID:   # String: a short global cooldown, so several can be tied quickly
 			gcd_total = StringsKit.string_gcd(gcd_total)
 			gcd_left = gcd_total
@@ -1096,6 +1114,12 @@ func get_stat(stat: String) -> float:
 		if stat == Stats.SPELL_CRIT:
 			return float(d[1])
 		return v + float(d[2]) * Balance.DULL_EDGE_POWER_PER_PCT * _flat_unit()
+	if stat == Stats.PARRY:
+		v += lightning_talents.back_to_the_wall()   # Back to the Wall: more Parry at low health
+	if stat == Stats.DODGE:
+		v += arcane_talents.dodge_bonus()   # Last Copy
+	if stat == Stats.ARMOR:
+		v *= arcane_talents.armor_mult()   # Glass Armor
 	return v
 
 ## Which power stat my excess crit becomes: Attack Power with the Rune of the
@@ -1367,6 +1391,7 @@ func resource_cost(id: String, with_storm_cycle: bool = true) -> float:
 		cost *= 1.0 - _talent("holy_clear_mind") / 100.0   # Clear Mind (both Holy healers)
 	if FrostTalentsKit.is_frost_care(id):
 		cost *= 1.0 - _talent("frost_cold_hands") / 100.0   # Cold Hands
+	cost *= arcane_talents.mana_mult(id)   # Thrifty Mind
 	return cost
 
 ## One mana "point" at your level (10% of your base mana).
@@ -1389,6 +1414,7 @@ func _pay(id: String) -> bool:
 		if res == "energy" and cost > 0.0:
 			lightning_melee._redline()   # Redline: Energy spent during Overdrive makes it last longer
 			bottled_kit._storm_cycle_spent(cost)   # Storm Cycle counts what I spend
+			lightning_talents.energy_spent(cost, id)   # Afterspark, Built Charge, Spinning Up, Draw Down
 		if HoundsKit.rouses(res, cost):
 			hounds._rouse_hounds()   # Shadow melee: spending Fury Rouses my Hounds
 	return true
@@ -1410,7 +1436,7 @@ func _tick_resources(delta: float) -> void:
 	if is_dead():
 		return
 	_gain("mana", MANA_REGEN * mana_unit() * delta)
-	_gain("energy", LightningMeleeKit.energy_regen(ENERGY_REGEN, _talent("lightning_quick_charge")) * delta)   # Quick Charge
+	_gain("energy", LightningMeleeKit.energy_regen(ENERGY_REGEN, lightning_talents.regen_pct()) * delta)   # Quick Charge, Afterflow
 	if not casting:   # (no Fury is lost while casting or channeling: the Fire caster's)
 		_gain("fury", -HoundsKit.fury_decay(FURY_DECAY, _talent("shadow_thick_blood")) * delta
 			* maxf(1.0 - _talent("fire_hold_the_heat") / 100.0, 0.0))   # Thick Blood, Hold the Heat
@@ -1568,10 +1594,11 @@ func _tick_cooldowns(delta: float) -> void:
 	for id in cooldowns.keys():
 		var step := delta if plain else delta * ArcaneCasterKit.arcane_cooldown_rate(arcane_rate, arcane_caster._is_arcane_spell(str(id)),
 			arcane_caster._in_arcane_book(str(id)), clock)
-		cooldowns[id] = float(cooldowns[id]) - step * pact_rate * fire_melee.cooldown_rate(str(id))   # (Steady Arm)
+		cooldowns[id] = float(cooldowns[id]) - step * pact_rate * arcane_talents.cooldown_rate(str(id)) * fire_melee.cooldown_rate(str(id))   # (Steady Arm) and Spare Moment
 		if cooldowns[id] <= 0.0:
 			cooldowns.erase(id)
 	arcane_open._tick_borrowed_time()   # Borrowed Time: a long cooldown just came back?
+	arcane_talents._tick_cooldowns()   # On the Dot, Turning Gears: an Arcane spell just came back?
 	ice_shards_kit._tick_ice_shards(delta)
 	fire_caster._tick_vent_charges(delta)
 
@@ -1617,6 +1644,8 @@ func _on_damage_modify(info: RefCounted) -> void:
 			info.add_bonus(-dr, "Numbing Cold")
 		fire_talents._fire_talents_incoming(info)   # Heat Shimmer
 		frost_talents._frost_talents_incoming(info)   # Steady Footing
+		lightning_talents._lightning_talents_incoming(info)   # Charged Guard, Charged Shell, Hard Stare
+		arcane_talents._arcane_talents_incoming(info)   # Glass Dust
 		# Heat Sink: part of every hit is stored instead (see _on_hit_taken).
 		if status and status.has(FireCooldownsKit.HEAT_SINK_ID):
 			info.add_bonus(-Balance.HEAT_SINK_PCT, "Heat Sink")
@@ -1698,8 +1727,8 @@ func _on_damage_modify(info: RefCounted) -> void:
 		var counter := _talent("lightning_counter_charge")
 		if counter > 0.0:
 			info.add_bonus(counter, LightningTankKit.COUNTER_CHARGE_LABEL)
-	# Practiced Hand: Swift Cut hits harder for each Trace I hold.
-	if id == ArcaneMeleeKit.SWIFT_CUT_ID and not info.is_proc:
+	# Practiced Hand: my Arcane abilities hit harder for each Trace I hold.
+	if info.tags.has("Arcane") and info.tags.has("Ability") and not info.is_proc and not info.is_dot:
 		var practiced := ArcaneMeleeKit.practiced_hand_pct(_talent("arcane_practiced_hand"), arcane_melee.traces())
 		if practiced > 0.0:
 			info.add_bonus(practiced, "Practiced Hand")
@@ -1731,6 +1760,8 @@ func _on_damage_modify(info: RefCounted) -> void:
 			info.add_bonus(white, "White Heat")
 	fire_talents._fire_talents_outgoing(info)   # the Fire talents' bonuses (column-group tree)
 	frost_talents._frost_talents_outgoing(info)   # the Frost talents' bonuses (column-group tree)
+	lightning_talents._lightning_talents_outgoing(info)   # the Lightning talents' bonuses (ribbon tree)
+	arcane_talents._arcane_talents_outgoing(info)   # the Arcane talents' bonuses (ribbon tree)
 	# Shatterpoint: every shatter hit (tagged "Shatter", whatever its name) hits harder.
 	if info.tags.has("Shatter"):
 		var sp := _talent("frost_shatterpoint")
@@ -1872,7 +1903,7 @@ func _try_auto_attack(moving: bool) -> void:
 		return
 	auto_windup += delta
 	if auto_windup < LightningMeleeKit.auto_interval(float(w["attack_interval"]), haste_mult(), lightning_melee.overdrive_active(),
-			lightning_tank.attack_speed_bonus() + frost_talents.attack_speed_vs(enemy)):   # (Overdrive, Tempo, Quick Rime, Swift Ice: faster swings)
+			lightning_tank.attack_speed_bonus() + frost_talents.attack_speed_vs(enemy) + lightning_talents.light_load_speed()):   # (Overdrive, Tempo, Quick Rime, Swift Ice, Light Load: faster swings)
 		return
 	auto_windup = 0.0
 	# Snap to face the enemy we're hitting.
@@ -1947,6 +1978,45 @@ func _slash_effect(color: Color = Color(0.9, 0.95, 1.0)) -> void:
 	t.tween_property(slash, "rotation:y", 1.2, 0.18)
 	t.tween_property(mat, "albedo_color:a", 0.0, 0.18)
 	t.chain().tween_callback(slash.queue_free)
+	CastFX.swing_sparks(get_parent(), global_position + _flat_forward() * 0.6 + Vector3(0, 0.3, 0), _flat_forward(), color)
+
+# --- Cast flair (CastFX; pictures only, mirrored to the party via Net) ----------
+var _cast_fx: Node3D
+
+## The ability's book color, and whether it is a martial (physical) one.
+func _fx_style(id: String) -> Array:
+	var cat := Abilities.category_of(id)
+	return [Abilities.color_of(id), cat == "martial"] if cat != "" else []
+
+func _cast_fx_start(id: String, duration: float) -> void:
+	_cast_fx_end()
+	var style := _fx_style(id)
+	if style.is_empty():
+		return
+	_cast_fx = CastFX.start_cast(self, _muzzle, Combat.feet_y(self), style[0])
+	_net_fx("castfx", global_position, null, {"c": style[0], "d": duration})
+
+func _cast_fx_end(tell := true) -> void:
+	if _cast_fx:
+		CastFX.end_cast(_cast_fx)
+		_cast_fx = null
+		if tell:
+			_net_fx("castend", global_position)
+
+func _cast_fx_release(id: String) -> void:
+	_cast_fx_end(false)   # (the release ends it on their screens too)
+	var style := _fx_style(id)
+	if style.is_empty():
+		return
+	var feet := Vector3(global_position.x, Combat.feet_y(self), global_position.z)
+	CastFX.release(get_parent(), _muzzle(), feet, style[0], style[1])
+	_net_fx("release", global_position, null, {"c": style[0], "p": style[1]})
+
+func _heal_fx(source: Node, tgt: Node, _amount: int, _effective: int, ability_id: String, _crit: bool) -> void:
+	if source != self or not (tgt is Node3D):
+		return
+	var style := _fx_style(ability_id)
+	CastFX.heal_glow(tgt, Combat.feet_y(tgt), style[0] if not style.is_empty() else Color(0.6, 1.0, 0.6))
 
 # Tab: target the closest on-screen enemy. If that one is already targeted,
 # each further press cycles to the next closest.
@@ -2194,6 +2264,7 @@ func _begin_spell(spell: String, display_name: String, duration: float, channel:
 	elif spell == DecayKit.ERODE_ID:
 		duration = StringsKit.deep_call_cast(duration, _talent("shadow_deep_call"), decay.decay_open_on(target))   # Deep Call
 	duration = maxf(duration - frost_talents.cold_rush(spell, _cast_target if _cast_kind in ["self", "ally"] else null), 0.2)   # Cold Rush
+	duration *= arcane_talents.cast_mult(spell)   # Clock Hands
 	duration /= haste_mult()
 	if Abilities.INSTANT_ON_ALLIES.has(spell) and (_cast_kind in ["self", "ally"] or (spell == "rimeshell" and frost_healer.frost_tide_on())):
 		duration = 0.05   # Rime Shell: instant on an ally or me (Frost Tide: on enemies too; released next frame)
@@ -2209,13 +2280,16 @@ func _begin_spell(spell: String, display_name: String, duration: float, channel:
 	bottled_kit._bottled_cast = not frost_bow._instinct_cast and not fire_cooldowns._conc_cast and not storm_arrow_kit._flicker_cast and bottled_kit.bottled_ready(spell)
 	if bottled_kit._bottled_cast:
 		duration = 0.05   # Rune of Bottled Lightning: this Discharge is instant (released next frame)
-	storm_arrow_kit._overture_cast = not channel and not frost_bow._instinct_cast and not fire_cooldowns._conc_cast and not storm_arrow_kit._flicker_cast and not bottled_kit._bottled_cast and hymns.overture_ready(spell)
+	arcane_talents._unwind_cast = not channel and not frost_bow._instinct_cast and not fire_cooldowns._conc_cast and not storm_arrow_kit._flicker_cast and not bottled_kit._bottled_cast and arcane_talents.unwinding_ready(spell)
+	if arcane_talents._unwind_cast:
+		duration = 0.05   # Unwinding: this Arcane spell is instant (released next frame)
+	storm_arrow_kit._overture_cast = not channel and not frost_bow._instinct_cast and not fire_cooldowns._conc_cast and not storm_arrow_kit._flicker_cast and not bottled_kit._bottled_cast and not arcane_talents._unwind_cast and hymns.overture_ready(spell)
 	if storm_arrow_kit._overture_cast:
 		duration = 0.05   # Rune of the Overture: the first cast after a boom is instant (used up when it lands)
 	# Cinder Step: this cast can be finished on the move (instant ones don't need it).
 	fire_cooldowns._cinder_cast = not channel and not fire_cooldowns._conc_cast and not frost_bow._instinct_cast and fire_cooldowns.cinder_step_ready(spell)
 	# Glint: this cast or channel can go on while I move (instant ones don't need it).
-	arcane_caster._glint_cast = not fire_cooldowns._conc_cast and not frost_bow._instinct_cast and not storm_arrow_kit._flicker_cast and not bottled_kit._bottled_cast \
+	arcane_caster._glint_cast = not fire_cooldowns._conc_cast and not frost_bow._instinct_cast and not storm_arrow_kit._flicker_cast and not bottled_kit._bottled_cast and not arcane_talents._unwind_cast \
 		and not fire_cooldowns._cinder_cast and not storm_arrow_kit._overture_cast and arcane_caster.glint_ready(spell)
 	if arcane_caster._glint_cast and channel and status:
 		status.spend_stacks(ArcaneCasterKit.GLINT_FX, 1)   # a channel is paid for when it starts, and uses Glint up then too (Keep Moving: one of its casts)
@@ -2241,6 +2315,7 @@ func _cancel_cast() -> void:
 	storm_arrow_kit._flicker_cast = false    # and Flicker's instant Lightning Bolt
 	storm_arrow_kit._overture_cast = false   # and the Overture's instant cast
 	bottled_kit._bottled_cast = false    # and Bottled Lightning's instant Discharge
+	arcane_talents._unwind_cast = false    # and Unwinding's instant cast
 	arcane_caster._glint_cast = false      # and Glint's cast on the move
 	fire_caster._volley_left = 0         # a broken Ember Volley launches no more embers
 	arcane_caster._darts_left = 0          # nor does a broken Sigil Darts launch more darts
@@ -2281,16 +2356,20 @@ func _release_cast() -> void:
 	var overture := storm_arrow_kit._overture_cast
 	storm_arrow_kit._overture_cast = false
 	var bottled := bottled_kit._bottled_cast
+	var unwind := arcane_talents._unwind_cast
+	arcane_talents._unwind_cast = false
 	bottled_kit._bottled_cast = false
 	if not _pay(spell):
 		frost_bow._instinct_cast = false
 		return
-	if flick and status:
-		status.remove(LightningCasterKit.FLICKER_FX)      # Flicker: that was its instant Lightning Bolt
+	if flick and status:   # Flicker (or Snap Cast): that was its instant Lightning Bolt
+		status.remove(LightningCasterKit.FLICKER_FX if status.has(LightningCasterKit.FLICKER_FX) else LightningTalentsKit.SNAP_CAST_FX)
 	if overture and status:
 		status.remove(HymnsKit.OVERTURE_FX)     # Rune of the Overture: that was its instant cast
 	if bottled and status:
 		status.remove(BottledLightningKit.BOTTLED_FX)      # Rune of Bottled Lightning: that was its instant Discharge
+	if unwind and status:
+		status.remove(ArcaneTalentsKit.UNWINDING_FX)      # Unwinding: that was its instant cast
 	if conc and status:
 		status.spend_stacks(FireCooldownsKit.CONC_ID)   # Concentrated Fire: one stack per instant cast
 	if cinder and status:
@@ -2360,7 +2439,8 @@ func _release_cast() -> void:
 	if bolt_cd > 0.0:
 		cooldowns[spell] = bolt_cd   # (Kiln Blast, Leaping Arc)
 	if int(bolt_res.resource_generated) > 0:
-		_gain(Abilities.resource_of(spell), float(bolt_res.resource_generated))   # (Leaping Arc's Energy)
+		_gain(Abilities.resource_of(spell), lightning_talents.spell_energy(float(bolt_res.resource_generated))
+			if Abilities.tags_of(spell).has("Lightning") else float(bolt_res.resource_generated))   # (Leaping Arc's Energy, + Feedback)
 	if spell == LightningCasterKit.DISCHARGE_ID:
 		lightning_caster._discharge(target)
 		return
@@ -2485,6 +2565,7 @@ func _process(_delta: float) -> void:
 	_mouseover_tick()
 	arcane_melee._tick_traces()
 	fire_lightning_talents._tick_dig_in(_delta)
+	lightning_talents._tick(_delta)   # Full Circuit, Static Build
 	_update_target_ring()
 	_update_friendly_ring()
 	_update_combat_state()
@@ -2538,7 +2619,7 @@ func _physics_process(delta: float) -> void:
 	# cast Cinder Step lets you finish while moving, whatever Glint lets you cast
 	# or channel on the move.)
 	var steady := casting and (fire_cooldowns._conc_cast or fire_cooldowns._cinder_cast or storm_arrow_kit._flicker_cast or bottled_kit._bottled_cast
-		or arcane_caster._glint_cast or storm_arrow_kit._overture_cast)
+		or arcane_caster._glint_cast or storm_arrow_kit._overture_cast or arcane_talents._unwind_cast)
 	if steady:
 		var aimed: bool = current_spell in ENEMY_BOLTS or current_spell == "embervolley" \
 			or current_spell == FrostBowKit.GLACIAL_DRAW_ID or current_spell == ArcaneCasterKit.SIGIL_DARTS_ID or current_spell == LightstringKit.REFRACTING_SHOT_ID \
@@ -2728,7 +2809,7 @@ func _use_drafted(id: String) -> void:
 	if id == FireCasterKit.VENT_ID:
 		fire_caster._vent_charge_used(float(res.cooldown))   # Hair Trigger: charges instead of one cooldown
 	if res.resource_generated > 0:
-		_gain(Abilities.resource_of(id), float(Abilities.generated_of(id)))
+		_gain(Abilities.resource_of(id), lightning_talents.generated(id, float(Abilities.generated_of(id))))   # (+ Edge Current)
 	if res.requires_target and _has_valid_target():
 		var dir := target.global_position - global_position
 		rotation.y = atan2(-dir.x, -dir.z)
@@ -2983,7 +3064,7 @@ func _use_drafted(id: String) -> void:
 			deal_damage(target, arcane_tank._dual_weapon_hit(w, res), id)   # both weapons
 			for i in 2:
 				_slash_effect(Abilities.color_of(id))
-			arcane_tank._gain_reflections(ArcaneTankKit.double_up_reflections(_talent("arcane_second_self"), randf() * 100.0))   # Second Self
+			arcane_tank._gain_reflections(1)   # (Second Self: _gain_reflections may make one more)
 		"ripple":
 			arcane_tank._ripple(res)
 		"fullset":
@@ -3704,6 +3785,7 @@ func _cone_effect(reach: float, half_angle: float, color: Color) -> void:
 func _net_taunt(tgt: Node, duration: float) -> void:
 	if tgt == null or not is_instance_valid(tgt):
 		return
+	lightning_talents.note_forced(tgt, duration)   # Hard Stare
 	var net := _net()
 	if net:
 		net.taunt(tgt, self, duration)
@@ -3831,6 +3913,8 @@ func adjust_crit(info: RefCounted, chance: float) -> float:
 	# Conductive: my Lightning damage crits more often.
 	if str(info.damage_type) == "lightning":
 		chance += _talent("lightning_conductive")
+	chance = lightning_talents.adjust_crit(info, chance)   # Keen Current: auto-attacks
+	chance = arcane_talents.adjust_crit(info, chance)   # Keen Cuts
 	# Bite Down: the ticks of my Decay crit more often while Gnaw is on it (_tick_decay marks them).
 	if id == DecayKit.DECAY_HIT_ID:
 		chance += float(info.get_meta(DecayKit.DECAY_CRIT_META, 0.0))

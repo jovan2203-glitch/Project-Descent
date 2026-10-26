@@ -7,3 +7,6 @@
 
 # Windows lock copies of the Steam DLL while the editor has it open
 addons/godotsteam/**/~*.TMP
+
+# Research notes: local only, never pushed
+docs/research/

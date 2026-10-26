@@ -6,8 +6,8 @@ class_name EscMenuPart
 
 func _build_esc_menu() -> void:
 	menu.esc_menu = UI.small_panel("Menu")
-	menu.esc_menu.offset_top = -175
-	menu.esc_menu.offset_bottom = 160
+	menu.esc_menu.offset_top = -200
+	menu.esc_menu.offset_bottom = 185
 	var content: VBoxContainer = menu.esc_menu.get_meta("content")
 	var resume := UI.button("Resume", 18, Vector2(0, 42))
 	resume.pressed.connect(_hide_esc)
@@ -20,6 +20,10 @@ func _build_esc_menu() -> void:
 		_hide_esc()
 		MacroWindow.open(menu.ui, false))
 	content.add_child(macros)
+	var logs := UI.button("Open Logs Folder", 18, Vector2(0, 42))
+	logs.tooltip_text = "Opens the folder with the game's log files. Send game.log (and game.prev.log for the run before) with bug reports."
+	logs.pressed.connect(func(): menu.get_node("/root/GameLog").open_folder())
+	content.add_child(logs)
 	var wipe := UI.button("Wipe Save", 18, Vector2(0, 42))
 	wipe.add_theme_color_override("font_color", Color(1, 0.45, 0.4))
 	wipe.add_theme_color_override("font_hover_color", Color(1, 0.6, 0.55))

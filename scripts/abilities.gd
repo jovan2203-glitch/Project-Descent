@@ -1286,7 +1286,8 @@ const HEAL_OVER_TIME_IDS := ["sap", "evergreen", "puppetstring", "refrain", "cat
 
 ## Talents that shorten an ability's cooldown: ability id -> talent key (its
 ## value = seconds taken off).
-const COOLDOWN_TALENTS := {"realign": "holy_quick_realign", "prismarrow": "holy_full_quiver", "redhotrivet": "fire_riveted"}
+const COOLDOWN_TALENTS := {"realign": "holy_quick_realign", "prismarrow": "holy_full_quiver", "redhotrivet": "fire_riveted",
+	"deepcut": "arcane_quick_cuts", "latecut": "arcane_quick_cuts", "widecut": "arcane_quick_cuts"}
 
 ## Ability `r`'s cooldown in seconds with your talents (the game and the
 ## tooltips both use this). Quick Realign shortens Realign's.
@@ -1362,9 +1363,16 @@ const NUM_COLOR := Color(1.0, 0.92, 0.6)
 static func _tree() -> SceneTree:
 	return Engine.get_main_loop() as SceneTree
 
+## Another player's stat totals while their ability is hovered in the Inspect
+## window (scripts/ui/inspect_window.gd), so its tooltip shows their numbers.
+static var stat_override := {}
+
 ## Final stats for tooltips: the player in game (includes buffs), otherwise
-## gear + talents + level from PlayerData.
+## gear + talents + level from PlayerData (or stat_override while inspecting).
 static func stat_source() -> Callable:
+	if not stat_override.is_empty():
+		var totals := stat_override
+		return func(s): return Stats.from_totals(s, totals)
 	var tree := _tree()
 	if tree and tree.root:
 		var p := tree.get_first_node_in_group("player")

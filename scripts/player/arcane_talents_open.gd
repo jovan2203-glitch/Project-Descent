@@ -142,7 +142,7 @@ func _mirror_finish(info: RefCounted) -> void:
 
 ## I used ability `id` (_use_drafted). Slipstream: after a blink or dash I move faster.
 func _slipstream(id: String) -> void:
-	if not SLIPSTREAM_MOVES.has(id) or player.status == null:
+	if not (SLIPSTREAM_MOVES.has(id) or Abilities.tags_of(id).has("Movement")) or player.status == null:
 		return
 	var faster := player._talent("arcane_slipstream")
 	if faster <= 0.0:

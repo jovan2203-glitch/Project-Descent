@@ -121,10 +121,11 @@ static func dodge_uses_reflection(crowd: bool, spare_pct: float, roll: float) ->
 	return not crowd and not (spare_pct > 0.0 and roll < spare_pct)
 
 ## Reflections one Double Up makes (Second Self: a `pct` % chance of more; `roll` 0-100).
-static func double_up_reflections(pct: float, roll: float) -> int:
-	return Balance.SECOND_SELF_REFLECTIONS if pct > 0.0 and roll < pct else 1
+## Second Self: how many more Reflections one creation makes (one, on a `roll` under `pct`).
+static func second_self_more(pct: float, roll: float) -> int:
+	return 1 if pct > 0.0 and roll < pct else 0
 
-## Health Head Count restores when Full Set makes `made` Reflections (`pct` % of
+## Health Head Count restores when `made` Reflections are created (`pct` % of
 ## maximum health for each).
 static func head_count_heal(max_hp: int, pct: float, made: int) -> int:
 	return int(round(maxf(float(max_hp), 0.0) * maxf(pct, 0.0) / 100.0 * maxi(made, 0)))
@@ -198,11 +199,17 @@ func _reflection_buff() -> Resource:
 func _gain_reflections(more: int = 1) -> void:
 	if player.status == null or more <= 0 or player.is_dead():
 		return
-	var want := reflections_after(reflections(), more)
+	var had := reflections()
+	# Second Self: a creation may make one more.
+	var want := reflections_after(had, more + second_self_more(player._talent("arcane_second_self"), randf() * 100.0))
 	if not player.status.apply(_reflection_buff(), player):
 		return
 	if player.status.stacks_of(REFLECTION_FX) != want:
 		player.status.set_stacks(REFLECTION_FX, want)
+	# Head Count: every Reflection made heals me a little.
+	var mend := head_count_heal(player.max_health, player._talent("arcane_head_count"), want - had)
+	if mend > 0 and player.health < player.max_health:
+		player._combat().heal(player, player, float(mend), HEAD_COUNT_ID, true)
 
 ## Remember what I just took (Trade Places looks back TRADE_PLACES_WINDOW seconds).
 func _note_damage_taken(amount: int) -> void:
@@ -299,11 +306,7 @@ func _ripple(res: Resource) -> void:
 ## Full Set: Reflections until I have them all. Head Count heals me for each one
 ## it makes.
 func _full_set() -> void:
-	var made := Balance.REFLECTION_MAX - reflections()
 	_gain_reflections(Balance.REFLECTION_MAX)
-	var mend := head_count_heal(player.max_health, player._talent("arcane_head_count"), made)
-	if mend > 0 and player.health < player.max_health:
-		player._combat().heal(player, player, float(mend), HEAD_COUNT_ID, true)
 	player._ring_effect(1.4, Abilities.color_of(FULL_SET_ID))
 	player._ring_effect(0.9, Color(0.95, 0.9, 1.0))
 
@@ -328,10 +331,9 @@ func _start_crowd_of_one() -> void:
 func _trade_places() -> void:
 	var stacks := reflections()
 	var amount := trade_places_heal(damage_taken_recently(Balance.TRADE_PLACES_WINDOW), stacks)
-	# Loud Exit: each one I give up shatters on its way out.
-	if player._talent("arcane_loud_exit") > 0.0:
-		for i in stacks:
-			_shatter_burst()
+	# Each one I give up shatters on its way out (once the talent Loud Exit).
+	for i in stacks:
+		_shatter_burst()
 	player.status.remove(REFLECTION_FX)
 	if amount > 0:
 		player._combat().heal(player, player, float(amount), TRADE_PLACES_ID, true)

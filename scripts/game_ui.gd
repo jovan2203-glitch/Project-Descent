@@ -30,6 +30,7 @@ func _ready() -> void:
 	add_child(COMBAT_VIGNETTE.new())   # red screen edges while in combat
 	_build_maps()
 	_build_windows()
+	get_node("/root/Net").inspect_received.connect(_on_inspect)   # (right-click a party frame)
 	_build_esc_menu()
 	_build_settings()
 	_wire_items()
@@ -376,7 +377,7 @@ func _build_windows() -> void:
 	character.get_meta("content").add_child(row)
 	windows["Character"] = character
 
-	windows["Talents"] = _build_spellbook(maxf(w, 380.0), vp.y * 0.5)
+	windows["Talents"] = _build_spellbook(maxf(w, 440.0), vp.y * 0.66)   # (large: easy to read)
 
 	var bank := UI.window("Bank", Vector2(w, 0), _close_window.bind("Bank"), true)
 	var slot_size := 30.0
@@ -426,6 +427,13 @@ var _book_list: VBoxContainer
 var _book_status: Label
 var _book_dirty := true
 var _talent_view: VBoxContainer
+var _book_note: Label   # where Skill Cards / talents are changed
+const SPELLBOOK_SLOT := 48.0   # ability buttons in the Spellbook
+const InspectWindow = preload("res://scripts/ui/inspect_window.gd")
+
+## A party member's snapshot arrived (right-clicked their frame): show it.
+func _on_inspect(member: int, data: Dictionary) -> void:
+	InspectWindow.open(self, member, data)
 
 ## `width` = the abilities column; the talents column is added to its right.
 func _build_spellbook(width: float, list_height: float) -> PanelContainer:
@@ -441,8 +449,9 @@ func _build_spellbook(width: float, list_height: float) -> PanelContainer:
 	columns.add_child(VSeparator.new())
 	_talent_view = TALENT_VIEW.new()     # right: talents (read only)
 	_talent_view.tree_height = tree_height
+	_talent_view.message.connect(_report)
 	columns.add_child(_talent_view)
-	_book_status = UI.label("", 12, UI.TEXT_DIM)
+	_book_status = UI.label("", 14, UI.TEXT_DIM)
 	_book_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_book_status.custom_minimum_size = Vector2(width - 24.0, 0)
 	content.add_child(_book_status)
@@ -454,7 +463,8 @@ func _build_spellbook(width: float, list_height: float) -> PanelContainer:
 	_book_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_book_list.add_theme_constant_override("separation", 6)
 	scroll.add_child(_book_list)
-	var note := UI.label("Skill Cards and talents are changed in the main menu.", 11, UI.TEXT_DIM)
+	_book_note = UI.label("", 13, UI.TEXT_DIM)
+	var note := _book_note
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.custom_minimum_size = Vector2(width - 24.0, 0)
 	content.add_child(note)
@@ -473,7 +483,13 @@ func _in_combat() -> bool:
 
 func _refresh_spellbook() -> void:
 	_book_dirty = false
+	# The training area is for trying builds: talents can be changed there.
+	var gm := get_node_or_null("/root/GameManager")
+	var training: bool = gm != null and gm.in_training()
+	_book_note.text = "Talents: click to change them (training area only). Skill Cards are changed in the main menu." if training \
+		else "Skill Cards and talents are changed in the main menu (talents also in the training area)."
 	if _talent_view:
+		_talent_view.set_editable(training)
 		_talent_view.refresh()
 	for c in _book_list.get_children():
 		c.queue_free()
@@ -492,10 +508,10 @@ func _refresh_spellbook() -> void:
 		if specs.is_empty():
 			continue
 		var col := Categories.color(cat) if cat != "" else Color.WHITE
-		_book_list.add_child(UI.label(Categories.cat_name(cat) if cat != "" else "Other", 14, col.lightened(0.3)))
+		_book_list.add_child(UI.label(Categories.cat_name(cat) if cat != "" else "Other", 17, col.lightened(0.3)))
 		for spec in specs:
 			if spec[0] != "":
-				_book_list.add_child(UI.spec_divider(spec[0], col.lightened(0.15), 11))
+				_book_list.add_child(UI.spec_divider(spec[0], col.lightened(0.15), 13))
 			var flow := HFlowContainer.new()
 			flow.add_theme_constant_override("h_separation", 6)
 			flow.add_theme_constant_override("v_separation", 6)
@@ -508,7 +524,7 @@ func _refresh_spellbook() -> void:
 			# The Wheel's weapons drop down to show their moves; drag one onto the bar.
 			for id in spec[1]:
 				if Abilities.WHEEL_FORMS.has(id) and _wheel_open.get(id, false):
-					_book_list.add_child(UI.label("%s's moves" % Abilities.ability_name(id), 11, UI.TEXT_DIM))
+					_book_list.add_child(UI.label("%s's moves" % Abilities.ability_name(id), 13, UI.TEXT_DIM))
 					var moves := HFlowContainer.new()
 					moves.add_theme_constant_override("h_separation", 6)
 					moves.add_theme_constant_override("v_separation", 6)
@@ -518,7 +534,7 @@ func _refresh_spellbook() -> void:
 			# The Brawler's Chain: what each ending makes (shown, not dragged: no buttons).
 			if spec[1].has("punch"):
 				for part in Abilities.brawler_move_table():
-					_book_list.add_child(UI.label(str(part[0]), 11, UI.TEXT_DIM))
+					_book_list.add_child(UI.label(str(part[0]), 13, UI.TEXT_DIM))
 					var row := HFlowContainer.new()
 					row.add_theme_constant_override("h_separation", 6)
 					row.add_theme_constant_override("v_separation", 6)
@@ -528,7 +544,7 @@ func _refresh_spellbook() -> void:
 			# The Rogue's Kill forms: what each builder becomes in a Kill window (shown, not dragged: no buttons).
 			if spec[1].has("cut"):
 				for part in Abilities.rogue_kill_table():
-					_book_list.add_child(UI.label(str(part[0]), 11, UI.TEXT_DIM))
+					_book_list.add_child(UI.label(str(part[0]), 13, UI.TEXT_DIM))
 					var krow := HFlowContainer.new()
 					krow.add_theme_constant_override("h_separation", 6)
 					krow.add_theme_constant_override("v_separation", 6)
@@ -544,7 +560,7 @@ func _toggle_wheel_weapon(weapon: String) -> void:
 	_book_dirty = true
 
 func _spellbook_slot(id: String, locked: bool, on_bar: bool) -> Button:
-	var s := Abilities.make_slot(40)
+	var s := Abilities.make_slot(SPELLBOOK_SLOT)
 	Abilities.set_slot_ability(s, id)
 	if on_bar:
 		s.add_theme_stylebox_override("normal", UI.box(Color(0.06, 0.065, 0.085, 0.9), UI.ACCENT.darkened(0.2), 2, 6))
@@ -830,7 +846,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		var player := get_tree().get_first_node_in_group("player")
 		if player and player.has_method("cancel_placement") and player.cancel_placement():
 			return   # Esc cancels spell placement first
-		if settings_panel.visible:
+		if InspectWindow.is_open(self):
+			InspectWindow.close(self)
+		elif settings_panel.visible:
 			_back_from_settings()
 		elif esc_menu.visible:
 			_hide_esc()

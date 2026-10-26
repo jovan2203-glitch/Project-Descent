@@ -55,11 +55,11 @@ The code and balance.gd are the source of truth for numbers. Design docs record 
 - Keywords in orange, with Shift explanations at the bottom of the tooltip (talents, runes, abilities; not item comparison).
 - An ability with no scaling math has no scaling section.
 - Single-ability talents show "Requires X to be learned" and block point spending.
-- A book's important talents sit higher in its tree, linked to their ability; minor ones lower. Archery talents of a book are grouped together. Rows stay symmetrical, 2-4 talents per row (books on the column-group layout: each spec's group fills its columns, one talent per column).
+- A book's important talents sit higher in its tree, linked to their ability; minor ones lower. Archery talents of a book are grouped together. Rows stay symmetrical, 2-4 talents per row (books on the ribbon layout: each spec is a 3-wide ribbon whose 18 seals in rows 1-9 form a shape of its own, `Talents.SHAPES`, mirror-symmetric with 1-3 per row; links run straight down one column of a ribbon).
 - Talent redesign (docs/design/systems.md "Talents"; Martial is done):
   - About 65 of the 80 points build one pure spec, so a spec gets ~19 talents and ~50 ranks of its own.
   - At most ~25% of talents are "Requires X"; the rest key off a resource, keyword or damage type (the keyword list is in systems.md).
-  - Specs sit side by side as column groups (`Talents.GROUPS`), and a spec's row-10 capstone needs 25 points in it.
+  - Specs sit side by side as 3-wide ribbons (`Talents.GROUPS`), the open talents on a spine column between them, and a spec's row-10 capstone needs 25 points in it.
   - Talents never reference another book's content.
 - Open talents are themed to their book but useful to anyone, and never tell the player what to combine.
 - Spellbooks never change position.

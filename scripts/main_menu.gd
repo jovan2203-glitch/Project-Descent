@@ -45,6 +45,9 @@ const Keywords = preload("res://scripts/core/keywords.gd")
 const Pacts = preload("res://scripts/pacts.gd")
 const SkillCards = preload("res://scripts/skill_cards.gd")
 const DB = preload("res://scripts/dungeon/dungeon_db.gd")
+const BuildInfo = preload("res://scripts/core/build_info.gd")
+const InspectWindow = preload("res://scripts/ui/inspect_window.gd")
+const MessageBanner = preload("res://scripts/ui/message_banner.gd")
 
 const LEFT_GEAR = ["Head", "Neck", "Shoulder", "Back", "Chest", "Gloves"]
 const RIGHT_GEAR = ["Legs", "Boots", "Finger 1", "Finger 2", "Trinket 1", "Trinket 2"]
@@ -108,17 +111,23 @@ func _ready() -> void:
 	net.members_changed.connect(lobby_page._refresh_party)
 	online.toast.connect(_toast_ok)
 	net.system_message.connect(_toast_ok)
+	net.inspect_received.connect(_on_inspect)
+	get_node("/root/SignalBus").action_error.connect(_toast_if)   # (errors raised outside the menu's own code)
 	lobby_page._refresh_party()
 
 # --- Input, per-frame updates and toasts ---------------------------------------------
 
-var _toast_label: Label
-var _toast_tween: Tween
+var _toast: Control   # MessageBanner: errors and notes, framed, low on the screen
 
 func _toast_ok(msg: String) -> void:
-	_toast_if(msg)
-	_toast_label.add_theme_color_override("font_color", Color(0.55, 1.0, 0.55))
-	_toast_label.move_to_front()
+	_banner().show_message(msg, Color(0.55, 1.0, 0.55))
+
+func _banner() -> Control:
+	if _toast == null:
+		_toast = MessageBanner.new()
+		_toast.bottom = -30.0   # just above the XP bar
+		ui.add_child(_toast)
+	return _toast
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ALT:
@@ -133,29 +142,8 @@ func _process(delta: float) -> void:
 	character_page._update_alt_popup(delta)
 
 func _toast_if(msg: String) -> void:
-	if msg == "":
-		return
-	if _toast_label == null:
-		_toast_label = UI.label("", 18, Color(1, 0.35, 0.3))
-		_toast_label.anchor_left = 0.5
-		_toast_label.anchor_right = 0.5
-		_toast_label.anchor_top = 1.0
-		_toast_label.anchor_bottom = 1.0
-		_toast_label.offset_left = -300
-		_toast_label.offset_right = 300
-		_toast_label.offset_top = -140
-		_toast_label.offset_bottom = -110
-		_toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		ui.add_child(_toast_label)
-	_toast_label.text = msg
-	_toast_label.add_theme_color_override("font_color", Color(1, 0.35, 0.3))
-	_toast_label.move_to_front()
-	_toast_label.modulate.a = 1.0
-	if _toast_tween:
-		_toast_tween.kill()
-	_toast_tween = create_tween()
-	_toast_tween.tween_interval(1.2)
-	_toast_tween.tween_property(_toast_label, "modulate:a", 0.0, 0.5)
+	if msg != "":
+		_banner().show_message(msg, MessageBanner.ERROR)
 
 # --- The 3D player on the pedestal -----------------------------------------------------
 
@@ -202,6 +190,20 @@ func _build_ui() -> void:
 	play_button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	play_button.pressed.connect(_on_play)
 	ui.add_child(play_button)
+
+	# Build version under Play (party members must match).
+	var ver := _label("Version %s" % BuildInfo.version(), 13, C_TEXT_DIM)
+	ver.anchor_left = 1.0
+	ver.anchor_right = 1.0
+	ver.anchor_top = 1.0
+	ver.anchor_bottom = 1.0
+	ver.offset_left = -250
+	ver.offset_right = -30
+	ver.offset_top = -26
+	ver.offset_bottom = -6
+	ver.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	ver.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(ver)
 
 	# Friends & party panel sits left of Play.
 	friends_button = UI.button("Friends", 20, Vector2(0, 0))
@@ -297,7 +299,9 @@ func _update_xp_bar() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		get_viewport().set_input_as_handled()
-		if wipe_panel.visible:
+		if InspectWindow.is_open(ui):
+			InspectWindow.close(ui)
+		elif wipe_panel.visible:
 			esc._back_from_wipe()
 		elif settings_panel.visible:
 			esc._back_from_settings()
@@ -463,6 +467,10 @@ func _show_page(page_name: String) -> void:
 	var shows_player := page_name in ["Lobby", "Character"]
 	model.visible = shows_player
 	$Pedestal.visible = shows_player
+
+## A party member's snapshot arrived (their card was clicked): show it.
+func _on_inspect(member: int, data: Dictionary) -> void:
+	InspectWindow.open(ui, member, data)
 
 ## PLAY opens the dungeon / queue screen.
 func _on_play() -> void:

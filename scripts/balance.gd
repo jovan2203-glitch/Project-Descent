@@ -485,6 +485,26 @@ const HIGH_VOLTAGE_ENERGY := 80.0        # High Voltage: works while you have mo
 const RUNNING_START_DISTANCE := 8.0      # Running Start: metres Static Step has to carry you
 const THIRD_BEAT_ENERGY := 15.0          # Third Beat's capstone: Energy Cadence's third strike gives back
 const REDLINE_MAX := 10.0                # Redline: most seconds it can add to one Overdrive
+# Lightning talents of the ribbon tree (ranks: talents.gd; code: lightning_talents.gd).
+const AFTERFLOW_TIME := 4.0              # Afterflow: seconds the faster Energy regeneration lasts after spending all of it
+const SNAP_CAST_TIME := 8.0              # Snap Cast: seconds its instant Lightning Bolt waits for you
+const FULL_CIRCUIT_TIME := 10.0          # Full Circuit: seconds its stronger Lightning spell waits for you
+const SPARKING_SWINGS_DAMAGE := 0.4      # Sparking Swings: damage (coefficient) of the zap on an auto-attack
+const AFTERSPARK_TIME := 4.0             # Afterspark: seconds the stronger auto-attack waits for you
+const BUILT_CHARGE_EVERY := 50.0         # Built Charge: Energy spent per stronger weapon ability
+const BUILT_CHARGE_TIME := 15.0          # ... seconds it waits for you
+const LIGHT_LOAD_ENERGY := 30.0          # Light Load: works while you have less Energy than this
+const SPINNING_UP_EVERY := 20.0          # Spinning Up: Energy spent per step of cooldown taken off
+const STORM_DANCE_REACH := 5.0           # Storm Dance's capstone: metres from the target Overdrive's second zap may go
+const SPARK_GUARD_THREAT := 4.0          # Spark Guard: threat multiplier of the zap a parry sends back
+const CHARGED_GUARD_TIME := 4.0          # Charged Guard: seconds the smaller next hit waits after a parry
+const CHARGED_SHELL_ENERGY := 60.0       # Charged Shell: works while you have more Energy than this
+const BACK_TO_THE_WALL_HEALTH := 35.0    # Back to the Wall: works below this % of your health
+const STORM_ANCHOR_EVERY := 5            # Storm Anchor's capstone: parries per free Shock Ring
+const CUT_THE_LINE_TIME := 6.0           # Cut the Line: seconds the Haste lasts after an interrupt
+const FRESH_CHARGE_HEALTH := 90.0        # Fresh Charge: works above this % of your health
+const STATIC_BUILD_STEP := 10.0          # Static Build: metres moved per stack
+const STATIC_BUILD_STACKS := 3           # ... most stacks
 
 ## Arcane caster: a cooldown kit. Sigil Darts (a channel) and Unravel are the
 ## fillers; everything else has a cooldown, and the kit is stronger the more of
@@ -518,7 +538,7 @@ const INTERVAL_WARD_RATE_PCT := 15.0     # ... % faster your Arcane spells' cool
 const GLINT_TIME := 4.0                  # Glint: seconds you have to start the cast it lets you make on the move
 
 ## Arcane talents (rank numbers live in talents.gd; these are the fixed parts).
-const ETCHED_DARTS_SECONDS := 0.5        # Etched Darts: seconds off Countdown and Collapse
+const ETCHED_DARTS_SECONDS := 0.5        # Etched Darts: seconds an Arcane spell crit takes off your other Arcane spells
 const CHAIN_REACTION_RADIUS := 5.0       # Chain Reaction: metres around the target Countdown detonated on
 const AFTERSHOCK_TIME := 3.0             # Aftershock: seconds the slow lasts
 const AFTERSHOCK_SLOW_STEP := 20.0       # ... the slow of the effect itself (%); the talent's rank scales it
@@ -582,6 +602,20 @@ const BORROWED_TIME_COOLDOWN := 20.0      # Borrowed Time: a spell or ability wi
 const BORROWED_TIME_TIME := 15.0          # ... seconds that boost waits to be used
 const BORROWED_TIME_HITS := 0.4           # ... seconds in which every hit of the spell or ability that uses it gets it (one that hits several enemies)
 const SLIPSTREAM_TIME := 3.0              # Slipstream: seconds you move faster after a blink or dash
+# Arcane talents of the ribbon tree (ranks: talents.gd; code: arcane_talents.gd).
+const WOUND_UP_MAX := 5                   # Wound Up: most other Arcane spells on cooldown that count
+const CLOCK_HANDS_COOLDOWNS := 3          # Clock Hands: Arcane spells on cooldown it needs
+const SECOND_HAND_SECONDS := 1.0          # Second Hand: seconds it takes off another Arcane spell
+const ON_THE_DOT_TIME := 2.0              # On the Dot: seconds after coming off cooldown a cast still counts
+const TURNING_GEARS_TIME := 6.0           # Turning Gears: seconds the Haste lasts
+const TURNING_GEARS_STACKS := 3           # ... most stacks
+const UNWINDING_TIME := 10.0              # Unwinding: seconds the instant cast waits for you
+const QUICK_ANSWER_TIME := 3.0            # Quick Answer: seconds after a dodge the stronger ability waits
+const GLASS_DUST_TIME := 4.0              # Glass Dust: seconds an enemy hit by a shatter deals less damage to you
+const FRESH_TRACE_HELD := 2               # Fresh Trace: works while you hold fewer Traces than this
+const FINAL_ACT_HEALTH := 35.0            # Final Act: works on enemies below this % of their health
+const CURTAIN_RISE_TIME := 4.0            # Curtain Rise: seconds after a replay the stronger cut waits
+const SPARE_MOMENT_COOLDOWN := 20.0       # Spare Moment: cooldowns at least this long recover faster
 const KEEP_MOVING_CASTS := 2              # Keep Moving's capstone: casts on the move one Glint covers
 
 ## The Fire and Lightning books' open talents (they work with every book's

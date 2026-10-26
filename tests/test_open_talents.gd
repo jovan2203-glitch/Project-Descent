@@ -15,12 +15,12 @@ const StatusContainer = preload("res://scripts/core/status_container.gd")
 
 # [key, name, ranks, slot, values]
 const TALENTS := [
-	["fire_feed_the_flames", "Feed the Flames", 3, "fire_r5c5", [2.0, 4.0, 6.0]],
-	["fire_last_ember", "Last Ember", 2, "fire_r6c5", [50.0, 100.0]],
-	["fire_tempered", "Tempered", 3, "fire_r7c5", [2.0, 4.0, 6.0]],
-	["lightning_change_of_pace", "Change of Pace", 3, "lightning_r1c4", [1.0, 2.0, 3.0]],
-	["lightning_spillover", "Spillover", 3, "lightning_r3c4", [5.0, 10.0, 15.0]],
-	["lightning_dig_in", "Dig In", 3, "lightning_r4c4", [2.0, 4.0, 6.0]],
+	["fire_feed_the_flames", "Feed the Flames", 3, "fire_r5c7", [2.0, 4.0, 6.0]],
+	["fire_last_ember", "Last Ember", 2, "fire_r6c7", [50.0, 100.0]],
+	["fire_tempered", "Tempered", 3, "fire_r7c7", [2.0, 4.0, 6.0]],
+	["lightning_change_of_pace", "Change of Pace", 3, "lightning_r2c7", [1.0, 2.0, 3.0]],
+	["lightning_spillover", "Spillover", 3, "lightning_r4c7", [5.0, 10.0, 15.0]],
+	["lightning_dig_in", "Dig In", 3, "lightning_r6c7", [2.0, 4.0, 6.0]],
 ]
 
 func suite_name() -> String:
@@ -79,11 +79,9 @@ func test_they_are_in_the_tree() -> void:
 		assert_false(Talents.MOVED.has(id), "%s is not a slot another talent moved out of" % id)
 
 func test_where_they_sit() -> void:
-	assert_eq(Talents.group_of("fire_r5c5"), Talents.OPEN_GROUP, "Fire's open column (column groups)")
-	var lightning: Array = Talents.layout("lightning")
-	assert_eq(lightning[0], [1, 2, 3, 4, 5])
-	assert_eq(lightning[2], [0, 2, 3, 4, 6])
-	assert_eq(lightning[3], [2, 3, 4])
+	assert_eq(Talents.group_of("fire_r5c7"), Talents.OPEN_GROUP, "Fire's open column (column groups)")
+	for key in ["lightning_change_of_pace", "lightning_spillover", "lightning_dig_in"]:
+		assert_eq(Talents.group_of(_id(key)), Talents.OPEN_GROUP, "%s is on Lightning's spine (ribbons)" % key)
 	# Every slot of both books still holds a designed talent, each with an icon.
 	for book in ["fire", "lightning"]:
 		for id in Talents.in_tree(book):

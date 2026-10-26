@@ -130,7 +130,8 @@ func _refresh_party() -> void:
 			slot.text = ""
 			who.text = "%s%s\nLv %d" % [lead, str(info.get("name", "?")), int(info.get("level", 1))]
 			who.visible = true
-			slot.tooltip_text = str(info.get("name", "?")) + (" (party leader)" if lead != "" else "")
+			slot.tooltip_text = str(info.get("name", "?")) + (" (party leader)" if lead != "" else "") + ": click to inspect"
+			slot.set_meta("member", int(others[i]))
 			_style_party_slot(slot, true)
 			_set_party_member(i, others[i], info)
 		else:
@@ -138,6 +139,7 @@ func _refresh_party() -> void:
 			slot.add_theme_color_override("font_color", MainMenu.C_TEXT_DIM)
 			who.visible = false
 			slot.tooltip_text = "Invite a friend"
+			slot.remove_meta("member")
 			_style_party_slot(slot, false)
 			_set_party_member(i, null, {})
 	if _you_label:
@@ -225,7 +227,11 @@ func _party_slot() -> Control:
 	who.visible = false
 	slot.add_child(who)
 	slot.tooltip_text = "Invite a friend"
+	# A member's card inspects them (gear, stats, abilities, talents); an empty one invites.
 	slot.pressed.connect(func():
+		if slot.has_meta("member"):
+			menu.get_node("/root/Net").request_inspect(int(slot.get_meta("member")))
+			return
 		social.visible = true
 		social.move_to_front())
 	return slot

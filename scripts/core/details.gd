@@ -488,6 +488,9 @@ const HIT_NAMES := {
 	"overload": "Overload",
 	"earth_return": "Earth Return",
 	"parting_spark": "Parting Spark",
+	"sparkingswings": "Sparking Swings",   # (Lightning melee talent: a zap on an auto-attack)
+	"sparkguard": "Spark Guard",   # (Lightning tank talent: a parry zaps the attacker)
+	"draw_down": "Draw Down",   # (Lightning tank talent: Energy spent heals you)
 	"lightning_rod": "Grounded Arrow",
 	"afterimage": "Afterimage",
 	"chain_reaction": "Chain Reaction",
@@ -594,7 +597,7 @@ static func spell_color(id: String) -> Color:
 			return Abilities.color_of("fireball")
 		"chilled", "frozen", "frozen_shatter", "splintering", "permafrost", "deepfreeze", "icefloe", "rimeshards", "runoff", "splinterheal", "hoar_blade", "splittingarrow", "coldretort", "hoarcoat", "rimetips":
 			return Abilities.color_of("frostbolt")
-		"overload", "earth_return", "parting_spark", "lightning_rod", "spillover":
+		"overload", "earth_return", "parting_spark", "lightning_rod", "spillover", "sparkingswings", "sparkguard", "draw_down":
 			return Abilities.color_of("lightningbolt")
 		"afterimage", "chain_reaction", "reflection_shatter", "head_count", "silvered", "echo", "mirror_finish", "full_house":
 			return Abilities.color_of("blink")

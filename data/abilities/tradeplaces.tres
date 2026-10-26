@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"tradeplaces"
 display_name = "Trade Places"
-description = "Gives up all your Reflections. For each one, heals you for {b:TRADE_PLACES_PCT}% of the damage you took in the last {b:TRADE_PLACES_WINDOW} sec."
+description = "Gives up all your Reflections, and each one shatters. For each one, heals you for {b:TRADE_PLACES_PCT}% of the damage you took in the last {b:TRADE_PLACES_WINDOW} sec."
 tags = PackedStringArray("Ability", "Arcane", "Heal", "Defensive")
 cast_type = 0
 cast_time = 0.0

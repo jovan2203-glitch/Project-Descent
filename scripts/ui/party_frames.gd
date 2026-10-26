@@ -250,6 +250,13 @@ func _on_frame_input(f: Dictionary, e: InputEvent) -> void:
 		if body != null and player != null and player.has_method("select_friendly"):
 			player.select_friendly(body)
 			accept_event()
+	# Right click: inspect them (gear, stats, abilities, talents).
+	elif e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_RIGHT:
+		var body: Node = f["body"]
+		var net := get_node_or_null("/root/Net")
+		if body != null and net != null:
+			net.request_inspect(net.member_of(body))
+			accept_event()
 
 ## The party member whose frame is under `screen_pos` (null if none).
 func member_at(screen_pos: Vector2) -> Node:

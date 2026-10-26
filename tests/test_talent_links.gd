@@ -10,14 +10,24 @@ const PlayerDataScript = preload("res://scripts/player_data.gd")
 
 ## Every link, as talent keys: [from, to].
 const WANT := [
-	["lightning_long_reach", "lightning_closed_circuit"], ["lightning_closed_circuit", "lightning_earth_return"],
-	["lightning_earth_return", "lightning_tempo"], ["lightning_counter_charge", "lightning_second_stroke"],
-	["lightning_running_start", "lightning_whip_crack"], ["lightning_quick_fuse", "lightning_rod"],
-	["lightning_rod", "lightning_snap_shot"], ["lightning_snap_shot", "lightning_loaded_quiver"],
-	["arcane_seventh_sigil", "arcane_etched_darts"],
-	["arcane_sharp_edges", "arcane_clockwork"], ["arcane_clockwork", "arcane_spare_copy"],
-	["arcane_light_feet", "arcane_empty_room"], ["arcane_empty_room", "arcane_bent_light"],
-	["arcane_standing_ovation", "arcane_second_showing"], ["arcane_second_showing", "arcane_time_signature"],
+	# The ribbon books (Martial, Fire, Frost, Lightning, Arcane).
+	["martial_twice_over", "martial_gather_pace"], ["martial_steady_pace", "martial_deep_flow"],
+	["martial_mix_it_up", "martial_hot_start"], ["martial_get_up", "martial_back_up"],
+	["martial_clean_release", "martial_run_it_back"],
+	["fire_stoked_breath", "fire_lean_fuel"], ["fire_clean_burn", "fire_stay_lit"],
+	["fire_fuel_the_forge", "fire_heavy_hammer"], ["fire_banked_fire", "fire_overheat"],
+	["fire_spreading_fire", "fire_fuel_run"],
+	["frost_chilled_dmg", "frost_instinct"], ["frost_instinct", "frost_cold_front"],
+	["frost_thaw_water", "frost_meltdown"], ["frost_long_glaze", "frost_long_dark"],
+	["frost_cold_fury", "frost_rime_pressure"], ["frost_frost_fletching", "frost_splitting_arrow"],
+	["frost_rime_tips", "frost_numb_prey"],
+	["lightning_conductive", "lightning_conductor"], ["lightning_deep_draw", "lightning_afterflow"],
+	["lightning_afterspark", "lightning_light_load"], ["lightning_built_charge", "lightning_spinning_up"],
+	["lightning_counter_charge", "lightning_second_stroke"], ["lightning_earth_return", "lightning_tempo"],
+	["arcane_etched_darts", "arcane_sharp_mind"], ["arcane_second_hand", "arcane_unwinding"],
+	["arcane_sharp_edges", "arcane_glass_dust"], ["arcane_quick_answer", "arcane_spare_copy"],
+	["arcane_last_copy", "arcane_crowded_room"],
+	["arcane_standing_ovation", "arcane_time_signature"],
 	["shadow_interest", "shadow_small_change"],
 	["shadow_lean_and_hungry", "shadow_fed"], ["shadow_fed", "shadow_worked_up"],
 	["shadow_long_night", "shadow_take_it_with_you"], ["shadow_pincer", "shadow_again"],
@@ -27,15 +37,6 @@ const WANT := [
 	["holy_deep_burn", "holy_long_volley"],
 	["nature_compost", "nature_bramble_burst"],
 ]
-
-## Where every talent that changed slot landed in LINKS_MOVED: key -> id (a later
-## move, Talents.FROST_MELEE_MOVED, can take it on from there).
-const MOVED_TO := {
-	"lightning_quick_fuse": "lightning_r6c4", "lightning_tight_coil": "lightning_r5c4",
-	"lightning_rod": "lightning_r7c4", "lightning_snap_shot": "lightning_r9c4",
-	"lightning_second_stroke": "lightning_r6c7", "lightning_tempo": "lightning_r8c5",
-	"lightning_parting_spark": "lightning_r8c6",
-}
 
 func suite_name() -> String:
 	return "talent_links"
@@ -116,46 +117,26 @@ func test_a_linked_talent_opens_before_its_row() -> void:
 	var pd = PlayerDataScript.new()
 	pd.level = 10
 	pd.learned_abilities.clear()
-	var first := ""
-	for id in Talents.in_row("arcane", 0):
-		if Talents.required_ability(id) == "" and Talents.max_rank(id) >= 3 and Talents.sources_of(id).is_empty():
-			first = id
-			break
-	var sharp := _id("arcane_sharp_edges")
-	var spare := _id("arcane_clockwork")
-	var copy := _id("arcane_spare_copy")
-	assert_eq([Talents.tier_of(sharp), Talents.tier_of(spare), Talents.tier_of(copy)], [1, 2, 3])
-	for i in 3:
-		assert_eq(pd.invest_talent(first), "")
-	assert_ne(pd.can_invest(copy), "", "row 4 is locked")
-	for i in 3:
-		assert_eq(pd.invest_talent(sharp), "")
-	for i in Talents.max_rank(spare):
-		assert_eq(pd.invest_talent(spare), "")
-	assert_false(pd.tier_unlocked(3), "row 4 is still locked (only %d points in row 3)" % Talents.max_rank(spare))
-	assert_eq(pd.can_invest(copy), "", "a maxed Spare Seconds opens Spare Copy")
+	var etched := _id("arcane_etched_darts")
+	var sharp := _id("arcane_sharp_mind")
+	var wound := _id("arcane_wound_up")
+	assert_eq([Talents.tier_of(etched), Talents.tier_of(sharp), Talents.tier_of(wound)], [0, 4, 4])
+	assert_ne(pd.can_invest(sharp), "", "row 5 is locked")
+	for i in Talents.max_rank(etched):
+		assert_eq(pd.invest_talent(etched), "")
+	assert_false(pd.tier_unlocked(4), "row 5 is still locked")
+	assert_eq(pd.can_invest(sharp), "", "a maxed Etched Darts opens Sharp Mind")
+	assert_ne(pd.can_invest(wound), "", "the rest of row 5 stays locked")
+	assert_eq(pd.invest_talent(sharp), "")
 	assert_true(PlayerDataScript.talents_valid(pd.talents))
 	pd.free()
 
-## The talents that changed slot (save version 5 -> 6) are where LINKS_MOVED says,
-## and an old save's points follow them.
+## The slot changes of save version 5 -> 6 were all Lightning's; they went with the
+## Lightning ribbon tree, which refunded every point (Talents.TREE_VERSION). An old
+## save's ranks pass through the migration untouched and are refunded on load.
 func test_moved_talents_and_old_saves() -> void:
 	const SaveSystemScript = preload("res://scripts/save_system.gd")
 	assert_true(SaveSystemScript.VERSION >= 6)
-	assert_eq(Talents.LINKS_MOVED.size(), MOVED_TO.size(), "(the Fire and Frost entries went with their column-group trees, which refunded every point)")
-	var news: Array = Talents.LINKS_MOVED.values()
-	for key in MOVED_TO:
-		var later := str(Talents.FROST_MELEE_MOVED.get(MOVED_TO[key], MOVED_TO[key]))
-		assert_eq(_id(str(key)), later, "%s has its new slot" % key)
-		assert_true(news.has(MOVED_TO[key]), "%s is a destination of LINKS_MOVED" % MOVED_TO[key])
-	for old in Talents.LINKS_MOVED:
-		assert_true(Talents.exists(str(Talents.LINKS_MOVED[old])), "%s is a slot of today's book" % Talents.LINKS_MOVED[old])
-		assert_eq(news.count(Talents.LINKS_MOVED[old]), 1, "no two talents land in %s" % Talents.LINKS_MOVED[old])
-		assert_false(Talents.MOVED.has(str(old)), "the every-load table never touches %s" % old)
-	# A v5 save: Tempo 3 and one talent that stayed put (the Frost and Fire entries went
-	# with their column-group trees, which refunded every point).
+	assert_true(Talents.LINKS_MOVED.is_empty(), "every book it moved talents in has been rebuilt")
 	var old_save := {"lightning_r6c7": 3, "lightning_r1c2": 3}
-	var now: Dictionary = Talents.rearranged(old_save, Talents.LINKS_MOVED, [])
-	assert_eq(now, {_id("lightning_tempo"): 3, "lightning_r1c2": 3})
-	for id in now:
-		assert_true(int(now[id]) <= Talents.max_rank(str(id)), "%s: no more ranks than the talent has" % id)
+	assert_eq(Talents.rearranged(old_save, Talents.LINKS_MOVED, []), old_save)

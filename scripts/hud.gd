@@ -275,8 +275,8 @@ func _ready() -> void:
 
 # --- Messages ----------------------------------------------------------------
 
-var _error_label: Label
-var _error_tween: Tween
+const MessageBanner = preload("res://scripts/ui/message_banner.gd")
+var _error_label: Control   # MessageBanner: framed, above the cast bar (Move UI: "Messages")
 
 # Red "can't do that" message above the cast bar, fades after ~1.5 s.
 func _show_error(msg: String) -> void:
@@ -284,31 +284,12 @@ func _show_error(msg: String) -> void:
 
 func _show_message(msg: String, color: Color) -> void:
 	if _error_label == null:
-		_error_label = Label.new()
-		_error_label.anchor_left = 0.5
-		_error_label.anchor_right = 0.5
-		_error_label.anchor_top = 1.0
-		_error_label.anchor_bottom = 1.0
-		_error_label.offset_left = -250
-		_error_label.offset_right = 250
-		_error_label.offset_top = -160
-		_error_label.offset_bottom = -132
-		_error_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_error_label.add_theme_font_size_override("font_size", 18)
-		_error_label.add_theme_color_override("font_outline_color", Color.BLACK)
-		_error_label.add_theme_constant_override("outline_size", 5)
-		_error_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_error_label = MessageBanner.new()
+		_error_label.bottom = -128.0
 		add_child(_error_label)
 		_movable.call_deferred(_error_label, "messages", "Messages", true)
 		_apply_bar_settings()   # (the top action bar pushes messages up)
-	_error_label.text = msg
-	_error_label.add_theme_color_override("font_color", color)
-	_error_label.modulate.a = 1.0
-	if _error_tween:
-		_error_tween.kill()
-	_error_tween = create_tween()
-	_error_tween.tween_interval(1.0)
-	_error_tween.tween_property(_error_label, "modulate:a", 0.0, 0.5)
+	_error_label.show_message(msg, color)
 
 var _death_nodes: Array = []
 
@@ -742,8 +723,7 @@ func _apply_bar_settings() -> void:
 		_cast_root.offset_top = -120.0 - lift
 		_cast_root.offset_bottom = -120.0 + CAST_H - lift
 	if _error_label:
-		_error_label.offset_top = -160 - lift
-		_error_label.offset_bottom = -132 - lift
+		_error_label.bottom = -128.0 - lift
 
 ## One action-bar slot: the button, its cooldown sweep, key and charge labels,
 ## and drag and drop (move / swap between any two slots of any bar).

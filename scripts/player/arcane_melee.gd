@@ -232,7 +232,7 @@ func _trace_hit(info: RefCounted, id: String, amount: int) -> void:
 			player.arcane_caster._cut_cooldown(DEEP_CUT_ID, clean)
 	if not Abilities.PATHS.has(id) or not leaves_trace(info.tags, bool(info.is_proc), bool(info.is_dot), amount):
 		return
-	_leave_trace(id, trace_amount(id, amount, player._talent("arcane_heavy_hand")))   # Heavy Hand: Deep Cut's records more
+	_leave_trace(id, player.arcane_talents.fresh_trace(trace_amount(id, amount, player._talent("arcane_heavy_hand"))))   # Heavy Hand: Deep Cut's records more; Fresh Trace
 
 ## A strike of ability `id` leaves a Trace that records `amount` (or joins the
 ## Trace the same use already left: traces_after).
@@ -329,12 +329,14 @@ func _encore() -> void:
 			if not player.is_alive():
 				return
 			if is_instance_valid(foe) and foe.is_alive():
-				player.arcane_caster._exact_hit(foe, amount, ENCORE_ID, "arcane", PackedStringArray(TRACE_TAGS), bonuses)
+				player.arcane_caster._exact_hit(foe, amount, ENCORE_ID, "arcane", PackedStringArray(TRACE_TAGS),
+					bonuses + player.arcane_talents.replay_bonuses(foe))   # (+ Final Act)
 				if foe is Node3D:
 					player._ring_effect(0.5, Color(0.95, 0.9, 1.0), (foe as Node3D).global_position)
 			for e in others:
 				if is_instance_valid(e) and e.is_alive():
-					player.arcane_caster._exact_hit(e, share, FULL_HOUSE_HIT_ID, "arcane", PackedStringArray(TRACE_TAGS), bonuses)
+					player.arcane_caster._exact_hit(e, share, FULL_HOUSE_HIT_ID, "arcane", PackedStringArray(TRACE_TAGS),
+						bonuses + player.arcane_talents.replay_bonuses(e))
 					if e is Node3D:
 						player._ring_effect(0.4, Abilities.color_of(ENCORE_ID), (e as Node3D).global_position))
 	# Dress Rehearsal's capstone: the first Encore during Double Time keeps the Traces.
@@ -350,6 +352,7 @@ func _encore() -> void:
 		for cd in player.cooldowns.keys():
 			if str(cd) != ENCORE_ID and (player.arcane_caster._in_arcane_book(str(cd)) or player.arcane_caster._is_arcane_spell(str(cd))):
 				player.arcane_caster._cut_cooldown(str(cd), signature)
+	player.arcane_talents.replayed(count)   # Curtain Rise
 	player._slash_effect(Abilities.color_of(ENCORE_ID))
 
 func _start_double_time() -> void:

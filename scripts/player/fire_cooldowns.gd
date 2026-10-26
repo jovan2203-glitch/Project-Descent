@@ -111,6 +111,8 @@ func _on_hit_taken(info: RefCounted) -> void:
 			player.fire_tank._sync_slag()
 	player.lightning_melee._melee_kit_hit_taken(info)   # Reflex Arc, Faraday Guard, Back-Current
 	player.lightning_tank._parry_kit_hit_taken(info)   # Return Stroke, Humming Blade, Quick Wrists, Draw the Storm
+	player.lightning_talents._hit_taken(info)   # Spark Guard, Charged Guard, Storm Anchor, Hard Lessons
+	player.arcane_talents._hit_taken(info)   # Quick Answer
 	player.arcane_tank._reflection_kit_hit_taken(info)   # a dodge (or Stand-In) shatters a Reflection
 	player.censer._censer_hit_taken(info)   # Incense from hits and blocks; Unfallen counts the damage
 	player.arcane_open._mirror_finish(info)   # Mirror Finish: what I dodge, parry or block hurts the attacker

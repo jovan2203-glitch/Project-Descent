@@ -48,3 +48,5 @@ frost_steel FrostSteelKit frost_steel.gd
 fire_fury FireFuryKit fire_fury.gd
 fire_talents FireTalentsKit fire_talents.gd
 frost_talents FrostTalentsKit frost_talents.gd
+lightning_talents LightningTalentsKit lightning_talents.gd
+arcane_talents ArcaneTalentsKit arcane_talents.gd

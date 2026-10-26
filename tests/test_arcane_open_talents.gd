@@ -18,16 +18,16 @@ const PlayerDataScript = preload("res://scripts/player_data.gd")
 
 # [key, name, ranks, the ability it needs, slot, values]
 const TALENTS := [
-	["arcane_quick_study", "Quick Study", 3, "", "arcane_r1c1", [1.0, 2.0, 3.0]],
-	["arcane_two_minds", "Two Minds", 3, "", "arcane_r1c7", [4.0, 8.0, 12.0]],
-	["arcane_echo", "Echo", 3, "", "arcane_r2c4", [2.0, 4.0, 6.0]],
-	["arcane_mirror_finish", "Mirror Finish", 3, "", "arcane_r4c2", [0.1, 0.2, 0.3]],
-	["arcane_overtime", "Overtime", 3, "", "arcane_r4c6", [5.0, 10.0, 15.0]],
-	["arcane_light_touch", "Light Touch", 3, "", "arcane_r5c4", [5.0, 10.0, 15.0]],
-	["arcane_slipstream", "Slipstream", 2, "", "arcane_r6c2", [10.0, 20.0]],
-	["arcane_borrowed_time", "Borrowed Time", 5, "", "arcane_r10c3", [3.0, 6.0, 9.0, 12.0, 15.0]],
-	["arcane_keep_moving", "Keep Moving", 3, "glint", "arcane_r6c6", [1.5, 2.5, 4.0]],
-	["arcane_full_crowd", "Full Crowd", 2, "crowdofone", "arcane_r9c7", [1.0, 2.0]],
+	["arcane_quick_study", "Quick Study", 3, "", "arcane_r1c7", [1.0, 2.0, 3.0]],
+	["arcane_two_minds", "Two Minds", 3, "", "arcane_r2c7", [4.0, 8.0, 12.0]],
+	["arcane_echo", "Echo", 3, "", "arcane_r3c7", [2.0, 4.0, 6.0]],
+	["arcane_mirror_finish", "Mirror Finish", 3, "", "arcane_r4c7", [0.1, 0.2, 0.3]],
+	["arcane_overtime", "Overtime", 3, "", "arcane_r5c7", [5.0, 10.0, 15.0]],
+	["arcane_light_touch", "Light Touch", 3, "", "arcane_r7c3", [5.0, 10.0, 15.0]],
+	["arcane_slipstream", "Slipstream", 2, "", "arcane_r6c7", [10.0, 20.0]],
+	["arcane_borrowed_time", "Borrowed Time", 3, "", "arcane_r9c7", [5.0, 10.0, 15.0]],
+	["arcane_keep_moving", "Keep Moving", 3, "glint", "arcane_r6c3", [1.5, 2.5, 4.0]],
+	["arcane_full_crowd", "Full Crowd", 2, "crowdofone", "arcane_r9c5", [1.0, 2.0]],
 ]
 ## The ones any build can take: no ability of the book is needed.
 const OPEN := ["arcane_quick_study", "arcane_two_minds", "arcane_echo", "arcane_mirror_finish", "arcane_overtime",
@@ -77,24 +77,15 @@ func test_they_are_in_the_tree() -> void:
 	for key in OPEN:
 		assert_eq(Talents.required_ability(_id(key)), "", "%s needs no ability: any build can take it" % key)
 
-## A row may hold five talents now; the Arcane book's fifth slots went to these.
-func test_five_to_a_row() -> void:
-	assert_eq(Talents.columns_of("arcane"), 7, "the old 7-column tree")
-	var layout: Array = Talents.layout("arcane")
-	assert_eq(layout[0], [0, 2, 3, 4, 6])
-	assert_eq(layout[1], [0, 1, 3, 5, 6])
-	assert_eq(layout[3], [0, 1, 3, 5, 6])
-	assert_eq(layout[4], [1, 2, 3, 4, 5])
-	assert_eq(layout[5], [1, 2, 3, 4, 5])
-	assert_eq(layout[9], [1, 2, 3, 4, 5])
-	# The two plain ones are in the top row, where any build reaches them first.
+## The open talents run down the spine of Arcane's ribbons, the plain stats first.
+func test_on_the_spine() -> void:
+	assert_eq(Talents.columns_of("arcane"), 13, "the ribbon layout")
+	for key in ["arcane_quick_study", "arcane_two_minds", "arcane_echo", "arcane_mirror_finish", "arcane_overtime",
+			"arcane_slipstream", "arcane_long_step", "arcane_spare_moment", "arcane_borrowed_time"]:
+		assert_eq(Talents.group_of(_id(key)), Talents.OPEN_GROUP, "%s is on the spine" % key)
 	assert_eq(Talents.tier_of(_id("arcane_quick_study")), 0)
-	assert_eq(Talents.tier_of(_id("arcane_two_minds")), 0)
-	assert_eq(Talents.tier_of(_id("arcane_borrowed_time")), Talents.ROWS - 1, "five ranks: the bottom row")
-	# Nothing that was there moved.
-	for pair in [["arcane_seventh_sigil", "arcane_r1c3"], ["arcane_etched_darts", "arcane_r2c2"], ["arcane_aftershock", "arcane_r4c4"],
-			["arcane_sharp_edges", "arcane_r2c1"], ["arcane_standing_ovation", "arcane_r6c5"], ["arcane_running_clock", "arcane_r10c4"]]:
-		assert_eq(_id(str(pair[0])), str(pair[1]))
+	assert_eq(Talents.tier_of(_id("arcane_two_minds")), 1)
+	assert_eq(Talents.max_rank(_id("arcane_borrowed_time")), 3, "three ranks on the spine")
 
 func test_quick_study() -> void:
 	var t := Talents.get_talent(_id("arcane_quick_study"))
@@ -209,8 +200,9 @@ func test_slipstream() -> void:
 	for id in ["blink", "flicker", "staticstep", "cinderstep", "icyretreat"]:
 		assert_true(moves.has(id), "%s counts" % id)
 		assert_true(Abilities.PATHS.has(id))
-		assert_contains(_desc("arcane_slipstream"), Abilities.ability_name(id))
+		assert_false(_desc("arcane_slipstream").contains(Abilities.ability_name(id)), "it names no ability of another book")
 	assert_contains(_desc("arcane_slipstream"), "10 / 20% faster for 3 sec")
+	assert_true(Abilities.tags_of("dartin").has("Movement"), "and any movement ability counts (code: the Movement tag)")
 
 func test_borrowed_time() -> void:
 	assert_eq(Balance.BORROWED_TIME_COOLDOWN, 20.0)
@@ -231,7 +223,7 @@ func test_borrowed_time() -> void:
 	assert_true(books.size() >= 4, "in every kind of book")
 	var text := _desc("arcane_borrowed_time")
 	assert_contains(text, "cooldown of 20 sec or more")
-	assert_contains(text, "3 / 6 / 9 / 12 / 15% more damage")
+	assert_contains(text, "5 / 10 / 15% more damage")
 
 func test_keep_moving() -> void:
 	assert_eq(Balance.KEEP_MOVING_CASTS, 2)

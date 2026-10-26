@@ -147,7 +147,7 @@ func _wire_gear() -> void:
 	_menu_stat_panel = UI.stat_panel(220)
 	_menu_stat_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	left.add_child(_menu_stat_panel)
-	pd.changed_late.connect(_refresh_menu_stats)
+	pd.changed_late.connect(_refresh_if_shown.bind(menu.pages["Character"], _refresh_menu_stats))
 	pd.changed_late.connect(_rebuild_runes_panel)
 	_refresh_menu_stats()
 

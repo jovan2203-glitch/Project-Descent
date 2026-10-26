@@ -47,6 +47,13 @@ jobs:
           export GODOT_BIN="$HOME/godot/Godot_v4.7.2-stable_win64_console.exe"
           tools/test.sh
 
+      - name: Stamp the version
+        shell: bash
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          sed -i "s/^\[application\]\r\?$/&\nconfig\/version=\"$v\"/" project.godot
+          grep -q "config/version=\"$v\"" project.godot
+
       - name: Export the Windows build
         shell: bash
         run: |

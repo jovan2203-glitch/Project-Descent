@@ -17,8 +17,10 @@ const LOG_PATH := "user://logs/game.log"
 const PREV_PATH := "user://logs/game.prev.log"
 const MAX_EVENTS := 200
 const FLUSH_INTERVAL := 1.0
+const PERF_INTERVAL := 30.0   # a performance summary line (FPS, enemies, network) this often
 
 const ENGINE_CAPTURE = preload("res://scripts/core/engine_log_capture.gd")
+const BuildInfo = preload("res://scripts/core/build_info.gd")
 const Abilities = preload("res://scripts/abilities.gd")
 const Runes = preload("res://scripts/runes.gd")
 const Items = preload("res://scripts/items.gd")
@@ -33,6 +35,7 @@ var events: Array = []          # [{text, color, time}] newest last
 var _file: FileAccess
 var _capture: Logger
 var _flush_timer := 0.0
+var _perf_timer := PERF_INTERVAL
 
 const C_NORMAL := Color(0.85, 0.85, 0.88)
 const C_PLAYER_HIT := Color(1.0, 1.0, 1.0)
@@ -50,7 +53,7 @@ func _ready() -> void:
 	if not Engine.is_editor_hint():
 		_capture = ENGINE_CAPTURE.new()
 		OS.add_logger(_capture)
-	info("game", "Session started (%s, Godot %s)" % [Time.get_datetime_string_from_system(), Engine.get_version_info().get("string", "")])
+	info("game", "Session started (%s, version %s, Godot %s)" % [Time.get_datetime_string_from_system(), BuildInfo.version(), Engine.get_version_info().get("string", "")])
 	_connect_events.call_deferred()
 
 func _exit_tree() -> void:
@@ -58,6 +61,12 @@ func _exit_tree() -> void:
 		OS.remove_logger(_capture)
 	if _file:
 		_file.flush()
+
+## Opens the log folder in the system file browser (players send these files with bug reports).
+func open_folder() -> void:
+	if _file:
+		_file.flush()
+	OS.shell_open(ProjectSettings.globalize_path(LOG_DIR))
 
 func _open_file() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(LOG_DIR))
@@ -76,6 +85,19 @@ func _process(delta: float) -> void:
 	if _flush_timer <= 0.0 and _file:
 		_flush_timer = FLUSH_INTERVAL
 		_file.flush()
+	_perf_timer -= delta
+	if _perf_timer <= 0.0:
+		_perf_timer = PERF_INTERVAL
+		_log_perf()
+
+## One line explaining lag reports after the fact.
+func _log_perf() -> void:
+	var parts: Array[String] = ["FPS %d" % Engine.get_frames_per_second(),
+		"enemies %d" % get_tree().get_nodes_in_group("enemies").size()]
+	var net := get_node_or_null("/root/Net")
+	if net:
+		parts.append_array(net.stats_lines())
+	info("perf", "  •  ".join(parts))
 
 # --- Leveled logging -------------------------------------------------------------
 

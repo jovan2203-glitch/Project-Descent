@@ -81,7 +81,7 @@ func _shock_ring(res: Resource) -> void:
 ## for as long as it lasts my parries zap the enemies around me (_storm_zap).
 func _draw_the_storm(res: Resource) -> void:
 	var col := Abilities.color_of(STORM_ID)
-	player.status.apply(player.lightning_melee._melee_buff(STORM_FX, STORM_ID, Balance.DRAW_THE_STORM_TIME,
+	player.status.apply(player.lightning_melee._melee_buff(STORM_FX, STORM_ID, Balance.DRAW_THE_STORM_TIME + player._talent("lightning_eye_of_the_storm"),   # + Eye of the Storm
 		"Each attack you parry zaps the enemies around you."), player)
 	for e in player._enemies_within(float(res.radius)):
 		player._net_taunt(e, Balance.DRAW_THE_STORM_TAUNT)
@@ -92,7 +92,8 @@ func _draw_the_storm(res: Resource) -> void:
 ## The zap a parry sends out during Draw the Storm (a proc: it feeds nothing else).
 func _storm_zap() -> void:
 	var hit := player._enemies_within(Balance.DRAW_THE_STORM_ZAP_RADIUS)
-	var coef := float(Abilities.EXTRA_HITS[STORM_ID]) * Balance.aoe_share(hit.size())
+	var coef := float(Abilities.EXTRA_HITS[STORM_ID]) * Balance.aoe_share(hit.size()) \
+		* (1.0 + player._talent("lightning_eye_of_the_storm", "values2") / 100.0)   # Eye of the Storm
 	for e in hit:
 		if is_instance_valid(e) and e.is_alive():
 			player.deal_damage(e, coef, STORM_ID, true)
@@ -155,6 +156,7 @@ func _reel_in() -> void:
 	var gap := Combat.hitbox_radius(player.target) + Combat.hitbox_radius(player) + Balance.REEL_IN_GAP
 	var to := reel_in_point(player.global_position, player.target.global_position, gap)
 	to.y = player.target.global_position.y + (Combat.feet_y(player) - Combat.feet_y(player.target))   # onto my level
+	player.lightning_talents.note_forced(player.target, Balance.REEL_IN_TAUNT)   # Hard Stare
 	var net := player._net()
 	if net:
 		net.pull(player.target, player, to, Balance.REEL_IN_TAUNT)

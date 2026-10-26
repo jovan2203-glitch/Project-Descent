@@ -146,6 +146,18 @@ func _hot_shaft(info: RefCounted) -> void:
 	extra.tags = PackedStringArray(["Fire", "Ranged"])
 	player._combat().deal(extra)
 
+## A Pitch and Cinder ability on my action bar: only then do my arrows coat and
+## Ignite (other archers' arrows and auto-shots never do).
+func _plays_pitch() -> bool:
+	var pd := player.get_node_or_null("/root/PlayerData")
+	if pd == null:
+		return false
+	for slot_id in pd.action_bar:
+		for id in player.bar_abilities(slot_id):
+			if Abilities.spec_of(id) == "Pitch and Cinder":
+				return true
+	return false
+
 ## A hit of mine landed: my arrows coat (or, on a crit, Ignite); Cinder Rain's
 ## ticks too, at most a layer a second per enemy. Brushfire: auto-shots Burn.
 func _pitch_on_hit(info: RefCounted) -> void:
@@ -153,6 +165,8 @@ func _pitch_on_hit(info: RefCounted) -> void:
 		return
 	var tgt: Variant = info.target
 	if tgt == null or not is_instance_valid(tgt) or not (tgt is Node) or not tgt.is_in_group("enemies"):
+		return
+	if not _plays_pitch():
 		return
 	var id := str(info.ability_id)
 	var rain := id == "dot_" + CINDER_RAIN_ID

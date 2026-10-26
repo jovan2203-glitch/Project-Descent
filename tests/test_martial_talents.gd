@@ -115,12 +115,8 @@ func test_each_spec_is_deep_and_mostly_keyword_talents() -> void:
 	assert_true(float(requires) / TREE.size() <= 0.25, "at most a quarter need one ability (%d of %d)" % [requires, TREE.size()])
 
 func test_column_groups() -> void:
-	assert_eq(Talents.columns_of("martial"), 9)
+	assert_eq(Talents.columns_of("martial"), 13)
 	assert_eq(Talents.groups_of("martial").size(), 5)
-	for row in Talents.layout("martial"):
-		var cols: Array = row
-		for c in cols:
-			assert_true(cols.has(8 - int(c)), "row %s is mirror-symmetric" % [cols])
 	# Row 10: one capstone per spec, and only those are gated.
 	for g in CAPSTONES:
 		var id := Talents.id_for_key(str(CAPSTONES[g]))

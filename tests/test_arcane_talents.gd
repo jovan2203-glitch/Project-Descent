@@ -14,13 +14,13 @@ const Details = preload("res://scripts/core/details.gd")
 
 # [key, name, ranks, the ability it needs, slot]
 const TALENTS := [
-	["arcane_seventh_sigil", "Seventh Sigil", 2, "arcanemissiles", "arcane_r1c3"],
-	["arcane_long_step", "Long Step", 2, "", "arcane_r1c4"],
-	["arcane_frayed", "Frayed", 3, "unravel", "arcane_r1c5"],
-	["arcane_etched_darts", "Etched Darts", 3, "arcanemissiles", "arcane_r2c2"],
-	["arcane_chain_reaction", "Chain Reaction", 3, "countdown", "arcane_r2c6"],
-	["arcane_polished_glass", "Polished Glass", 3, "mirrorsigil", "arcane_r3c3"],
-	["arcane_aftershock", "Aftershock", 3, "collapse", "arcane_r4c4"],
+	["arcane_seventh_sigil", "Seventh Sigil", 2, "arcanemissiles", "arcane_r2c1"],
+	["arcane_long_step", "Long Step", 2, "", "arcane_r7c7"],
+	["arcane_frayed", "Frayed", 3, "unravel", "arcane_r2c3"],
+	["arcane_etched_darts", "Etched Darts", 3, "", "arcane_r1c2"],
+	["arcane_chain_reaction", "Chain Reaction", 3, "countdown", "arcane_r4c3"],
+	["arcane_polished_glass", "Polished Glass", 3, "mirrorsigil", "arcane_r4c1"],
+	["arcane_aftershock", "Aftershock", 3, "collapse", "arcane_r7c1"],
 ]
 
 func suite_name() -> String:
@@ -47,9 +47,10 @@ func test_they_are_in_the_tree() -> void:
 		assert_false(text.contains("?"), "%s: %s" % [row[1], text])
 
 func test_links() -> void:
-	assert_true(Talents.targets_of(_id("arcane_seventh_sigil")).has(_id("arcane_etched_darts")), "Sigil Darts' two are joined")
+	assert_true(Talents.targets_of(_id("arcane_etched_darts")).has(_id("arcane_sharp_mind")), "the two crit talents are joined")
 	# The more important one of each pair is the higher one.
-	assert_true(Talents.tier_of(_id("arcane_seventh_sigil")) < Talents.tier_of(_id("arcane_etched_darts")))
+	assert_true(Talents.tier_of(_id("arcane_etched_darts")) < Talents.tier_of(_id("arcane_sharp_mind")))
+	assert_true(Talents.targets_of(_id("arcane_second_hand")).has(_id("arcane_unwinding")), "and the two about time off cooldowns")
 
 func test_seventh_sigil() -> void:
 	var id := _id("arcane_seventh_sigil")
@@ -65,8 +66,8 @@ func test_seventh_sigil() -> void:
 
 func test_etched_darts_and_frayed() -> void:
 	var etched := _id("arcane_etched_darts")
-	assert_eq(Talents.value_at(etched, 1), 10.0)
-	assert_eq(Talents.value_at(etched, 3), 30.0)
+	assert_eq(Talents.value_at(etched, 1), 5.0, "any Arcane spell's crit now, so a smaller chance")
+	assert_eq(Talents.value_at(etched, 3), 15.0)
 	assert_eq(Balance.ETCHED_DARTS_SECONDS, 0.5)
 	var frayed := _id("arcane_frayed")
 	assert_eq(Talents.value_at(frayed, 1), 33.0)
@@ -116,8 +117,7 @@ func test_long_step() -> void:
 	assert_eq(Talents.value_at(id, 1), 1.0)
 	assert_eq(Talents.value_at(id, 2), 2.0)
 	var text := Talents.description(id)
-	assert_contains(text, Abilities.ability_name("blink"))
-	assert_contains(text, Abilities.ability_name("flicker"))
+	assert_contains(text, "Your blinks take you 1 / 2 m further")
 	# Both tooltips quote the distance with the talent.
 	for ability in ["blink", "flicker"]:
 		var desc := str(Abilities.get_resource(ability).description)

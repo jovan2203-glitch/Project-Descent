@@ -80,11 +80,11 @@ func test_tank_abilities() -> void:
 
 func test_new_fire_talents() -> void:
 	var want := {
-		"fire_pressure_valve": ["fire_r2c1", [0.15, 0.35, 0.5]],
-		"fire_thick_slag": ["fire_r1c3", [15.0, 30.0, 45.0, 60.0]],
-		"fire_hot_iron": ["fire_r1c4", [10.0, 20.0, 30.0]],
-		"fire_blowback": ["fire_r5c1", [20.0, 35.0, 50.0]],
-		"fire_clinker": ["fire_r3c3", [7.0, 13.0, 20.0]],
+		"fire_pressure_valve": ["fire_r2c3", [0.15, 0.35, 0.5]],
+		"fire_thick_slag": ["fire_r1c4", [15.0, 30.0, 45.0, 60.0]],
+		"fire_hot_iron": ["fire_r1c5", [10.0, 20.0, 30.0]],
+		"fire_blowback": ["fire_r5c3", [20.0, 35.0, 50.0]],
+		"fire_clinker": ["fire_r2c4", [7.0, 13.0, 20.0]],
 	}
 	for key in want:
 		var id := Talents.id_for_key(key)

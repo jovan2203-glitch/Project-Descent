@@ -48,6 +48,9 @@ func _process(delta: float) -> void:
 	lines.append("Physics %.1f ms  •  Draw calls %d" % [Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
 		Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)])
 	lines.append("Nodes %d  •  Objects %d" % [Performance.get_monitor(Performance.OBJECT_NODE_COUNT), Performance.get_monitor(Performance.OBJECT_COUNT)])
+	var net := get_node_or_null("/root/Net")
+	if net:
+		lines.append_array(net.stats_lines())
 	var player := get_tree().get_first_node_in_group("player")
 	if player:
 		var p: Vector3 = player.global_position

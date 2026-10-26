@@ -26,12 +26,12 @@ const Stats = preload("res://scripts/core/stats.gd")
 const ROWS := 10
 const COLUMNS := 7
 const MIN_PER_ROW := 2
-const MAX_PER_ROW := 11   #(a book on the column-group layout: up to one per column)
+const MAX_PER_ROW := 16   # (a book on the ribbon layout: up to one per column)
 const POINTS_TO_UNLOCK_NEXT := 3
 ## Bump this whenever a talent is added, moved, removed or changed. A profile saved
 ## with another number gets all its talent points back on its next load
 ## (SaveSystem), so talent changes never need a save migration.
-const TREE_VERSION := 7
+const TREE_VERSION := 10
 const POINTS_AT_LEVEL_1 := 5
 const POINTS_PER_LEVEL := 1
 ## Every this many levels (2, 4, 6...) gives one extra point on top.
@@ -77,21 +77,10 @@ const DEFAULT_LAYOUT := [
 ## important first, joined by LINKS. A link is drawn as a straight line between
 ## the two slots, so when a talent moves, check its lines still run clear of the
 ## other talents (tests/test_talent_links.gd does).
-##   Fire       on the column-group layout (GROUPS), like Martial: see LAYOUTS.
-##   Frost      on the column-group layout (GROUPS), like Martial and Fire: see LAYOUTS.
-##   Lightning  melee down the left, the parry tank down the right (column 4 and
-##              the right edge), the caster and the bow down the middle.
-##   Arcane     the caster in the middle (rows 1-4 so far), the dodge tank down
-##              both edges of rows 2-9 (columns 0-1 and 5-6): what makes and
-##              shatters Reflections on the left, staying alive on the right.
-##              Rows 2, 3 and 9 got their two edge slots for it. Melee (Traces
-##              and Encore) is in the middle of rows 5-9 (columns 2 and 4; rows
-##              5 and 8 got those two slots for it). The bottom row has one
-##              5-rank talent each for the tank, any Arcane build and melee.
-##              Its open talents (they work with every book's abilities: Quick
-##              Study, Two Minds, Echo, Mirror Finish, Overtime, Light Touch,
-##              Slipstream, Borrowed Time) took the fifth slots of rows 1, 2,
-##              4, 5, 6 and 10. One slot is still empty (row 10, column 4).
+##   Fire       on the ribbon layout (GROUPS, SHAPES), like Martial: see LAYOUTS.
+##   Frost      on the ribbon layout (GROUPS, SHAPES), like Martial and Fire: see LAYOUTS.
+##   Lightning  on the ribbon layout (GROUPS, SHAPES), like Martial, Fire and Frost: see LAYOUTS.
+##   Arcane     on the ribbon layout (GROUPS, SHAPES), like Martial, Fire, Frost and Lightning: see LAYOUTS.
 ##   Shadow     the caster (the Breach) down the middle, melee (the Hounds) down
 ##              both edges of rows 3-9: what the Hounds themselves do on the
 ##              left (column 0, and column 1 of row 8), one ability's talents
@@ -116,31 +105,45 @@ const DEFAULT_LAYOUT := [
 ##              of row 9. The bottom row: the 5-rank talents of the healer,
 ##              tank and caster (the bow's is in row 9).
 const LAYOUTS := {
-	# (Fire is on the column-group layout, like Martial: GROUPS, 9 columns. Steady Flame in
-	# columns 0-1, Slagforged 2-3, the open talents 4, Forge Heat 5-6, Pitch and Cinder
-	# 7-8. Rows 1-9 are full (the open column skips row 9, Martial's skips 7); row 10 holds each spec's capstone.)
-	"fire": [[0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8],
-		[0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8],
-		[0, 1, 2, 3, 5, 6, 7, 8], [1, 3, 5, 7]],
-	# (Frost, the first book with five specs: GROUPS, 11 columns. Hard Winter in columns 0-1,
-	# Cold Comfort 2-3, the open talents 4, Frostbitten Steel 5-6, Glacier Wall 7-8, Winter
-	# Hunt 9-10. Rows 1-9 are full; row 10 holds each spec's capstone.)
-	"frost": [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-		[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-		[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-		[1, 3, 5, 7, 9]],
-	"lightning": [[1, 2, 3, 4, 5], [0, 2, 4, 6], [0, 2, 3, 4, 6], [2, 3, 4], [1, 3, 5], [0, 3, 6], [2, 3, 4], [1, 2, 4, 5], [1, 3, 5], [2, 3, 4]],
-	"arcane": [[0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 2, 4, 6], [0, 1, 3, 5, 6], [1, 2, 3, 4, 5], [1, 2, 3, 4, 5], [0, 2, 4, 6], [1, 2, 4, 5], [0, 2, 4, 6], [1, 2, 3, 4, 5]],
+	# (Fire, on the ribbon layout (GROUPS, 13 columns): Steady Flame in columns 0-2, Slagforged
+	# 3-5, the open talents on the spine (6), Forge Heat 7-9, Pitch and Cinder 10-12. Each spec's
+	# rows 1-9 draw its shape (SHAPES); row 10 holds its capstone in its middle column.)
+	"fire": [[1, 3, 4, 5, 6, 7, 8, 9, 11], [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], [1, 4, 6, 7, 8, 9, 10, 11, 12],
+		[0, 2, 4, 6, 8, 11], [0, 1, 2, 4, 6, 8, 11], [0, 1, 2, 4, 6, 7, 9, 11],
+		[0, 1, 2, 3, 5, 6, 7, 9, 10, 12], [0, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12], [1, 3, 4, 5, 8, 10, 11, 12],
+		[1, 4, 8, 11]],
+	# (Frost, on the ribbon layout (GROUPS, 16 columns): Hard Winter in columns 0-2, Cold
+	# Comfort 3-5, the open talents on the spine (6), Frostbitten Steel 7-9, Glacier Wall 10-12,
+	# Winter Hunt 13-15. Each spec's rows 1-9 draw its shape (SHAPES); row 10 its capstone.)
+	"frost": [[1, 4, 6, 8, 11, 13, 15], [0, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 14, 15], [0, 1, 2, 4, 6, 7, 9, 10, 12, 13, 14, 15],
+		[0, 2, 4, 6, 7, 9, 10, 12, 14], [0, 2, 3, 5, 6, 7, 9, 10, 12, 14], [0, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 14],
+		[0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15], [0, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], [1, 3, 5, 6, 8, 11, 14],
+		[1, 4, 8, 11, 14]],
+	# (Lightning, on the ribbon layout (GROUPS, 13 columns): Live Current in columns 0-2, Stormdancer
+	# 3-5, the open talents on the spine (6), Lightning Rod 7-9, and Stormstring 10-12: a short ribbon,
+	# its Storm Arrow talents in the middle of rows 1-3 until the spec is built.)
+	"lightning": [[0, 2, 3, 5, 6, 8, 11], [0, 1, 2, 3, 5, 6, 7, 8, 9, 11], [0, 1, 2, 3, 4, 5, 6, 8, 11],
+		[0, 1, 2, 3, 5, 6, 7, 8, 9], [1, 3, 5, 6, 8], [0, 2, 4, 6, 8], [1, 3, 5, 6, 7, 9],
+		[0, 2, 3, 5, 6, 7, 8, 9], [1, 3, 5, 6, 7, 8, 9],
+		[1, 4, 8]],
+	# (Arcane, on the ribbon layout (GROUPS, 13 columns): Clockwork in columns 0-2, Hall of Mirrors
+	# 3-5, the open talents on the spine (6), Second Act 7-9, and Aetherstring 10-12: an empty short
+	# ribbon until the spec is built.)
+	"arcane": [[1, 3, 4, 5, 6, 7, 8, 9], [0, 2, 3, 5, 6, 7, 9], [0, 2, 3, 5, 6, 7, 9],
+		[0, 2, 3, 5, 6, 7, 9], [0, 1, 2, 3, 4, 5, 6, 7, 9], [0, 1, 2, 4, 6, 7, 9], [0, 2, 4, 6, 7, 9],
+		[0, 2, 4, 6, 7, 9], [1, 3, 4, 5, 6, 8],
+		[1, 4, 8]],
 	"shadow": [[0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5]],
 	"nature": [[0, 2, 4, 6], [0, 3, 6], [0, 2, 4, 6], [0, 3, 6], [2, 3, 4], [2, 3, 4], [1, 3, 5], [1, 2, 4, 5], [0, 3, 6], [2, 3, 4]],
 	"holy": [[0, 1, 3, 5, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5]],
-	# (One book where Warrior, Rogue and Ranger used to be three.) The column-group layout
-	# (GROUPS, 9 columns): the Wheel in columns 0-1, the Rogue 2-3, the open talents 4,
-	# the Brawler 5-6, the Sharpshooter 7-8. Rows 1-9 are full (the open column skips
-	# row 7); row 10 holds each spec's capstone. No links.
-	"martial": [[0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8],
-		[0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8], [0, 1, 2, 3, 5, 6, 7, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8],
-		[0, 1, 2, 3, 4, 5, 6, 7, 8], [1, 3, 5, 7]],
+	# (One book where Warrior, Rogue and Ranger used to be three.) The ribbon layout (GROUPS,
+	# 13 columns): the Wheel in columns 0-2, the Rogue 3-5, the open talents on the spine (6,
+	# skipping row 7), the Brawler 7-9, the Sharpshooter 10-12. Each spec's rows 1-9 draw its
+	# shape (SHAPES); row 10 holds its capstone in its middle column.
+	"martial": [[1, 3, 5, 6, 7, 8, 9, 10, 11, 12], [0, 2, 3, 5, 6, 7, 8, 9, 11], [0, 2, 3, 5, 6, 7, 8, 9, 10, 12],
+		[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], [0, 2, 4, 6, 8, 10, 12], [0, 1, 2, 3, 5, 6, 8, 10, 11, 12],
+		[0, 2, 3, 5, 8, 10, 12], [0, 2, 3, 5, 6, 8, 11], [1, 3, 5, 6, 7, 9, 11],
+		[1, 4, 8, 11]],
 }
 
 # --- Talent definitions ------------------------------------------------------------
@@ -156,59 +159,59 @@ const LAYOUTS := {
 #   "capstone_requires" an ability that must be known for the capstone to do anything
 const TALENTS := {
 	"fire": {
-		# The column-group layout (GROUPS): Steady Flame (the caster) in columns 1-2,
-		# Slagforged (the tank) in 3-4, the open talents down the middle (column 5),
-		# Forge Heat (melee) in 6-7 and Pitch and Cinder (the bow) in 8-9. Rows 1-9 hold
-		# two talents per spec; row 10 its 5-rank capstone, which needs
+		# The ribbon layout (GROUPS): Steady Flame (the caster) in columns 1-3,
+		# Slagforged (the tank) in 4-6, the open talents on the spine (column 7),
+		# Forge Heat (melee) in 8-10 and Pitch and Cinder (the bow) in 11-13. Rows 1-9
+		# hold 18 talents per spec in its shape (SHAPES); row 10 its 5-rank capstone, which needs
 		# Balance.CAPSTONE_GATE points in the spec. Most key off the spec's own words
 		# (Fury, Venting, Slag, blocks, Heat, Sparks, Pitch, Ignites...); few need one
 		# ability. Code: each spec's component (fire_fury.gd, fire_tank.gd,
 		# fire_melee.gd, fire_bow.gd) and fire_talents.gd for the hits' bonuses.
 		# --- Steady Flame.
-		"r1c1": ["Stoked Breath", 4, "Your Fire spells that do not critically strike give you {v}% more Fury.",
+		"r1c2": ["Stoked Breath", 4, "Your Fire spells that do not critically strike give you {v}% more Fury.",
 			{"key": "fire_stoked_breath", "values": [5.0, 10.0, 15.0, 20.0]}],
 		# Firebolt (ability id "fireball") crits less, and turns crit chance into damage
 		# (Player.fire_crit_rules).
-		"r1c2": ["Tempered Flame", 3, "Your {n:fireball} gains {v}% less of your critical strike chance, but deals bonus damage equal to {v2}% of your critical strike chance.",
+		"r2c1": ["Tempered Flame", 3, "Your {n:fireball} gains {v}% less of your critical strike chance, but deals bonus damage equal to {v2}% of your critical strike chance.",
 			{"key": "fire_tempered_flame", "values": [40.0, 50.0, 60.0], "values2": [7.0, 13.0, 20.0], "requires": "fireball"}],
-		"r2c1": ["Pressure Valve", 3, "Each of your Fire spells that fails to critically strike takes {v} sec off the cooldown of {n:ventflames}.",
+		"r2c3": ["Pressure Valve", 3, "Each of your Fire spells that fails to critically strike takes {v} sec off the cooldown of {n:ventflames}.",
 			{"key": "fire_pressure_valve", "values": [0.15, 0.35, 0.5], "requires": "ventflames"}],
-		"r2c2": ["Lean Fuel", 3, "Your spells and abilities that cost Fury cost {v} less.",
+		"r3c2": ["Lean Fuel", 3, "Your spells and abilities that cost Fury cost {v} less.",
 			{"key": "fire_lean_fuel", "values": [2.0, 4.0, 6.0]}],
-		"r3c1": ["Banked Coals", 2, "Your critical strikes Vent {v}% less of your Fury.",
+		"r4c1": ["Banked Coals", 2, "Your critical strikes Vent {v}% less of your Fury.",
 			{"key": "fire_banked_coals", "values": [25.0, 50.0]}],
 		# Crits build, the next non-crit spends, and a stack is worth more the LESS
 		# crit chance you have. The hook is in fire_runes.gd.
-		"r3c2": ["Afterburn", 3, "Every Fire spell hit that critically strikes builds a stack of Afterburn (up to {e:afterburn.stacks}, {e:afterburn.time} sec, refreshed by each stack). Your next Fire spell hit that does NOT critically strike spends them all and deals +((100 - critical strike chance) x {v})% damage per stack.",
+		"r4c3": ["Afterburn", 3, "Every Fire spell hit that critically strikes builds a stack of Afterburn (up to {e:afterburn.stacks}, {e:afterburn.time} sec, refreshed by each stack). Your next Fire spell hit that does NOT critically strike spends them all and deals +((100 - critical strike chance) x {v})% damage per stack.",
 			{"key": "fire_afterburn", "values": [0.17, 0.33, 0.5]}],
 		# The first choice talent (Talents.options_of): points go into one of the two.
 		# Both move the embers' crit chance, not the Fury they give (FireFuryKit).
-		"r4c1": {"choice": [
+		"r5c1": {"choice": [
 			["Damped Embers", 3, "The embers of your {n:embervolley} have {v}% less critical strike chance.",
 				{"key": "fire_damped_embers", "values": [10.0, 20.0, 30.0], "requires": "embervolley"}],
 			["Wild Embers", 3, "The embers of your {n:embervolley} have {v}% more critical strike chance.",
 				{"key": "fire_wild_embers", "values": [10.0, 20.0, 30.0], "requires": "embervolley"}],
 		]},
-		"r4c2": ["Scattered Embers", 2, "Each ember of your {n:embervolley} also strikes {v} additional enemies within {b:EMBER_VOLLEY_SPLIT_RADIUS} m of your target.",
+		"r5c2": ["Scattered Embers", 2, "Each ember of your {n:embervolley} also strikes {v} additional enemies within {b:EMBER_VOLLEY_SPLIT_RADIUS} m of your target.",
 			{"key": "fire_volley_targets", "values": [1.0, 2.0], "requires": "embervolley"}],
 		# A crit that Vents your Fury burns its target with part of it (FireFuryKit).
-		"r5c1": ["Blowback", 3, "When a critical strike of yours Vents your Fury, {v}% of the Fury it Vents burns the target: {ds:BLOWBACK_PER_FURY} Fire damage per point, dealt over {b:BLOWBACK_TIME} sec.",
+		"r5c3": ["Blowback", 3, "When a critical strike of yours Vents your Fury, {v}% of the Fury it Vents burns the target: {ds:BLOWBACK_PER_FURY} Fire damage per point, dealt over {b:BLOWBACK_TIME} sec.",
 			{"key": "fire_blowback", "values": [20.0, 35.0, 50.0]}],
-		"r5c2": ["Long Burn", 3, "Your Burning and {n:immolate} last {v} sec longer.",
+		"r6c1": ["Long Burn", 3, "Your Burning and {n:immolate} last {v} sec longer.",
 			{"key": "fire_long_burn", "values": [1.0, 2.0, 3.0]}],
-		"r6c1": ["Stoked Kiln", 3, "Your spells and abilities that cost Fury deal {v}% more damage to a target with your {n:immolate}.",
+		"r6c2": ["Stoked Kiln", 3, "Your spells and abilities that cost Fury deal {v}% more damage to a target with your {n:immolate}.",
 			{"key": "fire_stoked_kiln", "values": [5.0, 10.0, 15.0]}],
-		"r6c2": ["Hold the Heat", 3, "While you are not casting, your Fury drops {v}% slower.",
+		"r6c3": ["Hold the Heat", 3, "While you are not casting, your Fury drops {v}% slower.",
 			{"key": "fire_hold_the_heat", "values": [33.0, 66.0, 100.0]}],
 		"r7c1": ["Long Focus", 3, "Your Concentrated Fire lasts {v} sec longer.",
 			{"key": "fire_long_focus", "values": [2.0, 4.0, 6.0]}],
 		"r7c2": ["Clean Burn", 3, "Your Fire spells that do not critically strike deal {v}% more damage.",
 			{"key": "fire_clean_burn", "values": [2.0, 4.0, 6.0]}],
-		"r8c1": ["Big Spend", 3, "A spell or ability that spends {b:BIG_SPEND_FURY} or more Fury deals {v}% more damage.",
+		"r7c3": ["Big Spend", 3, "A spell or ability that spends {b:BIG_SPEND_FURY} or more Fury deals {v}% more damage.",
 			{"key": "fire_big_spend", "values": [5.0, 10.0, 15.0]}],
-		"r8c2": ["Warm Start", 2, "When you enter combat, you gain {v} Fury.",
+		"r8c1": ["Warm Start", 2, "When you enter combat, you gain {v} Fury.",
 			{"key": "fire_warm_start", "values": [20.0, 40.0]}],
-		"r9c1": ["Low Flame", 3, "While your critical strike chance is below {b:LOW_FLAME_CRIT}%, your Fire spells deal {v}% more damage.",
+		"r8c3": ["Low Flame", 3, "While your critical strike chance is below {b:LOW_FLAME_CRIT}%, your Fire spells deal {v}% more damage.",
 			{"key": "fire_low_flame", "values": [3.0, 6.0, 9.0]}],
 		"r9c2": ["Stay Lit", 3, "After a critical strike Vents your Fury, your next Fire spell that does not critically strike gives {v}% more Fury.",
 			{"key": "fire_stay_lit", "values": [30.0, 60.0, 100.0]}],
@@ -216,147 +219,147 @@ const TALENTS := {
 		"r10c2": ["Smoldering Focus", 5, "Your Fire spells deal {v}% more damage for each point of Fury you have.",
 			{"key": "fire_smoldering_focus", "values": [0.02, 0.04, 0.06, 0.08, 0.1]}],
 		# --- Slagforged.
-		"r1c3": ["Thick Slag", 4, "Each stack of Slag gives {v}% more Armor.",
+		"r1c4": ["Thick Slag", 4, "Each stack of Slag gives {v}% more Armor.",
 			{"key": "fire_thick_slag", "values": [15.0, 30.0, 45.0, 60.0]}],
-		"r1c4": ["Hot Iron", 3, "Attacks you block burn the attacker for {v}% more ({n:slagskin} and {n:cinderguard}).",
+		"r1c5": ["Hot Iron", 3, "Attacks you block burn the attacker for {v}% more ({n:slagskin} and {n:cinderguard}).",
 			{"key": "fire_hot_iron", "values": [10.0, 20.0, 30.0]}],
-		"r2c3": ["Slag Mending", 3, "When your Slag shatters, you are healed for {v}% of your maximum health per stack.",
+		"r1c6": ["Slag Mending", 3, "When your Slag shatters, you are healed for {v}% of your maximum health per stack.",
 			{"key": "fire_slag_mending", "values": [0.7, 1.3, 2.0]}],
-		"r2c4": ["Deep Brand", 3, "An enemy you have Branded deals {v+b:BRAND_PCT}% less damage to you, instead of {b:BRAND_PCT}%.",
+		"r2c5": ["Deep Brand", 3, "An enemy you have Branded deals {v+b:BRAND_PCT}% less damage to you, instead of {b:BRAND_PCT}%.",
 			{"key": "fire_deep_brand", "values": [2.0, 4.0, 6.0], "requires": "brand"}],
-		"r3c3": ["Smoldering Debris", 3, "When your Slag shatters it leaves a burning patch {b2:CLINKER_RADIUS} m wide for {b:CLINKER_TIME} sec, dealing {v}% of the shatter's damage {bev:CLINKER_TICK} to enemies standing in it.",
+		"r2c4": ["Smoldering Debris", 3, "When your Slag shatters it leaves a burning patch {b2:CLINKER_RADIUS} m wide for {b:CLINKER_TIME} sec, dealing {v}% of the shatter's damage {bev:CLINKER_TICK} to enemies standing in it.",
 			{"key": "fire_clinker", "values": [7.0, 13.0, 20.0]}],
-		"r3c4": ["Hard Crust", 3, "Each stack of Slag gives you {v}% chance to block.",
+		"r2c6": ["Hard Crust", 3, "Each stack of Slag gives you {v}% chance to block.",
 			{"key": "fire_hard_crust", "values": [0.5, 1.0, 1.5]}],
-		"r4c3": ["Set Hard", 2, "Your brittle Slag lasts {v} sec longer.",
+		"r3c5": ["Set Hard", 2, "Your brittle Slag lasts {v} sec longer.",
 			{"key": "fire_set_hard", "values": [1.5, 3.0]}],
-		"r4c4": ["Red Iron", 3, "Your shield abilities deal {v}% more damage.",
+		"r4c5": ["Red Iron", 3, "Your shield abilities deal {v}% more damage.",
 			{"key": "fire_red_iron", "values": [5.0, 10.0, 15.0]}],
-		"r5c3": ["Marked Iron", 3, "Your Slag shattering deals {v}% more damage to enemies you have Branded.",
+		"r5c5": ["Marked Iron", 3, "Your Slag shattering deals {v}% more damage to enemies you have Branded.",
 			{"key": "fire_marked_iron", "values": [33.0, 66.0, 100.0]}],
-		"r5c4": ["Fuel the Forge", 3, "Each attack you block gives you {v} Fury.",
+		"r6c5": ["Fuel the Forge", 3, "Each attack you block gives you {v} Fury.",
 			{"key": "fire_fuel_the_forge", "values": [2.0, 4.0, 6.0]}],
-		"r6c3": ["Deep Slag", 2, "You can hold {v} more Slag.",
+		"r7c4": ["Deep Slag", 2, "You can hold {v} more Slag.",
 			{"key": "fire_deep_slag", "values": [1.0, 2.0]}],
-		"r6c4": ["Riveted", 3, "{n:redhotrivet}'s cooldown is {v} sec shorter.",
+		"r7c6": ["Riveted", 3, "{n:redhotrivet}'s cooldown is {v} sec shorter.",
 			{"key": "fire_riveted", "values": [1.0, 2.0, 3.0], "requires": "redhotrivet"}],
-		"r7c3": ["Heavy Hammer", 3, "{n:forgeblow} gives you {v} Fury back for each stack of Slag it shatters.",
+		"r8c5": ["Heavy Hammer", 3, "{n:forgeblow} gives you {v} Fury back for each stack of Slag it shatters.",
 			{"key": "fire_heavy_hammer", "values": [2.0, 4.0, 6.0], "requires": "forgeblow"}],
-		"r7c4": ["Glowing Seams", 3, "While you hold all the Slag you can, your spells and abilities generate {v}% more threat.",
+		"r8c4": ["Glowing Seams", 3, "While you hold all the Slag you can, your spells and abilities generate {v}% more threat.",
 			{"key": "fire_glowing_seams", "values": [10.0, 20.0, 30.0]}],
-		"r8c3": ["Long Shell", 2, "{n:moltenshell} lasts {v} sec longer.",
+		"r8c6": ["Long Shell", 2, "{n:moltenshell} lasts {v} sec longer.",
 			{"key": "fire_long_shell", "values": [2.0, 4.0], "requires": "moltenshell"}],
-		"r8c4": ["Spatter", 3, "When your Slag shatters, there is a {v}% chance a stack of it stays on you.",
+		"r9c4": ["Spatter", 3, "When your Slag shatters, there is a {v}% chance a stack of it stays on you.",
 			{"key": "fire_spatter", "values": [20.0, 40.0, 60.0]}],
-		"r9c3": ["Quick Temper", 3, "When your Slag shatters, the cooldown of {n:cinderguard} is {v} sec shorter.",
+		"r9c5": ["Quick Temper", 3, "When your Slag shatters, the cooldown of {n:cinderguard} is {v} sec shorter.",
 			{"key": "fire_quick_temper", "values": [1.0, 2.0, 3.0]}],
-		"r9c4": ["Heat Shimmer", 3, "Each stack of Slag makes you take {v}% less damage from spells.",
+		"r9c6": ["Heat Shimmer", 3, "Each stack of Slag makes you take {v}% less damage from spells.",
 			{"key": "fire_heat_shimmer", "values": [0.5, 1.0, 1.5]}],
-		"r10c4": ["Molten Heart", 5, "Your Slag shattering deals {v}% more damage and threat for each stack above {b:MOLTEN_HEART_ABOVE}.",
+		"r10c5": ["Molten Heart", 5, "Your Slag shattering deals {v}% more damage and threat for each stack above {b:MOLTEN_HEART_ABOVE}.",
 			{"key": "fire_molten_heart", "values": [2.0, 4.0, 6.0, 8.0, 10.0]}],
 		# --- Open talents: themed to the book (burns, blocking) but they work with every
 		# book's spells and abilities (open_talents_fire_lightning.gd and player.gd).
-		"r1c5": ["Flash Point", 3, "Increases your Critical Strike chance by {v}%.",
+		"r1c7": ["Flash Point", 3, "Increases your Critical Strike chance by {v}%.",
 			{"key": "fire_flash_point", "values": [1.0, 2.0, 3.0], "stats": {"crit_chance": 1.0}}],
-		"r2c5": ["Forge-Hardened", 3, "Increases your Attack Power by {v}% of your Strength.",
+		"r2c7": ["Forge-Hardened", 3, "Increases your Attack Power by {v}% of your Strength.",
 			{"key": "fire_forge_hardened", "values": [2.0, 4.0, 6.0]}],
-		"r3c5": ["Lingering Embers", 3, "Your Fire damage over time effects deal {v}% more damage.",
+		"r3c7": ["Lingering Embers", 3, "Your Fire damage over time effects deal {v}% more damage.",
 			{"key": "fire_lingering_embers", "values": [3.0, 6.0, 9.0]}],
-		"r4c5": ["Controlled Burn", 3, "Your Fire spells and abilities generate {v}% less threat.",
+		"r4c7": ["Controlled Burn", 3, "Your Fire spells and abilities generate {v}% less threat.",
 			{"key": "fire_controlled_burn", "values": [5.0, 10.0, 15.0]}],
-		"r5c5": ["Feed the Flames", 3, "Your direct hits deal {v}% more damage to enemies that carry one of your damage over time effects.",
+		"r5c7": ["Feed the Flames", 3, "Your direct hits deal {v}% more damage to enemies that carry one of your damage over time effects.",
 			{"key": "fire_feed_the_flames", "values": [2.0, 4.0, 6.0]}],
-		"r6c5": ["Last Ember", 2, "When one of your damage over time effects runs its full time, it ticks once more for {v}% of a tick's damage.",
+		"r6c7": ["Last Ember", 2, "When one of your damage over time effects runs its full time, it ticks once more for {v}% of a tick's damage.",
 			{"key": "fire_last_ember", "values": [50.0, 100.0]}],
-		"r8c5": ["Warm Blood", 3, "You take {v}% less damage from an enemy that has your Burning or {n:immolate} on it.",
+		"r8c7": ["Warm Blood", 3, "You take {v}% less damage from an enemy that has your Burning or {n:immolate} on it.",
 			{"key": "fire_warm_blood", "values": [2.0, 4.0, 6.0]}],
-		"r7c5": ["Tempered", 3, "Each attack you block increases your Armor by {v}% for {b:TEMPERED_TIME} sec, stacking up to {b:TEMPERED_STACKS} times.",
+		"r7c7": ["Tempered", 3, "Each attack you block increases your Armor by {v}% for {b:TEMPERED_TIME} sec, stacking up to {b:TEMPERED_STACKS} times.",
 			{"key": "fire_tempered", "values": [2.0, 4.0, 6.0]}],
 		# --- Forge Heat.
-		"r1c6": ["White Heat", 4, "While your Heat is in the White band, your abilities deal {v}% more Fire damage.",
+		"r1c8": ["White Heat", 4, "While your Heat is in the White band, your abilities deal {v}% more Fire damage.",
 			{"key": "fire_white_heat", "values": [4.0, 8.0, 12.0, 16.0]}],
-		"r1c7": ["Bright Sparks", 3, "Each of your Sparks has a {v}% chance to build one more Heat.",
+		"r1c9": ["Bright Sparks", 3, "Each of your Sparks has a {v}% chance to build one more Heat.",
 			{"key": "fire_bright_sparks", "values": [15.0, 30.0, 45.0]}],
-		"r2c6": ["Slow Cooling", 3, "Your Heat lasts {v} sec longer before it is lost.",
+		"r1c10": ["Slow Cooling", 3, "Your Heat lasts {v} sec longer before it is lost.",
 			{"key": "fire_slow_cooling", "values": [0.5, 1.0, 1.5]}],
-		"r2c7": ["Afterglow", 3, "For {b:AFTERGLOW_TIME} sec after you use {n:quench}, your auto-attacks also deal {v}% of their damage as Fire damage.",
+		"r2c9": ["Afterglow", 3, "For {b:AFTERGLOW_TIME} sec after you use {n:quench}, your auto-attacks also deal {v}% of their damage as Fire damage.",
 			{"key": "fire_afterglow", "values": [7.0, 13.0, 20.0], "requires": "quench"}],
-		"r3c6": ["Spark Bite", 3, "Your Sparks deal {v}% more damage.",
+		"r2c8": ["Spark Bite", 3, "Your Sparks deal {v}% more damage.",
 			{"key": "fire_spark_bite", "values": [10.0, 20.0, 30.0]}],
-		"r3c7": ["Fresh Tinder", 3, "Your melee abilities have a {v}% chance to add {b:FRESH_TINDER_SECONDS} sec to your Burning on the target they hit, up to its full duration.",
+		"r2c10": ["Fresh Tinder", 3, "Your melee abilities have a {v}% chance to add {b:FRESH_TINDER_SECONDS} sec to your Burning on the target they hit, up to its full duration.",
 			{"key": "fire_fresh_tinder", "values": [10.0, 20.0, 30.0]}],
-		"r4c6": ["Hard Quench", 3, "Your abilities that spend Heat deal {v}% more damage for each Heat they spend.",
+		"r3c8": ["Hard Quench", 3, "Your abilities that spend Heat deal {v}% more damage for each Heat they spend.",
 			{"key": "fire_hard_quench", "values": [1.0, 2.0, 3.0]}],
-		"r4c7": ["Wide Flare", 2, "{n:flare} sweeps {v} degrees wider.",
+		"r3c9": ["Wide Flare", 2, "{n:flare} sweeps {v} degrees wider.",
 			{"key": "fire_wide_flare", "values": [30.0, 60.0], "requires": "flare"}],
-		"r5c6": ["Banked Fire", 3, "{n:quench} leaves you {v} Heat.",
+		"r3c10": ["Banked Fire", 3, "{n:quench} leaves you {v} Heat.",
 			{"key": "fire_banked_fire", "values": [1.0, 2.0, 3.0], "requires": "quench"}],
-		"r5c7": ["Hammer Rhythm", 3, "Your auto-attacks give you {v} more Fury.",
+		"r4c9": ["Hammer Rhythm", 3, "Your auto-attacks give you {v} more Fury.",
 			{"key": "fire_hammer_rhythm", "values": [1.0, 2.0, 3.0]}],
-		"r6c6": ["Fold Again", 2, "{n:foldsteel} strikes {v} more times.",
+		"r5c9": ["Fold Again", 2, "{n:foldsteel} strikes {v} more times.",
 			{"key": "fire_fold_again", "values": [1.0, 2.0], "requires": "foldsteel"}],
-		"r6c7": ["Deep Sear", 3, "Your Burning deals {v}% more damage.",
+		"r6c8": ["Deep Sear", 3, "Your Burning deals {v}% more damage.",
 			{"key": "fire_deep_sear", "values": [5.0, 10.0, 15.0]}],
-		"r7c6": ["Overheat", 3, "While your Heat is in the White band, each of your Sparks also burns every other enemy within {b:OVERHEAT_RADIUS} m for {v}% of its damage.",
+		"r6c10": ["Overheat", 3, "While your Heat is in the White band, each of your Sparks also burns every other enemy within {b:OVERHEAT_RADIUS} m for {v}% of its damage.",
 			{"key": "fire_overheat", "values": [20.0, 40.0, 60.0]}],
-		"r7c7": ["Steady Arm", 3, "While your Heat is in the Orange or White band, the cooldowns of your melee abilities recover {v}% faster.",
+		"r7c8": ["Steady Arm", 3, "While your Heat is in the Orange or White band, the cooldowns of your melee abilities recover {v}% faster.",
 			{"key": "fire_steady_arm", "values": [5.0, 10.0, 15.0]}],
-		"r8c6": ["Long Blast", 2, "{n:blastfurnace} lasts {v} sec longer.",
+		"r7c10": ["Long Blast", 2, "{n:blastfurnace} lasts {v} sec longer.",
 			{"key": "fire_long_blast", "values": [2.0, 4.0], "requires": "blastfurnace"}],
-		"r8c7": ["Cold Steel", 3, "While you hold no Heat, your melee critical strikes deal {v}% more damage and build {v2} Heat.",
+		"r8c8": ["Cold Steel", 3, "While you hold no Heat, your melee critical strikes deal {v}% more damage and build {v2} Heat.",
 			{"key": "fire_cold_steel", "values": [10.0, 20.0, 30.0], "values2": [1.0, 2.0, 3.0]}],
-		"r9c6": ["Quick Forge", 3, "Each of your Sparks takes {v} sec off the cooldowns of your Fire abilities.",
+		"r8c10": ["Quick Forge", 3, "Each of your Sparks takes {v} sec off the cooldowns of your Fire abilities.",
 			{"key": "fire_quick_forge", "values": [0.2, 0.4, 0.6]}],
-		"r9c7": ["Fed Furnace", 3, "Your abilities that spend Heat give you {v} Fury.",
+		"r9c9": ["Fed Furnace", 3, "Your abilities that spend Heat give you {v} Fury.",
 			{"key": "fire_fed_furnace", "values": [5.0, 10.0, 15.0]}],
-		"r10c6": ["Molten Edge", 5, "Each Heat makes your abilities deal {v}% more Fire damage, instead of {b:HEAT_DAMAGE_PCT}%.",
+		"r10c9": ["Molten Edge", 5, "Each Heat makes your abilities deal {v}% more Fire damage, instead of {b:HEAT_DAMAGE_PCT}%.",
 			{"key": "fire_molten_edge", "values": [0.2, 0.4, 0.6, 0.8, 1.0]}],
 		# --- Pitch and Cinder.
-		"r1c8": ["Sticky Pitch", 4, "Each layer of your Pitch makes your burns tick {v}% faster on top of the usual {b:PITCH_LAYER_SPEED_PCT}%.",
+		"r1c12": ["Sticky Pitch", 4, "Each layer of your Pitch makes your burns tick {v}% faster on top of the usual {b:PITCH_LAYER_SPEED_PCT}%.",
 			{"key": "fire_sticky_pitch", "values": [0.5, 1.0, 1.5, 2.0]}],
-		"r1c9": ["Easy Draw", 3, "Your arrows that cost Energy cost {v} less.",
+		"r2c11": ["Easy Draw", 3, "Your arrows that cost Energy cost {v} less.",
 			{"key": "fire_light_string", "values": [2.0, 4.0, 6.0]}],
-		"r2c8": ["Big Flash", 3, "Your Ignites deal {v}% more damage.",
+		"r2c12": ["Big Flash", 3, "Your Ignites deal {v}% more damage.",
 			{"key": "fire_big_flash", "values": [10.0, 20.0, 30.0]}],
-		"r2c9": ["Long Coat", 3, "Your Pitch lasts {v} sec longer.",
+		"r2c13": ["Long Coat", 3, "Your Pitch lasts {v} sec longer.",
 			{"key": "fire_long_coat", "values": [3.0, 6.0, 9.0]}],
-		"r3c8": ["Spreading Fire", 2, "Your Ignites reach {v} m further.",
+		"r3c11": ["Spreading Fire", 2, "Your Ignites reach {v} m further.",
 			{"key": "fire_spreading_fire", "values": [2.0, 4.0]}],
-		"r3c9": ["Dripping", 3, "Your Burning deals {v}% more damage to a target with {b:DRIPPING_LAYERS} or more layers of your Pitch.",
+		"r3c13": ["Dripping", 3, "Your Burning deals {v}% more damage to a target with {b:DRIPPING_LAYERS} or more layers of your Pitch.",
 			{"key": "fire_dripping", "values": [5.0, 10.0, 15.0]}],
-		"r4c8": ["Double Coat", 2, "{n:pitcharrow} adds {v} more layers of Pitch.",
+		"r3c12": ["Double Coat", 2, "{n:pitcharrow} adds {v} more layers of Pitch.",
 			{"key": "fire_double_coat", "values": [1.0, 2.0], "requires": "pitcharrow"}],
-		"r4c9": ["Hot Shafts", 3, "Your auto-shots on a target with your Pitch also deal {v}% of their damage as Fire damage.",
+		"r4c12": ["Hot Shafts", 3, "Your auto-shots on a target with your Pitch also deal {v}% of their damage as Fire damage.",
 			{"key": "fire_hot_shafts", "values": [3.0, 6.0, 9.0]}],
-		"r5c8": ["Second Light", 3, "{n:touchoff} has a {v}% chance not to go on cooldown.",
+		"r5c12": ["Second Light", 3, "{n:touchoff} has a {v}% chance not to go on cooldown.",
 			{"key": "fire_second_light", "values": [10.0, 20.0, 30.0], "requires": "touchoff"}],
-		"r5c9": ["Ember Bed", 3, "Each enemy your Ignite hits has a {v}% chance to be left with a layer of your Pitch.",
+		"r6c12": ["Ember Bed", 3, "Each enemy your Ignite hits has a {v}% chance to be left with a layer of your Pitch.",
 			{"key": "fire_ember_bed", "values": [33.0, 66.0, 100.0]}],
-		"r6c8": ["Wide Rain", 2, "{n:cinderrain} covers an area {v} m wider.",
+		"r7c13": ["Wide Rain", 2, "{n:cinderrain} covers an area {v} m wider.",
 			{"key": "fire_wide_rain", "values": [1.0, 2.0], "requires": "cinderrain"}],
-		"r6c9": ["Fuel Run", 3, "Each of your Ignites gives you {v} Energy.",
+		"r7c11": ["Fuel Run", 3, "Each of your Ignites gives you {v} Energy.",
 			{"key": "fire_fuel_run", "values": [5.0, 10.0, 15.0]}],
-		"r7c8": ["Patient Fire", 3, "Your arrows deal {v}% more damage to a target with {b:PITCH_MAX_LAYERS} layers of your Pitch.",
+		"r8c11": ["Patient Fire", 3, "Your arrows deal {v}% more damage to a target with {b:PITCH_MAX_LAYERS} layers of your Pitch.",
 			{"key": "fire_patient_fire", "values": [3.0, 6.0, 9.0]}],
-		"r7c9": ["Kindle Pack", 3, "When your Ignite hits {b:KINDLE_PACK_HITS} or more enemies, it coats its target in {v} new layers of Pitch.",
+		"r8c13": ["Kindle Pack", 3, "When your Ignite hits {b:KINDLE_PACK_HITS} or more enemies, it coats its target in {v} new layers of Pitch.",
 			{"key": "fire_kindle_pack", "values": [1.0, 2.0, 3.0]}],
-		"r8c8": ["Long Brush", 2, "{n:brushfire} lasts {v} sec longer.",
+		"r8c12": ["Long Brush", 2, "{n:brushfire} lasts {v} sec longer.",
 			{"key": "fire_long_brush", "values": [3.0, 6.0], "requires": "brushfire"}],
-		"r8c9": ["Steady Bow", 3, "Each of your arrows that does not critically strike gives you {v} Energy.",
+		"r9c11": ["Steady Bow", 3, "Each of your arrows that does not critically strike gives you {v} Energy.",
 			{"key": "fire_steady_bow", "values": [1.0, 2.0, 3.0]}],
-		"r9c8": ["Clean Shot", 3, "Your arrows that do not critically strike deal {v}% more damage to a target with your Pitch.",
+		"r9c12": ["Clean Shot", 3, "Your arrows that do not critically strike deal {v}% more damage to a target with your Pitch.",
 			{"key": "fire_clean_shot", "values": [3.0, 6.0, 9.0]}],
-		"r9c9": ["Fire Line", 3, "Your Burning deals {v}% more damage to targets more than {b:FIRE_LINE_RANGE} m away from you.",
+		"r9c13": ["Fire Line", 3, "Your Burning deals {v}% more damage to targets more than {b:FIRE_LINE_RANGE} m away from you.",
 			{"key": "fire_fire_line", "values": [4.0, 8.0, 12.0]}],
-		"r10c8": ["Pitch Black", 5, "Each layer of your Pitch on a target makes your arrows deal {v}% more damage to it.",
+		"r10c12": ["Pitch Black", 5, "Each layer of your Pitch on a target makes your arrows deal {v}% more damage to it.",
 			{"key": "fire_pitch_black", "values": [1.0, 2.0, 3.0, 4.0, 5.0]}],
 	},
 	"frost": {
-		# The column-group layout (GROUPS, 11 columns): Hard Winter (the caster) in
-		# columns 1-2, Cold Comfort (the healer) in 3-4, the open talents down column 5,
-		# Frostbitten Steel (melee) in 6-7, Glacier Wall (the tank) in 8-9 and Winter
-		# Hunt (the bow) in 10-11 (the open column fills rows 1-9, so every row stays
-		# symmetrical). Rows 1-9 hold two talents per spec; row 10 its 5-rank
+		# The ribbon layout (GROUPS, 16 columns): Hard Winter (the caster) in
+		# columns 1-3, Cold Comfort (the healer) in 4-6, the open talents on the spine
+		# (column 7, rows 1-9), Frostbitten Steel (melee) in 8-10, Glacier Wall (the tank)
+		# in 11-13 and Winter Hunt (the bow) in 14-16. Rows 1-9 hold 18 talents per spec
+		# in its shape (SHAPES); row 10 its 5-rank
 		# capstone, which needs Balance.CAPSTONE_GATE points in the spec. Most key off
 		# the book's words (Chilled, Frozen, shatters, Ice Shard charges, Rime Shell,
 		# Thawing, Frost shields, Glaze, finishers, Ice Layers, arrows, roots...).
@@ -364,40 +367,40 @@ const TALENTS := {
 		# each spec's component (frost_healer.gd, frost_steel.gd, frost_glacier.gd,
 		# frost_bow.gd, frost_runes_talents.gd).
 		# --- Hard Winter.
-		"r1c1": ["Bitter Cold", 3, "You deal {v}% increased damage to targets you have Chilled.",
+		"r1c2": ["Bitter Cold", 3, "You deal {v}% increased damage to targets you have Chilled.",
 			{"key": "frost_chilled_dmg", "values": [2.0, 4.0, 6.0]}],
-		"r1c2": ["Glass Cold", 3, "Your Frost spells deal {v}% more damage to targets you have Frozen.",
+		"r2c1": ["Glass Cold", 3, "Your Frost spells deal {v}% more damage to targets you have Frozen.",
 			{"key": "frost_glass_cold", "values": [3.0, 6.0, 9.0]}],
-		"r2c1": ["Quickened Frost", 3, "Reduces the cast time of your {n:frostbolt} by {v} sec.",
+		"r2c3": ["Quickened Frost", 3, "Reduces the cast time of your {n:frostbolt} by {v} sec.",
 			{"key": "frost_bolt_cast", "values": [0.1, 0.2, 0.3], "requires": "frostbolt"}],
-		"r2c2": ["Frozen Instinct", 3, "When you Freeze an enemy, you have a {v}% chance to make your next Frost spell with a cast time, cast within {b:FROZEN_INSTINCT_TIME} sec, instant and free.",
+		"r3c2": ["Frozen Instinct", 3, "When you Freeze an enemy, you have a {v}% chance to make your next Frost spell with a cast time, cast within {b:FROZEN_INSTINCT_TIME} sec, instant and free.",
 			{"key": "frost_instinct", "values": [17.0, 33.0, 50.0]}],
 		"r3c1": ["Deep Hoarfrost", 3, "Increases the damage of {n:hoarfrost} by {v}% and its duration by {v2} sec.",
 			{"key": "frost_hoarfrost", "values": [15.0, 20.0, 25.0], "values2": [2.0, 3.0, 4.0], "requires": "hoarfrost"}],
-		"r3c2": ["Brittle Rime", 3, "Your direct damage has a {v}% chance to trigger the burst of your {n:hoarfrost} on the target. {n:hoarfrost} stays on the target and still bursts when it expires.",
+		"r3c3": ["Brittle Rime", 3, "Your direct damage has a {v}% chance to trigger the burst of your {n:hoarfrost} on the target. {n:hoarfrost} stays on the target and still bursts when it expires.",
 			{"key": "frost_hoarfrost_burst", "values": [5.0, 10.0, 15.0], "requires": "hoarfrost"}],
 		"r4c1": ["Splintering Cold", 3, "All of your spells have a {v}% chance to give you an Ice Shard charge.",
 			{"key": "frost_shard_proc", "values": [10.0, 15.0, 20.0]}],
-		"r4c2": ["Shardstorm", 3, "Every {b:SHARDSTORM_EVERY} Ice Shards you fire grant you {v}% Haste for {b:SHARDSTORM_TIME} sec.",
+		"r4c3": ["Shardstorm", 3, "Every {b:SHARDSTORM_EVERY} Ice Shards you fire grant you {v}% Haste for {b:SHARDSTORM_TIME} sec.",
 			{"key": "frost_shardstorm", "values": [7.0, 9.0, 10.5], "requires": "iceshards"}],
 		# (values = what is added to Coldspike's 25%.)
 		"r5c1": ["Piercing Cold", 3, "{n:coldspike} deals {v+b:COLDSPIKE_FROZEN_PCT}% more damage to a target you have Frozen, instead of {b:COLDSPIKE_FROZEN_PCT}%.",
 			{"key": "frost_piercing_cold", "values": [7.0, 13.0, 20.0], "requires": "coldspike"}],
-		"r5c2": ["Ice Needles", 3, "Your Frost spells that critically strike have a {v}% chance to give you an Ice Shard charge.",
+		"r5c3": ["Ice Needles", 3, "Your Frost spells that critically strike have a {v}% chance to give you an Ice Shard charge.",
 			{"key": "frost_ice_needles", "values": [33.0, 66.0, 100.0]}],
 		"r6c1": ["Splintering", 2, "Your Ice Shards that hit a target you have Frozen or Rime Shelled splinter, hitting {v} random other enemies within {b:SPLINTER_RANGE} m for {bdmg:SPLINTER_DAMAGE} Frost damage each.",
 			{"key": "frost_splinter", "values": [1.0, 2.0], "requires": "iceshards"}],
-		"r6c2": ["Cold Snap", 3, "Freezing a target reduces your next global cooldown by {v} sec.",
+		"r6c3": ["Cold Snap", 3, "Freezing a target reduces your next global cooldown by {v} sec.",
 			{"key": "frost_cold_snap", "values": [0.1, 0.2, 0.3]}],
 		"r7c1": ["Snowdrift", 3, "Your Frost spells deal {v}% more damage to a target with {b:SNOWDRIFT_CROWD} or more other enemies within {b:SNOWDRIFT_RADIUS} m of it.",
 			{"key": "frost_snowdrift", "values": [4.0, 8.0, 12.0]}],
 		"r7c2": ["Cold Front", 3, "Your Frost spells deal {v}% more damage for each enemy you have Chilled or Frozen, up to {b:COLD_FRONT_MAX}.",
 			{"key": "frost_cold_front", "values": [1.0, 2.0, 3.0]}],
-		"r8c1": ["Lingering Frost", 3, "Your Chilled lasts {v} sec longer.",
+		"r7c3": ["Lingering Frost", 3, "Your Chilled lasts {v} sec longer.",
 			{"key": "frost_long_chill", "values": [1.0, 2.0, 3.0]}],
-		"r8c2": ["Hard Freeze", 3, "Your Frozen lasts {v} sec longer.",
+		"r8c1": ["Hard Freeze", 3, "Your Frozen lasts {v} sec longer.",
 			{"key": "frost_hard_freeze", "values": [0.5, 1.0, 1.5]}],
-		"r9c1": ["Cold Well", 3, "Freezing an enemy gives you {vmana} mana. This can happen once every {b:COLD_WELL_EVERY} sec.",
+		"r8c3": ["Cold Well", 3, "Freezing an enemy gives you {vmana} mana. This can happen once every {b:COLD_WELL_EVERY} sec.",
 			{"key": "frost_cold_well", "values": [0.1, 0.2, 0.3]}],
 		"r9c2": ["Shatterpoint", 3, "Your shatters (Rime Shell breaking, {n:shatteringwave}, {n:shatteringslam}) deal {v}% more damage.",
 			{"key": "frost_shatterpoint", "values": [10.0, 20.0, 30.0],
@@ -409,421 +412,517 @@ const TALENTS := {
 			"capstone_requires": "blizzard"}],
 		# --- Cold Comfort (frost_healer.gd). Frost shields: Rime Shell, Rime Veil,
 		# Rimefall and Shard Spray.
-		"r1c3": ["Deep Cracks", 3, "When your {n:rimeshell} breaks on an ally, its Rime Shards heal {v}% more.",
+		"r1c5": ["Deep Cracks", 3, "When your {n:rimeshell} breaks on an ally, its Rime Shards heal {v}% more.",
 			{"key": "frost_deep_cracks", "values": [10.0, 20.0, 30.0]}],
-		"r1c4": ["Shard Spray", 3, "Your Rime Shards also leave a shield on each ally they heal, absorbing {v}% of what they healed for {b:SHARD_SPRAY_TIME} sec.",
+		"r2c4": ["Shard Spray", 3, "Your Rime Shards also leave a shield on each ally they heal, absorbing {v}% of what they healed for {b:SHARD_SPRAY_TIME} sec.",
 			{"key": "frost_shard_spray", "values": [20.0, 35.0, 50.0]}],
-		"r2c3": ["Slow Runoff", 3, "When your {n:rimeshell} runs out on an ally, its Runoff heals {v}% more.",
+		"r2c5": ["Slow Runoff", 3, "When your {n:rimeshell} runs out on an ally, its Runoff heals {v}% more.",
 			{"key": "frost_slow_runoff", "values": [20.0, 40.0, 60.0],
 			"capstone": "Each Runoff also gives you back as much mana as {n:breaktheice} costs."}],
-		"r2c4": ["Thaw Water", 3, "Your heals on an ally with your Thawing heal {v}% more.",
+		"r2c6": ["Thaw Water", 3, "Your heals on an ally with your Thawing heal {v}% more.",
 			{"key": "frost_thaw_water", "values": [4.0, 8.0, 12.0]}],
-		"r3c3": ["Last Shelter", 3, "Your Frost shields absorb {v}% more on an ally below {b:LAST_SHELTER_HEALTH}% health.",
+		"r3c5": ["Last Shelter", 3, "Your Frost shields absorb {v}% more on an ally below {b:LAST_SHELTER_HEALTH}% health.",
 			{"key": "frost_last_shelter", "values": [5.0, 10.0, 15.0]}],
-		"r3c4": ["Cold Hands", 3, "Your Frost spells that heal or shield cost {v}% less mana.",
+		"r4c5": ["Cold Hands", 3, "Your Frost spells that heal or shield cost {v}% less mana.",
 			{"key": "frost_cold_hands", "values": [3.0, 6.0, 9.0]}],
-		"r4c3": ["Cold Spread", 3, "{n:breaktheice} heals allies up to {v} m farther away.",
+		"r5c4": ["Cold Spread", 3, "{n:breaktheice} heals allies up to {v} m farther away.",
 			{"key": "frost_cold_spread", "values": [2.0, 4.0, 6.0], "requires": "breaktheice"}],
-		"r4c4": ["Meltdown", 3, "When your {n:rimeshell} breaks, you gain {vmana} mana. This can happen once every {b:MELTDOWN_EVERY} sec.",
+		"r5c6": ["Meltdown", 3, "When your {n:rimeshell} breaks, you gain {vmana} mana. This can happen once every {b:MELTDOWN_EVERY} sec.",
 			{"key": "frost_meltdown", "values": [0.1, 0.2, 0.3]}],
-		"r5c3": ["Long Frost", 3, "Your Rime Veil, Rimefall and Shard Spray shields last {v} sec longer.",
+		"r6c4": ["Long Frost", 3, "Your Rime Veil, Rimefall and Shard Spray shields last {v} sec longer.",
 			{"key": "frost_long_frost", "values": [2.0, 4.0, 6.0]}],
-		"r5c4": ["Shard Reach", 2, "Your Rime Shards reach allies {v} m farther away.",
+		"r6c6": ["Shard Reach", 2, "Your Rime Shards reach allies {v} m farther away.",
 			{"key": "frost_shard_reach", "values": [2.0, 4.0]}],
-		"r6c3": ["Wide Lattice", 2, "{n:frostlattice} links {v} more allies.",
+		"r6c5": ["Wide Lattice", 2, "{n:frostlattice} links {v} more allies.",
 			{"key": "frost_wide_lattice", "values": [1.0, 2.0], "requires": "frostlattice"}],
-		"r6c4": ["Snowmelt", 3, "Your Runoff heals {v}% faster, for the same total.",
+		"r7c4": ["Snowmelt", 3, "Your Runoff heals {v}% faster, for the same total.",
 			{"key": "frost_snowmelt", "values": [15.0, 30.0, 45.0]}],
-		"r7c3": ["Layered Veil", 2, "{n:rimeveil} forms again {v} sec sooner.",
+		"r7c5": ["Layered Veil", 2, "{n:rimeveil} forms again {v} sec sooner.",
 			{"key": "frost_layered_veil", "values": [0.5, 1.0], "requires": "rimeveil"}],
-		"r7c4": ["Ice Bath", 3, "Your heals on an ally carrying one of your Frost shields heal {v}% more.",
+		"r7c6": ["Ice Bath", 3, "Your heals on an ally carrying one of your Frost shields heal {v}% more.",
 			{"key": "frost_ice_bath", "values": [3.0, 6.0, 9.0]}],
-		"r8c3": ["Deep Snow", 3, "{n:rimefall}'s shields absorb {v}% more.",
+		"r8c4": ["Deep Snow", 3, "{n:rimefall}'s shields absorb {v}% more.",
 			{"key": "frost_deep_snow", "values": [10.0, 20.0, 30.0], "requires": "rimefall"}],
-		"r8c4": ["Cold Rush", 3, "Your Frost spells that heal or shield cast {v} sec faster on an ally below {b:LAST_SHELTER_HEALTH}% health.",
+		"r8c6": ["Cold Rush", 3, "Your Frost spells that heal or shield cast {v} sec faster on an ally below {b:LAST_SHELTER_HEALTH}% health.",
 			{"key": "frost_cold_rush", "values": [0.1, 0.2, 0.3]}],
-		"r9c3": ["Close Weave", 3, "Your heals on an ally linked by your {n:frostlattice} heal {v}% more.",
+		"r9c4": ["Close Weave", 3, "Your heals on an ally linked by your {n:frostlattice} heal {v}% more.",
 			{"key": "frost_close_weave", "values": [5.0, 10.0, 15.0], "requires": "frostlattice"}],
-		"r9c4": ["Splinterheal", 3, "Your shatters heal the lowest-health ally within {b:SPLINTERHEAL_RADIUS} m of the enemy for {v}% of the damage they deal.",
+		"r9c6": ["Splinterheal", 3, "Your shatters heal the lowest-health ally within {b:SPLINTERHEAL_RADIUS} m of the enemy for {v}% of the damage they deal.",
 			{"key": "frost_splinterheal", "values": [20.0, 35.0, 50.0]}],
-		"r10c4": ["Frozen Hearth", 5, "Your Frost shields absorb {v}% more and your Rime Shards heal {v}% more.",
+		"r10c5": ["Frozen Hearth", 5, "Your Frost shields absorb {v}% more and your Rime Shards heal {v}% more.",
 			{"key": "frost_frozen_hearth", "values": [2.0, 4.0, 6.0, 8.0, 10.0]}],
 		# --- Open talents: themed to the book (cold, shields, slows) but they work with
 		# every book's spells and abilities.
-		"r1c5": ["Frozen Focus", 3, "Increases your Haste by {v}%.",
+		"r1c7": ["Frozen Focus", 3, "Increases your Haste by {v}%.",
 			{"key": "frost_haste", "values": [0.7, 1.4, 2.1], "stats": {"haste": 0.7}}],
-		"r2c5": ["Frozen Mind", 3, "Increases your Spell Power by {v}% of your Intellect.",
+		"r2c7": ["Frozen Mind", 3, "Increases your Spell Power by {v}% of your Intellect.",
 			{"key": "frost_int_sp", "values": [2.0, 4.0, 6.0]}],
-		"r3c5": ["Rime Ward", 3, "Shields you apply absorb {v}% more damage.",
+		"r3c7": ["Rime Ward", 3, "Shields you apply absorb {v}% more damage.",
 			{"key": "frost_absorb", "values": [5.0, 10.0, 15.0]}],
-		"r4c5": ["Hardened Frost", 4, "Your absorb shields increase the armor of whoever they protect (you or an ally) by {v}% for their duration.",
+		"r4c7": ["Hardened Frost", 4, "Your absorb shields increase the armor of whoever they protect (you or an ally) by {v}% for their duration.",
 			{"key": "frost_shield_armor", "values": [2.0, 4.0, 6.0, 8.0]}],
-		"r5c5": ["Ice Floe", 2, "When an absorb shield you put on yourself breaks, you gain {v}% move speed for {b:ICE_FLOE_TIME} sec and the enemy that broke it is Chilled.",
+		"r5c7": ["Ice Floe", 2, "When an absorb shield you put on yourself breaks, you gain {v}% move speed for {b:ICE_FLOE_TIME} sec and the enemy that broke it is Chilled.",
 			{"key": "frost_ice_floe", "values": [10.0, 20.0]}],
-		"r6c5": ["Numbing Cold", 3, "You take {v}% less damage from enemies you slowed in the last {b:SLOW_MEMORY} sec.",
+		"r6c7": ["Numbing Cold", 3, "You take {v}% less damage from enemies you slowed in the last {b:SLOW_MEMORY} sec.",
 			{"key": "frost_slow_dr", "values": [2.0, 4.0, 6.0]}],
-		"r7c5": ["Glacial Heart", 3, "Slows on you are {v}% weaker.",
+		"r7c7": ["Glacial Heart", 3, "Slows on you are {v}% weaker.",
 			{"key": "frost_glacial_heart", "values": [5.0, 10.0, 15.0],
 			"capstone": "You gain {b:GLACIAL_HEART_HASTE}% Haste for every slow you have on an enemy, per target and per slow (Chilled and Frozen count separately)."}],
-		"r8c5": ["Cold Discipline", 3, "Reduces the mana cost of your spells by {v}% and the threat generated by your Frost spells by {v2}%.",
+		"r8c7": ["Cold Discipline", 3, "Reduces the mana cost of your spells by {v}% and the threat generated by your Frost spells by {v2}%.",
 			{"key": "frost_discipline", "values": [2.0, 3.0, 4.0], "values2": [5.0, 10.0, 15.0]}],
-		"r9c5": ["Winter Coat", 3, "You take {v}% less damage from spells.",
+		"r9c7": ["Winter Coat", 3, "You take {v}% less damage from spells.",
 			{"key": "frost_winter_coat", "values": [1.0, 2.0, 3.0]}],
 		# --- Frostbitten Steel (frost_steel.gd). Finishers: Calving and Icebreaker.
-		"r1c6": ["Sharp Glaze", 3, "Your Frost abilities deal {v}% more damage for each Glaze you hold.",
+		"r1c9": ["Sharp Glaze", 3, "Your Frost abilities deal {v}% more damage for each Glaze you hold.",
 			{"key": "frost_sharp_glaze", "values": [1.0, 2.0, 3.0]}],
-		"r1c7": ["Third Bite", 3, "Your Frost abilities that Freeze their target deal {v}% more damage.",
+		"r2c8": ["Third Bite", 3, "Your Frost abilities that Freeze their target deal {v}% more damage.",
 			{"key": "frost_third_bite", "values": [20.0, 40.0, 60.0]}],
-		"r2c6": ["Long Glaze", 3, "Your Glaze lasts {v} sec longer.",
+		"r2c9": ["Long Glaze", 3, "Your Glaze lasts {v} sec longer.",
 			{"key": "frost_long_glaze", "values": [2.0, 4.0, 6.0]}],
-		"r2c7": ["Glaze Hunger", 3, "When you gain Glaze, you have a {v}% chance to gain one more.",
+		"r2c10": ["Glaze Hunger", 3, "When you gain Glaze, you have a {v}% chance to gain one more.",
 			{"key": "frost_glaze_hunger", "values": [10.0, 20.0, 30.0]}],
-		"r3c6": ["Cold Sweep", 3, "When {n:hoarcleave} hits an enemy you had already Chilled, it has a {v}% chance to Freeze it instead of Chilling it.",
+		"r3c8": ["Cold Sweep", 3, "When {n:hoarcleave} hits an enemy you had already Chilled, it has a {v}% chance to Freeze it instead of Chilling it.",
 			{"key": "frost_cold_sweep", "values": [10.0, 20.0, 30.0], "requires": "hoarcleave"}],
-		"r3c7": ["Hard Glaze", 3, "Each Glaze your finishers spend gives you {v} Fury.",
+		"r3c10": ["Hard Glaze", 3, "Each Glaze your finishers spend gives you {v} Fury.",
 			{"key": "frost_hard_glaze", "values": [2.0, 4.0, 6.0]}],
 		# (values = what is added to Rime Edge's own damage.)
-		"r4c6": ["Honed Rime", 3, "The extra hit of your {n:rimeedge} deals {v+dmg:rimeedge} Frost damage, instead of {dmg:rimeedge}.",
+		"r4c8": ["Honed Rime", 3, "The extra hit of your {n:rimeedge} deals {v+dmg:rimeedge} Frost damage, instead of {dmg:rimeedge}.",
 			{"key": "frost_honed_rime", "values": [0.05, 0.1, 0.15], "requires": "rimeedge"}],
-		"r4c7": ["Clean Break", 3, "Your finishers give you {v} Fury back when they hit a target you have Frozen.",
+		"r4c10": ["Clean Break", 3, "Your finishers give you {v} Fury back when they hit a target you have Frozen.",
 			{"key": "frost_clean_break", "values": [7.0, 13.0, 20.0]}],
-		"r5c6": ["Ice Fall", 3, "{n:calving} deals {v}% more damage to its target for each other enemy it hits, up to {b:ICE_FALL_MAX_OTHERS}.",
+		"r5c8": ["Ice Fall", 3, "{n:calving} deals {v}% more damage to its target for each other enemy it hits, up to {b:ICE_FALL_MAX_OTHERS}.",
 			{"key": "frost_ice_fall", "values": [4.0, 8.0, 12.0], "requires": "calving"}],
-		"r5c7": ["Splitting Cold", 3, "Your finishers deal {v}% more damage to a target you have Frozen.",
+		"r5c10": ["Splitting Cold", 3, "Your finishers deal {v}% more damage to a target you have Frozen.",
 			{"key": "frost_splitting_cold", "values": [4.0, 8.0, 12.0]}],
 		# (values = Glaze added to Bitter Edge's own.)
-		"r6c6": ["Biting Hold", 2, "{n:bitteredge} gives you {v} more Glaze.",
+		"r6c8": ["Biting Hold", 2, "{n:bitteredge} gives you {v} more Glaze.",
 			{"key": "frost_biting_hold", "values": [1.0, 2.0], "requires": "bitteredge"}],
-		"r6c7": ["Shiver", 3, "Your critical strikes on a target you have Frozen have a {v}% chance to give you a Glaze. This can happen once every {b:SHIVER_EVERY} sec.",
+		"r6c10": ["Shiver", 3, "Your critical strikes on a target you have Frozen have a {v}% chance to give you a Glaze. This can happen once every {b:SHIVER_EVERY} sec.",
 			{"key": "frost_shiver", "values": [33.0, 66.0, 100.0]}],
-		"r7c6": ["Rime Grip", 3, "Your auto-attacks on a target you have Chilled give you {v} more Fury.",
+		"r7c8": ["Rime Grip", 3, "Your auto-attacks on a target you have Chilled give you {v} more Fury.",
 			{"key": "frost_rime_grip", "values": [1.0, 2.0, 3.0]}],
-		"r7c7": ["Cold Swing", 3, "Your melee abilities that hit {b:COLD_SWING_HITS} or more enemies give you {v} Fury.",
+		"r7c10": ["Cold Swing", 3, "Your melee abilities that hit {b:COLD_SWING_HITS} or more enemies give you {v} Fury.",
 			{"key": "frost_cold_swing", "values": [3.0, 6.0, 9.0]}],
-		"r8c6": ["Long Dark", 3, "{n:blackfrost} lasts {v} sec longer.",
+		"r8c9": ["Long Dark", 3, "{n:blackfrost} lasts {v} sec longer.",
 			{"key": "frost_long_dark", "values": [1.5, 2.5, 4.0], "requires": "blackfrost"}],
-		"r8c7": ["Thaw Strike", 3, "When a target you have Frozen thaws, your next finisher within {b:THAW_STRIKE_TIME} sec costs {v} less Fury.",
+		"r8c8": ["Thaw Strike", 3, "When a target you have Frozen thaws, your next finisher within {b:THAW_STRIKE_TIME} sec costs {v} less Fury.",
 			{"key": "frost_thaw_strike", "values": [5.0, 10.0, 15.0]}],
-		"r9c6": ["Quick Rime", 3, "Each Glaze you hold gives you {v}% attack speed.",
+		"r8c10": ["Quick Rime", 3, "Each Glaze you hold gives you {v}% attack speed.",
 			{"key": "frost_quick_rime", "values": [0.3, 0.6, 0.9]}],
-		"r9c7": ["Frost Heave", 3, "A finisher that spends {b:GLAZE_MAX} Glaze has a {v}% chance to Freeze its target.",
+		"r9c9": ["Frost Heave", 3, "A finisher that spends {b:GLAZE_MAX} Glaze has a {v}% chance to Freeze its target.",
 			{"key": "frost_frost_heave", "values": [33.0, 66.0, 100.0]}],
-		"r10c6": ["Glinting Rime", 5, "Each Glaze you hold gives your Frost abilities {v}% more critical strike chance.",
+		"r10c9": ["Glinting Rime", 5, "Each Glaze you hold gives your Frost abilities {v}% more critical strike chance.",
 			{"key": "frost_glinting_rime", "values": [0.2, 0.4, 0.6, 0.8, 1.0],
 			"capstone": "An {n:icebreaker} that spends {b:GLAZE_MAX} Glaze always critically strikes.",
 			"capstone_requires": "icebreaker"}],
 		# --- Glacier Wall (frost_glacier.gd).
-		"r1c8": ["Packed Ice", 3, "Each Ice Layer {n:shatteringslam} shatters into its target deals {v}% more damage.",
+		"r1c12": ["Packed Ice", 3, "Each Ice Layer {n:shatteringslam} shatters into its target deals {v}% more damage.",
 			{"key": "frost_packed_ice", "values": [13.0, 27.0, 40.0], "requires": "shatteringslam"}],
-		"r1c9": ["Cold Fury", 3, "Each of your Ice Layers that breaks gives you {v} more Fury.",
+		"r2c12": ["Cold Fury", 3, "Each of your Ice Layers that breaks gives you {v} more Fury.",
 			{"key": "frost_cold_fury", "values": [2.0, 4.0, 6.0]}],
-		"r2c8": ["Lasting Ice", 3, "Your Ice Layers last {v} sec longer.",
+		"r3c11": ["Lasting Ice", 3, "Your Ice Layers last {v} sec longer.",
 			{"key": "frost_lasting_ice", "values": [3.0, 6.0, 9.0]}],
-		"r2c9": ["Deep Ice", 2, "You can hold {v} more Ice Layers.",
+		"r3c13": ["Deep Ice", 2, "You can hold {v} more Ice Layers.",
 			{"key": "frost_deep_ice", "values": [1.0, 2.0]}],
 		# (values = what is added to Rimequake's own % per Layer.)
-		"r3c8": ["Deep Tremor", 3, "{n:rimequake} deals {v+b:RIMEQUAKE_PCT_PER_LAYER}% more damage for each Ice Layer you have, instead of {b:RIMEQUAKE_PCT_PER_LAYER}%.",
+		"r4c11": ["Deep Tremor", 3, "{n:rimequake} deals {v+b:RIMEQUAKE_PCT_PER_LAYER}% more damage for each Ice Layer you have, instead of {b:RIMEQUAKE_PCT_PER_LAYER}%.",
 			{"key": "frost_deep_tremor", "values": [3.0, 7.0, 10.0], "requires": "rimequake"}],
-		"r3c9": ["Spent Ice", 3, "Each Ice Layer you shatter into a target gives you {v} Fury.",
+		"r4c13": ["Spent Ice", 3, "Each Ice Layer you shatter into a target gives you {v} Fury.",
 			{"key": "frost_spent_ice", "values": [2.0, 4.0, 6.0]}],
-		"r4c8": ["Hoar Coat", 3, "Each Ice Layer you gain heals you for {v}% of your maximum health.",
+		"r5c11": ["Hoar Coat", 3, "Each Ice Layer you gain heals you for {v}% of your maximum health.",
 			{"key": "frost_hoar_coat", "values": [0.3, 0.6, 1.0]}],
-		"r4c9": ["Cold Retort", 3, "Each of your Ice Layers that breaks deals {vdmg:shatteringslam} Frost damage to the attacker.",
+		"r5c13": ["Cold Retort", 3, "Each of your Ice Layers that breaks deals {vdmg:shatteringslam} Frost damage to the attacker.",
 			{"key": "frost_cold_retort", "values": [0.05, 0.1, 0.15]}],
-		"r5c8": ["Turned Backs", 2, "{n:coldshoulder} also makes the {v} enemies nearest its target attack you and Chills them.",
+		"r6c11": ["Turned Backs", 2, "{n:coldshoulder} also makes the {v} enemies nearest its target attack you and Chills them.",
 			{"key": "frost_turned_backs", "values": [1.0, 2.0], "requires": "coldshoulder"}],
-		"r5c9": ["Rime Pressure", 3, "Your spells and abilities generate {v}% more threat for each Ice Layer you hold.",
+		"r6c12": ["Rime Pressure", 3, "Your spells and abilities generate {v}% more threat for each Ice Layer you hold.",
 			{"key": "frost_rime_pressure", "values": [1.0, 2.0, 3.0]}],
-		"r6c8": ["Regelation", 3, "Each Ice Layer that forms again during {n:hardrime} gives you {v} Fury.",
+		"r6c13": ["Regelation", 3, "Each Ice Layer that forms again during {n:hardrime} gives you {v} Fury.",
 			{"key": "frost_regelation", "values": [3.0, 7.0, 10.0], "requires": "hardrime"}],
-		"r6c9": ["Reforming", 3, "Each of your Ice Layers that breaks has a {v}% chance to form again at once.",
+		"r7c11": ["Reforming", 3, "Each of your Ice Layers that breaks has a {v}% chance to form again at once.",
 			{"key": "frost_reforming", "values": [5.0, 10.0, 15.0]}],
-		"r7c8": ["Cracking Ice", 3, "Each of your Ice Layers that breaks takes {v} sec off the cooldowns of your Frost abilities.",
+		"r7c12": ["Cracking Ice", 3, "Each of your Ice Layers that breaks takes {v} sec off the cooldowns of your Frost abilities.",
 			{"key": "frost_cracking_ice", "values": [0.1, 0.2, 0.3]}],
-		"r7c9": ["Steady Footing", 3, "While you hold {b:STEADY_FOOTING_LAYERS} or more Ice Layers, you take {v}% less damage.",
+		"r7c13": ["Steady Footing", 3, "While you hold {b:STEADY_FOOTING_LAYERS} or more Ice Layers, you take {v}% less damage.",
 			{"key": "frost_steady_footing", "values": [2.0, 4.0, 6.0]}],
-		"r8c8": ["Old Ice", 3, "{n:glacialbulwark} lasts {v} sec longer.",
+		"r8c12": ["Old Ice", 3, "{n:glacialbulwark} lasts {v} sec longer.",
 			{"key": "frost_old_ice", "values": [1.5, 2.5, 4.0], "requires": "glacialbulwark"}],
-		"r8c9": ["Rime Armor", 3, "Each Ice Layer you hold increases your Armor by {v}%.",
+		"r8c11": ["Rime Armor", 3, "Each Ice Layer you hold increases your Armor by {v}%.",
 			{"key": "frost_rime_armor", "values": [1.0, 2.0, 3.0]}],
-		"r9c8": ["Chilling Presence", 3, "You generate {v}% more threat against enemies you slowed in the last {b:SLOW_MEMORY} sec.",
+		"r8c13": ["Chilling Presence", 3, "You generate {v}% more threat against enemies you slowed in the last {b:SLOW_MEMORY} sec.",
 			{"key": "frost_slow_threat", "values": [5.0, 10.0, 15.0]}],
-		"r9c9": ["Full Strata", 3, "While you hold all the Ice Layers you can, your abilities deal {v}% more damage.",
+		"r9c12": ["Full Strata", 3, "While you hold all the Ice Layers you can, your abilities deal {v}% more damage.",
 			{"key": "frost_full_strata", "values": [5.0, 10.0, 15.0]}],
-		"r10c8": ["Deep Strata", 5, "Your Ice Layers absorb {v}% more damage.",
+		"r10c12": ["Deep Strata", 5, "Your Ice Layers absorb {v}% more damage.",
 			{"key": "frost_deep_strata", "values": [2.0, 4.0, 6.0, 8.0, 10.0],
 			"capstone": "When your last Ice Layer breaks, you gain one back at once. This can happen once every {b:DEEP_STRATA_COOLDOWN} sec."}],
 		# --- Winter Hunt (frost_bow.gd). Arrows: arrow abilities and auto-shots.
-		"r1c10": ["Cold Draw", 3, "Your hits on a target you have Chilled or Frozen give you {v} Energy, {v} Fury and {v2mana} mana. This can happen once every {b:COLD_DRAW_EVERY} sec.",
+		"r1c14": ["Cold Draw", 3, "Your hits on a target you have Chilled or Frozen give you {v} Energy, {v} Fury and {v2mana} mana. This can happen once every {b:COLD_DRAW_EVERY} sec.",
 			{"key": "frost_cold_draw", "values": [2.0, 4.0, 6.0], "values2": [0.1, 0.2, 0.3]}],
-		"r1c11": ["Frozen Quarry", 3, "Your arrows deal {v}% more damage to targets you have Frozen.",
+		"r1c16": ["Frozen Quarry", 3, "Your arrows deal {v}% more damage to targets you have Frozen.",
 			{"key": "frost_frozen_quarry", "values": [4.0, 8.0, 12.0]}],
-		"r2c10": ["Pinning Frost", 3, "Your arrows deal {v}% more damage to targets you have rooted.",
+		"r2c14": ["Pinning Frost", 3, "Your arrows deal {v}% more damage to targets you have rooted.",
 			{"key": "frost_pinning_frost", "values": [5.0, 10.0, 15.0]}],
-		"r2c11": ["Black Ice", 3, "The first Chill the ice of your {n:icyretreat} puts on each enemy has a {v}% chance to be a Freeze instead.",
+		"r2c15": ["Black Ice", 3, "The first Chill the ice of your {n:icyretreat} puts on each enemy has a {v}% chance to be a Freeze instead.",
 			{"key": "frost_black_ice", "values": [33.0, 67.0, 100.0], "requires": "icyretreat"}],
-		"r3c10": ["Clean Shatter", 3, "When {n:shattershot} breaks your Freeze, it refunds {v} Energy and takes {v2} sec off its own cooldown.",
+		"r2c16": ["Clean Shatter", 3, "When {n:shattershot} breaks your Freeze, it refunds {v} Energy and takes {v2} sec off its own cooldown.",
 			{"key": "frost_clean_shatter", "values": [7.0, 13.0, 20.0], "values2": [1.5, 2.5, 4.0], "requires": "shattershot"}],
-		"r3c11": ["Frost Fletching", 3, "Your auto-shots deal {v}% more damage to targets you have Chilled.",
+		"r3c14": ["Frost Fletching", 3, "Your auto-shots deal {v}% more damage to targets you have Chilled.",
 			{"key": "frost_frost_fletching", "values": [3.0, 6.0, 9.0]}],
-		"r4c10": ["Cold Harvest", 3, "Each shot of your {n:rimefletch} that Freezes its target gives you {v} Energy.",
+		"r3c15": ["Cold Harvest", 3, "Each shot of your {n:rimefletch} that Freezes its target gives you {v} Energy.",
 			{"key": "frost_cold_harvest", "values": [3.0, 7.0, 10.0], "requires": "rimefletch"}],
-		"r4c11": ["Rime Tips", 3, "Your auto-shots have a {v}% chance to Chill their target.",
+		"r3c16": ["Rime Tips", 3, "Your auto-shots have a {v}% chance to Chill their target.",
 			{"key": "frost_rime_tips", "values": [5.0, 10.0, 15.0]}],
-		"r5c10": ["Thin Ice", 3, "{n:glacialdraw} casts {v} sec faster on a target you have Chilled.",
+		"r4c15": ["Thin Ice", 3, "{n:glacialdraw} casts {v} sec faster on a target you have Chilled.",
 			{"key": "frost_thin_ice", "values": [0.3, 0.7, 1.0], "requires": "glacialdraw"}],
-		"r5c11": ["Marked Ice", 3, "Your arrow abilities that hit a target you have Chilled have a {v}% chance to give you an Ice Shard charge.",
+		"r5c15": ["Marked Ice", 3, "Your arrow abilities that hit a target you have Chilled have a {v}% chance to give you an Ice Shard charge.",
 			{"key": "frost_marked_ice", "values": [10.0, 20.0, 30.0]}],
-		"r6c10": ["Winter Quiver", 3, "Your arrow abilities that critically strike give you {v} Energy.",
+		"r6c15": ["Winter Quiver", 3, "Your arrow abilities that critically strike give you {v} Energy.",
 			{"key": "frost_winter_quiver", "values": [4.0, 8.0, 12.0]}],
-		"r6c11": ["Splitting Arrow", 3, "Your arrows that hit a target you have Frozen splinter into one other enemy within {b:SPLITTING_ARROW_RANGE} m, dealing {v}% of their damage as Frost damage.",
+		"r7c14": ["Splitting Arrow", 3, "Your arrows that hit a target you have Frozen splinter into one other enemy within {b:SPLITTING_ARROW_RANGE} m, dealing {v}% of their damage as Frost damage.",
 			{"key": "frost_splitting_arrow", "values": [10.0, 20.0, 30.0]}],
-		"r7c10": ["Deep Pin", 3, "Your roots last {v} sec longer.",
+		"r7c15": ["Deep Pin", 3, "Your roots last {v} sec longer.",
 			{"key": "frost_deep_pin", "values": [1.0, 2.0, 3.0]}],
-		"r7c11": ["Numb Prey", 3, "Your auto-shots deal {v}% more damage to targets you have Frozen.",
+		"r7c16": ["Numb Prey", 3, "Your auto-shots deal {v}% more damage to targets you have Frozen.",
 			{"key": "frost_numb_prey", "values": [3.0, 6.0, 9.0]}],
-		"r8c10": ["Swift Ice", 3, "Your auto-shots and auto-attacks are {v}% faster against a target you have Chilled.",
+		"r8c14": ["Swift Ice", 3, "Your auto-shots and auto-attacks are {v}% faster against a target you have Chilled.",
 			{"key": "frost_swift_ice", "values": [2.0, 4.0, 6.0]}],
-		"r8c11": ["Ice Hunger", 3, "Freezing an enemy gives you {v} Energy.",
+		"r8c15": ["Ice Hunger", 3, "Freezing an enemy gives you {v} Energy.",
 			{"key": "frost_ice_hunger", "values": [5.0, 10.0, 15.0]}],
-		"r9c10": ["Cold Eye", 3, "Your arrows that critically strike a target you have Frozen deal {v}% more damage.",
+		"r8c16": ["Cold Eye", 3, "Your arrows that critically strike a target you have Frozen deal {v}% more damage.",
 			{"key": "frost_cold_eye", "values": [5.0, 10.0, 15.0]}],
-		"r9c11": ["Sleet Arrows", 2, "Your arrow abilities that Chill their target also Chill the {v} enemies nearest it, within {b:SLEET_ARROWS_RANGE} m.",
+		"r9c15": ["Sleet Arrows", 2, "Your arrow abilities that Chill their target also Chill the {v} enemies nearest it, within {b:SLEET_ARROWS_RANGE} m.",
 			{"key": "frost_sleet_arrows", "values": [1.0, 2.0]}],
-		"r10c10": ["Bitter Hunt", 5, "Your arrows deal {v}% more damage for each of your slows on the target (Chilled, Frozen and rooted each count).",
+		"r10c15": ["Bitter Hunt", 5, "Your arrows deal {v}% more damage for each of your slows on the target (Chilled, Frozen and rooted each count).",
 			{"key": "frost_bitter_hunt", "values": [1.0, 2.0, 3.0, 4.0, 5.0]}],
 	},
 	"lightning": {
-		# Open talents: themed to the book (jumping on, tempo, standing your ground)
-		# but they work with every book's spells and abilities (player.gd, "Fire and
-		# Lightning: the open talents"). They took new slots in the middle of rows 1,
-		# 3 and 4. Change of Pace: Player._change_of_pace; Spillover:
-		# Player._spillover_talent; Dig In: Player._tick_dig_in.
-		"r1c4": ["Change of Pace", 3, "Using a different spell or ability than the last one you used increases your damage by {v}% for {b:CHANGE_OF_PACE_TIME} sec, stacking up to {b:CHANGE_OF_PACE_STACKS} times. Using the same one twice in a row ends it.",
-			{"key": "lightning_change_of_pace", "values": [1.0, 2.0, 3.0]}],
-		"r3c4": ["Spillover", 3, "When one of your direct hits critically strikes, {v}% of its damage jumps to another enemy within {b:SPILLOVER_RADIUS} m.",
-			{"key": "lightning_spillover", "values": [5.0, 10.0, 15.0]}],
-		"r4c4": ["Dig In", 3, "After you stand still for {b:DIG_IN_TIME} sec, you deal {v}% more damage until you move.",
-			{"key": "lightning_dig_in", "values": [2.0, 4.0, 6.0]}],
-		# Generic Lightning talents (no ability needed) in rows 1 and 2. Quick Charge is
-		# in Player._tick_resources, Deep Reserves in Player.resource_max, Conductive in
-		# Player.adjust_crit, Running on Empty in Player._on_damage_modify.
-		"r1c2": ["Quick Charge", 3, "Your Energy regenerates {v}% faster.",
-			{"key": "lightning_quick_charge", "values": [5.0, 10.0, 15.0]}],
-		"r1c6": ["Conductive", 3, "Increases the critical strike chance of your Lightning damage by {v}%.",
+		# The ribbon layout (GROUPS, 13 columns): Live Current (the caster) in columns
+		# 1-3, Stormdancer (melee) in 4-6, the open talents on the spine (column 7),
+		# Lightning Rod (the parry tank) in 8-10 and Stormstring (the bow, unfinished: a
+		# short ribbon of its Storm Arrow talents, no shape or capstone yet) in 11-13.
+		# Rows 1-9 hold 18 talents per finished spec in its shape (SHAPES); row 10 its
+		# 5-rank capstone, which needs Balance.CAPSTONE_GATE points in the spec. Most key
+		# off the book's words (Energy gained and spent, spending all of it, leaps, the
+		# lingering lightning, auto-attacks, weapon abilities, parries, arcs...).
+		# Code: lightning_talents.gd (the hits' bonuses, Energy spent and gained, parries)
+		# and each spec's component (lightning_caster.gd, lightning_bottled.gd,
+		# lightning_melee.gd, lightning_tank.gd, lightning_bow.gd).
+		# --- Live Current.
+		"r1c1": ["Long Leap", 3, "Your Lightning spells' leaps and forks (the leaps of {n:chainlightning}, the second prong of {n:forkedbolt}) deal {v}% more damage.",
+			{"key": "lightning_long_leap", "values": [6.0, 12.0, 18.0]}],
+		"r1c3": ["Charged Air", 2, "Each Lightning spell with a cast time gives you {v} Energy when you finish casting it.",
+			{"key": "lightning_charged_air", "values": [1.0, 2.0]}],
+		# Quick Fuse: Abilities.base_cast_time and Player._begin_spell; Tight Coil: ball_lightning_zapped.
+		"r2c1": ["Quick Fuse", 3, "{n:lightningbolt} casts {v} sec faster.",
+			{"key": "lightning_quick_fuse", "values": [0.1, 0.15, 0.2], "requires": "lightningbolt"}],
+		"r2c2": ["Deep Reserves", 3, "Increases your maximum Energy by {v}.",
+			{"key": "lightning_deep_reserves", "values": [7.0, 13.0, 20.0]}],
+		"r2c3": ["Tight Coil", 2, "Each zap of your {n:balllightning} gives you {v} more Energy.",
+			{"key": "lightning_tight_coil", "values": [1.0, 2.0], "requires": "balllightning"}],
+		"r3c1": ["Feedback", 3, "Your Lightning spells that give you Energy give you {v}% more.",
+			{"key": "lightning_feedback", "values": [10.0, 20.0, 30.0]}],
+		"r3c2": ["Lingering Storm", 2, "Your {n:balllightning} and {n:thunderhead} last {v} sec longer.",
+			{"key": "lightning_lingering_storm", "values": [1.5, 3.0]}],
+		"r3c3": ["Crackle", 3, "Your {n:balllightning}, {n:thunderhead} and {n:livewire} deal {v}% more damage.",
+			{"key": "lightning_crackle", "values": [4.0, 8.0, 12.0]}],
+		# Conductive: Player.adjust_crit. Conductor: lightning_caster._conductor.
+		"r4c1": ["Conductive", 3, "Increases the critical strike chance of your Lightning damage by {v}%.",
 			{"key": "lightning_conductive", "values": [1.0, 2.0, 3.0]}],
-		"r2c3": ["Deep Reserves", 2, "Increases your maximum Energy by {v}.",
-			{"key": "lightning_deep_reserves", "values": [10.0, 20.0]}],
-		"r2c5": ["Running on Empty", 3, "While you have less than {b:RUNNING_ON_EMPTY_ENERGY} Energy, your Lightning spells and abilities deal {v}% more damage.",
-			{"key": "lightning_running_on_empty", "values": [3.0, 6.0, 9.0]}],
-		# The Lightning melee talents sit down the left side of the book (player.gd,
-		# "Lightning melee").
-		# (r3c1 is empty: Honed Edge was folded into Charged Edge's Energy.)
-		"r4c3": ["Running Start", 3, "{n:staticstep} gives you {v} Energy when it carries you at least {b:RUNNING_START_DISTANCE} m.",
-			{"key": "lightning_running_start", "values": [7.0, 13.0, 20.0], "requires": "staticstep"}],
-		"r5c2": ["Third Beat", 3, "The third strike of {n:cadence} deals {v}% more damage.",
+		"r4c2": ["High Voltage", 3, "While you have more than {b:HIGH_VOLTAGE_ENERGY} Energy, your Lightning damage is increased by {v}%.",
+			{"key": "lightning_high_voltage", "values": [4.0, 7.0, 10.0]}],
+		"r4c3": ["Deep Draw", 3, "Your abilities that spend all your Energy count {v}% more Energy than they spent.",
+			{"key": "lightning_deep_draw", "values": [5.0, 10.0, 15.0]}],
+		"r5c2": ["Standing Charge", 3, "Each second you stay planted in {n:groundingsurge} increases your Lightning damage by {v}%, stacking up to {b:STANDING_CHARGE_MAX_STACKS} times. The stacks are lost when it ends.",
+			{"key": "lightning_standing_charge", "values": [2.0, 4.0, 6.0], "requires": "groundingsurge"}],
+		"r6c1": ["Conductor", 3, "Your critical strikes with Lightning spells and abilities give you {v} Energy. Their arcs, zaps and periodic damage do not count, and one that hits several enemies counts once.",
+			{"key": "lightning_conductor", "values": [4.0, 7.0, 10.0]}],
+		"r6c3": ["Afterflow", 3, "After you spend all your Energy, your Energy regenerates {v}% faster for {b:AFTERFLOW_TIME} sec.",
+			{"key": "lightning_afterflow", "values": [20.0, 40.0, 60.0]}],
+		"r7c2": ["Overflow", 3, "When you take your Energy back from {n:capacitor}, the Energy that doesn't fit in your bar becomes a shield on you for {b:OVERFLOW_TIME} sec, absorbing {vdmg:capacitor} damage per {b:ENERGY_STEP} Energy.",
+			{"key": "lightning_overflow", "values": [0.07, 0.13, 0.2], "requires": "capacitor"}],
+		"r8c1": ["Parting Spark", 3, "{n:flicker} zaps every enemy within {b:PARTING_SPARK_RADIUS} m of the spot you left for {vdmg:flicker} Lightning damage.",
+			{"key": "lightning_parting_spark", "values": [0.25, 0.55, 0.8], "requires": "flicker"}],
+		"r8c3": ["Snap Cast", 2, "Your Lightning spells that critically strike have a {v}% chance to make your next {n:lightningbolt} within {b:SNAP_CAST_TIME} sec instant.",
+			{"key": "lightning_snap_cast", "values": [15.0, 30.0]}],
+		"r9c2": ["Full Circuit", 3, "When your Energy reaches full, your next Lightning spell within {b:FULL_CIRCUIT_TIME} sec deals {v}% more damage.",
+			{"key": "lightning_full_circuit", "values": [8.0, 16.0, 24.0]}],
+		# Storm Cycle: lightning_bottled._storm_cycle_spent.
+		"r10c2": ["Storm Cycle", 5, "Every {v} Energy you spend makes your next Energy cost free (kept for up to {b:STORM_CYCLE_TIME} sec). Abilities that spend all your Energy are counted, but are never the free one.",
+			{"key": "lightning_storm_cycle", "values": [200.0, 180.0, 160.0, 140.0, 120.0]}],
+		# --- Stormdancer. "Lightning weapon abilities": Lightning abilities that swing a
+		# weapon (LightningTalentsKit.weapon_ability).
+		"r1c4": ["Charged Strikes", 3, "Your auto-attacks give you {v} Energy.",
+			{"key": "lightning_charged_strikes", "values": [1.0, 2.0, 3.0]}],
+		"r1c6": ["Quick Charge", 3, "Your Energy regenerates {v}% faster.",
+			{"key": "lightning_quick_charge", "values": [5.0, 10.0, 15.0]}],
+		"r2c4": ["Keen Current", 2, "Increases the critical strike chance of your auto-attacks by {v}%.",
+			{"key": "lightning_keen_current", "values": [1.5, 3.0]}],
+		"r2c6": ["Edge Current", 3, "Your Lightning weapon abilities that give you Energy give you {v} more.",
+			{"key": "lightning_edge_current", "values": [2.0, 4.0, 6.0]}],
+		"r3c4": ["Whip Crack", 3, "Hitting a target more than {b:WHIP_CRACK_DISTANCE} m away with {n:whiplash} resets the cooldown of {n:staticstep} and makes your next {n:staticstep} within {b:WHIP_CRACK_TIME} sec cost {v} less Energy.",
+			{"key": "lightning_whip_crack", "values": [7.0, 13.0, 20.0], "requires": "whiplash"}],
+		"r3c5": ["Third Beat", 3, "The third strike of {n:cadence} deals {v}% more damage.",
 			{"key": "lightning_third_beat", "values": [10.0, 20.0, 30.0], "requires": "cadence",
 			"capstone": "The third strike also gives you {b:THIRD_BEAT_ENERGY} Energy."}],
-		"r6c1": ["Redline", 3, "Every ability that spends Energy while {n:overdrive} is active makes it last {v} sec longer, up to {b:REDLINE_MAX} sec more in total.",
+		"r3c6": ["Running Start", 3, "{n:staticstep} gives you {v} Energy when it carries you at least {b:RUNNING_START_DISTANCE} m.",
+			{"key": "lightning_running_start", "values": [7.0, 13.0, 20.0], "requires": "staticstep"}],
+		"r4c4": ["Sparking Swings", 3, "Your auto-attacks have a {v}% chance to zap the target for {bdmg:SPARKING_SWINGS_DAMAGE} Lightning damage.",
+			{"key": "lightning_sparking_swings", "values": [5.0, 10.0, 15.0]}],
+		"r4c6": ["Running on Empty", 3, "While you have less than {b:RUNNING_ON_EMPTY_ENERGY} Energy, your Lightning spells and abilities deal {v}% more damage.",
+			{"key": "lightning_running_on_empty", "values": [3.0, 6.0, 9.0]}],
+		"r5c4": ["Afterspark", 3, "Each Lightning ability that spends Energy makes your next auto-attack within {b:AFTERSPARK_TIME} sec deal {v}% more damage.",
+			{"key": "lightning_afterspark", "values": [10.0, 20.0, 30.0]}],
+		"r5c6": ["Built Charge", 3, "Every {b:BUILT_CHARGE_EVERY} Energy you spend makes your next Lightning weapon ability within {b:BUILT_CHARGE_TIME} sec deal {v}% more damage.",
+			{"key": "lightning_built_charge", "values": [15.0, 30.0, 45.0]}],
+		"r6c5": ["Redline", 3, "Every ability that spends Energy while {n:overdrive} is active makes it last {v} sec longer, up to {b:REDLINE_MAX} sec more in total.",
 			{"key": "lightning_redline", "values": [0.3, 0.7, 1.0], "requires": "overdrive"}],
-		# More generic ones, filling out rows 1-3. Quick Pulse and Quick Step are plain
-		# stats; Storm-Tempered is worked out in PlayerData._compute_total_stats;
-		# Charged Strikes in Player._on_auto_landed; Calm Current in Player._on_damage_modify.
-		"r1c3": ["Quick Pulse", 3, "Increases your Haste by {v}%.",
-			{"key": "lightning_live_current", "values": [1.0, 2.0, 3.0], "stats": {"haste": 1.0}}],
-		"r1c5": ["Charged Strikes", 3, "Your auto-attacks give you {v} Energy.",
-			{"key": "lightning_charged_strikes", "values": [1.0, 2.0, 3.0]}],
-		"r2c1": ["Storm-Tempered", 3, "Increases your Attack Power by {v}% of your Agility.",
-			{"key": "lightning_storm_tempered", "values": [2.0, 4.0, 6.0]}],
-		"r2c7": ["Quick Step", 3, "Increases your Dodge chance by {v}%.",
-			{"key": "lightning_quick_step", "values": [1.0, 2.0, 3.0], "stats": {"dodge": 1.0}}],
-		"r3c3": ["Calm Current", 3, "Your Lightning spells and abilities generate {v}% less threat.",
-			{"key": "lightning_calm_current", "values": [5.0, 10.0, 15.0]}],
-		# More ability talents. Overflow: Player._capacitor; Parting Spark:
-		# Player._flicker; Second Stroke: Player._use_drafted; Hot Wire: Player._on_auto_landed.
-		"r8c3": ["Overflow", 3, "When you take your Energy back from {n:capacitor}, the Energy that doesn't fit in your bar becomes a shield on you for {b:OVERFLOW_TIME} sec, absorbing {vdmg:capacitor} damage per {b:ENERGY_STEP} Energy.",
-			{"key": "lightning_overflow", "values": [0.07, 0.13, 0.2], "requires": "capacitor"}],
-		"r8c6": ["Parting Spark", 3, "{n:flicker} zaps every enemy within {b:PARTING_SPARK_RADIUS} m of the spot you left for {vdmg:flicker} Lightning damage.",
-			{"key": "lightning_parting_spark", "values": [0.25, 0.55, 0.8], "requires": "flicker"}],
-		"r6c7": ["Second Stroke", 3, "{n:returnstroke} has a {v}% chance not to close its window, so you can answer the same parry twice.",
-			{"key": "lightning_second_stroke", "values": [10.0, 20.0, 30.0], "requires": "returnstroke"}],
-		"r9c2": ["Hot Wire", 3, "Each echo of {n:twincurrent} has a {v}% chance not to use up a charge.",
+		"r7c4": ["Light Load", 2, "While you have less than {b:LIGHT_LOAD_ENERGY} Energy, your auto-attacks are {v}% faster.",
+			{"key": "lightning_light_load", "values": [5.0, 10.0]}],
+		"r7c6": ["Spinning Up", 3, "Every {b:SPINNING_UP_EVERY} Energy you spend takes {v} sec off the cooldowns of your Lightning weapon abilities.",
+			{"key": "lightning_spinning_up", "values": [0.2, 0.4, 0.6]}],
+		"r8c4": ["Hot Wire", 3, "Each echo of {n:twincurrent} has a {v}% chance not to use up a charge.",
 			{"key": "lightning_hot_wire", "values": [17.0, 33.0, 50.0], "requires": "twincurrent"}],
-		# The Lightning bow: three talents for Storm Arrow (player.gd, "Storm Arrow
-		# talents"). Each ties the arrow to a spell: Flicker, Lightning Bolt, Capacitor.
-		"r9c4": ["Snap Shot", 3, "{n:flicker} resets the cooldown of {n:stormarrow} and makes your next {n:stormarrow} within {b:SNAP_SHOT_TIME} sec cost {v} less Energy.",
-			{"key": "lightning_snap_shot", "values": [10.0, 20.0, 30.0], "requires": "stormarrow"}],
-		"r7c4": ["Grounded Arrow", 3, "{n:stormarrow} stays stuck in its target for {e:lightning_rod.time} sec. Your {n:lightningbolt} hitting that target also arcs to every enemy within {b:LIGHTNING_ROD_RADIUS} m of it for {v}% of the damage it dealt.",
-			{"key": "lightning_rod", "values": [13.0, 27.0, 40.0], "requires": "stormarrow"}],
-		"r9c6": ["Loaded Quiver", 2, "Taking your Energy back from {n:capacitor} loads {v} {n:stormarrow} for {b:LOADED_QUIVER_TIME} sec: each costs no Energy and ignores its cooldown.",
-			{"key": "lightning_loaded_quiver", "values": [1.0, 2.0], "requires": "stormarrow"}],
-		# Long Reach is generic (PlayerData._compute_total_stats). The Lightning tank
-		# talents sit down the right side of the book (player.gd, "Lightning tank").
-		# (Moved down from the middle of row 2 to make room: see MOVED.)
-		"r3c5": ["Long Reach", 3, "Increases your Parry chance by {v}% while you wield a two-handed weapon.",
+		"r8c6": ["Charged Steel", 3, "Critical strikes of your Lightning weapon abilities deal {v}% more damage.",
+			{"key": "lightning_charged_steel", "values": [5.0, 10.0, 15.0]}],
+		"r9c4": ["Short Fuse", 2, "Your Lightning weapon abilities trigger a global cooldown {v} sec shorter.",
+			{"key": "lightning_short_fuse", "values": [0.05, 0.1]}],
+		"r9c6": ["Calm Current", 3, "Your Lightning spells and abilities generate {v}% less threat.",
+			{"key": "lightning_calm_current", "values": [5.0, 10.0, 15.0]}],
+		"r10c5": ["Storm Dance", 5, "Your Lightning weapon abilities deal {v}% more damage.",
+			{"key": "lightning_storm_dance", "values": [2.0, 4.0, 6.0, 8.0, 10.0],
+			"capstone": "Each zap of your {n:overdrive} also hits one other enemy within {b:STORM_DANCE_REACH} m of the target.",
+			"capstone_requires": "overdrive"}],
+		# --- Open talents: themed to the book (speed, tempo, standing your ground,
+		# moving) but they work with every book's spells and abilities
+		# (open_talents_fire_lightning.gd).
+		"r1c7": ["Quick Pulse", 3, "Increases your Haste by {v}%.",
+			{"key": "lightning_live_current", "values": [1.0, 2.0, 3.0], "stats": {"haste": 1.0}}],
+		"r2c7": ["Change of Pace", 3, "Using a different spell or ability than the last one you used increases your damage by {v}% for {b:CHANGE_OF_PACE_TIME} sec, stacking up to {b:CHANGE_OF_PACE_STACKS} times. Using the same one twice in a row ends it.",
+			{"key": "lightning_change_of_pace", "values": [1.0, 2.0, 3.0]}],
+		"r3c7": ["Storm-Tempered", 3, "Increases your Attack Power by {v}% of your Agility.",
+			{"key": "lightning_storm_tempered", "values": [2.0, 4.0, 6.0]}],
+		"r4c7": ["Spillover", 3, "When one of your direct hits critically strikes, {v}% of its damage jumps to another enemy within {b:SPILLOVER_RADIUS} m.",
+			{"key": "lightning_spillover", "values": [5.0, 10.0, 15.0]}],
+		"r5c7": ["Quick Step", 3, "Increases your Dodge chance by {v}%.",
+			{"key": "lightning_quick_step", "values": [1.0, 2.0, 3.0], "stats": {"dodge": 1.0}}],
+		"r6c7": ["Dig In", 3, "After you stand still for {b:DIG_IN_TIME} sec, you deal {v}% more damage until you move.",
+			{"key": "lightning_dig_in", "values": [2.0, 4.0, 6.0]}],
+		"r7c7": ["Cut the Line", 3, "Using an interrupt gives you {v}% Haste for {b:CUT_THE_LINE_TIME} sec.",
+			{"key": "lightning_cut_the_line", "values": [3.0, 6.0, 9.0]}],
+		"r8c7": ["Fresh Charge", 3, "While you are above {b:FRESH_CHARGE_HEALTH}% health, your spells and abilities deal {v}% more damage.",
+			{"key": "lightning_fresh_charge", "values": [2.0, 4.0, 6.0]}],
+		"r9c7": ["Static Build", 3, "Every {b:STATIC_BUILD_STEP} m you move gives you a stack, up to {b:STATIC_BUILD_STACKS}. Your next spell or ability uses them all and deals {v}% more damage per stack.",
+			{"key": "lightning_static_build", "values": [2.0, 4.0, 6.0]}],
+		# --- Lightning Rod (the parry tank; lightning_tank.gd).
+		"r1c9": ["Long Reach", 3, "Increases your Parry chance by {v}% while you wield a two-handed weapon.",
 			{"key": "lightning_long_reach", "values": [1.0, 2.0, 3.0]}],
-		"r3c7": ["Counter-Charge", 3, "{n:returnstroke} deals {v}% more damage.",
+		"r2c8": ["Spark Guard", 3, "Each attack you parry zaps the attacker for {vdmg:stormshield} Lightning damage with {b:SPARK_GUARD_THREAT}x threat.",
+			{"key": "lightning_spark_guard", "values": [0.1, 0.2, 0.3]}],
+		"r2c9": ["Closed Circuit", 3, "Attacks you parry while {n:thunderaegis} is active give you {v} more Energy.",
+			{"key": "lightning_closed_circuit", "values": [2.0, 4.0, 6.0], "requires": "thunderaegis"}],
+		"r2c10": ["Loud Steel", 2, "While you wield a two-handed weapon, your Lightning spells and abilities generate {v}% more threat.",
+			{"key": "lightning_loud_steel", "values": [8.0, 16.0]}],
+		"r3c9": ["Quick Wrists", 3, "Each attack you parry takes {v} sec off the cooldown of {n:crossguard}.",
+			{"key": "lightning_quick_wrists", "values": [0.3, 0.7, 1.0], "requires": "crossguard"}],
+		"r4c8": ["Counter-Charge", 3, "{n:returnstroke} deals {v}% more damage.",
 			{"key": "lightning_counter_charge", "values": [10.0, 20.0, 30.0], "requires": "returnstroke",
 			"capstone": "It also arcs to up to {b:COUNTER_CHARGE_JUMPS} nearby enemies, dealing {bdmg:COUNTER_CHARGE_ARC} Lightning damage to each."}],
-		"r4c5": ["Closed Circuit", 3, "Attacks you parry while {n:thunderaegis} is active give you {v} more Energy.",
-			{"key": "lightning_closed_circuit", "values": [2.0, 4.0, 6.0], "requires": "thunderaegis"}],
-		"r5c6": ["Quick Wrists", 3, "Each attack you parry takes {v} sec off the cooldown of {n:crossguard}.",
-			{"key": "lightning_quick_wrists", "values": [0.3, 0.7, 1.0], "requires": "crossguard"}],
-		# Caster talents sit down the middle of the book. Quick Fuse: Abilities.base_cast_time
-		# and Player._begin_spell; Tight Coil: Player.ball_lightning_zapped.
-		"r6c4": ["Quick Fuse", 3, "{n:lightningbolt} casts {v} sec faster.",
-			{"key": "lightning_quick_fuse", "values": [0.1, 0.15, 0.2], "requires": "lightningbolt"}],
-		"r5c4": ["Tight Coil", 2, "Each zap of your {n:balllightning} gives you {v} more Energy.",
-			{"key": "lightning_tight_coil", "values": [1.0, 2.0], "requires": "balllightning"}],
-		# Generic (any parry): Player._parry_kit_hit_taken.
-		"r7c5": ["Earth Return", 2, "Each attack you parry heals you for {v}% of your maximum health.",
-			{"key": "lightning_earth_return", "values": [0.5, 1.0]}],
-		# Player._tick_standing_charge / _on_damage_modify.
-		"r7c3": ["Standing Charge", 3, "Each second you stay planted in {n:groundingsurge} increases your Lightning damage by {v}%, stacking up to {b:STANDING_CHARGE_MAX_STACKS} times. The stacks are lost when it ends.",
-			{"key": "lightning_standing_charge", "values": [2.0, 4.0, 6.0], "requires": "groundingsurge"}],
-		# Player._whiplash / resource_cost.
-		"r8c2": ["Whip Crack", 3, "Hitting a target more than {b:WHIP_CRACK_DISTANCE} m away with {n:whiplash} resets the cooldown of {n:staticstep} and makes your next {n:staticstep} within {b:WHIP_CRACK_TIME} sec cost {v} less Energy.",
-			{"key": "lightning_whip_crack", "values": [7.0, 13.0, 20.0], "requires": "whiplash"}],
-		# Player._pay / _storm_cycle_spent.
-		"r10c4": ["Storm Cycle", 5, "Every {v} Energy you spend makes your next Energy cost free (kept for up to {b:STORM_CYCLE_TIME} sec). Abilities that spend all your Energy are counted, but are never the free one.",
-			{"key": "lightning_storm_cycle", "values": [200.0, 180.0, 160.0, 140.0, 120.0]}],
-		# The bottom row: for any Lightning build (Player._conductor, Player._on_damage_modify).
-		"r10c3": ["Conductor", 5, "Your critical strikes with Lightning spells and abilities give you {v} Energy. Their arcs, zaps and periodic damage do not count, and one that hits several enemies counts once.",
-			{"key": "lightning_conductor", "values": [2.0, 4.0, 6.0, 8.0, 10.0]}],
-		"r10c5": ["High Voltage", 5, "While you have more than {b:HIGH_VOLTAGE_ENERGY} Energy, your Lightning damage is increased by {v}%.",
-			{"key": "lightning_high_voltage", "values": [2.0, 4.0, 6.0, 8.0, 10.0]}],
-		# Generic (any parry): Player._parry_kit_hit_taken, Player.auto_interval.
-		"r8c5": ["Tempo", 3, "Each attack you parry increases your attack speed by {v}% for {b:TEMPO_TIME} sec, stacking up to {b:TEMPO_MAX_STACKS} times.",
+		"r4c9": ["Charged Guard", 3, "Each attack you parry makes the next hit you take within {b:CHARGED_GUARD_TIME} sec deal {v}% less damage.",
+			{"key": "lightning_charged_guard", "values": [4.0, 8.0, 12.0]}],
+		"r4c10": ["Earth Return", 3, "Each attack you parry heals you for {v}% of your maximum health.",
+			{"key": "lightning_earth_return", "values": [0.3, 0.7, 1.0]}],
+		"r5c9": ["Draw Down", 3, "Every {b:ENERGY_STEP} Energy you spend heals you for {v}% of your maximum health.",
+			{"key": "lightning_draw_down", "values": [0.1, 0.2, 0.3]}],
+		"r6c9": ["Ring True", 3, "Your Lightning hits on every enemy around you ({n:shockring}, {n:arccleave}, {n:arcflash} and the third strike of {n:cadence}) deal {v}% more damage and threat.",
+			{"key": "lightning_ring_true", "values": [5.0, 10.0, 15.0]}],
+		"r7c8": ["Second Stroke", 3, "{n:returnstroke} has a {v}% chance not to close its window, so you can answer the same parry twice.",
+			{"key": "lightning_second_stroke", "values": [10.0, 20.0, 30.0], "requires": "returnstroke"}],
+		"r7c10": ["Tempo", 3, "Each attack you parry increases your attack speed by {v}% for {b:TEMPO_TIME} sec, stacking up to {b:TEMPO_MAX_STACKS} times.",
 			{"key": "lightning_tempo", "values": [2.0, 4.0, 6.0]}],
+		"r8c8": ["Hard Lessons", 3, "Each hit you take that you don't dodge, parry or block gives you {v} Energy.",
+			{"key": "lightning_hard_lessons", "values": [1.0, 2.0, 3.0]}],
+		"r8c9": ["Wide Current", 3, "Your Lightning arcs (the arcs of {n:stormshield}, and of Counter-Charge) deal {v}% more damage and threat.",
+			{"key": "lightning_wide_current", "values": [10.0, 20.0, 30.0]}],
+		"r8c10": ["Charged Shell", 3, "While you have more than {b:CHARGED_SHELL_ENERGY} Energy, you take {v}% less damage.",
+			{"key": "lightning_charged_shell", "values": [2.0, 4.0, 6.0]}],
+		"r9c8": ["Hard Stare", 2, "Enemies you have forced to attack you deal {v}% less damage to you while they must.",
+			{"key": "lightning_hard_stare", "values": [4.0, 8.0]}],
+		"r9c9": ["Eye of the Storm", 3, "{n:drawthestorm} lasts {v} sec longer and its zaps deal {v2}% more damage.",
+			{"key": "lightning_eye_of_the_storm", "values": [1.0, 2.0, 3.0], "values2": [10.0, 20.0, 30.0], "requires": "drawthestorm"}],
+		"r9c10": ["Back to the Wall", 2, "While you are below {b:BACK_TO_THE_WALL_HEALTH}% health, your Parry chance is increased by {v}%.",
+			{"key": "lightning_back_to_the_wall", "values": [4.0, 8.0]}],
+		"r10c9": ["Storm Anchor", 5, "Increases your Parry chance by {v}%.",
+			{"key": "lightning_storm_anchor", "values": [1.0, 2.0, 3.0, 4.0, 5.0], "stats": {"parry": 1.0},
+			"capstone": "Every {bth:STORM_ANCHOR_EVERY} attack you parry sets off a {n:shockring} that costs nothing.",
+			"capstone_requires": "shockring"}],
+		# --- Stormstring (unfinished: a short ribbon of its Storm Arrow talents;
+		# lightning_bow.gd). Each ties the arrow to a spell: Lightning Bolt, Flicker, Capacitor.
+		"r1c12": ["Grounded Arrow", 3, "{n:stormarrow} stays stuck in its target for {e:lightning_rod.time} sec. Your {n:lightningbolt} hitting that target also arcs to every enemy within {b:LIGHTNING_ROD_RADIUS} m of it for {v}% of the damage it dealt.",
+			{"key": "lightning_rod", "values": [13.0, 27.0, 40.0], "requires": "stormarrow"}],
+		"r2c12": ["Snap Shot", 3, "{n:flicker} resets the cooldown of {n:stormarrow} and makes your next {n:stormarrow} within {b:SNAP_SHOT_TIME} sec cost {v} less Energy.",
+			{"key": "lightning_snap_shot", "values": [10.0, 20.0, 30.0], "requires": "stormarrow"}],
+		"r3c12": ["Loaded Quiver", 2, "Taking your Energy back from {n:capacitor} loads {v} {n:stormarrow} for {b:LOADED_QUIVER_TIME} sec: each costs no Energy and ignores its cooldown.",
+			{"key": "lightning_loaded_quiver", "values": [1.0, 2.0], "requires": "stormarrow"}],
 	},
 	"arcane": {
-		# The Arcane caster (player.gd, "Arcane caster: the cooldown kit"). Sigil
-		# Darts' two on the left, Countdown's on the right, Collapse's two down the
-		# right of the middle; the rest of the book is still empty.
-		"r1c3": ["Seventh Sigil", 2, "{n:arcanemissiles} fires {v} more darts over the same channel.",
+		# The ribbon layout (GROUPS, 13 columns): Clockwork (the caster) in columns 1-3,
+		# Hall of Mirrors (the dodge tank) in 4-6, the open talents on the spine (column 7),
+		# Second Act (melee) in 8-10 and Aetherstring (the bow, unfinished: an empty short
+		# ribbon) in 11-13. Rows 1-9 hold 18 talents per finished spec in its shape
+		# (SHAPES); row 10 its 5-rank capstone, which needs Balance.CAPSTONE_GATE points in
+		# the spec. Most key off the book's words (Arcane cooldowns, Reflections, shatters,
+		# dodges, Traces, replays, cuts...). Code: arcane_talents.gd (the hits' bonuses,
+		# cooldowns coming back, Reflections made) and each spec's component
+		# (arcane_caster.gd, arcane_tank.gd, arcane_melee.gd, arcane_talents_open.gd).
+		# --- Clockwork.
+		"r1c2": ["Etched Darts", 3, "Your Arcane spells that critically strike have a {v}% chance to take {b:ETCHED_DARTS_SECONDS} sec off the cooldowns of your other Arcane spells.",
+			{"key": "arcane_etched_darts", "values": [5.0, 10.0, 15.0]}],
+		"r2c1": ["Seventh Sigil", 2, "{n:arcanemissiles} fires {v} more darts over the same channel.",
 			{"key": "arcane_seventh_sigil", "values": [1.0, 2.0], "requires": "arcanemissiles"}],
-		# Generic: every blink (Phase Step and Flicker), whatever its book.
-		"r1c4": ["Long Step", 2, "{n:blink} and {n:flicker} take you {v} m further.",
-			{"key": "arcane_long_step", "values": [1.0, 2.0]}],
-		"r1c5": ["Frayed", 3, "When {n:unravel} critically strikes, it has a {v}% chance to take its time off the cooldowns of your other Arcane spells a second time.",
+		"r2c3": ["Frayed", 3, "When {n:unravel} critically strikes, it has a {v}% chance to take its time off the cooldowns of your other Arcane spells a second time.",
 			{"key": "arcane_frayed", "values": [33.0, 67.0, 100.0], "requires": "unravel"}],
-		"r2c2": ["Etched Darts", 3, "Each dart of {n:arcanemissiles} that critically strikes has a {v}% chance to take {b:ETCHED_DARTS_SECONDS} sec off the cooldowns of {n:countdown} and {n:collapse}.",
-			{"key": "arcane_etched_darts", "values": [10.0, 20.0, 30.0], "requires": "arcanemissiles"}],
-		"r2c6": ["Chain Reaction", 3, "When {n:countdown} detonates, every other enemy within {b:CHAIN_REACTION_RADIUS} m of its target takes {v}% of the extra damage it counted. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, that damage is split evenly between all of them.",
-			{"key": "arcane_chain_reaction", "values": [10.0, 20.0, 30.0], "requires": "countdown"}],
-		"r3c3": ["Polished Glass", 3, "{n:mirrorsigil} repeats your Arcane spells at {v+b:MIRROR_SIGIL_PCT}% of their damage.",
+		"r3c1": ["Pinned in Time", 3, "Your Arcane spells deal {v}% more damage to enemies you have rooted.",
+			{"key": "arcane_pinned_in_time", "values": [4.0, 8.0, 12.0]}],
+		"r3c3": ["Thrifty Mind", 3, "Your Arcane spells cost {v}% less mana.",
+			{"key": "arcane_thrifty_mind", "values": [3.0, 6.0, 9.0]}],
+		"r4c1": ["Polished Glass", 3, "{n:mirrorsigil} repeats your Arcane spells at {v+b:MIRROR_SIGIL_PCT}% of their damage.",
 			{"key": "arcane_polished_glass", "values": [3.0, 6.0, 10.0], "requires": "mirrorsigil"}],
-		# (r3c5 is empty: Deep Well was folded into Collapse's pull.)
-		"r4c4": ["Aftershock", 3, "Enemies pulled by {n:collapse} are slowed by {v}% for {b:AFTERSHOCK_TIME} sec.",
-			{"key": "arcane_aftershock", "values": [13.0, 27.0, 40.0], "requires": "collapse"}],
-		# The Arcane tank (player.gd, "Arcane tank" and "Arcane tank talents"), down
-		# both edges of the book. Left: what makes and shatters Reflections.
-		# Sharp Edges: Player._on_damage_modify, shatter_radius; Clockwork:
-		# _shatter_cooldowns; Spare Copy: _reflection_kit_hit_taken; Second Self and
-		# On the Beat: _use_drafted; Wide Rings: Abilities.RADIUS_TALENTS, _ripple;
-		# Head Count: _full_set.
-		"r2c1": ["Sharp Edges", 3, "Your Reflections deal {v}% more damage when they shatter.",
-			{"key": "arcane_sharp_edges", "values": [10.0, 20.0, 30.0],
-			"capstone": "A shatter reaches enemies within {b:SHARP_EDGES_RADIUS} m of you instead of {b:REFLECTION_SHATTER_RADIUS} m."}],
-		"r3c1": ["Spare Seconds", 2, "Each of your Reflections that shatters takes {v} sec more off the cooldowns of your Arcane spells and abilities.",
-			{"key": "arcane_clockwork", "values": [0.25, 0.5]}],
-		"r4c1": ["Spare Copy", 2, "When you dodge an attack, there is a {v}% chance that the Reflection which takes it is not used up. It still shatters.",
-			{"key": "arcane_spare_copy", "values": [10.0, 20.0]}],
-		"r5c2": ["Second Self", 3, "{n:doubleup} has a {v}% chance to create {b:SECOND_SELF_REFLECTIONS} Reflections.",
-			{"key": "arcane_second_self", "values": [10.0, 20.0, 30.0], "requires": "doubleup"}],
-		"r7c1": ["Wide Rings", 3, "{n:ripple} reaches {v} m further.",
-			{"key": "arcane_wide_rings", "values": [0.7, 1.3, 2.0], "requires": "ripple",
-			"capstone": "It creates a Reflection when it hits {b:WIDE_RINGS_ENEMIES} or more enemies."}],
-		"r8c2": ["On the Beat", 3, "{n:missedbeat} deals {v}% more damage.",
-			{"key": "arcane_on_the_beat", "values": [10.0, 20.0, 30.0], "requires": "missedbeat",
-			"capstone": "Used while you have no Reflections, it creates one."}],
-		"r9c1": ["Head Count", 3, "{n:fullset} heals you for {v}% of your maximum health for each Reflection it creates.",
-			{"key": "arcane_head_count", "values": [1.5, 2.5, 4.0], "requires": "fullset"}],
-		# Right: staying alive. Light Feet is generic (PlayerData._compute_total_stats);
-		# Empty Room and Bent Light: Player._on_damage_modify; Understudy:
-		# _reflection_kit_hit_taken; Loud Exit: _trade_places; Good Likeness: _start_decoy.
-		"r2c7": ["Light Feet", 3, "Increases your Dodge chance by {v}% while you wield a melee weapon in each hand.",
-			{"key": "arcane_light_feet", "values": [1.0, 2.0, 3.0]}],
-		"r3c7": ["Empty Room", 3, "While you wield a melee weapon in each hand and have no Reflections, you take {v}% less damage.",
-			{"key": "arcane_empty_room", "values": [4.0, 8.0, 12.0]}],
-		"r4c7": ["Bent Light", 2, "You take {v}% less non-Physical damage for each Reflection you have.",
-			{"key": "arcane_bent_light", "values": [1.0, 2.0]}],
-		"r5c6": ["Understudy", 3, "Each Reflection destroyed by {n:standin} takes {v} sec off its cooldown.",
-			{"key": "arcane_understudy", "values": [1.5, 2.5, 4.0], "requires": "standin"}],
-		"r7c7": ["Loud Exit", 1, "The Reflections you give up with {n:tradeplaces} shatter.",
-			{"key": "arcane_loud_exit", "values": [1.0], "requires": "tradeplaces"}],
-		"r8c6": ["Good Likeness", 3, "{n:decoy} holds enemies for {v} sec longer.",
-			{"key": "arcane_good_likeness", "values": [0.7, 1.3, 2.0], "requires": "decoy",
-			"capstone": "{n:decoy} no longer needs or uses up a Reflection."}],
-		# Arcane melee (player.gd, "Arcane melee"), in the middle of rows 6-7: Traces
-		# and Encore. Long Memory: Player.trace_time; Standing Ovation: encore_pct,
-		# trace_cap; Clean Lines: _trace_hit; Second Showing: _encore.
-		"r6c5": ["Standing Ovation", 3, "{n:encore} replays each Trace for {v+b:ENCORE_PCT}% of the damage it recorded.",
-			{"key": "arcane_standing_ovation", "values": [5.0, 10.0, 15.0], "requires": "encore",
-			"capstone": "You can hold {b:STANDING_OVATION_TRACES} more Trace."}],
-		"r6c3": ["Long Memory", 3, "Your Traces last {v} sec longer.",
-			{"key": "arcane_long_memory", "values": [1.5, 2.5, 4.0]}],
-		"r6c4": ["Clean Lines", 3, "When {n:swiftcut} critically strikes, it takes {v} sec off the cooldown of {n:deepcut}.",
-			{"key": "arcane_clean_lines", "values": [0.3, 0.7, 1.0], "requires": "deepcut"}],
-		"r7c5": ["Second Showing", 3, "{n:encore} has a {v}% chance not to use up your Traces.",
-			{"key": "arcane_second_showing", "values": [7.0, 13.0, 20.0], "requires": "encore"}],
-		# More melee talents, down columns 3 and 5 of rows 5-9. Practiced Hand:
-		# Player._on_damage_modify; Heavy Hand: trace_amount; Curtain Call, Time
-		# Signature: _encore; No Loose Ends: _late_cut; Full House: _wide_cut; Dress
-		# Rehearsal: _start_double_time.
-		"r5c3": ["Practiced Hand", 3, "{n:swiftcut} deals {v}% more damage for each Trace you hold.",
-			{"key": "arcane_practiced_hand", "values": [3.0, 6.0, 9.0], "requires": "swiftcut"}],
-		"r5c5": ["Heavy Hand", 3, "The Trace {n:deepcut} leaves records {v}% more damage than the strike dealt.",
-			{"key": "arcane_heavy_hand", "values": [7.0, 13.0, 20.0], "requires": "deepcut"}],
-		"r7c3": ["Curtain Call", 3, "When {n:encore} replays {b:CURTAIN_CALL_TRACES} or more Traces, each replay deals {v}% more damage.",
-			{"key": "arcane_curtain_call", "values": [7.0, 13.0, 20.0], "requires": "encore"}],
-		"r8c3": ["No Loose Ends", 3, "The second hit of {n:latecut} lands {v} sec sooner.",
-			{"key": "arcane_no_loose_ends", "values": [0.3, 0.7, 1.0], "requires": "latecut",
-			"capstone": "If the Trace of the first hit is gone when the second hit lands, the second hit leaves a Trace of its own."}],
-		"r8c5": ["Time Signature", 3, "Each Trace {n:encore} replays takes {v} sec off the cooldowns of your other Arcane spells and abilities. Interrupts are not affected.",
-			{"key": "arcane_time_signature", "values": [0.15, 0.35, 0.5], "requires": "encore"}],
-		# (Encore has no cooldown any more: Curtain Call, Full House and Dress
-		# Rehearsal's capstone, which used to shorten or reset it, were given new effects.)
-		"r9c3": ["Full House", 2, "When {n:widecut} hits {b:FULL_HOUSE_ENEMIES} or more enemies, your next {n:encore} within {b:FULL_HOUSE_TIME} sec also replays each Trace on up to {v} other enemies within {b:FULL_HOUSE_RADIUS} m of its target, for {b:FULL_HOUSE_PCT}% of its damage.",
-			{"key": "arcane_full_house", "values": [1.0, 2.0], "requires": "widecut"}],
-		"r9c5": ["Dress Rehearsal", 3, "{n:doubletime} lasts {v} sec longer.",
-			{"key": "arcane_dress_rehearsal", "values": [1.5, 2.5, 4.0], "requires": "doubletime",
-			"capstone": "The first {n:encore} during {n:doubletime} does not use up your Traces.", "capstone_requires": "encore"}],
-		# The bottom row: one for the tank (Player._shatter_burst), one for any Arcane
-		# build (Player._tick_cooldowns), one for melee (Player._on_damage_modify).
-		"r10c2": ["Silvered", 5, "Each of your Reflections that shatters heals you for {v}% of your maximum health.",
-			{"key": "arcane_silvered", "values": [0.3, 0.6, 0.9, 1.2, 1.5]}],
-		"r10c4": ["Running Clock", 5, "The cooldowns of your Arcane spells and abilities recover {v}% faster. Interrupts are not affected.",
-			{"key": "arcane_running_clock", "values": [2.0, 4.0, 6.0, 8.0, 10.0]}],
-		"r10c6": ["Fine Edge", 5, "Your Arcane abilities deal {v}% more damage while you wield a melee weapon in each hand.",
-			{"key": "arcane_fine_edge", "values": [2.0, 4.0, 6.0, 8.0, 10.0]}],
-		# Open talents: themed to the book (time, copies, mirrors) but they work with
-		# every book's spells and abilities, so any build has a reason to come here.
-		# Quick Study is a plain stat; Two Minds: PlayerData._compute_total_stats; the
-		# rest: player.gd, "Arcane: the open talents".
-		"r1c1": ["Quick Study", 3, "Increases your Haste by {v}%.",
-			{"key": "arcane_quick_study", "values": [1.0, 2.0, 3.0], "stats": {"haste": 1.0}}],
-		"r1c7": ["Two Minds", 3, "The lower of your Spell Power and Attack Power is increased by {v}% of the higher.",
-			{"key": "arcane_two_minds", "values": [4.0, 8.0, 12.0]}],
-		"r2c4": ["Echo", 3, "Your spells and abilities have a {v}% chance to be repeated for {b:ECHO_PCT}% of the damage they dealt. For an Arcane spell or ability the chance is {b:ECHO_ARCANE_CHANCE_MULT} times as high, and the repeat deals {b:ECHO_ARCANE_PCT}% of the damage.",
-			{"key": "arcane_echo", "values": [2.0, 4.0, 6.0]}],
-		"r4c2": ["Mirror Finish", 3, "When you dodge, parry or block an attack, the attacker takes {vdmg:ripple} Arcane damage.",
-			{"key": "arcane_mirror_finish", "values": [0.1, 0.2, 0.3]}],
-		"r4c6": ["Overtime", 3, "Buffs you put on yourself last {v}% longer.",
-			{"key": "arcane_overtime", "values": [5.0, 10.0, 15.0]}],
-		"r5c4": ["Light Touch", 3, "Your Arcane spells and abilities generate {v}% less threat.",
-			{"key": "arcane_light_touch", "values": [5.0, 10.0, 15.0]}],
-		"r6c2": ["Slipstream", 2, "After {n:blink}, {n:flicker}, {n:staticstep}, {n:cinderstep} or {n:icyretreat}, you move {v}% faster for {b:SLIPSTREAM_TIME} sec.",
-			{"key": "arcane_slipstream", "values": [10.0, 20.0]}],
-		"r10c3": ["Borrowed Time", 5, "When one of your spells or abilities with a cooldown of {b:BORROWED_TIME_COOLDOWN} sec or more comes off cooldown, your next spell or ability within {b:BORROWED_TIME_TIME} sec deals {v}% more damage.",
-			{"key": "arcane_borrowed_time", "values": [3.0, 6.0, 9.0, 12.0, 15.0]}],
-		# Two more for one ability each: Glint (Player._glint) and Crowd of One
-		# (Player._start_crowd_of_one).
-		"r6c6": ["Keep Moving", 3, "The window {n:glint} opens lasts {v} sec longer.",
+		"r4c3": ["Chain Reaction", 3, "When {n:countdown} detonates, every other enemy within {b:CHAIN_REACTION_RADIUS} m of its target takes {v}% of the extra damage it counted. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, that damage is split evenly between all of them.",
+			{"key": "arcane_chain_reaction", "values": [10.0, 20.0, 30.0], "requires": "countdown"}],
+		"r5c1": ["Wound Up", 3, "Your Arcane spells deal {v}% more damage for each of your other Arcane spells on cooldown, up to {b:WOUND_UP_MAX}.",
+			{"key": "arcane_wound_up", "values": [1.0, 2.0, 3.0]}],
+		"r5c2": ["Sharp Mind", 3, "Critical strikes of your Arcane spells deal {v}% more damage.",
+			{"key": "arcane_sharp_mind", "values": [5.0, 10.0, 15.0]}],
+		"r5c3": ["Clock Hands", 3, "While {b:CLOCK_HANDS_COOLDOWNS} or more of your Arcane spells are on cooldown, your Arcane spells cast {v}% faster.",
+			{"key": "arcane_clock_hands", "values": [3.0, 6.0, 9.0]}],
+		"r6c1": ["Moving Parts", 3, "While you are moving, your Arcane spells deal {v}% more damage.",
+			{"key": "arcane_moving_parts", "values": [3.0, 6.0, 9.0]}],
+		"r6c2": ["Second Hand", 3, "Each Arcane spell you cast has a {v}% chance to take {b:SECOND_HAND_SECONDS} sec off the cooldown of another of your Arcane spells that is on cooldown.",
+			{"key": "arcane_second_hand", "values": [5.0, 10.0, 15.0]}],
+		"r6c3": ["Keep Moving", 3, "The window {n:glint} opens lasts {v} sec longer.",
 			{"key": "arcane_keep_moving", "values": [1.5, 2.5, 4.0], "requires": "glint",
 			"capstone": "It covers {b:KEEP_MOVING_CASTS} casts on the move instead of one."}],
-		"r9c7": ["Full Crowd", 2, "{n:crowdofone} creates {v} Reflections when you use it.",
+		"r7c1": ["Aftershock", 3, "Enemies pulled by {n:collapse} are slowed by {v}% for {b:AFTERSHOCK_TIME} sec.",
+			{"key": "arcane_aftershock", "values": [13.0, 27.0, 40.0], "requires": "collapse"}],
+		"r7c3": ["Light Touch", 3, "Your Arcane spells and abilities generate {v}% less threat.",
+			{"key": "arcane_light_touch", "values": [5.0, 10.0, 15.0]}],
+		"r8c1": ["On the Dot", 3, "An Arcane spell you cast within {b:ON_THE_DOT_TIME} sec of it coming off cooldown deals {v}% more damage.",
+			{"key": "arcane_on_the_dot", "values": [6.0, 12.0, 18.0]}],
+		"r8c3": ["Turning Gears", 3, "Each time one of your Arcane spells comes off cooldown, you gain {v}% Haste for {b:TURNING_GEARS_TIME} sec, stacking up to {b:TURNING_GEARS_STACKS} times.",
+			{"key": "arcane_turning_gears", "values": [1.0, 2.0, 3.0]}],
+		"r9c2": ["Unwinding", 3, "When you take time off the cooldowns of your Arcane spells, there is a {v}% chance that your next Arcane spell with a cast time, within {b:UNWINDING_TIME} sec, is instant.",
+			{"key": "arcane_unwinding", "values": [5.0, 10.0, 15.0]}],
+		# Running Clock: Player._tick_cooldowns.
+		"r10c2": ["Running Clock", 5, "The cooldowns of your Arcane spells and abilities recover {v}% faster. Interrupts are not affected.",
+			{"key": "arcane_running_clock", "values": [2.0, 4.0, 6.0, 8.0, 10.0]}],
+		# --- Hall of Mirrors (arcane_tank.gd).
+		"r1c4": ["Light Feet", 3, "Increases your Dodge chance by {v}% while you wield a melee weapon in each hand.",
+			{"key": "arcane_light_feet", "values": [1.0, 2.0, 3.0]}],
+		"r1c5": ["Sharp Edges", 3, "Your Reflections deal {v}% more damage when they shatter.",
+			{"key": "arcane_sharp_edges", "values": [10.0, 20.0, 30.0],
+			"capstone": "A shatter reaches enemies within {b:SHARP_EDGES_RADIUS} m of you instead of {b:REFLECTION_SHATTER_RADIUS} m."}],
+		"r1c6": ["Spare Seconds", 2, "Each of your Reflections that shatters takes {v} sec more off the cooldowns of your Arcane spells and abilities.",
+			{"key": "arcane_clockwork", "values": [0.25, 0.5]}],
+		"r2c4": ["Second Self", 3, "When you create a Reflection, there is a {v}% chance to create one more.",
+			{"key": "arcane_second_self", "values": [10.0, 20.0, 30.0]}],
+		"r2c6": ["Head Count", 3, "Each Reflection you create heals you for {v}% of your maximum health.",
+			{"key": "arcane_head_count", "values": [0.5, 1.0, 1.5]}],
+		"r3c4": ["Glass Armor", 3, "Your Armor is increased by {v}% for each Reflection you have.",
+			{"key": "arcane_glass_armor", "values": [2.0, 4.0, 6.0]}],
+		"r3c6": ["Empty Room", 3, "While you wield a melee weapon in each hand and have no Reflections, you take {v}% less damage.",
+			{"key": "arcane_empty_room", "values": [4.0, 8.0, 12.0]}],
+		"r4c4": ["Wide Rings", 3, "{n:ripple} reaches {v} m further.",
+			{"key": "arcane_wide_rings", "values": [0.7, 1.3, 2.0], "requires": "ripple",
+			"capstone": "It creates a Reflection when it hits {b:WIDE_RINGS_ENEMIES} or more enemies."}],
+		"r4c6": ["Bent Light", 2, "You take {v}% less non-Physical damage for each Reflection you have.",
+			{"key": "arcane_bent_light", "values": [1.0, 2.0]}],
+		"r5c4": ["Quick Answer", 3, "After you dodge an attack, your next Arcane ability within {b:QUICK_ANSWER_TIME} sec deals {v}% more damage and threat.",
+			{"key": "arcane_quick_answer", "values": [10.0, 20.0, 30.0]}],
+		"r5c5": ["Glass Dust", 3, "Enemies hit by your shatters deal {v}% less damage to you for {b:GLASS_DUST_TIME} sec.",
+			{"key": "arcane_glass_dust", "values": [2.0, 4.0, 6.0]}],
+		"r5c6": ["Last Copy", 3, "While you have exactly one Reflection, your Dodge chance is increased by {v}%.",
+			{"key": "arcane_last_copy", "values": [2.0, 4.0, 6.0]}],
+		"r6c5": ["On the Beat", 3, "{n:missedbeat} deals {v}% more damage.",
+			{"key": "arcane_on_the_beat", "values": [10.0, 20.0, 30.0], "requires": "missedbeat",
+			"capstone": "Used while you have no Reflections, it creates one."}],
+		"r7c5": ["Understudy", 3, "Each Reflection destroyed by {n:standin} takes {v} sec off its cooldown.",
+			{"key": "arcane_understudy", "values": [1.5, 2.5, 4.0], "requires": "standin"}],
+		"r8c5": ["Good Likeness", 3, "{n:decoy} holds enemies for {v} sec longer.",
+			{"key": "arcane_good_likeness", "values": [0.7, 1.3, 2.0], "requires": "decoy",
+			"capstone": "{n:decoy} no longer needs or uses up a Reflection."}],
+		"r9c4": ["Spare Copy", 2, "When you dodge an attack, there is a {v}% chance that the Reflection which takes it is not used up. It still shatters.",
+			{"key": "arcane_spare_copy", "values": [10.0, 20.0]}],
+		"r9c5": ["Full Crowd", 2, "{n:crowdofone} creates {v} Reflections when you use it.",
 			{"key": "arcane_full_crowd", "values": [1.0, 2.0], "requires": "crowdofone"}],
+		"r9c6": ["Crowded Room", 3, "Your Arcane abilities generate {v}% more threat for each Reflection you have.",
+			{"key": "arcane_crowded_room", "values": [2.0, 4.0, 6.0]}],
+		# Silvered: arcane_tank._shatter_burst.
+		"r10c5": ["Silvered", 5, "Each of your Reflections that shatters heals you for {v}% of your maximum health.",
+			{"key": "arcane_silvered", "values": [0.3, 0.6, 0.9, 1.2, 1.5]}],
+		# --- Open talents: themed to the book (time, copies, mirrors) but they work with
+		# every book's spells and abilities (arcane_talents_open.gd).
+		"r1c7": ["Quick Study", 3, "Increases your Haste by {v}%.",
+			{"key": "arcane_quick_study", "values": [1.0, 2.0, 3.0], "stats": {"haste": 1.0}}],
+		"r2c7": ["Two Minds", 3, "The lower of your Spell Power and Attack Power is increased by {v}% of the higher.",
+			{"key": "arcane_two_minds", "values": [4.0, 8.0, 12.0]}],
+		"r3c7": ["Echo", 3, "Your spells and abilities have a {v}% chance to be repeated for {b:ECHO_PCT}% of the damage they dealt. For an Arcane spell or ability the chance is {b:ECHO_ARCANE_CHANCE_MULT} times as high, and the repeat deals {b:ECHO_ARCANE_PCT}% of the damage.",
+			{"key": "arcane_echo", "values": [2.0, 4.0, 6.0]}],
+		"r4c7": ["Mirror Finish", 3, "When you dodge, parry or block an attack, the attacker takes {vdmg:ripple} Arcane damage.",
+			{"key": "arcane_mirror_finish", "values": [0.1, 0.2, 0.3]}],
+		"r5c7": ["Overtime", 3, "Buffs you put on yourself last {v}% longer.",
+			{"key": "arcane_overtime", "values": [5.0, 10.0, 15.0]}],
+		"r6c7": ["Slipstream", 2, "After you use a movement spell or ability (a blink, a dash or a leap), you move {v}% faster for {b:SLIPSTREAM_TIME} sec.",
+			{"key": "arcane_slipstream", "values": [10.0, 20.0]}],
+		"r7c7": ["Long Step", 2, "Your blinks take you {v} m further.",
+			{"key": "arcane_long_step", "values": [1.0, 2.0]}],
+		"r8c7": ["Spare Moment", 3, "Your spells and abilities with a cooldown of {b:SPARE_MOMENT_COOLDOWN} sec or more recover {v}% faster. Interrupts are not affected.",
+			{"key": "arcane_spare_moment", "values": [2.0, 4.0, 6.0]}],
+		"r9c7": ["Borrowed Time", 3, "When one of your spells or abilities with a cooldown of {b:BORROWED_TIME_COOLDOWN} sec or more comes off cooldown, your next spell or ability within {b:BORROWED_TIME_TIME} sec deals {v}% more damage.",
+			{"key": "arcane_borrowed_time", "values": [5.0, 10.0, 15.0]}],
+		# --- Second Act (arcane_melee.gd). Cuts: Swift Cut, Deep Cut, Late Cut, Wide Cut.
+		"r1c8": ["Long Memory", 3, "Your Traces last {v} sec longer.",
+			{"key": "arcane_long_memory", "values": [1.5, 2.5, 4.0]}],
+		"r1c9": ["Standing Ovation", 3, "Your replays ({n:encore}) deal {v+b:ENCORE_PCT}% of the damage each Trace recorded.",
+			{"key": "arcane_standing_ovation", "values": [5.0, 10.0, 15.0],
+			"capstone": "You can hold {b:STANDING_OVATION_TRACES} more Trace."}],
+		"r1c10": ["Fresh Trace", 3, "While you hold fewer than {b:FRESH_TRACE_HELD} Traces, the Traces you leave record {v}% more damage.",
+			{"key": "arcane_fresh_trace", "values": [4.0, 8.0, 12.0]}],
+		"r2c8": ["Practiced Hand", 3, "Your Arcane abilities deal {v}% more damage for each Trace you hold.",
+			{"key": "arcane_practiced_hand", "values": [1.0, 2.0, 3.0]}],
+		"r2c10": ["Heavy Hand", 3, "The Trace {n:deepcut} leaves records {v}% more damage than the strike dealt.",
+			{"key": "arcane_heavy_hand", "values": [7.0, 13.0, 20.0], "requires": "deepcut"}],
+		"r3c8": ["Clean Lines", 3, "When {n:swiftcut} critically strikes, it takes {v} sec off the cooldown of {n:deepcut}.",
+			{"key": "arcane_clean_lines", "values": [0.3, 0.7, 1.0], "requires": "deepcut"}],
+		"r3c10": ["Keen Cuts", 2, "Your cuts ({n:swiftcut}, {n:deepcut}, {n:latecut} and {n:widecut}) have a {v}% higher critical strike chance.",
+			{"key": "arcane_keen_cuts", "values": [2.0, 4.0]}],
+		"r4c8": ["Quick Cuts", 3, "{n:deepcut}, {n:latecut} and {n:widecut} come back {v} sec sooner.",
+			{"key": "arcane_quick_cuts", "values": [0.3, 0.6, 1.0]}],
+		"r4c10": ["Twin Blades", 3, "While you wield a melee weapon in each hand, your auto-attacks have a {v}% chance to leave a Trace of the damage they dealt.",
+			{"key": "arcane_twin_blades", "values": [5.0, 10.0, 15.0]}],
+		"r5c8": ["Curtain Call", 3, "When you replay {b:CURTAIN_CALL_TRACES} or more Traces at once, each replay deals {v}% more damage.",
+			{"key": "arcane_curtain_call", "values": [7.0, 13.0, 20.0]}],
+		"r5c10": ["Second Showing", 3, "Your replays ({n:encore}) have a {v}% chance not to use up your Traces.",
+			{"key": "arcane_second_showing", "values": [7.0, 13.0, 20.0]}],
+		"r6c8": ["No Loose Ends", 3, "The second hit of {n:latecut} lands {v} sec sooner.",
+			{"key": "arcane_no_loose_ends", "values": [0.3, 0.7, 1.0], "requires": "latecut",
+			"capstone": "If the Trace of the first hit is gone when the second hit lands, the second hit leaves a Trace of its own."}],
+		"r6c10": ["Full Stage", 3, "While you hold as many Traces as you can, your Arcane abilities deal {v}% more damage.",
+			{"key": "arcane_full_stage", "values": [4.0, 8.0, 12.0]}],
+		"r7c8": ["Full House", 2, "When {n:widecut} hits {b:FULL_HOUSE_ENEMIES} or more enemies, your next {n:encore} within {b:FULL_HOUSE_TIME} sec also replays each Trace on up to {v} other enemies within {b:FULL_HOUSE_RADIUS} m of its target, for {b:FULL_HOUSE_PCT}% of its damage.",
+			{"key": "arcane_full_house", "values": [1.0, 2.0], "requires": "widecut"}],
+		"r7c10": ["Final Act", 3, "Your replays deal {v}% more damage to enemies below {b:FINAL_ACT_HEALTH}% health.",
+			{"key": "arcane_final_act", "values": [6.0, 12.0, 18.0]}],
+		"r8c8": ["Dress Rehearsal", 3, "{n:doubletime} lasts {v} sec longer.",
+			{"key": "arcane_dress_rehearsal", "values": [1.5, 2.5, 4.0], "requires": "doubletime",
+			"capstone": "The first {n:encore} during {n:doubletime} does not use up your Traces.", "capstone_requires": "encore"}],
+		"r8c10": ["Curtain Rise", 3, "After you replay your Traces, your next cut within {b:CURTAIN_RISE_TIME} sec deals {v}% more damage.",
+			{"key": "arcane_curtain_rise", "values": [10.0, 20.0, 30.0]}],
+		"r9c9": ["Time Signature", 3, "Each Trace you replay takes {v} sec off the cooldowns of your other Arcane spells and abilities. Interrupts are not affected.",
+			{"key": "arcane_time_signature", "values": [0.15, 0.35, 0.5]}],
+		# Fine Edge: Player._on_damage_modify.
+		"r10c9": ["Fine Edge", 5, "Your Arcane abilities deal {v}% more damage while you wield a melee weapon in each hand.",
+			{"key": "arcane_fine_edge", "values": [2.0, 4.0, 6.0, 8.0, 10.0]}],
 	},
 	"shadow": {
 		# Open talents: themed to the book (damage over time, a slow end, paying for
@@ -1072,190 +1171,191 @@ const TALENTS := {
 			{"key": "nature_overgrown", "values": [0.4, 0.8, 1.2, 1.6, 2.0]}],
 	},
 	"martial": {
-		# The column-group layout (GROUPS): the Wheel (warrior) in columns 1-2, the Rogue in
-		# 3-4, the open talents down the middle (column 5), the Brawler (tank) in 6-7 and the
-		# Sharpshooter (archer) in 8-9. Rows 1-9 hold two talents per spec; row 10 its
+		# The ribbon layout (GROUPS): the Wheel (warrior) in columns 1-3, the Rogue in
+		# 4-6, the open talents on the spine (column 7), the Brawler (tank) in 8-10 and the
+		# Sharpshooter (archer) in 11-13. Rows 1-9 hold 18 talents per spec in its shape
+		# (SHAPES); row 10 its
 		# 5-rank capstone, which needs Balance.CAPSTONE_GATE points in the spec. Most key
 		# off the spec's own words (Cracks, Flow, Bruise, Overcut...); few need one ability.
 		# Code: each spec's component in scripts/player/ (martial_wheel.gd, martial_rogue.gd,
 		# martial_brawler.gd, martial_sharpshooter.gd); the open talents and the hits'
 		# bonuses: martial_talents_open.gd.
 		# --- The Wheel.
-		"r1c1": ["Hard Break", 4, "Your finishers deal {v}% more damage.",
+		"r1c2": ["Hard Break", 4, "Your finishers deal {v}% more damage.",
 			{"key": "martial_hard_break", "values": [5.0, 10.0, 15.0, 15.0],
 			"capstone": "A finisher that breaks a weapon with {b:HARD_BREAK_CRACKS} or more Cracks gives you {b:HARD_BREAK_FURY} Fury."}],
-		"r1c2": ["Iron Grip", 3, "Your Fillers give you {v} more Fury.",
+		"r2c1": ["Iron Grip", 3, "Your Fillers give you {v} more Fury.",
 			{"key": "martial_iron_grip", "values": [2.0, 4.0, 6.0]}],
-		"r2c1": ["Well Drilled", 2, "Your Weapon Arts add {v} Cracks to the weapon you hold.",
+		"r2c3": ["Well Drilled", 2, "Your Weapon Arts add {v} Cracks to the weapon you hold.",
 			{"key": "martial_well_drilled", "values": [1.0, 2.0]}],
-		"r2c2": ["Heavy Hands", 3, "Your Heavy Fillers deal {v}% more damage.",
+		"r3c1": ["Heavy Hands", 3, "Your Heavy Fillers deal {v}% more damage.",
 			{"key": "martial_heavy_hands", "values": [5.0, 10.0, 15.0]}],
-		"r3c1": ["Fresh Steel", 2, "A weapon that flies into your hands already has {v} Cracks on it.",
+		"r3c3": ["Fresh Steel", 2, "A weapon that flies into your hands already has {v} Cracks on it.",
 			{"key": "martial_fresh_steel", "values": [1.0, 2.0]}],
-		"r3c2": ["Sharp Fragments", 3, "Each Crack on the weapon you hold gives you {v}% critical strike chance.",
+		"r4c1": ["Sharp Fragments", 3, "Each Crack on the weapon you hold gives you {v}% critical strike chance.",
 			{"key": "martial_sharp_fragments", "values": [0.5, 1.0, 1.5]}],
-		"r4c1": ["Wide Cleave", 2, "Axe Cleave, the rider of the {n:wheelgreataxe}, hits {v} more enemies near the target.",
+		"r4c2": ["Wide Cleave", 2, "Axe Cleave, the rider of the {n:wheelgreataxe}, hits {v} more enemies near the target.",
 			{"key": "martial_wide_cleave", "values": [1.0, 2.0], "requires": "wheelgreataxe"}],
-		"r4c2": ["Weight Behind It", 3, "Your ability hits deal {v}% more damage for each use the weapon you hold has already taken.",
+		"r4c3": ["Weight Behind It", 3, "Your ability hits deal {v}% more damage for each use the weapon you hold has already taken.",
 			{"key": "martial_weight_behind_it", "values": [1.0, 2.0, 3.0]}],
 		"r5c1": ["Keen Edge", 3, "While you hold the {n:wheelgreatsword}, your critical strikes deal {v}% more damage.",
 			{"key": "martial_keen_edge", "values": [7.0, 13.0, 20.0], "requires": "wheelgreatsword"}],
-		"r5c2": ["Breaking Point", 3, "The ability that takes a weapon's last use deals {v}% more damage.",
+		"r5c3": ["Breaking Point", 3, "The ability that takes a weapon's last use deals {v}% more damage.",
 			{"key": "martial_breaking_point", "values": [10.0, 20.0, 30.0]}],
-		"r6c1": ["Twice Over", 3, "While you hold the {n:wheelhalberd}, each of your ability hits has a {v+b:HALBERD_AGAIN_PCT}% chance to hit again instead of {b:HALBERD_AGAIN_PCT}%.",
+		"r6c2": ["Twice Over", 3, "While you hold the {n:wheelhalberd}, each of your ability hits has a {v+b:HALBERD_AGAIN_PCT}% chance to hit again instead of {b:HALBERD_AGAIN_PCT}%.",
 			{"key": "martial_twice_over", "values": [3.0, 7.0, 10.0], "requires": "wheelhalberd"}],
-		"r6c2": ["Ringing Blows", 3, "Your rider hits (Axe Cleave and Second Hit) give you {v} Fury each.",
+		"r6c1": ["Ringing Blows", 3, "Your rider hits (Axe Cleave and Second Hit) give you {v} Fury each.",
 			{"key": "martial_ringing_blows", "values": [1.0, 2.0, 3.0]}],
-		"r7c1": ["Rattled", 3, "While you hold the {n:wheelmaul}, your hits build {v}% more Stagger.",
+		"r6c3": ["Rattled", 3, "While you hold the {n:wheelmaul}, your hits build {v}% more Stagger.",
 			{"key": "martial_rattled", "values": [17.0, 33.0, 50.0], "requires": "wheelmaul"}],
-		"r7c2": ["Off Balance", 3, "Your hits deal {v}% more damage to an enemy you have knocked down.",
+		"r7c1": ["Off Balance", 3, "Your hits deal {v}% more damage to an enemy you have knocked down.",
 			{"key": "martial_off_balance", "values": [5.0, 10.0, 15.0]}],
-		"r8c1": ["Spare Parts", 3, "When a weapon of yours breaks, you gain {v} Fury for each Crack it had.",
+		"r7c3": ["Spare Parts", 3, "When a weapon of yours breaks, you gain {v} Fury for each Crack it had.",
 			{"key": "martial_spare_parts", "values": [1.0, 2.0, 3.0]}],
-		"r8c2": ["Big Swing", 2, "Your Heavy Fillers have a {v}% chance to add one more Crack.",
+		"r8c1": ["Big Swing", 2, "Your Heavy Fillers have a {v}% chance to add one more Crack.",
 			{"key": "martial_big_swing", "values": [25.0, 50.0]}],
-		"r9c1": ["Clean Swap", 3, "For {b:CLEAN_SWAP_TIME} sec after a weapon of yours breaks, your abilities deal {v}% more damage.",
+		"r8c3": ["Clean Swap", 3, "For {b:CLEAN_SWAP_TIME} sec after a weapon of yours breaks, your abilities deal {v}% more damage.",
 			{"key": "martial_clean_swap", "values": [4.0, 8.0, 12.0]}],
 		"r9c2": ["Gather Pace", 2, "The cooldowns of your Weapon Arts are {v}% shorter.",
 			{"key": "martial_gather_pace", "values": [10.0, 20.0]}],
 		"r10c2": ["Turning Wheel", 5, "Each weapon of your Wheel that breaks makes you deal {v}% more damage for {b:TURNING_WHEEL_TIME} sec. Each of the four weapons counts once, so all four together give four times as much.",
 			{"key": "martial_turning_wheel", "values": [0.5, 1.0, 1.5, 2.0, 2.5]}],
 		# --- The Rogue.
-		"r1c3": ["Clean Kill", 4, "Your Kill forms deal {v}% more damage.",
+		"r1c4": ["Clean Kill", 4, "Your Kill forms deal {v}% more damage.",
 			{"key": "martial_clean_kill", "values": [5.0, 10.0, 15.0, 15.0],
 			"capstone": "{n:closeitout} leaves you {b:CLEAN_KILL_FLOW} Flow."}],
-		"r1c4": ["Thrift", 3, "Your abilities that cost Energy cost {v} less.",
+		"r1c6": ["Thrift", 3, "Your abilities that cost Energy cost {v} less.",
 			{"key": "martial_thrift", "values": [1.0, 2.0, 3.0]}],
-		"r2c3": ["In and Out", 2, "A hit from a different range than your last one gives {v+b:FLOW_SWITCH} more Flow instead of {b:FLOW_SWITCH}.",
+		"r2c4": ["In and Out", 2, "A hit from a different range than your last one gives {v+b:FLOW_SWITCH} more Flow instead of {b:FLOW_SWITCH}.",
 			{"key": "martial_in_and_out", "values": [1.0, 2.0]}],
-		"r2c4": ["Spare Knives", 2, "Up to {v+b:DAGGER_MAX} of your daggers can stick in one enemy instead of {b:DAGGER_MAX}.",
+		"r2c6": ["Spare Knives", 2, "Up to {v+b:DAGGER_MAX} of your daggers can stick in one enemy instead of {b:DAGGER_MAX}.",
 			{"key": "martial_spare_knives", "values": [1.0, 2.0]}],
-		"r3c3": ["Barbed", 3, "Your stuck daggers deal {v}% more damage when they are ripped out.",
+		"r3c4": ["Barbed", 3, "Your stuck daggers deal {v}% more damage when they are ripped out.",
 			{"key": "martial_barbed", "values": [20.0, 40.0, 60.0]}],
-		"r3c4": ["Thrown Weight", 3, "Your thrown hits deal {v}% more damage.",
+		"r3c6": ["Thrown Weight", 3, "Your thrown hits deal {v}% more damage.",
 			{"key": "martial_thrown_weight", "values": [5.0, 10.0, 15.0]}],
-		"r4c3": ["Steady Pace", 3, "Your Flow lasts {v+b:FLOW_HOLD} sec without a hit before it starts to drop, instead of {b:FLOW_HOLD}.",
+		"r4c4": ["Steady Pace", 3, "Your Flow lasts {v+b:FLOW_HOLD} sec without a hit before it starts to drop, instead of {b:FLOW_HOLD}.",
 			{"key": "martial_steady_pace", "values": [0.7, 1.3, 2.0]}],
-		"r4c4": ["Close Work", 3, "Your melee ability hits deal {v}% more damage.",
+		"r4c5": ["Close Work", 3, "Your melee ability hits deal {v}% more damage.",
 			{"key": "martial_close_work", "values": [5.0, 10.0, 15.0]}],
-		"r5c3": ["Mix It Up", 3, "In a Kill window, each Kill form that differs from the one before it adds {v+b:KILL_VARIETY} sec to the window instead of {b:KILL_VARIETY} (still up to {b:KILL_VARIETY_MAX} sec in all).",
+		"r4c6": ["Mix It Up", 3, "In a Kill window, each Kill form that differs from the one before it adds {v+b:KILL_VARIETY} sec to the window instead of {b:KILL_VARIETY} (still up to {b:KILL_VARIETY_MAX} sec in all).",
 			{"key": "martial_mix_it_up", "values": [0.15, 0.35, 0.5]}],
-		"r5c4": ["Fresh Legs", 3, "Your critical strikes in a Kill window give you {v+b:KILL_CRIT_ENERGY} Energy back instead of {b:KILL_CRIT_ENERGY}.",
+		"r5c5": ["Fresh Legs", 3, "Your critical strikes in a Kill window give you {v+b:KILL_CRIT_ENERGY} Energy back instead of {b:KILL_CRIT_ENERGY}.",
 			{"key": "martial_fresh_legs", "values": [2.0, 4.0, 6.0]}],
-		"r6c3": ["Deep Flow", 2, "Your Flow goes up to {v+b:FLOW_MAX} stacks instead of {b:FLOW_MAX}.",
+		"r6c4": ["Deep Flow", 2, "Your Flow goes up to {v+b:FLOW_MAX} stacks instead of {b:FLOW_MAX}.",
 			{"key": "martial_deep_flow", "values": [1.0, 2.0]}],
-		"r6c4": ["Hot Start", 3, "Your Kill windows open {v} sec longer.",
+		"r6c6": ["Hot Start", 3, "Your Kill windows open {v} sec longer.",
 			{"key": "martial_hot_start", "values": [0.5, 1.0, 1.5]}],
-		"r7c3": ["Easy Pickings", 3, "Your hits deal {v}% more damage to an enemy with {b:EASY_PICKINGS_DAGGERS} or more of your daggers stuck in it.",
+		"r7c4": ["Easy Pickings", 3, "Your hits deal {v}% more damage to an enemy with {b:EASY_PICKINGS_DAGGERS} or more of your daggers stuck in it.",
 			{"key": "martial_easy_pickings", "values": [5.0, 10.0, 15.0]}],
-		"r7c4": ["Footloose", 3, "A hit from a different range than your last one also gives you {v} Energy.",
+		"r7c6": ["Footloose", 3, "A hit from a different range than your last one also gives you {v} Energy.",
 			{"key": "martial_footloose", "values": [3.0, 6.0, 9.0]}],
-		"r8c3": ["Finish Strong", 3, "{n:closeitout} deals {v}% more damage.",
+		"r8c4": ["Finish Strong", 3, "{n:closeitout} deals {v}% more damage.",
 			{"key": "martial_finish_strong", "values": [10.0, 20.0, 30.0], "requires": "closeitout"}],
-		"r8c4": ["Cold Read", 2, "After a Kill window ends, your next {v} Rogue ability hits build twice as much Flow.",
+		"r8c6": ["Cold Read", 2, "After a Kill window ends, your next {v} Rogue ability hits build twice as much Flow.",
 			{"key": "martial_cold_read", "values": [1.0, 2.0]}],
-		"r9c3": ["Light Fingers", 2, "{n:snatch} has a {v}% chance to lift two things instead of one.",
+		"r9c4": ["Light Fingers", 2, "{n:snatch} has a {v}% chance to lift two things instead of one.",
 			{"key": "martial_light_fingers", "values": [25.0, 50.0], "requires": "snatch"}],
-		"r9c4": ["Pressure Point", 3, "Outside a Kill window, your critical strikes have a {v}% chance to give you one more Flow.",
+		"r9c6": ["Pressure Point", 3, "Outside a Kill window, your critical strikes have a {v}% chance to give you one more Flow.",
 			{"key": "martial_pressure_point", "values": [10.0, 20.0, 30.0]}],
-		"r10c4": ["In the Zone", 5, "Each stack of your Flow also gives you {v}% critical strike chance. In a Kill window, the Flow you spent on it counts.",
+		"r10c5": ["In the Zone", 5, "Each stack of your Flow also gives you {v}% critical strike chance. In a Kill window, the Flow you spent on it counts.",
 			{"key": "martial_in_the_zone", "values": [0.1, 0.2, 0.3, 0.4, 0.5]}],
 		# --- The open talents (Martial in theme, useful to anyone).
-		"r1c5": ["Weapon Training", 3, "Your auto-attacks deal {v}% more damage.",
+		"r1c7": ["Weapon Training", 3, "Your auto-attacks deal {v}% more damage.",
 			{"key": "martial_weapon_training", "values": [4.0, 8.0, 12.0]}],
-		"r2c5": ["Conditioning", 3, "Increases your maximum health by {v}%.",
+		"r2c7": ["Conditioning", 3, "Increases your maximum health by {v}%.",
 			{"key": "martial_conditioning", "values": [2.0, 4.0, 6.0], "stats": {"max_health%": 2.0}}],
-		"r3c5": ["Keen Strikes", 3, "Your ability critical strikes deal {v}% more damage.",
+		"r3c7": ["Keen Strikes", 3, "Your ability critical strikes deal {v}% more damage.",
 			{"key": "martial_keen_strikes", "values": [3.0, 6.0, 9.0]}],
-		"r4c5": ["Hardy", 3, "Your natural health regeneration is {v}% faster.",
+		"r4c7": ["Hardy", 3, "Your natural health regeneration is {v}% faster.",
 			{"key": "martial_hardy", "values": [10.0, 20.0, 30.0]}],
-		"r5c5": ["Catch Your Breath", 2, "When you drop below {b:CATCH_BREATH_HEALTH_PCT}% health, you heal over time for {v}% of your maximum health over {b:CATCH_BREATH_TIME} sec. Once every {b:CATCH_BREATH_COOLDOWN} sec.",
+		"r5c7": ["Catch Your Breath", 2, "When you drop below {b:CATCH_BREATH_HEALTH_PCT}% health, you heal over time for {v}% of your maximum health over {b:CATCH_BREATH_TIME} sec. Once every {b:CATCH_BREATH_COOLDOWN} sec.",
 			{"key": "martial_catch_your_breath", "values": [10.0, 20.0]}],
-		"r6c5": ["Footing", 2, "You move {v}% faster.",
+		"r6c7": ["Footing", 2, "You move {v}% faster.",
 			{"key": "martial_footing", "values": [3.0, 6.0], "stats": {"move_speed": 3.0}}],
-		"r8c5": ["Grit", 2, "While you are below {b:GRIT_HEALTH_PCT}% health, you deal {v}% more damage.",
+		"r8c7": ["Grit", 2, "While you are below {b:GRIT_HEALTH_PCT}% health, you deal {v}% more damage.",
 			{"key": "martial_grit", "values": [3.0, 6.0]}],
-		"r9c5": ["Pinned Down", 2, "{n:pintheshadow} takes {v+b:PIN_SHADOW_HITS} hits to shake loose instead of {b:PIN_SHADOW_HITS}, and lasts {v2} sec longer.",
+		"r9c7": ["Pinned Down", 2, "{n:pintheshadow} takes {v+b:PIN_SHADOW_HITS} hits to shake loose instead of {b:PIN_SHADOW_HITS}, and lasts {v2} sec longer.",
 			{"key": "martial_pinned_down", "values": [1.0, 2.0], "values2": [2.0, 4.0], "requires": "pintheshadow"}],
 		# --- The Brawler.
-		"r1c6": ["Soak It Up", 4, "{v+b:BRUISE_PCT}% of each hit you take goes into your Bruise instead of {b:BRUISE_PCT}%.",
+		"r1c8": ["Soak It Up", 4, "{v+b:BRUISE_PCT}% of each hit you take goes into your Bruise instead of {b:BRUISE_PCT}%.",
 			{"key": "martial_soak_it_up", "values": [2.0, 4.0, 6.0, 6.0],
 			"capstone": "Shake Off clears {b:SOAK_IT_UP_SHAKE_OFF}% of your Bruise instead of {b:SHAKE_OFF_PCT}%."}],
-		"r1c7": ["Quick Feet", 3, "Your strikes give you {v} more Fury.",
+		"r1c10": ["Quick Feet", 3, "Your strikes give you {v} more Fury.",
 			{"key": "martial_quick_feet", "values": [1.0, 2.0, 3.0]}],
-		"r2c6": ["Tight Clinch", 3, "Clinch, from {n:elbow}, lasts {v+b:CLINCH_TIME} sec instead of {b:CLINCH_TIME}.",
+		"r1c9": ["Tight Clinch", 3, "Clinch, from {n:elbow}, lasts {v+b:CLINCH_TIME} sec instead of {b:CLINCH_TIME}.",
 			{"key": "martial_tight_clinch", "values": [0.7, 1.3, 2.0], "requires": "elbow"}],
-		"r2c7": ["Heavy Bag", 3, "Your strong moves (a chain of three different strikes) deal {v}% more damage.",
+		"r2c8": ["Heavy Bag", 3, "Your strong moves (a chain of three different strikes) deal {v}% more damage.",
 			{"key": "martial_heavy_bag", "values": [5.0, 10.0, 15.0]}],
-		"r3c6": ["Soft Catch", 3, "{v}% of a hit you catch with {n:catch} still goes into your Bruise instead of landing at once.",
+		"r2c9": ["Soft Catch", 3, "{v}% of a hit you catch with {n:catch} still goes into your Bruise instead of landing at once.",
 			{"key": "martial_soft_catch", "values": [17.0, 33.0, 50.0], "requires": "catch"}],
-		"r3c7": ["Calluses", 3, "Your Bruise ticks give you {v}% more Fury.",
+		"r2c10": ["Calluses", 3, "Your Bruise ticks give you {v}% more Fury.",
 			{"key": "martial_calluses", "values": [10.0, 20.0, 30.0]}],
-		"r4c6": ["Knockout", 3, "Haymaker, from {n:punch}, deals {v}% more damage.",
+		"r3c9": ["Knockout", 3, "Haymaker, from {n:punch}, deals {v}% more damage.",
 			{"key": "martial_knockout", "values": [10.0, 20.0, 30.0], "requires": "punch"}],
-		"r4c7": ["Wide Stance", 3, "Your Sweep and Roundhouse reach {v} m further.",
+		"r3c8": ["Wide Stance", 3, "Your Sweep and Roundhouse reach {v} m further.",
 			{"key": "martial_wide_stance", "values": [0.7, 1.3, 2.0]}],
-		"r5c6": ["Slow Burn", 2, "Your Bruise is dealt to you over {v+b:BRUISE_TIME} sec instead of {b:BRUISE_TIME}.",
+		"r3c10": ["Slow Burn", 2, "Your Bruise is dealt to you over {v+b:BRUISE_TIME} sec instead of {b:BRUISE_TIME}.",
 			{"key": "martial_slow_burn", "values": [1.5, 3.0]}],
-		"r5c7": ["Counter Puncher", 3, "Your Catch strings (Turn It Around, Throw, Reversal and Takedown) deal {v}% more damage.",
+		"r4c9": ["Counter Puncher", 3, "Your Catch strings (Turn It Around, Throw, Reversal and Takedown) deal {v}% more damage.",
 			{"key": "martial_counter_puncher", "values": [10.0, 20.0, 30.0], "requires": "catch"}],
-		"r6c6": ["Crowd Work", 3, "Your Sweep and Roundhouse give you {v} Fury for each enemy they hit, up to {b:CROWD_WORK_MAX} enemies.",
+		"r4c8": ["Crowd Work", 3, "Your Sweep and Roundhouse give you {v} Fury for each enemy they hit, up to {b:CROWD_WORK_MAX} enemies.",
 			{"key": "martial_crowd_work", "values": [2.0, 4.0, 6.0]}],
-		"r6c7": ["Get Up", 2, "Your Shake Off also heals you for {v}% of your maximum health.",
+		"r4c10": ["Get Up", 2, "Your Shake Off also heals you for {v}% of your maximum health.",
 			{"key": "martial_get_up", "values": [3.0, 6.0]}],
-		"r7c6": ["Bad Intentions", 3, "Your chain moves make {v}% more threat.",
+		"r5c9": ["Bad Intentions", 3, "Your chain moves make {v}% more threat.",
 			{"key": "martial_bad_intentions", "values": [10.0, 20.0, 30.0]}],
-		"r7c7": ["Hardened", 2, "While your Bruise holds more than {b:HARDENED_BRUISE_PCT}% of your maximum health, you take {v}% less damage.",
+		"r6c9": ["Hardened", 2, "While your Bruise holds more than {b:HARDENED_BRUISE_PCT}% of your maximum health, you take {v}% less damage.",
 			{"key": "martial_hardened", "values": [3.0, 6.0]}],
-		"r8c6": ["Iron Chin", 3, "While you have an enemy in your Clinch, you take {v}% less damage from every enemy.",
+		"r7c9": ["Iron Chin", 3, "While you have an enemy in your Clinch, you take {v}% less damage from every enemy.",
 			{"key": "martial_iron_chin", "values": [2.0, 4.0, 6.0]}],
-		"r8c7": ["Last Laugh", 3, "Your Haymaker clears {v}% of your Bruise.",
+		"r8c9": ["Last Laugh", 3, "Your Haymaker clears {v}% of your Bruise.",
 			{"key": "martial_last_laugh", "values": [5.0, 10.0, 15.0]}],
-		"r9c6": ["Back Up", 3, "Your Shake Off gives you {v} Fury.",
+		"r9c10": ["Back Up", 3, "Your Shake Off gives you {v} Fury.",
 			{"key": "martial_back_up", "values": [5.0, 10.0, 15.0]}],
-		"r9c7": ["Ground Game", 2, "Your Throw and Takedown keep enemies down {v} sec longer.",
+		"r9c8": ["Ground Game", 2, "Your Throw and Takedown keep enemies down {v} sec longer.",
 			{"key": "martial_ground_game", "values": [0.5, 1.0]}],
-		"r10c6": ["Scar Tissue", 5, "Your Bruise deals {v}% less damage to you.",
+		"r10c9": ["Scar Tissue", 5, "Your Bruise deals {v}% less damage to you.",
 			{"key": "martial_scar_tissue", "values": [2.0, 4.0, 6.0, 8.0, 10.0]}],
 		# --- The Sharpshooter.
-		"r1c8": ["Full Draw", 4, "{n:heavydraw} deals {v}% more damage.",
+		"r1c12": ["Full Draw", 4, "{n:heavydraw} deals {v}% more damage.",
 			{"key": "martial_full_draw", "values": [5.0, 10.0, 15.0, 15.0], "requires": "heavydraw",
 			"capstone": "{n:heavydraw} brings your other shots back {b:FULL_DRAW_CUT} sec sooner instead of {b:SHARP_HEAVY_CUT}."}],
-		"r1c9": ["Quick Release", 3, "The time your shots take off your other shots is {v}% longer.",
+		"r1c11": ["Quick Release", 3, "The time your shots take off your other shots is {v}% longer.",
 			{"key": "martial_quick_release", "values": [5.0, 10.0, 15.0]}],
-		"r2c8": ["Broadhead", 3, "{n:pierce}'s line is {v} m wider.",
+		"r1c13": ["Broadhead", 3, "{n:pierce}'s line is {v} m wider.",
 			{"key": "martial_broadhead", "values": [0.5, 1.0, 1.5], "requires": "pierce"}],
-		"r2c9": ["Deep Hold", 2, "Your Overcut goes up to {v+b:OVERCUT_MAX} sec instead of {b:OVERCUT_MAX}.",
+		"r2c12": ["Deep Hold", 2, "Your Overcut goes up to {v+b:OVERCUT_MAX} sec instead of {b:OVERCUT_MAX}.",
 			{"key": "martial_deep_hold", "values": [2.5, 5.0]}],
-		"r3c8": ["Patience", 3, "Overcut gives {v+b:OVERCUT_PCT}% more damage per second instead of {b:OVERCUT_PCT}% (still up to {b:OVERCUT_MAX} sec).",
+		"r3c11": ["Patience", 3, "Overcut gives {v+b:OVERCUT_PCT}% more damage per second instead of {b:OVERCUT_PCT}% (still up to {b:OVERCUT_MAX} sec).",
 			{"key": "martial_patience", "values": [1.0, 2.0, 3.0]}],
-		"r3c9": ["On a Roll", 3, "Each stack of your Streak gives {v+b:STREAK_PCT}% more damage instead of {b:STREAK_PCT}%.",
+		"r3c13": ["On a Roll", 3, "Each stack of your Streak gives {v+b:STREAK_PCT}% more damage instead of {b:STREAK_PCT}%.",
 			{"key": "martial_on_a_roll", "values": [0.2, 0.4, 0.6]}],
-		"r4c8": ["Extra Arrows", 2, "{n:spread} shoots {v} more arrows. Each one brings {n:heavydraw} back sooner too.",
+		"r4c12": ["Extra Arrows", 2, "{n:spread} shoots {v} more arrows. Each one brings {n:heavydraw} back sooner too.",
 			{"key": "martial_extra_arrows", "values": [1.0, 2.0], "requires": "spread"}],
-		"r4c9": ["Lucky Shot", 3, "Your shots that critically strike also take {v} sec off each of your other shots.",
+		"r4c11": ["Lucky Shot", 3, "Your shots that critically strike also take {v} sec off each of your other shots.",
 			{"key": "martial_lucky_shot", "values": [1.0, 2.0, 3.0]}],
-		"r5c8": ["No Letup", 3, "Your Streak lasts {v+b:STREAK_HOLD} sec without a shot instead of {b:STREAK_HOLD}.",
+		"r4c13": ["No Letup", 3, "Your Streak lasts {v+b:STREAK_HOLD} sec without a shot instead of {b:STREAK_HOLD}.",
 			{"key": "martial_no_letup", "values": [0.7, 1.3, 2.0]}],
-		"r5c9": ["Long Range", 3, "Your shots deal {v}% more damage for every {b:LONG_RANGE_STEP} m the target is beyond {b:LONG_RANGE_FROM} m.",
+		"r5c11": ["Long Range", 3, "Your shots deal {v}% more damage for every {b:LONG_RANGE_STEP} m the target is beyond {b:LONG_RANGE_FROM} m.",
 			{"key": "martial_long_range", "values": [1.0, 2.0, 3.0]}],
-		"r6c8": ["Easy Release", 2, "{n:loose} takes away a third / a quarter of your Streak instead of half.",
+		"r5c13": ["Easy Release", 2, "{n:loose} takes away a third / a quarter of your Streak instead of half.",
 			{"key": "martial_easy_release", "values": [3.0, 4.0], "requires": "loose"}],
-		"r6c9": ["Waiting Game", 3, "A shot of yours gains {v} sec of Overcut for every {b:WAITING_GAME_TIME} sec it stays ready.",
+		"r6c11": ["Waiting Game", 3, "A shot of yours gains {v} sec of Overcut for every {b:WAITING_GAME_TIME} sec it stays ready.",
 			{"key": "martial_waiting_game", "values": [1.0, 2.0, 3.0]}],
-		"r7c8": ["Clean Release", 3, "Firing a shot that holds {b:CLEAN_RELEASE_OVERCUT} sec or more of Overcut gives you {v} Streak.",
+		"r6c12": ["Clean Release", 3, "Firing a shot that holds {b:CLEAN_RELEASE_OVERCUT} sec or more of Overcut gives you {v} Streak.",
 			{"key": "martial_clean_release", "values": [1.0, 2.0, 3.0]}],
-		"r7c9": ["Long Streak", 2, "Your Streak goes up to {v+b:STREAK_MAX} instead of {b:STREAK_MAX}.",
+		"r6c13": ["Long Streak", 2, "Your Streak goes up to {v+b:STREAK_MAX} instead of {b:STREAK_MAX}.",
 			{"key": "martial_long_streak", "values": [1.0, 2.0]}],
-		"r8c8": ["Second Arrow", 3, "Your engine shots have a {v}% chance to loose a second arrow that deals {b:SECOND_ARROW_PCT}% of their damage.",
+		"r7c11": ["Second Arrow", 3, "Your engine shots have a {v}% chance to loose a second arrow that deals {b:SECOND_ARROW_PCT}% of their damage.",
 			{"key": "martial_second_arrow", "values": [5.0, 10.0, 15.0]}],
-		"r8c9": ["Hard Target", 3, "Your shots deal {v}% more damage to enemies above {b:HARD_TARGET_HEALTH}% health.",
+		"r7c13": ["Hard Target", 3, "Your shots deal {v}% more damage to enemies above {b:HARD_TARGET_HEALTH}% health.",
 			{"key": "martial_hard_target", "values": [5.0, 10.0, 15.0]}],
-		"r9c8": ["Run It Back", 3, "When a cut of yours resets a shot fully, it has a {v}% chance to also take {b:RUN_IT_BACK_CUT} sec off the next shot in the chain.",
+		"r8c12": ["Run It Back", 3, "When a cut of yours resets a shot fully, it has a {v}% chance to also take {b:RUN_IT_BACK_CUT} sec off the next shot in the chain.",
 			{"key": "martial_run_it_back", "values": [10.0, 20.0, 30.0]}],
-		"r9c9": ["Hold Steady", 2, "While one of your shots holds {b:HOLD_STEADY_OVERCUT} sec or more of Overcut, your other shots deal {v}% more damage.",
+		"r9c12": ["Hold Steady", 2, "While one of your shots holds {b:HOLD_STEADY_OVERCUT} sec or more of Overcut, your other shots deal {v}% more damage.",
 			{"key": "martial_hold_steady", "values": [4.0, 8.0]}],
-		"r10c8": ["Keen Eye", 5, "Your Sharpshooter shots have {v}% more critical strike chance.",
+		"r10c12": ["Keen Eye", 5, "Your Sharpshooter shots have {v}% more critical strike chance.",
 			{"key": "martial_keen_eye", "values": [1.0, 2.0, 3.0, 4.0, 5.0]}],
 	},
 	"holy": {
@@ -1388,30 +1488,37 @@ const TALENTS := {
 ## "key" (it follows the talent when its slot changes) or a talent id.
 ## A line must not run behind another talent, and the bottom row has no links.
 const LINKS := [
-	# (Frost, Fire and Martial are on the column-group layout: no links.)
-	# --- Lightning ---
-	# The parry tank: parry talents down column 4, Return Stroke's two down the edge.
-	["lightning_long_reach", "lightning_closed_circuit"],
-	["lightning_closed_circuit", "lightning_earth_return"],
-	["lightning_earth_return", "lightning_tempo"],
-	["lightning_counter_charge", "lightning_second_stroke"],
-	# Static Step.
-	["lightning_running_start", "lightning_whip_crack"],
-	# Lightning Bolt -> Storm Arrow's three, down the middle.
-	["lightning_quick_fuse", "lightning_rod"],
-	["lightning_rod", "lightning_snap_shot"],
-	["lightning_snap_shot", "lightning_loaded_quiver"],
-	# --- Arcane ---
-	# Sigil Darts' two, and Collapse's two.
-	["arcane_seventh_sigil", "arcane_etched_darts"],
-	# The tank: shatters down the left edge, staying alive down the right.
-	["arcane_sharp_edges", "arcane_clockwork"],
-	["arcane_clockwork", "arcane_spare_copy"],
-	["arcane_light_feet", "arcane_empty_room"],
-	["arcane_empty_room", "arcane_bent_light"],
-	# Melee: Encore's three, down column 5.
-	["arcane_standing_ovation", "arcane_second_showing"],
-	["arcane_second_showing", "arcane_time_signature"],
+	# --- Martial, Fire, Frost, Lightning and Arcane (the ribbon layout): straight down one column of a
+	# spec's ribbon, over the rows its shape leaves empty there.
+	["martial_twice_over", "martial_gather_pace"],       # the Wheel: Weapon Arts
+	["martial_steady_pace", "martial_deep_flow"],        # Rogue: Flow
+	["martial_mix_it_up", "martial_hot_start"],          # Rogue: Kill windows
+	["martial_get_up", "martial_back_up"],               # Brawler: Shake Off
+	["martial_clean_release", "martial_run_it_back"],    # Sharpshooter: cuts
+	["fire_stoked_breath", "fire_lean_fuel"],            # Steady Flame: Fury
+	["fire_clean_burn", "fire_stay_lit"],                # Steady Flame: spells that don't crit
+	["fire_fuel_the_forge", "fire_heavy_hammer"],        # Slagforged: Fury from the forge
+	["fire_banked_fire", "fire_overheat"],               # Forge Heat: Heat
+	["fire_spreading_fire", "fire_fuel_run"],            # Pitch and Cinder: Ignites
+	["frost_chilled_dmg", "frost_instinct"],             # Hard Winter: Chill, then Freeze
+	["frost_instinct", "frost_cold_front"],              # Hard Winter: Frozen enemies
+	["frost_thaw_water", "frost_meltdown"],              # Cold Comfort: thaw and melt
+	["frost_long_glaze", "frost_long_dark"],             # Frostbitten Steel: lasting longer
+	["frost_cold_fury", "frost_rime_pressure"],          # Glacier Wall: Ice Layers
+	["frost_frost_fletching", "frost_splitting_arrow"],  # Winter Hunt: arrows on Chilled / Frozen
+	["frost_rime_tips", "frost_numb_prey"],              # Winter Hunt: auto-shots
+	["lightning_conductive", "lightning_conductor"],     # Live Current: critical strikes
+	["lightning_deep_draw", "lightning_afterflow"],      # Live Current: spending all the Energy
+	["lightning_afterspark", "lightning_light_load"],    # Stormdancer: auto-attacks
+	["lightning_built_charge", "lightning_spinning_up"], # Stormdancer: Energy spent
+	["lightning_counter_charge", "lightning_second_stroke"],   # Lightning Rod: Return Stroke
+	["lightning_earth_return", "lightning_tempo"],       # Lightning Rod: parries
+	["arcane_etched_darts", "arcane_sharp_mind"],        # Clockwork: Arcane spell crits
+	["arcane_second_hand", "arcane_unwinding"],          # Clockwork: time off cooldowns
+	["arcane_sharp_edges", "arcane_glass_dust"],         # Hall of Mirrors: shatters
+	["arcane_quick_answer", "arcane_spare_copy"],        # Hall of Mirrors: dodges
+	["arcane_last_copy", "arcane_crowded_room"],         # Hall of Mirrors: Reflections held
+	["arcane_standing_ovation", "arcane_time_signature"],   # Second Act: replays
 	# --- Shadow ---
 	# Call Due's two, straight down the middle.
 	["shadow_interest", "shadow_small_change"],
@@ -1439,30 +1546,84 @@ const LINKS := [
 static var _db := {}
 static var _keys := {}         # talent "key" -> talent id
 static var _rows_cache := {}   # "cat:row" -> Array[String]
+static var _group_cache := {}  # "cat:group" -> Array[String] (in_group; the talent data never changes)
 static var _links: Array = []  # built from LINKS (tests may replace it)
 static var _links_ready := false
 
 static func layout(category: String) -> Array:
 	return LAYOUTS.get(category, DEFAULT_LAYOUT)
 
-# --- Spec groups (the column-group layout) ---------------------------------------------
-# A book on the new layout has its specs side by side as column groups (GROUPS), with
-# faint lines between them in the book. Rows still unlock globally; on top of that,
+# --- Spec groups (the ribbon layout) ----------------------------------------------------
+# A book on the new layout has its specs side by side as column groups (GROUPS), each
+# three columns wide and drawn as a bookmark ribbon whose talents (wax seals) form the
+# spec's shape (SHAPES); the open talents sit on one column between them, drawn as beads
+# on the book's spine thread. Rows still unlock globally; on top of that,
 # a spec group's bottom-row talent (its capstone) needs Balance.CAPSTONE_GATE points
 # spent in that group. The "Open" group (talents for any spec) has no gate. Books not
 # in GROUPS keep the old 10 x COLUMNS grid until their own pass.
 
 ## Columns of a book's grid.
-const GRID_COLUMNS := {"martial": 9, "fire": 9, "frost": 11}
+const GRID_COLUMNS := {"martial": 13, "fire": 13, "frost": 16, "lightning": 13, "arcane": 13}
 
 ## Book -> its groups: [name, first column, last column] (0-based, left to right).
 const GROUPS := {
-	"martial": [["The Wheel", 0, 1], ["Rogue", 2, 3], ["Open", 4, 4], ["Brawler", 5, 6], ["Sharpshooter", 7, 8]],
-	"fire": [["Steady Flame", 0, 1], ["Slagforged", 2, 3], ["Open", 4, 4], ["Forge Heat", 5, 6], ["Pitch and Cinder", 7, 8]],
-	"frost": [["Hard Winter", 0, 1], ["Cold Comfort", 2, 3], ["Open", 4, 4], ["Frostbitten Steel", 5, 6],
-		["Glacier Wall", 7, 8], ["Winter Hunt", 9, 10]],
+	"martial": [["The Wheel", 0, 2], ["Rogue", 3, 5], ["Open", 6, 6], ["Brawler", 7, 9], ["Sharpshooter", 10, 12]],
+	"fire": [["Steady Flame", 0, 2], ["Slagforged", 3, 5], ["Open", 6, 6], ["Forge Heat", 7, 9], ["Pitch and Cinder", 10, 12]],
+	"frost": [["Hard Winter", 0, 2], ["Cold Comfort", 3, 5], ["Open", 6, 6], ["Frostbitten Steel", 7, 9],
+		["Glacier Wall", 10, 12], ["Winter Hunt", 13, 15]],
+	"lightning": [["Live Current", 0, 2], ["Stormdancer", 3, 5], ["Open", 6, 6], ["Lightning Rod", 7, 9],
+		["Stormstring", 10, 12]],
+	"arcane": [["Clockwork", 0, 2], ["Hall of Mirrors", 3, 5], ["Open", 6, 6], ["Second Act", 7, 9],
+		["Aetherstring", 10, 12]],
 }
+## Specs not built yet (one ability so far): their ribbon holds only the talents they
+## have, with no shape and no capstone until the spec is built.
+const UNFINISHED_SPECS := ["Stormstring", "Aetherstring", "Nightstring"]
 const OPEN_GROUP := "Open"
+## Width of a spec's ribbon, in columns.
+const RIBBON_COLUMNS := 3
+
+## Spec group -> [its shape's name, rows 1-9 of its ribbon]. Each row holds the middle
+## seal ("M"), the outer two ("LR") or all three ("LMR"); together they draw a symbol no
+## other spec has. Row 10 is the capstone, alone in the middle. LAYOUTS follows these.
+const SHAPES := {
+	"Hard Winter": ["ice crystal", ["M", "LR", "LMR", "LR", "LR", "LR", "LMR", "LR", "M"]],
+	"Cold Comfort": ["cross over a drop", ["M", "LMR", "M", "M", "LR", "LMR", "LMR", "LR", "LR"]],
+	"Frostbitten Steel": ["sword", ["M", "LMR", "LR", "LR", "LR", "LR", "LR", "LMR", "M"]],
+	"Glacier Wall": ["glacier", ["M", "M", "LR", "LR", "LR", "LMR", "LMR", "LMR", "M"]],
+	"Winter Hunt": ["arrow", ["LR", "LMR", "LMR", "M", "M", "M", "LMR", "LMR", "M"]],
+	"Steady Flame": ["flame", ["M", "LR", "M", "LR", "LMR", "LMR", "LMR", "LR", "M"]],
+	"Slagforged": ["anvil", ["LMR", "LMR", "M", "M", "M", "M", "LR", "LMR", "LMR"]],
+	"Forge Heat": ["hammer", ["LMR", "LMR", "LMR", "M", "M", "LR", "LR", "LR", "M"]],
+	"Pitch and Cinder": ["rising arrow", ["M", "LMR", "LMR", "M", "M", "M", "LR", "LMR", "LMR"]],
+	"The Wheel": ["wheel", ["M", "LR", "LR", "LMR", "LR", "LMR", "LR", "LR", "M"]],
+	"Rogue": ["crossed daggers", ["LR", "LR", "LR", "LMR", "M", "LR", "LR", "LR", "LR"]],
+	"Brawler": ["fist", ["LMR", "LMR", "LMR", "LMR", "M", "M", "M", "M", "LR"]],
+	"Sharpshooter": ["scope", ["LMR", "M", "LR", "LMR", "LR", "LMR", "LR", "M", "M"]],
+	"Live Current": ["storm cloud", ["LR", "LMR", "LMR", "LMR", "M", "LR", "M", "LR", "M"]],
+	"Stormdancer": ["twin bolts", ["LR", "LR", "LMR", "LR", "LR", "M", "LR", "LR", "LR"]],
+	"Lightning Rod": ["lightning rod", ["M", "LMR", "M", "LMR", "M", "M", "LR", "LMR", "LMR"]],
+	"Clockwork": ["clock face", ["M", "LR", "LR", "LR", "LMR", "LMR", "LR", "LR", "M"]],
+	"Hall of Mirrors": ["hand mirror", ["LMR", "LR", "LR", "LR", "LMR", "M", "M", "M", "LMR"]],
+	"Second Act": ["stage curtains", ["LMR", "LR", "LR", "LR", "LR", "LR", "LR", "LR", "M"]],
+}
+## Which of a ribbon's three columns (0 left, 1 middle, 2 right) a SHAPES row fills.
+const SHAPE_COLUMNS := {"M": [1], "LR": [0, 2], "LMR": [0, 1, 2]}
+## Gap between two spec groups on the page, in cells: each group is drawn as its own block.
+const GROUP_GAP := 0.45
+
+## A column's left edge in cells, counting the gaps between the groups before it.
+static func column_x(category: String, col: int) -> float:
+	var x := float(col)
+	var groups := groups_of(category)
+	for i in range(1, groups.size()):
+		if col >= int(groups[i][1]):
+			x += GROUP_GAP
+	return x
+
+## Width of a book's grid in cells, the gaps between groups included.
+static func grid_width(category: String) -> float:
+	return column_x(category, columns_of(category) - 1) + 1.0
 
 static func columns_of(category: String) -> int:
 	return int(GRID_COLUMNS.get(category, COLUMNS))
@@ -1490,17 +1651,21 @@ static func capstone_gated(id: String) -> bool:
 
 ## Every talent id (choice slots' two talents included, not the slots) in a group.
 static func in_group(category: String, group: String) -> Array[String]:
+	var key := "%s:%s" % [category, group]
+	if not _group_cache.has(key):
+		var found: Array[String] = []
+		for id in db():
+			if category_of(str(id)) == category and not is_choice_slot(str(id)) and group_of(str(id)) == group:
+				found.append(str(id))
+		_group_cache[key] = found
 	var out: Array[String] = []
-	for id in db():
-		if category_of(str(id)) == category and not is_choice_slot(str(id)) and group_of(str(id)) == group:
-			out.append(str(id))
+	out.assign(_group_cache[key])
 	return out
 
 ## Talents that changed slot: old id -> new id, so points saved in the old slot
 ## follow the talent (SaveSystem._valid_talents). An old id listed here must not
 ## be given to a new talent.
 const MOVED := {
-	"lightning_r2c4": "lightning_r3c5",   # Long Reach: row 2 -> row 3
 }
 
 ## The Frost book was rearranged to put the bow talents together (save version
@@ -1520,15 +1685,9 @@ const FROST_BOW_MOVED := {
 ## Talents changed slot so that an ability's talents line up, the most important
 ## at the top, and can be linked (save version 5 -> 6, SaveSystem._migrate_5_to_6).
 ## Old id -> new id; nothing was removed. Like FROST_BOW_MOVED this is applied
-## once, to saves made before the change: most old slots now hold another talent.
+## once, to saves made before the change. Its last entries (all Lightning) went with the
+## Lightning ribbon tree, which refunded every point (TREE_VERSION).
 const LINKS_MOVED := {
-	"lightning_r5c4": "lightning_r6c4",   # Quick Fuse: row 5 -> row 6
-	"lightning_r6c4": "lightning_r5c4",   # Tight Coil: row 6 -> row 5
-	"lightning_r9c4": "lightning_r7c4",   # Grounded Arrow: row 9 -> row 7
-	"lightning_r7c4": "lightning_r9c4",   # Snap Shot: row 7 -> row 9
-	"lightning_r8c6": "lightning_r6c7",   # Second Stroke: row 8 -> row 6, under Counter-Charge
-	"lightning_r6c7": "lightning_r8c5",   # Tempo: row 6 -> row 8, under Earth Return
-	"lightning_r8c5": "lightning_r8c6",   # Parting Spark: one column right
 }
 
 ## Small Change moved up from row 8 to row 5, straight under Interest, to make

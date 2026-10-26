@@ -72,14 +72,25 @@ const ICONED := ["frost_deep_cracks", "frost_cold_spread", "frost_slow_runoff", 
 	"arcane_polished_glass", "arcane_aftershock",
 	"arcane_sharp_edges", "arcane_clockwork", "arcane_spare_copy", "arcane_second_self", "arcane_wide_rings",
 	"arcane_on_the_beat", "arcane_head_count", "arcane_light_feet", "arcane_empty_room", "arcane_bent_light",
-	"arcane_understudy", "arcane_loud_exit", "arcane_good_likeness",
+	"arcane_understudy", "arcane_good_likeness",
 	"arcane_standing_ovation", "arcane_long_memory", "arcane_clean_lines", "arcane_second_showing",
 	"arcane_practiced_hand", "arcane_heavy_hand", "arcane_curtain_call", "arcane_no_loose_ends", "arcane_time_signature",
 	"arcane_full_house", "arcane_dress_rehearsal", "arcane_silvered", "arcane_running_clock", "arcane_fine_edge",
+	"arcane_pinned_in_time", "arcane_thrifty_mind", "arcane_wound_up", "arcane_sharp_mind", "arcane_clock_hands", "arcane_moving_parts",
+	"arcane_second_hand", "arcane_on_the_dot", "arcane_turning_gears", "arcane_unwinding", "arcane_glass_armor", "arcane_quick_answer",
+	"arcane_glass_dust", "arcane_last_copy", "arcane_crowded_room", "arcane_fresh_trace", "arcane_keen_cuts", "arcane_quick_cuts",
+	"arcane_twin_blades", "arcane_full_stage", "arcane_final_act", "arcane_curtain_rise", "arcane_spare_moment",
 	"arcane_quick_study", "arcane_two_minds", "arcane_echo", "arcane_mirror_finish", "arcane_overtime",
 	"arcane_light_touch", "arcane_slipstream", "arcane_borrowed_time", "arcane_keep_moving", "arcane_full_crowd",
 	"fire_feed_the_flames", "fire_last_ember", "fire_tempered",
 	"lightning_change_of_pace", "lightning_spillover", "lightning_dig_in",
+	"lightning_long_leap", "lightning_charged_air", "lightning_feedback", "lightning_lingering_storm", "lightning_crackle",
+	"lightning_deep_draw", "lightning_afterflow", "lightning_snap_cast", "lightning_full_circuit", "lightning_keen_current",
+	"lightning_edge_current", "lightning_sparking_swings", "lightning_afterspark", "lightning_built_charge", "lightning_light_load",
+	"lightning_spinning_up", "lightning_charged_steel", "lightning_short_fuse", "lightning_storm_dance", "lightning_spark_guard",
+	"lightning_loud_steel", "lightning_charged_guard", "lightning_draw_down", "lightning_ring_true", "lightning_hard_lessons",
+	"lightning_wide_current", "lightning_charged_shell", "lightning_hard_stare", "lightning_eye_of_the_storm",
+	"lightning_back_to_the_wall", "lightning_storm_anchor", "lightning_cut_the_line", "lightning_fresh_charge", "lightning_static_build",
 	"shadow_tainted_steel", "shadow_slow_death", "shadow_wasting", "shadow_finish_it", "shadow_spite",
 	"shadow_carrion", "shadow_inevitable", "shadow_seep", "shadow_interest",
 	"shadow_next_of_kin", "shadow_bitter_end", "shadow_no_floor", "shadow_small_change", "shadow_rot_through",
@@ -127,10 +138,12 @@ const ICONED := ["frost_deep_cracks", "frost_cold_spread", "frost_slow_runoff", 
 ## Pictures kept from talents that were folded into their abilities, free for new
 ## talents (draw one under its new key). Not given to any talent today.
 const SPARE := ["frost_thick_hide", "frost_marked_prey", "lightning_honed_edge",
-	"arcane_deep_well", "shadow_cut_short", "nature_quick_return", "nature_big_herd", "martial_deep_pockets",
+	"arcane_deep_well", "arcane_loud_exit", "shadow_cut_short", "nature_quick_return", "nature_big_herd", "martial_deep_pockets",
 	"martial_round_two", "holy_last_rites", "holy_swift_light", "holy_high_censer"]
 
-static func draw(c: Control, id: String) -> void:
+## `round_bg`: a round dark backing instead of the square one (the seals of the
+## ribbon layout, scripts/ui/ribbon_drawer.gd).
+static func draw(c: Control, id: String, round_bg := false) -> void:
 	if not has_icon(id):
 		return
 	var s := c.size
@@ -139,7 +152,16 @@ static func draw(c: Control, id: String) -> void:
 	var col := Categories.color(Talents.category_of(id))
 	var light := col.lightened(0.5)
 	var pad := 4.0 * k
-	c.draw_rect(Rect2(Vector2(pad, pad), s - Vector2(pad, pad) * 2.0), col.darkened(0.75), true)
+	if round_bg:
+		# On a wax seal (book-coloured): a near-black disc and brighter strokes, so
+		# the picture doesn't sink into the wax.
+		var rr := minf(s.x, s.y) / 2.0 - pad * 0.25
+		c.draw_circle(mid, rr, col.darkened(0.88))
+		c.draw_arc(mid, rr, 0.0, TAU, 28, Color(0, 0, 0, 0.8), 1.5, true)
+		light = col.lightened(0.78)
+		col = col.lightened(0.4)
+	else:
+		c.draw_rect(Rect2(Vector2(pad, pad), s - Vector2(pad, pad) * 2.0), col.darkened(0.75), true)
 	var opts := Talents.options_of(id)
 	if opts.is_empty():
 		_draw_key(c, _key_of(id), mid, k, col, light)
@@ -171,6 +193,20 @@ static func _p(mid: Vector2, k: float, raw: Array) -> PackedVector2Array:
 	for v in raw:
 		out.append(mid + (v as Vector2) * k)
 	return out
+
+## A small bolt of lightning, about 20 x `s` tall, centred on `at` (`s` already holds k).
+static func _bolt(c: Control, at: Vector2, s: float, col: Color) -> void:
+	c.draw_colored_polygon(_p(at, s, [Vector2(3, -10), Vector2(-5, 1), Vector2(-0.5, 1), Vector2(-3, 10), Vector2(5, -2), Vector2(0.5, -2)]), col)
+
+## An Energy cell (a little battery) 10 x 16 centred on `at`, filled to `full` (0-1).
+static func _cell(c: Control, at: Vector2, k: float, col: Color, light: Color, full: float) -> void:
+	var box := Rect2(at + Vector2(-5, -8) * k, Vector2(10, 16) * k)
+	c.draw_rect(box, col.darkened(0.45), true)
+	if full > 0.0:
+		var h := 16.0 * clampf(full, 0.0, 1.0)
+		c.draw_rect(Rect2(at + Vector2(-5, 8 - h) * k, Vector2(10, h) * k), light, true)
+	c.draw_rect(box, WHITE, false, 1.4 * k)
+	c.draw_rect(Rect2(at + Vector2(-2, -10) * k, Vector2(4, 2) * k), WHITE, true)
 
 static func _flake(c: Control, at: Vector2, r: float, col: Color, w: float) -> void:
 	for i in 3:
@@ -1098,6 +1134,296 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			for sx in [-1.0, 1.0]:
 				c.draw_line(mid + Vector2(sx * 9, 10) * k, mid + Vector2(sx * 12, 16) * k, Color(light, 0.8), 1.8 * k, true)
 				c.draw_line(mid + Vector2(sx * 3, 10) * k, mid + Vector2(sx * 4, 16) * k, Color(light, 0.8), 1.8 * k, true)
+		# --- Lightning: the ribbon tree's new talents ---
+		"lightning_long_leap":   # an arc leaping from one enemy to the next, far apart
+			for v in [Vector2(-14, 9), Vector2(0, -8), Vector2(14, 9)]:
+				c.draw_circle(mid + v * k, 3.4 * k, col.lightened(0.1))
+			c.draw_polyline(_p(mid, k, [Vector2(-12, 6), Vector2(-8, -2), Vector2(-5, 1), Vector2(-2, -6)]), WHITE, 2.2 * k, true)
+			c.draw_polyline(_p(mid, k, [Vector2(2, -6), Vector2(5, 1), Vector2(8, -2), Vector2(12, 6)]), WHITE, 2.2 * k, true)
+			c.draw_arc(mid + Vector2(0, 6) * k, 15.0 * k, PI * 1.1, PI * 1.9, 14, Color(light, 0.5), 1.6 * k, true)
+		"lightning_charged_air":   # a spell let go: motes rising off the hand into a cell
+			_hand(c, mid + Vector2(-6, 8) * k, 10.0 * k)
+			for i in 3:
+				c.draw_circle(mid + Vector2(-8 + i * 4, -2 - i * 5) * k, (1.6 + i * 0.4) * k, Color(light, 0.5 + i * 0.2))
+			_cell(c, mid + Vector2(10, -4) * k, k, col, light, 0.7)
+		"lightning_feedback":   # a bolt with the charge looping back into it
+			c.draw_arc(mid, 14.0 * k, -PI * 0.3, PI * 1.3, 24, light, 2.2 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(13, -11), Vector2(15, -3), Vector2(8, -6)]), light)
+			_bolt(c, mid, 1.2 * k, WHITE)
+		"lightning_lingering_storm":   # a storm cloud, and the clock it stays for
+			for v in [Vector2(-8, -9), Vector2(0, -12), Vector2(8, -9)]:
+				c.draw_circle(mid + v * k, 6.0 * k, col.lightened(0.15))
+			c.draw_rect(Rect2(mid + Vector2(-10, -9) * k, Vector2(20, 5) * k), col.lightened(0.15), true)
+			_clock(c, mid + Vector2(0, 8) * k, 8.0 * k, WHITE, k)
+			c.draw_line(mid + Vector2(0, 8) * k, mid + Vector2(0, 3) * k, WHITE, 1.8 * k, true)
+			c.draw_line(mid + Vector2(0, 8) * k, mid + Vector2(4, 9) * k, WHITE, 1.8 * k, true)
+		"lightning_crackle":   # an orb of lightning, sparks crackling off all round it
+			c.draw_circle(mid, 8.0 * k, col.lightened(0.2))
+			c.draw_arc(mid, 8.0 * k, 0, TAU, 20, WHITE, 1.6 * k, true)
+			for i in 6:
+				var a := TAU * i / 6.0 + 0.3
+				var d := Vector2(cos(a), sin(a))
+				var n := Vector2(-d.y, d.x)
+				c.draw_polyline(PackedVector2Array([mid + d * 10.0 * k, mid + (d * 13.0 + n * 2.0) * k, mid + (d * 16.0 - n * 1.5) * k]), light, 1.6 * k, true)
+		"lightning_deep_draw":   # a cell emptied at once, more pouring out of it than it held
+			_cell(c, mid + Vector2(-7, -3) * k, k, col, light, 0.0)
+			for i in 3:
+				c.draw_line(mid + Vector2(3 + i * 4, -6 + i * 3) * k, mid + Vector2(12 + i * 2, 4 + i * 4) * k, Color(light, 0.9 - i * 0.2), 2.4 * k, true)
+			_bolt(c, mid + Vector2(10, 9) * k, 0.8 * k, WHITE)
+		"lightning_afterflow":   # an empty cell filling back up fast, arrows climbing beside it
+			_cell(c, mid + Vector2(-5, 0) * k, k, col, light, 0.35)
+			for i in 3:
+				var x := 8.0 + i * 4.0
+				c.draw_polyline(_p(mid, k, [Vector2(x - 2, 4 - i * 6), Vector2(x, 1 - i * 6), Vector2(x + 2, 4 - i * 6)]), Color(WHITE, 0.5 + i * 0.25), 2.0 * k, true)
+		"lightning_snap_cast":   # a critical spark, and the bolt it lets fly at once
+			_star(c, mid + Vector2(-8, -8) * k, 7.0 * k, light, 4)
+			_bolt(c, mid + Vector2(5, 3) * k, 1.2 * k, WHITE)
+			for i in 2:
+				c.draw_line(mid + Vector2(-16, 6 + i * 5) * k, mid + Vector2(-6, 6 + i * 5) * k, Color(light, 0.7), 1.6 * k, true)
+		"lightning_full_circuit":   # a closed loop of wire round a full cell
+			c.draw_rect(Rect2(mid + Vector2(-15, -13) * k, Vector2(30, 26) * k), light, false, 2.0 * k)
+			_cell(c, mid, k, col, light, 1.0)
+			for v in [Vector2(-15, -13), Vector2(15, -13), Vector2(15, 13), Vector2(-15, 13)]:
+				c.draw_circle(mid + v * k, 2.2 * k, WHITE)
+		"lightning_keen_current":   # a blade's edge with the glint of a crit on it
+			c.draw_line(mid + Vector2(-14, 14) * k, mid + Vector2(10, -10) * k, Color(0.92, 0.92, 0.96), 3.4 * k, true)
+			c.draw_line(mid + Vector2(-16, 9) * k, mid + Vector2(-9, 16) * k, col, 3.0 * k, true)
+			_star(c, mid + Vector2(9, -9) * k, 6.0 * k, WHITE, 4)
+		"lightning_edge_current":   # a blade's strike running down into a cell
+			c.draw_line(mid + Vector2(-15, 10) * k, mid + Vector2(3, -12) * k, Color(0.92, 0.92, 0.96), 3.2 * k, true)
+			c.draw_line(mid + Vector2(-16, 5) * k, mid + Vector2(-10, 12) * k, col, 3.0 * k, true)
+			c.draw_polyline(_p(mid, k, [Vector2(0, -2), Vector2(4, 2), Vector2(2, 3), Vector2(6, 7)]), light, 2.0 * k, true)
+			_cell(c, mid + Vector2(11, 4) * k, k, col, light, 0.8)
+		"lightning_sparking_swings":   # a swing's arc, sparks flying off where it lands
+			c.draw_arc(mid + Vector2(-4, 6) * k, 14.0 * k, -PI * 0.95, -PI * 0.2, 16, Color(0.92, 0.92, 0.96), 3.0 * k, true)
+			for v in [Vector2(10, -6), Vector2(14, 0), Vector2(9, 3), Vector2(15, -9)]:
+				c.draw_line(mid + Vector2(7, -3) * k, mid + v * k, light, 1.6 * k, true)
+			_bolt(c, mid + Vector2(-6, 8) * k, 0.7 * k, WHITE)
+		"lightning_afterspark":   # a bolt spent, and the swing that follows it glowing
+			_bolt(c, mid + Vector2(-8, -4) * k, 1.0 * k, WHITE)
+			c.draw_arc(mid + Vector2(2, 4) * k, 13.0 * k, -PI * 0.4, PI * 0.45, 14, light, 3.0 * k, true)
+			c.draw_line(mid + Vector2(11, 12) * k, mid + Vector2(16, 16) * k, WOOD, 3.0 * k, true)
+		"lightning_built_charge":   # three bars stacking up, the top one sparking
+			for i in 3:
+				c.draw_rect(Rect2(mid + Vector2(-12 + i * 9, 10 - i * 8) * k, Vector2(7, 6 + i * 8) * k), col.lightened(0.1 + i * 0.15), true)
+			_star(c, mid + Vector2(10, -11) * k, 5.0 * k, WHITE, 4)
+		"lightning_light_load":   # a nearly empty cell, and the feather that is all it carries
+			_cell(c, mid + Vector2(-8, 1) * k, k, col, light, 0.15)
+			c.draw_line(mid + Vector2(4, 14) * k, mid + Vector2(14, -12) * k, WHITE, 1.8 * k, true)
+			for i in 5:
+				var at := mid + Vector2(5.5 + i * 1.9, 10 - i * 5.0) * k
+				c.draw_line(at, at + Vector2(-5, -2) * k, Color(light, 0.8), 1.4 * k, true)
+				c.draw_line(at, at + Vector2(4, -4) * k, Color(light, 0.8), 1.4 * k, true)
+		"lightning_spinning_up":   # a cooldown clock with arrows spinning it on
+			_clock(c, mid, 10.0 * k, WHITE, k)
+			c.draw_line(mid, mid + Vector2(5, -5) * k, WHITE, 2.0 * k, true)
+			c.draw_arc(mid, 15.0 * k, -PI * 0.1, PI * 0.7, 12, light, 2.2 * k, true)
+			c.draw_arc(mid, 15.0 * k, PI * 0.9, PI * 1.7, 12, light, 2.2 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-6, 16), Vector2(-1, 13), Vector2(-2, 19)]), light)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(6, -16), Vector2(1, -13), Vector2(2, -19)]), light)
+		"lightning_charged_steel":   # a blade's point bursting with light where it crits
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-12, 12), Vector2(-15, 9), Vector2(5, -11), Vector2(8, -8)]), Color(0.92, 0.92, 0.96))
+			c.draw_line(mid + Vector2(-16, 6) * k, mid + Vector2(-9, 15) * k, col, 3.0 * k, true)
+			_star(c, mid + Vector2(9, -10) * k, 8.0 * k, light, 6)
+			c.draw_circle(mid + Vector2(9, -10) * k, 2.4 * k, WHITE)
+		"lightning_short_fuse":   # a short fuse, its spark nearly at the charge
+			c.draw_rect(Rect2(mid + Vector2(-12, -2) * k, Vector2(14, 14) * k), col.darkened(0.2), true)
+			c.draw_rect(Rect2(mid + Vector2(-12, -2) * k, Vector2(14, 14) * k), light, false, 1.6 * k)
+			_bolt(c, mid + Vector2(-5, 5) * k, 0.6 * k, WHITE)
+			c.draw_polyline(_p(mid, k, [Vector2(2, -2), Vector2(6, -7), Vector2(10, -6)]), WOOD, 2.0 * k, true)
+			_star(c, mid + Vector2(11, -7) * k, 4.5 * k, Color(1.0, 0.85, 0.4), 5)
+		"lightning_storm_dance":   # two bolts crossing in a ring, like two dancers turning
+			c.draw_arc(mid, 15.0 * k, 0, TAU, 28, Color(light, 0.6), 1.6 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-8, -12), Vector2(2, -1), Vector2(-2, 0), Vector2(8, 12), Vector2(-3, 2), Vector2(1, 1)]), WHITE)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(8, -12), Vector2(-2, -1), Vector2(2, 0), Vector2(-8, 12), Vector2(3, 2), Vector2(-1, 1)]), light)
+		"lightning_spark_guard":   # a parrying blade, and the spark it sends back
+			c.draw_line(mid + Vector2(-14, 14) * k, mid + Vector2(10, -10) * k, Color(0.92, 0.92, 0.96), 3.2 * k, true)
+			c.draw_line(mid + Vector2(-15, 4) * k, mid + Vector2(-4, 15) * k, col, 3.0 * k, true)
+			c.draw_line(mid + Vector2(14, -14) * k, mid + Vector2(4, 0) * k, Color(1.0, 0.4, 0.3), 2.4 * k, true)
+			_bolt(c, mid + Vector2(9, 8) * k, 0.8 * k, light)
+		"lightning_loud_steel":   # a two-handed blade, its ring heard far off
+			c.draw_line(mid + Vector2(-6, 16) * k, mid + Vector2(-6, -14) * k, Color(0.92, 0.92, 0.96), 4.0 * k, true)
+			c.draw_line(mid + Vector2(-13, 8) * k, mid + Vector2(1, 8) * k, col, 3.0 * k, true)
+			for i in 3:
+				c.draw_arc(mid + Vector2(-2, -3) * k, (6.0 + i * 5.0) * k, -PI * 0.35, PI * 0.35, 8, Color(light, 0.9 - i * 0.25), 1.8 * k, true)
+		"lightning_charged_guard":   # a shield taking the next blow, a bolt on its face
+			_shield(c, mid, k, col.darkened(0.3), light)
+			_bolt(c, mid, 1.0 * k, WHITE)
+		"lightning_draw_down":   # a cell draining into a mending cross
+			_cell(c, mid + Vector2(-9, -2) * k, k, col, light, 0.5)
+			c.draw_line(mid + Vector2(-2, 0) * k, mid + Vector2(4, 0) * k, Color(light, 0.8), 2.0 * k, true)
+			_plus(c, mid + Vector2(10, 0) * k, 7.0 * k, Color(0.45, 1.0, 0.5), 3.4 * k)
+		"lightning_ring_true":   # rings of lightning going out from someone in the middle
+			_figure(c, mid + Vector2(0, 1) * k, 9.0 * k, WHITE, 1.6 * k)
+			for i in 2:
+				c.draw_arc(mid, (11.0 + i * 5.0) * k, 0, TAU, 28, Color(light, 0.9 - i * 0.35), 2.0 * k, true)
+		"lightning_hard_lessons":   # a blow landing, and the charge it leaves behind
+			c.draw_line(mid + Vector2(-16, -12) * k, mid + Vector2(-3, -1) * k, Color(1.0, 0.4, 0.3), 2.6 * k, true)
+			_star(c, mid + Vector2(-3, -1) * k, 6.0 * k, Color(1.0, 0.6, 0.4), 5)
+			_cell(c, mid + Vector2(9, 5) * k, k, col, light, 0.6)
+		"lightning_wide_current":   # one charge branching out to three
+			c.draw_circle(mid + Vector2(-12, 0) * k, 3.4 * k, WHITE)
+			for v in [Vector2(12, -12), Vector2(14, 0), Vector2(12, 12)]:
+				c.draw_polyline(_p(mid, k, [Vector2(-10, 0), (Vector2(-10, 0) + v) * 0.5 + Vector2(0, -3), v]), light, 2.0 * k, true)
+				c.draw_circle(mid + v * k, 2.8 * k, col.lightened(0.2))
+		"lightning_charged_shell":   # a full cell wrapped in a bubble of charge
+			c.draw_arc(mid, 15.0 * k, 0, TAU, 28, light, 2.0 * k, true)
+			c.draw_arc(mid, 15.0 * k, -PI * 0.8, -PI * 0.55, 6, WHITE, 2.4 * k, true)
+			_cell(c, mid, k, col, light, 0.9)
+		"lightning_hard_stare":   # an eye under a hard brow, locked on
+			var eye := PackedVector2Array()
+			for i in 17:
+				var a := PI * i / 16.0
+				eye.append(mid + Vector2(-cos(a) * 15.0, -sin(a) * 8.0 + 3.0) * k)
+			for i in range(1, 16):
+				var a := PI * i / 16.0
+				eye.append(mid + Vector2(cos(a) * 15.0, sin(a) * 6.0 + 3.0) * k)
+			c.draw_colored_polygon(eye, Color(0.92, 0.92, 0.96))
+			c.draw_circle(mid + Vector2(0, 2) * k, 5.5 * k, col)
+			c.draw_circle(mid + Vector2(0, 2) * k, 2.4 * k, Color(0.05, 0.05, 0.08))
+			c.draw_line(mid + Vector2(-15, -10) * k, mid + Vector2(14, -6) * k, light, 2.6 * k, true)
+		"lightning_eye_of_the_storm":   # a spiral of storm, still and bright in the middle
+			var spiral := PackedVector2Array()
+			for i in 30:
+				var a := i * 0.42
+				spiral.append(mid + Vector2(cos(a), sin(a)) * (2.0 + i * 0.5) * k)
+			c.draw_polyline(spiral, light, 2.0 * k, true)
+			c.draw_circle(mid, 3.0 * k, WHITE)
+			_bolt(c, mid + Vector2(11, 10) * k, 0.6 * k, WHITE)
+		"lightning_back_to_the_wall":   # someone pressed to a wall, blade still up
+			for r in 4:
+				c.draw_rect(Rect2(mid + Vector2(-17 + (r % 2) * 3, -16 + r * 8) * k, Vector2(8, 7) * k), col.darkened(0.2), false, 1.4 * k)
+			_figure(c, mid + Vector2(2, 1) * k, 12.0 * k, WHITE, 1.8 * k)
+			c.draw_line(mid + Vector2(6, 6) * k, mid + Vector2(15, -12) * k, Color(0.92, 0.92, 0.96), 2.4 * k, true)
+		"lightning_storm_anchor":   # an anchor, a bolt running beside its shank
+			c.draw_line(mid + Vector2(0, -13) * k, mid + Vector2(0, 13) * k, WHITE, 3.0 * k, true)
+			c.draw_arc(mid + Vector2(0, -15) * k, 3.0 * k, 0, TAU, 12, WHITE, 2.0 * k, true)
+			c.draw_line(mid + Vector2(-7, -7) * k, mid + Vector2(7, -7) * k, WHITE, 2.4 * k, true)
+			c.draw_arc(mid + Vector2(0, 3) * k, 12.0 * k, PI * 0.1, PI * 0.9, 14, WHITE, 3.0 * k, true)
+			_bolt(c, mid + Vector2(-10, -1) * k, 0.6 * k, light)
+		"lightning_cut_the_line":   # a line of casting cut through, the gap sparking
+			c.draw_line(mid + Vector2(-16, 0) * k, mid + Vector2(-4, 0) * k, light, 2.6 * k, true)
+			c.draw_line(mid + Vector2(4, 0) * k, mid + Vector2(16, 0) * k, Color(light, 0.45), 2.6 * k, true)
+			c.draw_line(mid + Vector2(-6, 12) * k, mid + Vector2(6, -12) * k, WHITE, 2.6 * k, true)
+			_star(c, mid, 4.0 * k, Color(1.0, 0.85, 0.4), 4)
+		"lightning_fresh_charge":   # a whole, unhurt heart with a bolt across it
+			c.draw_circle(mid + Vector2(-6, -4) * k, 7.0 * k, Color(0.9, 0.3, 0.35))
+			c.draw_circle(mid + Vector2(6, -4) * k, 7.0 * k, Color(0.9, 0.3, 0.35))
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-12.5, -1), Vector2(12.5, -1), Vector2(0, 14)]), Color(0.9, 0.3, 0.35))
+			_bolt(c, mid + Vector2(0, 1) * k, 0.9 * k, WHITE)
+		"lightning_static_build":   # footsteps, each leaving a spark that adds up
+			for i in 3:
+				var at := mid + Vector2(-11 + i * 9, 10 - i * 8) * k
+				c.draw_circle(at, 3.2 * k, Color(WHITE, 0.45 + i * 0.25))
+				_star(c, at + Vector2(5, -4) * k, (2.5 + i) * k, light, 4)
+		# --- Arcane: the ribbon tree's new talents ---
+		"arcane_pinned_in_time":   # a clock face with a pin driven through it
+			_clock(c, mid, 12.0 * k, light, k)
+			c.draw_line(mid + Vector2(-14, -14) * k, mid + Vector2(10, 10) * k, WHITE, 2.6 * k, true)
+			c.draw_circle(mid + Vector2(-14, -14) * k, 3.0 * k, WHITE)
+		"arcane_thrifty_mind":   # a mana drop, a little of it held back behind a line
+			_drop(c, mid + Vector2(0, 1) * k, 1.1 * k, Color(0.45, 0.6, 1.0), WHITE, k)
+			c.draw_line(mid + Vector2(-13, 6) * k, mid + Vector2(13, 6) * k, light, 2.2 * k, true)
+		"arcane_wound_up":   # a spring wound tight, a key turning it
+			var coil := PackedVector2Array()
+			for i in 40:
+				var a := i * 0.5
+				coil.append(mid + Vector2(cos(a), sin(a)) * (1.5 + i * 0.3) * k)
+			c.draw_polyline(coil, light, 1.8 * k, true)
+			c.draw_line(mid + Vector2(11, -11) * k, mid + Vector2(16, -16) * k, WHITE, 2.4 * k, true)
+			c.draw_circle(mid + Vector2(16, -16) * k, 2.4 * k, WHITE)
+		"arcane_sharp_mind":   # a bright crit star over a thinking head
+			c.draw_arc(mid + Vector2(0, 4) * k, 10.0 * k, PI, TAU, 16, light, 2.2 * k, true)
+			c.draw_line(mid + Vector2(-10, 4) * k, mid + Vector2(-10, 14) * k, light, 2.2 * k, true)
+			c.draw_line(mid + Vector2(10, 4) * k, mid + Vector2(10, 14) * k, light, 2.2 * k, true)
+			_star(c, mid + Vector2(0, -10) * k, 7.0 * k, WHITE, 4)
+		"arcane_clock_hands":   # a clock whose hands spin fast
+			_clock(c, mid, 13.0 * k, light, k)
+			c.draw_line(mid, mid + Vector2(0, -10) * k, WHITE, 2.4 * k, true)
+			c.draw_line(mid, mid + Vector2(7, 3) * k, WHITE, 2.4 * k, true)
+			c.draw_arc(mid, 7.0 * k, -PI * 0.5, PI * 0.1, 8, Color(WHITE, 0.5), 1.4 * k, true)
+		"arcane_moving_parts":   # two gears turning together
+			for g in [[Vector2(-6, -4), 8.0], [Vector2(8, 7), 6.0]]:
+				var at: Vector2 = mid + (g[0] as Vector2) * k
+				var r: float = float(g[1]) * k
+				c.draw_arc(at, r, 0, TAU, 20, light, 2.4 * k, true)
+				for i in 6:
+					var a := TAU * i / 6.0
+					c.draw_line(at + Vector2(cos(a), sin(a)) * r, at + Vector2(cos(a), sin(a)) * (r + 3.0 * k), light, 2.4 * k, true)
+				c.draw_circle(at, 2.0 * k, WHITE)
+		"arcane_second_hand":   # a thin second hand jumping one tick back
+			_clock(c, mid, 13.0 * k, light, k)
+			c.draw_line(mid, mid + Vector2(8, -8) * k, WHITE, 1.4 * k, true)
+			c.draw_arc(mid, 10.0 * k, -PI * 0.25, -PI * 0.05, 6, Color(1.0, 0.85, 0.4), 2.0 * k, true)
+		"arcane_on_the_dot":   # a clock hand landing exactly on its mark
+			_clock(c, mid, 13.0 * k, light, k)
+			c.draw_line(mid, mid + Vector2(0, -11) * k, WHITE, 2.4 * k, true)
+			c.draw_circle(mid + Vector2(0, -13) * k, 2.6 * k, Color(1.0, 0.85, 0.4))
+		"arcane_turning_gears":   # a gear, and the speed lines it throws off
+			c.draw_arc(mid + Vector2(-3, 0) * k, 9.0 * k, 0, TAU, 20, light, 2.4 * k, true)
+			for i in 8:
+				var a := TAU * i / 8.0
+				c.draw_line(mid + Vector2(-3, 0) * k + Vector2(cos(a), sin(a)) * 9.0 * k, mid + Vector2(-3, 0) * k + Vector2(cos(a), sin(a)) * 12.5 * k, light, 2.4 * k, true)
+			for i in 3:
+				c.draw_line(mid + Vector2(11, -8 + i * 8) * k, mid + Vector2(17, -8 + i * 8) * k, Color(WHITE, 0.5 + i * 0.2), 1.8 * k, true)
+		"arcane_unwinding":   # a spring springing loose, an instant spark at its end
+			var loose := PackedVector2Array()
+			for i in 24:
+				loose.append(mid + Vector2(-14 + i * 1.2, sin(i * 1.1) * (2.0 + i * 0.25)) * k)
+			c.draw_polyline(loose, light, 2.0 * k, true)
+			_star(c, mid + Vector2(14, 0) * k, 6.0 * k, WHITE, 4)
+		"arcane_glass_armor":   # a breastplate of mirror panes
+			_shield(c, mid, k, col.darkened(0.3), light)
+			_pane(c, mid + Vector2(-4, -3) * k, Vector2(4, 6) * k, Color(WHITE, 0.6), WHITE, 1.2 * k)
+			_pane(c, mid + Vector2(4, 3) * k, Vector2(4, 6) * k, Color(WHITE, 0.4), WHITE, 1.2 * k)
+		"arcane_quick_answer":   # a step aside from a blow, and the blade already coming back
+			_figure(c, mid + Vector2(-5, 0) * k, 12.0 * k, WHITE, 1.8 * k)
+			c.draw_line(mid + Vector2(-17, -12) * k, mid + Vector2(-10, -12) * k, Color(1.0, 0.4, 0.3), 2.0 * k, true)
+			c.draw_arc(mid + Vector2(2, 2) * k, 13.0 * k, -PI * 0.45, PI * 0.2, 12, light, 2.8 * k, true)
+		"arcane_glass_dust":   # shards of glass hanging in the air like dust
+			for v in [Vector2(-10, -8), Vector2(2, -12), Vector2(11, -4), Vector2(-4, 4), Vector2(8, 10), Vector2(-12, 11)]:
+				_pane(c, mid + v * k, Vector2(2.5, 4) * k, Color(light, 0.7), WHITE, 1.0 * k)
+		"arcane_last_copy":   # one figure and the single reflection left beside it
+			_figure(c, mid + Vector2(-6, 0) * k, 12.0 * k, WHITE, 1.8 * k)
+			_figure(c, mid + Vector2(7, 0) * k, 12.0 * k, Color(light, 0.55), 1.8 * k)
+		"arcane_crowded_room":   # many reflections round one figure, all drawing eyes
+			_figure(c, mid, 11.0 * k, WHITE, 1.8 * k)
+			for v in [Vector2(-12, -6), Vector2(12, -6), Vector2(-12, 9), Vector2(12, 9)]:
+				_figure(c, mid + v * k, 7.0 * k, Color(light, 0.5), 1.4 * k)
+		"arcane_fresh_trace":   # the first faint line of a trace, glowing bright
+			c.draw_line(mid + Vector2(-14, 10) * k, mid + Vector2(12, -10) * k, light, 3.0 * k, true)
+			_star(c, mid + Vector2(12, -10) * k, 5.0 * k, WHITE, 4)
+			c.draw_line(mid + Vector2(-14, 15) * k, mid + Vector2(-2, 6) * k, Color(light, 0.35), 1.6 * k, true)
+		"arcane_keen_cuts":   # two crossed blades, a glint where they cross
+			c.draw_line(mid + Vector2(-13, 13) * k, mid + Vector2(13, -13) * k, Color(0.92, 0.92, 0.96), 2.8 * k, true)
+			c.draw_line(mid + Vector2(13, 13) * k, mid + Vector2(-13, -13) * k, Color(0.92, 0.92, 0.96), 2.8 * k, true)
+			_star(c, mid, 6.0 * k, light, 4)
+		"arcane_quick_cuts":   # a cut, and the clock hurrying it back
+			c.draw_line(mid + Vector2(-15, 12) * k, mid + Vector2(2, -6) * k, Color(0.92, 0.92, 0.96), 3.0 * k, true)
+			_clock(c, mid + Vector2(8, -7) * k, 7.0 * k, light, k)
+			c.draw_arc(mid + Vector2(8, -7) * k, 10.0 * k, PI * 0.5, PI * 1.1, 8, WHITE, 1.6 * k, true)
+		"arcane_twin_blades":   # two blades swinging, a ghostly line left behind
+			for sx in [-1.0, 1.0]:
+				c.draw_line(mid + Vector2(sx * 4, 14) * k, mid + Vector2(sx * 12, -12) * k, Color(0.92, 0.92, 0.96), 2.6 * k, true)
+			c.draw_arc(mid + Vector2(0, 6) * k, 14.0 * k, -PI * 0.85, -PI * 0.15, 14, Color(light, 0.6), 1.8 * k, true)
+		"arcane_full_stage":   # a stage with every spot taken by a trace
+			c.draw_line(mid + Vector2(-16, 10) * k, mid + Vector2(16, 10) * k, light, 2.6 * k, true)
+			for i in 3:
+				_figure(c, mid + Vector2(-10 + i * 10, -1) * k, 9.0 * k, Color(WHITE, 0.55 + i * 0.2), 1.6 * k)
+		"arcane_final_act":   # a falling curtain over a wounded foe
+			c.draw_rect(Rect2(mid + Vector2(-16, -16) * k, Vector2(32, 5) * k), col.lightened(0.15), true)
+			for x in [-14, -8, -2, 4, 10]:
+				c.draw_line(mid + Vector2(x, -11) * k, mid + Vector2(x + 2, 4) * k, col.lightened(0.15), 4.0 * k, true)
+			c.draw_rect(Rect2(mid + Vector2(-10, 10) * k, Vector2(20, 4) * k), Color(0.25, 0.1, 0.1), true)
+			c.draw_rect(Rect2(mid + Vector2(-10, 10) * k, Vector2(6, 4) * k), Color(0.9, 0.3, 0.35), true)
+		"arcane_curtain_rise":   # a curtain lifting, a blade ready behind it
+			c.draw_rect(Rect2(mid + Vector2(-16, -16) * k, Vector2(32, 6) * k), col.lightened(0.15), true)
+			for sx in [-1.0, 1.0]:
+				c.draw_colored_polygon(_p(mid, k, [Vector2(sx * 16, -10), Vector2(sx * 8, -10), Vector2(sx * 14, 4)]), col.lightened(0.1))
+			c.draw_line(mid + Vector2(-6, 14) * k, mid + Vector2(6, -4) * k, Color(0.92, 0.92, 0.96), 3.0 * k, true)
+		"arcane_spare_moment":   # an hourglass with a little sand kept back at the top
+			_hourglass(c, mid, k, Color(light, 0.8), WHITE)
+			c.draw_circle(mid + Vector2(10, -12) * k, 2.6 * k, Color(1.0, 0.85, 0.4))
 		# --- Arcane: the open talents ---
 		"arcane_quick_study":   # an open book, its pages turning fast
 			for sx in [-1.0, 1.0]:
@@ -2245,7 +2571,7 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 		"frost_slow_runoff":   # Slow Runoff: drops running off a melting shell
 			c.draw_arc(mid + Vector2(0, -4) * k, 11.0 * k, PI, TAU, 16, light, 2.5 * k, true)
 			for p in [Vector2(-7, 6), Vector2(0, 11), Vector2(7, 6)]:
-				_drop(c, mid + (p as Vector2) * k, 4.0 * k, Color(col, 0.9), WHITE, k)
+				_drop(c, mid + (p as Vector2) * k, 0.3 * k, Color(col, 0.9), WHITE, k * 0.6)
 		"frost_shard_spray":   # Shard Spray: shards flying out, each with a little shield
 			for d in [Vector2(-1, -1), Vector2(1, -1), Vector2(0, 1)]:
 				_shard(c, mid + (d as Vector2).normalized() * 15.0 * k, (d as Vector2).normalized(), 9.0 * k, 3.0 * k, Color(col, 0.85), WHITE, k)

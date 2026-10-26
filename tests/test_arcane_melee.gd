@@ -22,10 +22,10 @@ const LEVELS := {"swiftcut": 6, "deepcut": 14, "encore": 18, "latecut": 24, "wid
 const STRIKES := ["swiftcut", "deepcut", "latecut", "widecut"]
 # [key, name, ranks, the ability it needs, slot, values]
 const TALENTS := [
-	["arcane_long_memory", "Long Memory", 3, "", "arcane_r6c3", [1.5, 2.5, 4.0]],
-	["arcane_clean_lines", "Clean Lines", 3, "deepcut", "arcane_r6c4", [0.3, 0.7, 1.0]],
-	["arcane_standing_ovation", "Standing Ovation", 3, "encore", "arcane_r6c5", [5.0, 10.0, 15.0]],
-	["arcane_second_showing", "Second Showing", 3, "encore", "arcane_r7c5", [7.0, 13.0, 20.0]],
+	["arcane_long_memory", "Long Memory", 3, "", "arcane_r1c8", [1.5, 2.5, 4.0]],
+	["arcane_clean_lines", "Clean Lines", 3, "deepcut", "arcane_r3c8", [0.3, 0.7, 1.0]],
+	["arcane_standing_ovation", "Standing Ovation", 3, "", "arcane_r1c9", [5.0, 10.0, 15.0]],
+	["arcane_second_showing", "Second Showing", 3, "", "arcane_r5c10", [7.0, 13.0, 20.0]],
 ]
 const MELEE := ["Ability", "Arcane", "Melee"]
 
@@ -341,9 +341,9 @@ func test_talents_are_in_the_tree() -> void:
 		assert_false(tip.contains("?"), "%s: %s" % [row[1], tip])
 		assert_eq(_typed_number(str(t.get("desc", ""))), "", "%s: no typed numbers" % row[1])
 		assert_eq(_typed_number(str(t.get("capstone", ""))), "", "%s: no typed numbers in the capstone" % row[1])
-	# Encore's two are joined, the more important one on top.
+	# The replays' two are joined down the middle of Second Act's ribbon.
 	var ovation := Talents.id_for_key("arcane_standing_ovation")
-	var showing := Talents.id_for_key("arcane_second_showing")
+	var showing := Talents.id_for_key("arcane_time_signature")
 	assert_true(Talents.targets_of(ovation).has(showing))
 	assert_true(Talents.tier_of(ovation) < Talents.tier_of(showing))
 	assert_eq(Talents.col_of(ovation), Talents.col_of(showing), "straight down")

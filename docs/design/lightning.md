@@ -30,18 +30,18 @@ Values in Frost Bolts (FB) are conversation shorthand; real numbers live in bala
 ## Melee
 - Lightning melee kit exists (tests: test_lightning_melee). Not recorded in detail here; check the code.
 
-## Talents
-- Tank: Counter-Charge (3): Return Stroke +10/20/30%, capstone arcs to 2 enemies for 0.3 FB. Closed Circuit (3): parries during Humming Blade give 2/4/6 more energy. Quick Wrists (3): each parry takes 0.3/0.7/1 s off Crossguard. Long Reach (3, generic): +1/2/3% Parry with a two-handed weapon.
+## Talents (ribbon tree, 2026-10-26)
+Layout: 13 columns. Live Current 0-2 (storm cloud), Stormdancer 3-5 (twin bolts), the open talents on the spine (6), Lightning Rod 7-9 (lightning rod), Stormstring 10-12 (short ribbon: its three Storm Arrow talents in rows 1-3, no shape or capstone until the bow is built; Talents.UNFINISHED_SPECS). Each finished spec: 18 talents in rows 1-9 and a 5-rank capstone gated at 25 points. Numbers: talents.gd and balance.gd; code: scripts/player/lightning_talents.gd and each spec's component.
+- Keywords: Energy gained and spent, spending all of it (Discharge, Ground Out, Recharge), leaps and forks, lingering lightning (Ball Lightning, Thunderhead, Live Wire), Grounding Surge, cast spells, full Energy; auto-attacks, Energy builders, low Energy, Lightning weapon abilities (Lightning abilities that swing a weapon); parries, two-handed weapon, arcs, hits on everything around you, enemies forced to attack you, low health.
+- Live Current: Long Leap, Charged Air, Quick Fuse (Lightning Bolt), Deep Reserves, Tight Coil (Ball Lightning), Feedback, Lingering Storm, Crackle, Conductive -> Conductor (link), High Voltage, Deep Draw -> Afterflow (link), Standing Charge (Grounding Surge), Overflow (Capacitor), Parting Spark (Flicker), Snap Cast, Full Circuit. Capstone: Storm Cycle.
+- Stormdancer: Charged Strikes, Quick Charge, Keen Current, Edge Current, Whip Crack (Whiplash), Third Beat (Cadence), Running Start (Static Step), Sparking Swings, Running on Empty, Afterspark -> Light Load (link), Built Charge -> Spinning Up (link), Redline (Overdrive), Hot Wire (Twin Current), Charged Steel, Short Fuse, Calm Current. Capstone: Storm Dance (Lightning weapon abilities +2-10%; maxed, Overdrive's zaps hit a second enemy).
+- Lightning Rod: Long Reach, Spark Guard, Closed Circuit (Humming Blade), Loud Steel, Quick Wrists (Crossguard), Counter-Charge -> Second Stroke (link, both Return Stroke), Charged Guard, Earth Return -> Tempo (link), Draw Down, Ring True, Hard Lessons, Wide Current, Charged Shell, Hard Stare, Eye of the Storm (Draw the Storm), Back to the Wall. Capstone: Storm Anchor (+1-5% Parry; maxed, every 5th parry sets off a free Shock Ring).
+- Open (spine): Quick Pulse, Change of Pace, Storm-Tempered, Spillover, Quick Step, Dig In, Cut the Line (an interrupt gives Haste), Fresh Charge (above 90% health), Static Build (moving builds damage for the next spell or ability: the opposite of Dig In).
 
 ## Runes
 - Epic Static/Overload: Lightning builds Static, up to 15 stacks at 2.5% damage each; reaching the cap Overloads. Not casting Lightning for 3 s makes you immune to overloading for the next 10 s (Lightning 10 s, something else 3 s, Lightning again, keeping stacks).
 - Rare Afterimage (shared with Arcane): Phase Step or Lightning's blink leaves an image for 4 s; next spell also cast by it at 50%.
 - Menace (Lightning): +30% threat.
-
-## Open talents (built)
-- Spillover (3, r3c4): a direct crit sends 5/10/15% of its damage to another enemy within 6 m.
-- Change of Pace (3, r1c4): using a different spell/ability than the last gives 1/2/3% damage for 6 s, stacking 3 times; repeating resets it.
-- Dig In (3, r4c4): after standing still 2 s, +2/4/6% damage until you move.
 
 ## Utility (the book's "Utility" divider) - BUILT 2026-10-17
 - Static Snare (Lightning's root) - instant, 20 s cooldown, 20 Energy, 30 m. Roots the target 2 s; when it ends, the charge leaps once to the nearest other enemy within 8 m and roots it 2 s. Code: scripts/player/utility.gd.

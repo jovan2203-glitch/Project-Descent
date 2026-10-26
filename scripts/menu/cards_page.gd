@@ -44,7 +44,7 @@ func _build_cards_page() -> Control:
 	_cards_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_cards_row.add_theme_constant_override("separation", 10)
 	scroll.add_child(_cards_row)
-	menu.get_node("/root/PlayerData").changed_late.connect(_refresh_cards)
+	menu.get_node("/root/PlayerData").changed_late.connect(_refresh_if_shown.bind(page, _refresh_cards))
 	_refresh_cards.call_deferred()
 	return page
 

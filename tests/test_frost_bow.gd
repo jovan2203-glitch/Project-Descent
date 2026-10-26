@@ -185,13 +185,13 @@ const PlayerDataScript = preload("res://scripts/player_data.gd")
 ## key -> [slot, ranks, values, required ability]. Winter Hunt's column group (the
 ## right edge), rows 1-5 (the rest of the group: tests/test_frost_tree.gd).
 const BOW_TALENTS := {
-	"frost_cold_draw": ["frost_r1c10", 3, [2.0, 4.0, 6.0], ""],
-	"frost_frozen_quarry": ["frost_r1c11", 3, [4.0, 8.0, 12.0], ""],
-	"frost_pinning_frost": ["frost_r2c10", 3, [5.0, 10.0, 15.0], ""],
-	"frost_black_ice": ["frost_r2c11", 3, [33.0, 67.0, 100.0], "icyretreat"],
-	"frost_clean_shatter": ["frost_r3c10", 3, [7.0, 13.0, 20.0], "shattershot"],
-	"frost_cold_harvest": ["frost_r4c10", 3, [3.0, 7.0, 10.0], "rimefletch"],
-	"frost_thin_ice": ["frost_r5c10", 3, [0.3, 0.7, 1.0], "glacialdraw"],
+	"frost_cold_draw": ["frost_r1c14", 3, [2.0, 4.0, 6.0], ""],
+	"frost_frozen_quarry": ["frost_r1c16", 3, [4.0, 8.0, 12.0], ""],
+	"frost_pinning_frost": ["frost_r2c14", 3, [5.0, 10.0, 15.0], ""],
+	"frost_black_ice": ["frost_r2c15", 3, [33.0, 67.0, 100.0], "icyretreat"],
+	"frost_clean_shatter": ["frost_r2c16", 3, [7.0, 13.0, 20.0], "shattershot"],
+	"frost_cold_harvest": ["frost_r3c15", 3, [3.0, 7.0, 10.0], "rimefletch"],
+	"frost_thin_ice": ["frost_r4c15", 3, [0.3, 0.7, 1.0], "glacialdraw"],
 }
 
 func test_the_bow_talents_sit_together() -> void:
@@ -273,9 +273,7 @@ func test_old_saves_keep_their_frost_points() -> void:
 	# point (Talents.TREE_VERSION), so LINKS_MOVED keeps no Frost entries any more.
 	var now: Dictionary = Talents.rearranged(v5, Talents.LINKS_MOVED, [])
 	assert_eq(now, v5, "nothing Frost moves on the 5 -> 6 step now")
-	for id in now:
-		assert_true(Talents.exists(str(id)), "%s is a slot of today's book" % id)
-		assert_true(int(now[id]) <= Talents.max_rank(str(id)), "%s: no more ranks than the talent has" % id)
+	# (Those slots are gone since the ribbon layout; the refund drops their points.)
 	for id in Talents.FROST_BOW_MOVED.values():
 		assert_false(Talents.MOVED.has(str(id)), "the every-load table never touches %s" % id)
 	for id in Talents.FROST_BOW_MOVED:

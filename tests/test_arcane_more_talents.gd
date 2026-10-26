@@ -14,16 +14,16 @@ const Details = preload("res://scripts/core/details.gd")
 
 # [key, name, ranks, the ability it needs, slot, values]
 const TALENTS := [
-	["arcane_practiced_hand", "Practiced Hand", 3, "swiftcut", "arcane_r5c3", [3.0, 6.0, 9.0]],
-	["arcane_heavy_hand", "Heavy Hand", 3, "deepcut", "arcane_r5c5", [7.0, 13.0, 20.0]],
-	["arcane_curtain_call", "Curtain Call", 3, "encore", "arcane_r7c3", [7.0, 13.0, 20.0]],
-	["arcane_no_loose_ends", "No Loose Ends", 3, "latecut", "arcane_r8c3", [0.3, 0.7, 1.0]],
-	["arcane_time_signature", "Time Signature", 3, "encore", "arcane_r8c5", [0.15, 0.35, 0.5]],
-	["arcane_full_house", "Full House", 2, "widecut", "arcane_r9c3", [1.0, 2.0]],
-	["arcane_dress_rehearsal", "Dress Rehearsal", 3, "doubletime", "arcane_r9c5", [1.5, 2.5, 4.0]],
-	["arcane_silvered", "Silvered", 5, "", "arcane_r10c2", [0.3, 0.6, 0.9, 1.2, 1.5]],
-	["arcane_running_clock", "Running Clock", 5, "", "arcane_r10c4", [2.0, 4.0, 6.0, 8.0, 10.0]],
-	["arcane_fine_edge", "Fine Edge", 5, "", "arcane_r10c6", [2.0, 4.0, 6.0, 8.0, 10.0]],
+	["arcane_practiced_hand", "Practiced Hand", 3, "", "arcane_r2c8", [1.0, 2.0, 3.0]],
+	["arcane_heavy_hand", "Heavy Hand", 3, "deepcut", "arcane_r2c10", [7.0, 13.0, 20.0]],
+	["arcane_curtain_call", "Curtain Call", 3, "", "arcane_r5c8", [7.0, 13.0, 20.0]],
+	["arcane_no_loose_ends", "No Loose Ends", 3, "latecut", "arcane_r6c8", [0.3, 0.7, 1.0]],
+	["arcane_time_signature", "Time Signature", 3, "", "arcane_r9c9", [0.15, 0.35, 0.5]],
+	["arcane_full_house", "Full House", 2, "widecut", "arcane_r7c8", [1.0, 2.0]],
+	["arcane_dress_rehearsal", "Dress Rehearsal", 3, "doubletime", "arcane_r8c8", [1.5, 2.5, 4.0]],
+	["arcane_silvered", "Silvered", 5, "", "arcane_r10c5", [0.3, 0.6, 0.9, 1.2, 1.5]],
+	["arcane_running_clock", "Running Clock", 5, "", "arcane_r10c2", [2.0, 4.0, 6.0, 8.0, 10.0]],
+	["arcane_fine_edge", "Fine Edge", 5, "", "arcane_r10c9", [2.0, 4.0, 6.0, 8.0, 10.0]],
 ]
 const CAPSTONES := ["arcane_no_loose_ends", "arcane_dress_rehearsal"]
 
@@ -67,30 +67,23 @@ func test_they_are_in_the_tree() -> void:
 		assert_eq(_typed_number(str(t.get("capstone", ""))), "", "%s: no typed numbers in the capstone" % row[1])
 
 func test_where_they_sit() -> void:
-	var layout: Array = Talents.layout("arcane")
-	assert_eq(layout[4], [1, 2, 3, 4, 5], "row 5 got two slots (and later its middle one)")
-	assert_eq(layout[7], [1, 2, 4, 5], "row 8 got two slots")
-	# The bottom row: five ranks each, nothing needed, no links.
+	# The bottom row: each spec's capstone, five ranks each, nothing needed, no links.
 	for key in ["arcane_silvered", "arcane_running_clock", "arcane_fine_edge"]:
 		var id := _id(key)
 		assert_eq(Talents.tier_of(id), Talents.ROWS - 1)
 		assert_eq(Talents.max_rank(id), 5)
 		assert_eq(Talents.required_ability(id), "")
 		assert_true(Talents.sources_of(id).is_empty() and Talents.targets_of(id).is_empty())
-	# Encore's three run straight down, the most important first.
-	var showing := _id("arcane_second_showing")
+	# The replays' two run straight down the middle of Second Act's ribbon.
+	var ovation := _id("arcane_standing_ovation")
 	var signature := _id("arcane_time_signature")
-	assert_true(Talents.targets_of(showing).has(signature))
-	assert_true(Talents.tier_of(showing) < Talents.tier_of(signature))
-	assert_eq(Talents.col_of(showing), Talents.col_of(signature))
-	# Two slots of the book are empty: the bottom row's, and Deep Well's (folded into Collapse).
-	var empty := 0
+	assert_true(Talents.targets_of(ovation).has(signature))
+	assert_true(Talents.tier_of(ovation) < Talents.tier_of(signature))
+	assert_eq(Talents.col_of(ovation), Talents.col_of(signature))
+	# Every slot of the book holds a designed talent, each with an icon.
 	for id in Talents.in_tree("arcane"):
-		var placeholder := bool(Talents.get_talent(id).get("placeholder", true))
-		assert_eq(TalentIcons.has_icon(id), not placeholder, "%s: designed talents have an icon, empty ones don't" % id)
-		if placeholder:
-			empty += 1
-	assert_eq(empty, 2)
+		assert_false(bool(Talents.get_talent(id).get("placeholder", true)), "%s is designed" % id)
+		assert_true(TalentIcons.has_icon(id), "%s has an icon" % id)
 
 func test_practiced_hand() -> void:
 	var p := _player()
@@ -99,7 +92,7 @@ func test_practiced_hand() -> void:
 	assert_eq(ArcaneMeleeKit.practiced_hand_pct(9.0, 0), 0.0, "no Traces: nothing")
 	assert_eq(ArcaneMeleeKit.practiced_hand_pct(0.0, 3), 0.0)
 	assert_eq(ArcaneMeleeKit.practiced_hand_pct(9.0, 6), 54.0, "more Traces during Double Time count too")
-	assert_contains(_desc("arcane_practiced_hand"), "3 / 6 / 9% more damage for each Trace")
+	assert_contains(_desc("arcane_practiced_hand"), "Your Arcane abilities deal 1 / 2 / 3% more damage for each Trace")
 
 func test_heavy_hand() -> void:
 	var p := _player()
@@ -119,7 +112,7 @@ func test_curtain_call() -> void:
 	assert_eq(ArcaneMeleeKit.curtain_call_pct(10.0, 6), 10.0)
 	assert_eq(ArcaneMeleeKit.curtain_call_pct(20.0, 2), 0.0, "fewer than three Traces: nothing")
 	assert_eq(ArcaneMeleeKit.curtain_call_pct(0.0, 3), 0.0)
-	assert_contains(_desc("arcane_curtain_call"), "replays 3 or more Traces")
+	assert_contains(_desc("arcane_curtain_call"), "replay 3 or more Traces at once")
 	assert_contains(_desc("arcane_curtain_call"), "each replay deals 7 / 13 / 20% more damage")
 	# What it adds is a line of its own on the damage meter.
 	var rows: Array = Details.split_amount("encore", 720, false, [[ArcaneMeleeKit.CURTAIN_CALL_LABEL, 20.0]])
@@ -128,7 +121,8 @@ func test_curtain_call() -> void:
 	assert_eq(str(rows[1][0]), "bonus:Curtain Call")
 	assert_eq(int(rows[1][1]), 120)
 	var src := PlayerSource.text()
-	assert_contains(src, "_exact_hit(foe, amount, ENCORE_ID, \"arcane\", PackedStringArray(TRACE_TAGS), bonuses)")
+	assert_contains(src, "_exact_hit(foe, amount, ENCORE_ID, \"arcane\", PackedStringArray(TRACE_TAGS),")
+	assert_contains(src, "bonuses + replay_bonuses(foe))", "(+ Final Act)")
 	assert_false(src.contains("_cut_cooldown(ENCORE_ID"), "nothing shortens a cooldown Encore does not have")
 	assert_false(src.contains("cooldowns.erase(ENCORE_ID)"))
 
@@ -192,7 +186,8 @@ func test_full_house() -> void:
 	assert_contains(desc, "50% of its damage")
 	var src := PlayerSource.text()
 	assert_contains(src, "if full_house_ready(_talent(\"arcane_full_house\"), hit.size()):\n\t\tstatus.apply(make_full_house_fx(), self)")
-	assert_contains(src, "_exact_hit(e, share, FULL_HOUSE_HIT_ID, \"arcane\", PackedStringArray(TRACE_TAGS), bonuses)")
+	assert_contains(src, "_exact_hit(e, share, FULL_HOUSE_HIT_ID, \"arcane\", PackedStringArray(TRACE_TAGS),")
+	assert_contains(src, "bonuses + replay_bonuses(e))")
 	assert_contains(src, "\t\tstatus.remove(FULL_HOUSE_FX)\n", "the Encore uses it up")
 
 func test_dress_rehearsal() -> void:

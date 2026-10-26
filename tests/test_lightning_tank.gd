@@ -25,11 +25,11 @@ const Runes = preload("res://scripts/runes.gd")
 
 ## key -> [slot, ranks, values, required ability]
 const WANT := {
-	"lightning_long_reach": ["lightning_r3c5", 3, [1.0, 2.0, 3.0], ""],   # moved down a row (Talents.MOVED)
-	"lightning_counter_charge": ["lightning_r3c7", 3, [10.0, 20.0, 30.0], "returnstroke"],
-	"lightning_closed_circuit": ["lightning_r4c5", 3, [2.0, 4.0, 6.0], "thunderaegis"],
-	"lightning_quick_wrists": ["lightning_r5c6", 3, [0.3, 0.7, 1.0], "crossguard"],
-	"lightning_tempo": ["lightning_r8c5", 3, [2.0, 4.0, 6.0], ""],   # moved down under Earth Return (Talents.LINKS_MOVED)
+	"lightning_long_reach": ["lightning_r1c9", 3, [1.0, 2.0, 3.0], ""],   # (the ribbon tree: Lightning Rod in columns 8-10)
+	"lightning_counter_charge": ["lightning_r4c8", 3, [10.0, 20.0, 30.0], "returnstroke"],
+	"lightning_closed_circuit": ["lightning_r2c9", 3, [2.0, 4.0, 6.0], "thunderaegis"],
+	"lightning_quick_wrists": ["lightning_r3c9", 3, [0.3, 0.7, 1.0], "crossguard"],
+	"lightning_tempo": ["lightning_r7c10", 3, [2.0, 4.0, 6.0], ""],
 }
 
 var _saved_records := {}

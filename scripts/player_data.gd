@@ -152,6 +152,53 @@ func all_item_ids() -> Array:
 				out.append(str(id))
 	return out
 
+# --- Inspect: what another player sees of you (Net.request_inspect) -------------------
+
+## Everything the Inspect window shows: gear (with its item records and runes),
+## action bar, talents and what goes into stats.
+func inspect_snapshot() -> Dictionary:
+	var gear := {}
+	for slot in equipment:
+		if str(equipment[slot]) != "":
+			gear[slot] = str(equipment[slot])
+	return {"level": level, "equipment": gear, "items": ItemDB.serialize(gear.values()),
+		"action_bar": Array(action_bar), "talents": talents.duplicate(), "attribute_points": attribute_points.duplicate(),
+		"draft_boons": draft_boons.duplicate(), "pact": pact, "pact_book": pact_book, "bare_hands": bare_hands}
+
+## Fills this (detached, never saved) PlayerData from another player's snapshot.
+## The data came over the network: every field is type-checked, the rest ignored.
+func apply_snapshot(d: Dictionary) -> void:
+	level = clampi(int(d.get("level", 1)), 1, 999)
+	ItemDB.merge_records(d.get("items", {}))
+	equipment = {}
+	var gear: Variant = d.get("equipment", {})
+	if gear is Dictionary:
+		for slot in gear:
+			if Items.exists(str(gear[slot])):
+				equipment[str(slot)] = str(gear[slot])
+	var bar: Variant = d.get("action_bar", [])
+	action_bar.assign((bar as Array).map(func(x): return str(x)) if bar is Array else [])
+	talents = {}
+	var t: Variant = d.get("talents", {})
+	if t is Dictionary:
+		for id in t:
+			if Talents.exists(str(id)):
+				talents[str(id)] = clampi(int(t[id]), 0, Talents.max_rank(str(id)))
+	attribute_points = _num_dict(d.get("attribute_points", {}))
+	draft_boons = _num_dict(d.get("draft_boons", {}))
+	pact = str(d.get("pact", ""))
+	pact_book = str(d.get("pact_book", ""))
+	bare_hands = bool(d.get("bare_hands", false))
+	_invalidate_stats()
+
+static func _num_dict(v: Variant) -> Dictionary:
+	var out := {}
+	if v is Dictionary:
+		for k in v:
+			if v[k] is int or v[k] is float:
+				out[str(k)] = v[k]
+	return out
+
 # --- Rune Shards (salvage -> Runecrafting) and Mysterious Runes -----------------------
 # Two ways to get the rune you actually want:
 #   - Salvage items (and Mysterious Runes) for Rune Shards, then craft any rune
@@ -855,6 +902,12 @@ static func talents_valid(ranks: Dictionary) -> bool:
 		var other := Talents.sibling_of(str(id))
 		if int(ranks[id]) > 0 and other != "" and int(ranks.get(other, 0)) > 0:
 			return false
+	return unreachable(ranks).is_empty()
+
+## The invested talents a set of ranks can't hold up (see talents_valid): ones
+## no longer reachable by rows or links, and capstones short of their gate.
+static func unreachable(ranks: Dictionary) -> Array[String]:
+	var out: Array[String] = []
 	var accepted := {}
 	var row_pts := {}   # row -> points in accepted talents
 	var progress := true
@@ -881,13 +934,54 @@ static func talents_valid(ranks: Dictionary) -> bool:
 				progress = true
 	for id in ranks:
 		if int(ranks[id]) > 0 and not accepted.has(id):
-			return false
+			out.append(str(id))
 	# A spec's capstone needs its group's points (Talents.capstone_gated).
 	for id in ranks:
-		if int(ranks[id]) > 0 and Talents.capstone_gated(str(id)) \
+		if int(ranks[id]) > 0 and Talents.capstone_gated(str(id)) and not out.has(str(id)) \
 				and gate_points(ranks, Talents.category_of(str(id)), Talents.group_of(str(id))) < Balance.CAPSTONE_GATE:
-			return false
-	return true
+			out.append(str(id))
+	return out
+
+## A talent you can't put points in yet: the talents of its book that would
+## help open it and can take a point now (the row above that still needs points,
+## its link sources, or its spec for a capstone). [] when nothing in the book helps
+## (no points left, a missing ability...). Choice talents come back as their slot.
+func talents_to_open(id: String) -> Array[String]:
+	var out: Array[String] = []
+	var cat := Talents.category_of(id)
+	var want: Array[String] = []
+	if not talent_unlocked(id):
+		# The first row (in order) still short of its points opens the next one.
+		for t in range(1, Talents.tier_of(id) + 1):
+			if tier_points(t - 1) < Talents.POINTS_TO_UNLOCK_NEXT:
+				want.append_array(Talents.in_row(cat, t - 1))
+				break
+		want.append_array(Talents.sources_of(id))
+	elif Talents.capstone_gated(id):
+		for other in Talents.in_group(cat, Talents.group_of(id)):
+			if not Talents.capstone_gated(other):
+				want.append(other)
+	for w in want:
+		var opts := Talents.options_of(w)
+		var ok := opts.any(func(o): return can_invest(o) == "") if not opts.is_empty() else can_invest(w) == ""
+		if ok and not out.has(w):
+			out.append(w)
+	return out
+
+## A point you can't take back: the invested talents that depend on it (they'd
+## be left unreachable). The ones you can take points out of now come first: if
+## any can, only those are returned.
+func talents_blocking_refund(id: String) -> Array[String]:
+	var after := talents.duplicate()
+	after[id] = int(after.get(id, 0)) - 1
+	if int(after[id]) <= 0:
+		after.erase(id)
+	var deps := unreachable(after)
+	var free_now: Array[String] = []
+	for d in deps:
+		if can_refund(d) == "":
+			free_now.append(d)
+	return free_now if not free_now.is_empty() else deps
 
 ## Points in a spec group that count toward its capstone's gate: every talent of
 ## the group except the capstone itself.

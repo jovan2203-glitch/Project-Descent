@@ -63,25 +63,73 @@ Code: scripts/player/fire_bow.gd.
 - Touch Off - 30 Energy, 10 s: Ignites on purpose at +50%, can't crit, needs Pitch on the target.
 - Brushfire - 2 min, 12 s: auto-shots Burn their target and add 2 layers.
 
-## Talents - REBUILT 2026-10-23 on the column-group layout
-Like Martial (docs/design/systems.md, "Talents"). Numbers are drafts (talents.gd, balance.gd).
-- Layout: 10 rows x 9 columns. Steady Flame columns 1-2, Slagforged 3-4, open talents 5 (rows 1-8), Forge Heat 6-7, Pitch and Cinder 8-9. Row 10: each spec's 5-rank capstone, gated at 25 points in the spec. No links.
+## Talents - REBUILT 2026-10-23, on ribbons 2026-10-26
+Like Martial (docs/design/systems.md, "Talents", "Ribbon layout"). Numbers are drafts (talents.gd, balance.gd).
+- Layout: 10 rows x 13 columns. Steady Flame columns 1-3, Slagforged 4-6, open talents 7 (the spine, rows 1-8), Forge Heat 8-10, Pitch and Cinder 11-13. Row 10: each spec's 5-rank capstone, gated at 25 points in the spec.
+- Links: Stoked Breath -> Lean Fuel, Clean Burn -> Stay Lit, Fuel the Forge -> Heavy Hammer, Banked Fire -> Overheat, Spreading Fire -> Fuel Run.
 - Size: 19 talents per spec (56-57 ranks), 8 open. 18 of 85 talents need one ability (21%).
 - Code: each spec's component, plus scripts/player/fire_talents.gd for the hit bonuses (each its own meter line).
 - Removed: Cool Under Fire (a DPS defensive), Deep Crucible (folded into Crucible: 5.65 m, 12.5 s), Kindling (Sparks), Forge Heat (became Slow Cooling); Fresh Tinder now feeds Burning, Long Burn lengthens Burning too.
 
-| Row | Steady Flame | | Slagforged | | Open | Forge Heat | | Pitch and Cinder | |
-|---|---|---|---|---|---|---|---|---|---|
-| 1 | Stoked Breath (4) | Tempered Flame (3, Firebolt) | Thick Slag (4) | Hot Iron (3) | Flash Point | White Heat (4) | Bright Sparks (3) | Sticky Pitch (4) | Easy Draw (3) |
-| 2 | Pressure Valve (3, Vent Flames) | Lean Fuel (3) | Slag Mending (3) | Deep Brand (3, Brand) | Forge-Hardened | Slow Cooling (3) | Afterglow (3, Quench) | Big Flash (3) | Long Coat (3) |
-| 3 | Banked Coals (2) | Afterburn (3) | Smoldering Debris (3) | Hard Crust (3) | Lingering Embers | Spark Bite (3) | Fresh Tinder (3) | Spreading Fire (2) | Dripping (3) |
-| 4 | Damped / Wild Embers (choice, 3) | Scattered Embers (2) | Set Hard (2) | Red Iron (3) | Controlled Burn | Hard Quench (3) | Wide Flare (2, Flare) | Double Coat (2, Pitch Arrow) | Hot Shafts (3) |
-| 5 | Blowback (3) | Long Burn (3) | Marked Iron (3) | Fuel the Forge (3) | Feed the Flames | Banked Fire (3, Quench) | Hammer Rhythm (3) | Second Light (3, Touch Off) | Ember Bed (3) |
-| 6 | Stoked Kiln (3) | Hold the Heat (3) | Deep Slag (2) | Riveted (3, Rivet) | Last Ember | Fold Again (2, Fold Steel) | Deep Sear (3) | Wide Rain (2, Cinder Rain) | Fuel Run (3) |
-| 7 | Long Focus (3) | Clean Burn (3) | Heavy Hammer (3, Forge Blow) | Glowing Seams (3) | Tempered | Overheat (3) | Steady Arm (3) | Patient Fire (3) | Kindle Pack (3) |
-| 8 | Big Spend (3) | Warm Start (2) | Long Shell (2, Molten Shell) | Spatter (3) | Warm Blood | Long Blast (2, Blast Furnace) | Cold Steel (3) | Long Brush (2, Brushfire) | Steady Bow (3) |
-| 9 | Low Flame (3) | Stay Lit (3) | Quick Temper (3) | Heat Shimmer (3) | | Quick Forge (3) | Fed Furnace (3) | Clean Shot (3) | Fire Line (3) |
-| 10 | Smoldering Focus (5) | | Molten Heart (5) | | | Molten Edge (5) | | Pitch Black (5) | |
+**Steady Flame**: its seals form a flame.
+
+| Row | Left | Middle | Right |
+|---|---|---|---|
+| 1 |  | Stoked Breath (4) |  |
+| 2 | Tempered Flame (3, Firebolt) |  | Pressure Valve (3, Vent Flames) |
+| 3 |  | Lean Fuel (3) |  |
+| 4 | Banked Coals (2) |  | Afterburn (3) |
+| 5 | Damped / Wild Embers (choice, 3) | Scattered Embers (2) | Blowback (3) |
+| 6 | Long Burn (3) | Stoked Kiln (3) | Hold the Heat (3) |
+| 7 | Long Focus (3) | Clean Burn (3) | Big Spend (3) |
+| 8 | Warm Start (2) |  | Low Flame (3) |
+| 9 |  | Stay Lit (3) |  |
+| 10 |  | Smoldering Focus (5) |  |
+
+**Slagforged**: its seals form an anvil.
+
+| Row | Left | Middle | Right |
+|---|---|---|---|
+| 1 | Thick Slag (4) | Hot Iron (3) | Slag Mending (3) |
+| 2 | Smoldering Debris (3) | Deep Brand (3, Brand) | Hard Crust (3) |
+| 3 |  | Set Hard (2) |  |
+| 4 |  | Red Iron (3) |  |
+| 5 |  | Marked Iron (3) |  |
+| 6 |  | Fuel the Forge (3) |  |
+| 7 | Deep Slag (2) |  | Riveted (3, Rivet) |
+| 8 | Glowing Seams (3) | Heavy Hammer (3, Forge Blow) | Long Shell (2, Molten Shell) |
+| 9 | Spatter (3) | Quick Temper (3) | Heat Shimmer (3) |
+| 10 |  | Molten Heart (5) |  |
+
+**Forge Heat**: its seals form a hammer.
+
+| Row | Left | Middle | Right |
+|---|---|---|---|
+| 1 | White Heat (4) | Bright Sparks (3) | Slow Cooling (3) |
+| 2 | Spark Bite (3) | Afterglow (3, Quench) | Fresh Tinder (3) |
+| 3 | Hard Quench (3) | Wide Flare (2, Flare) | Banked Fire (3, Quench) |
+| 4 |  | Hammer Rhythm (3) |  |
+| 5 |  | Fold Again (2, Fold Steel) |  |
+| 6 | Deep Sear (3) |  | Overheat (3) |
+| 7 | Steady Arm (3) |  | Long Blast (2, Blast Furnace) |
+| 8 | Cold Steel (3) |  | Quick Forge (3) |
+| 9 |  | Fed Furnace (3) |  |
+| 10 |  | Molten Edge (5) |  |
+
+**Pitch and Cinder**: its seals form a rising arrow.
+
+| Row | Left | Middle | Right |
+|---|---|---|---|
+| 1 |  | Sticky Pitch (4) |  |
+| 2 | Easy Draw (3) | Big Flash (3) | Long Coat (3) |
+| 3 | Spreading Fire (2) | Double Coat (2, Pitch Arrow) | Dripping (3) |
+| 4 |  | Hot Shafts (3) |  |
+| 5 |  | Second Light (3, Touch Off) |  |
+| 6 |  | Ember Bed (3) |  |
+| 7 | Fuel Run (3) |  | Wide Rain (2, Cinder Rain) |
+| 8 | Patient Fire (3) | Long Brush (2, Brushfire) | Kindle Pack (3) |
+| 9 | Steady Bow (3) | Clean Shot (3) | Fire Line (3) |
+| 10 |  | Pitch Black (5) |  |
 
 What the new ones do (ranks in talents.gd):
 - Steady Flame: Lean Fuel (Fury costs less), Long Burn (Burning and Blaze last longer), Stoked Kiln (Fury spenders hit Blazed targets harder), Hold the Heat (Fury drops slower out of casting), Long Focus (Concentrated Fire lasts longer), Clean Burn (non-crit Fire spells hit harder), Big Spend (spending 60+ Fury hits harder: Vent Flames), Warm Start (Fury on entering combat), Low Flame (below 20% crit, Fire spells hit harder), Stay Lit (after a Vent, the next non-crit gives more Fury).

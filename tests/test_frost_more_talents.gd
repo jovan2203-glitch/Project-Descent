@@ -14,9 +14,9 @@ func suite_name() -> String:
 	return "frost_more_talents"
 
 const NEW := {
-	"frost_pinning_frost": ["frost_r2c10", "Pinning Frost", [5.0, 10.0, 15.0], ""],   # any root of mine (was Icepin's)
-	"frost_third_bite": ["frost_r1c7", "Third Bite", [20.0, 40.0, 60.0], ""],         # any Frost ability that Freezes (was Winter's Bite's)
-	"frost_hard_freeze": ["frost_r8c2", "Hard Freeze", [0.5, 1.0, 1.5], ""],
+	"frost_pinning_frost": ["frost_r2c14", "Pinning Frost", [5.0, 10.0, 15.0], ""],   # any root of mine (was Icepin's)
+	"frost_third_bite": ["frost_r2c8", "Third Bite", [20.0, 40.0, 60.0], ""],         # any Frost ability that Freezes (was Winter's Bite's)
+	"frost_hard_freeze": ["frost_r8c1", "Hard Freeze", [0.5, 1.0, 1.5], ""],
 }
 
 func test_where_they_sit() -> void:

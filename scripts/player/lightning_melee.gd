@@ -177,6 +177,7 @@ func _on_auto_landed(info: RefCounted) -> void:
 	var charged := player._talent("lightning_charged_strikes")   # Charged Strikes: every auto-attack gives Energy
 	if charged > 0.0:
 		player._gain("energy", charged)
+	player.lightning_talents.auto_landed(foe)   # Sparking Swings
 	if player.status.has(TWIN_CURRENT_FX):
 		# Hot Wire: a chance the echo doesn't use up a charge.
 		if randf() * 100.0 >= player._talent("lightning_hot_wire"):
@@ -195,6 +196,7 @@ func _on_auto_landed(info: RefCounted) -> void:
 	if player.status.has(OVERDRIVE_FX):
 		if is_instance_valid(foe) and foe.is_alive():
 			player.deal_damage(foe, float(Abilities.get_resource(OVERDRIVE_ID).damage), OVERDRIVE_ID, true)
+			player.lightning_talents.overdrive_zapped(foe, float(Abilities.get_resource(OVERDRIVE_ID).damage))   # Storm Dance's capstone
 		player._gain("energy", Balance.OVERDRIVE_ENERGY)
 
 ## Metres Static Step travels toward a target `gap` metres away (edge to edge):

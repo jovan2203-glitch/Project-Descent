@@ -174,8 +174,8 @@ func test_new_talents() -> void:
 	const Talents = preload("res://scripts/talents.gd")
 	const TalentIcons = preload("res://scripts/talent_icons.gd")
 	var want := {
-		"frost_honed_rime": ["frost_r4c6", [0.05, 0.1, 0.15], "rimeedge"],
-		"frost_clean_break": ["frost_r4c7", [7.0, 13.0, 20.0], ""],   # every finisher now (the column-group tree)
+		"frost_honed_rime": ["frost_r4c8", [0.05, 0.1, 0.15], "rimeedge"],
+		"frost_clean_break": ["frost_r4c10", [7.0, 13.0, 20.0], ""],   # every finisher now (the column-group tree)
 		"frost_piercing_cold": ["frost_r5c1", [7.0, 13.0, 20.0], "coldspike"],
 	}
 	for key in want:

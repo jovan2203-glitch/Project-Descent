@@ -27,6 +27,8 @@ signal members_changed
 signal chat_received(sender: String, text: String)
 signal system_message(text: String)
 signal migration_state(active: bool)
+## A party member's inspect snapshot arrived (request_inspect): open the Inspect window.
+signal inspect_received(member: int, data: Dictionary)
 
 const REMOTE_PLAYER = preload("res://scripts/net/remote_player.gd")
 const DamageInfo = preload("res://scripts/core/damage_info.gd")
@@ -63,6 +65,7 @@ const NATURE_CREATURE = preload("res://scripts/nature_creature.gd")
 const HOUND = preload("res://scripts/hound.gd")
 const Balance = preload("res://scripts/balance.gd")
 const Abilities = preload("res://scripts/abilities.gd")
+const BuildInfo = preload("res://scripts/core/build_info.gd")
 
 const PLAYER_RATE := 15.0         # own character updates per second
 const ENEMY_RATE := 10.0          # host enemy snapshots per second
@@ -223,7 +226,7 @@ func _say(text: String) -> void:
 
 func _my_info() -> Dictionary:
 	var pd := get_node_or_null("/root/PlayerData")
-	return {"name": str(_online().my_name), "level": int(pd.level) if pd else 1, "addr": ""}
+	return {"name": str(_online().my_name), "level": int(pd.level) if pd else 1, "addr": "", "ver": BuildInfo.version()}
 
 func host_session(peer: MultiplayerPeer) -> void:
 	_reset()
@@ -267,6 +270,7 @@ func _reset() -> void:
 	_close_peer()
 	_free_puppets()
 	_peer_member.clear()
+	ping.clear()
 	_joining = false
 
 func _close_peer() -> void:
@@ -280,7 +284,7 @@ func _close_peer() -> void:
 
 func _on_connected() -> void:
 	_joining = false
-	rpc_id(1, "_hello", my_id(), _my_info(), token if migrating else -1)
+	_out_to(1, "_hello", my_id(), _my_info(), token if migrating else -1)
 
 func _on_connection_failed() -> void:
 	_joining = false
@@ -323,8 +327,14 @@ func _hello(member: int, info: Dictionary, have_token: int) -> void:
 	if not is_host():
 		return
 	var peer := multiplayer.get_remote_sender_id()
+	# Different builds don't play together (abilities, talents and messages would
+	# differ). Builds older than this check send no version.
+	var ver := str(info.get("ver", "older"))
+	if ver != BuildInfo.version():
+		_out_to(peer, "_rejected", BuildInfo.mismatch_text(BuildInfo.version(), ver))
+		return
 	if not members.has(member) and members.size() >= int(_online().max_party()):
-		rpc_id(peer, "_rejected", "That party is full.")
+		_out_to(peer, "_rejected", "That party is full.")
 		return
 	info["addr"] = _peer_address(peer)
 	_peer_member[peer] = member
@@ -337,7 +347,7 @@ func _hello(member: int, info: Dictionary, have_token: int) -> void:
 	_send_meta()
 	# Pull them into the current dungeon if they aren't already in it.
 	if not run.is_empty() and have_token != token:
-		rpc_id(peer, "_load", run["path"], run["depth"], run["seed"], token, str(run.get("diff", "solo")), run.get("extra", {}))
+		_out_to(peer, "_load", run["path"], run["depth"], run["seed"], token, str(run.get("diff", "solo")), run.get("extra", {}))
 	if migrating:
 		_mig_expected.erase(member)
 		if _mig_expected.is_empty():
@@ -364,7 +374,7 @@ func _send_meta() -> void:
 	if not run.is_empty():
 		run["rez_elapsed"] = _now() - _rez_t0
 		run["rez_used"] = _rez_used
-	rpc("_meta", members, order, host_member, queue_path, run)
+	_out("_meta", members, order, host_member, queue_path, run)
 
 @rpc("authority", "call_remote", "reliable")
 func _meta(m: Dictionary, o: Array, host: int, q: String, r: Dictionary) -> void:
@@ -394,7 +404,7 @@ func merge_into(lobby: int) -> void:
 	if not is_host():
 		return
 	if _connected():
-		rpc("_merge", lobby)
+		_out("_merge", lobby)
 	# Give the others a moment to get the message before we disconnect.
 	get_tree().create_timer(1.0, true).timeout.connect(func(): _online().move_to_lobby(lobby))
 
@@ -422,7 +432,7 @@ func spend_combat_rez() -> void:
 	if is_host():
 		_send_meta()
 	elif _connected():
-		rpc_id(1, "_rez_spend", token)
+		_out_to(1, "_rez_spend", token)
 
 @rpc("any_peer", "call_remote", "reliable")
 func _rez_spend(t: int) -> void:
@@ -439,7 +449,7 @@ func _rez_take(r: Dictionary) -> void:
 
 func _on_local_chat(sender: String, text: String) -> void:
 	if online and sender == "You" and _connected():
-		rpc("_chat", str(_online().my_name), text)
+		_out("_chat", str(_online().my_name), text)
 
 @rpc("any_peer", "call_remote", "reliable")
 func _chat(sender: String, text: String) -> void:
@@ -484,7 +494,7 @@ func _broadcast_load() -> void:
 	_send_meta()
 	var diff := str(run.get("diff", "solo"))
 	if _connected():
-		rpc("_load", run["path"], run["depth"], run["seed"], token, diff, run.get("extra", {}))
+		_out("_load", run["path"], run["depth"], run["seed"], token, diff, run.get("extra", {}))
 	_load(run["path"], run["depth"], run["seed"], token, diff, run.get("extra", {}))
 
 @rpc("authority", "call_remote", "reliable")
@@ -503,7 +513,7 @@ func return_to_menu() -> void:
 	run = {}
 	_send_meta()
 	if _connected():
-		rpc("_to_menu", token)
+		_out("_to_menu", token)
 	_to_menu(token)
 
 @rpc("authority", "call_remote", "reliable")
@@ -529,6 +539,7 @@ func _local_error(text: String) -> void:
 func _process(delta: float) -> void:
 	if not online:
 		return
+	_tick_stats(delta)
 	if _joining and _now() > _join_deadline:
 		_joining = false
 		if migrating:
@@ -561,15 +572,81 @@ func _process(delta: float) -> void:
 		_player_t = 1.0 / PLAYER_RATE
 		var p := _local_player()
 		var st := p.get_node_or_null("Status")
-		rpc("_pstate", token, my_id(), p.global_position, p.rotation.y, str(p.get("current_state")),
+		_out("_pstate", token, my_id(), p.global_position, p.rotation.y, str(p.get("current_state")),
 			int(p.get("health")), int(p.get("max_health")), _my_role(),
 			int(st.total_absorb()) if st and st.has_method("total_absorb") else 0)
 	if is_host():
 		_enemy_t -= delta
 		if _enemy_t <= 0.0:
 			_enemy_t = 1.0 / ENEMY_RATE
-			rpc("_esnap", token, _enemy_snapshot())
+			_out("_esnap", token, _enemy_snapshot())
 		_check_wipe(delta)
+
+# --- Network stats (F3 overlay, game.log) ------------------------------------------
+# Everything Net sends goes through _out / _out_to so traffic can be counted.
+# Bytes are an estimate (the encoded arguments, once per receiving peer). Ping is
+# a small unreliable echo every PING_INTERVAL s, so reliable resends don't skew it.
+
+const PING_INTERVAL := 2.0
+var ping := {}                    # peer id -> round trip in ms (smoothed)
+var sent_kbps := 0.0              # KB/s sent over the last second
+var sent_per_sec := 0.0           # messages/s sent over the last second
+var _ping_t := 0.0
+var _rate_t := 0.0
+var _sent_bytes := 0
+var _sent_msgs := 0
+
+func _out(method: StringName, ...args: Array) -> void:
+	_count_sent(args, multiplayer.get_peers().size())
+	callv("rpc", [method] + args)
+
+func _out_to(peer: int, method: StringName, ...args: Array) -> void:
+	_count_sent(args, 1)
+	callv("rpc_id", [peer, method] + args)
+
+func _count_sent(args: Array, peers: int) -> void:
+	_sent_msgs += peers
+	_sent_bytes += (var_to_bytes(args).size() + 8) * peers
+
+func _tick_stats(delta: float) -> void:
+	_rate_t += delta
+	if _rate_t >= 1.0:
+		sent_kbps = _sent_bytes / 1024.0 / _rate_t
+		sent_per_sec = _sent_msgs / _rate_t
+		_sent_bytes = 0
+		_sent_msgs = 0
+		_rate_t = 0.0
+	_ping_t -= delta
+	if _ping_t <= 0.0 and _connected():
+		_ping_t = PING_INTERVAL
+		for peer in multiplayer.get_peers():
+			_out_to(peer, "_rtt_ask", Time.get_ticks_msec())
+
+@rpc("any_peer", "call_remote", "unreliable")
+func _rtt_ask(t: int) -> void:
+	_out_to(multiplayer.get_remote_sender_id(), "_rtt_back", t)
+
+@rpc("any_peer", "call_remote", "unreliable")
+func _rtt_back(t: int) -> void:
+	var peer := multiplayer.get_remote_sender_id()
+	var rtt := float(Time.get_ticks_msec() - t)
+	ping[peer] = lerpf(float(ping[peer]), rtt, 0.5) if ping.has(peer) else rtt
+
+## Lines for the F3 overlay and the log: ping (client: to the host; host: to
+## each member) and what this game sends. Empty when not in a party.
+func stats_lines() -> Array[String]:
+	var out: Array[String] = []
+	if not online:
+		return out
+	var pings: Array[String] = []
+	for peer in ping:
+		if not multiplayer.get_peers().has(peer):
+			continue
+		var who := "host" if int(peer) == 1 else member_name(int(_peer_member.get(peer, 0)))
+		pings.append("%s %d" % [who, roundi(float(ping[peer]))])
+	out.append("Ping %s ms" % (", ".join(pings) if not pings.is_empty() else "-"))
+	out.append("Sent %.1f KB/s (%d msgs/s)  •  Party %d%s" % [sent_kbps, roundi(sent_per_sec), members.size(), "  •  Host" if is_host() else ""])
+	return out
 
 ## My role for the others' party frames (from my bars; worked out once a second).
 var _role_cache := "dps"
@@ -712,7 +789,7 @@ func _esnap(t: int, rows: Array) -> void:
 func enemy_died(e: Node, killer: int = -1) -> void:
 	if not is_host() or not _connected() or _world() == null:
 		return
-	rpc("_edied", token, enemy_id(e), killer)
+	_out("_edied", token, enemy_id(e), killer)
 
 @rpc("authority", "call_remote", "reliable")
 func _edied(t: int, id: String, killer: int = -1) -> void:
@@ -738,7 +815,7 @@ func report_enemy_damage(e: Node, amount: int, ability_id: String, threat_mult: 
 		if eff is Resource and eff.resource_path != "":
 			paths.append(eff.resource_path)
 			sent_params.append(params[i] if i < params.size() and params[i] is Dictionary else {})
-	rpc_id(1, "_cdmg", token, my_id(), enemy_id(e), amount, ability_id, threat_mult, paths, tags, sent_params)
+	_out_to(1, "_cdmg", token, my_id(), enemy_id(e), amount, ability_id, threat_mult, paths, tags, sent_params)
 
 @rpc("any_peer", "call_remote", "reliable")
 func _cdmg(t: int, member: int, id: String, amount: int, _ability_id: String, threat_mult: float, paths: Array,
@@ -791,7 +868,7 @@ func send_enemy_hit(enemy: Node, target: Node, base: float, tags: PackedStringAr
 	var unit := float(enemy.damage_unit()) if is_instance_valid(enemy) and enemy.has_method("damage_unit") else -1.0
 	for peer in _peer_member:
 		if int(_peer_member[peer]) == member and int(peer) != 1:
-			rpc_id(int(peer), "_ehit", token, enemy_id(enemy), base, tags, damage_type, unit, ability_id)
+			_out_to(int(peer), "_ehit", token, enemy_id(enemy), base, tags, damage_type, unit, ability_id)
 			return
 
 @rpc("authority", "call_remote", "reliable")
@@ -837,19 +914,47 @@ func _send_to_member(member: int, method: String, args: Array) -> void:
 	if is_host():
 		var peer := _peer_of(member)
 		if peer > 1:
-			callv("rpc_id", [peer, method] + args)
+			callv("_out_to", [peer, method] + args)
 	else:
 		# Clients only talk to the host; it forwards.
-		callv("rpc_id", [1, "_relay", member, method, args])
+		_out_to(1, "_relay", member, method, args)
 
 @rpc("any_peer", "call_remote", "reliable")
 func _relay(member: int, method: String, args: Array) -> void:
-	if not is_host() or not method.begins_with("_sup_"):
+	if not is_host() or not (method.begins_with("_sup_") or method.begins_with("_insp_")):
 		return
 	if member == my_id():
 		callv(method, args)
 	else:
 		_send_to_member(member, method, args)
+
+## Inspect a party member (yourself too): their game sends a snapshot of their
+## gear, bars, talents and stats (PlayerData.inspect_snapshot), and
+## inspect_received opens the Inspect window. At most one request a second.
+var _inspect_at := -10.0
+func request_inspect(member: int) -> void:
+	if _now() - _inspect_at < 1.0:
+		return
+	_inspect_at = _now()
+	if member == my_id() or not online:
+		inspect_received.emit(my_id(), _inspect_data())
+		return
+	_send_to_member(member, "_insp_ask", [my_id()])
+
+func _inspect_data() -> Dictionary:
+	var d: Dictionary = get_node("/root/PlayerData").inspect_snapshot()
+	d["name"] = member_name(my_id()) if online else str(_online().my_name)
+	return d
+
+@rpc("any_peer", "call_remote", "reliable")
+func _insp_ask(asker: int) -> void:
+	if online:
+		_send_to_member(asker, "_insp_data", [my_id(), _inspect_data()])
+
+@rpc("any_peer", "call_remote", "reliable")
+func _insp_data(member: int, data: Dictionary) -> void:
+	if online and members.has(member):
+		inspect_received.emit(member, data)
 
 ## Heal another player's character (a puppet) for an exact amount.
 func heal_ally(target: Node, caster: Node, amount: int) -> void:
@@ -909,7 +1014,7 @@ func _sup_do(t: int, caster: int, kind: String, data: Dictionary) -> void:
 func send_ping(kind: String, pos: Vector3, enemy: Node = null) -> void:
 	if not with_others() or not _connected() or _world() == null:
 		return
-	rpc("_ping", token, my_id(), kind, pos, enemy_id(enemy) if enemy else "")
+	_out("_ping", token, my_id(), kind, pos, enemy_id(enemy) if enemy else "")
 
 @rpc("any_peer", "call_remote", "reliable")
 func _ping(t: int, member: int, kind: String, pos: Vector3, target_id: String) -> void:
@@ -966,7 +1071,7 @@ func _sup_ward(t: int, caster: int, amount: int, armor_pct: float) -> void:
 ## Put a Rime Shell on an enemy (host-side). Breaking it shatters for the caster.
 func shell_enemy(enemy: Node, caster: Node, amount: int) -> void:
 	if is_client() and _connected():
-		rpc_id(1, "_sup_enemy_shell", token, member_of(caster), enemy_id(enemy), amount)
+		_out_to(1, "_sup_enemy_shell", token, member_of(caster), enemy_id(enemy), amount)
 		return
 	_do_enemy_shell(enemy, caster, amount)
 
@@ -1002,7 +1107,7 @@ func drop_enemy_shield(enemy: Node) -> void:
 	if enemy == null or not is_instance_valid(enemy):
 		return
 	if is_client() and _connected():
-		rpc_id(1, "_sup_enemy_unshield", token, enemy_id(enemy))
+		_out_to(1, "_sup_enemy_unshield", token, enemy_id(enemy))
 		var mine := enemy.get_node_or_null("Status")
 		if mine and mine.effects.has("rime_shell_foe"):
 			mine.effects["rime_shell_foe"].erase("net_absorb")   # shown at once; the host confirms
@@ -1049,7 +1154,7 @@ func remove_status(target: Node, effect_id: String) -> void:
 		return
 	if target.is_in_group("enemies"):
 		if is_client() and _connected():
-			rpc_id(1, "_sup_enemy_rm", token, enemy_id(target), effect_id)
+			_out_to(1, "_sup_enemy_rm", token, enemy_id(target), effect_id)
 		else:
 			_strip(target, effect_id)
 	elif target.is_in_group("player"):
@@ -1080,7 +1185,7 @@ func _sup_rm(t: int, effect_id: String) -> void:
 ## Taunt (threat lives on the host).
 func taunt(enemy: Node, source: Node, duration: float) -> void:
 	if is_client() and _connected():
-		rpc_id(1, "_sup_taunt", token, member_of(source), enemy_id(enemy), duration)
+		_out_to(1, "_sup_taunt", token, member_of(source), enemy_id(enemy), duration)
 	elif enemy.has_method("taunt"):
 		enemy.taunt(source, duration)
 
@@ -1099,7 +1204,7 @@ func drop_threat(enemy: Node, source: Node) -> void:
 	if enemy == null or not is_instance_valid(enemy):
 		return
 	if is_client() and _connected():
-		rpc_id(1, "_sup_drop_threat", token, member_of(source), enemy_id(enemy))
+		_out_to(1, "_sup_drop_threat", token, member_of(source), enemy_id(enemy))
 	elif enemy.has_method("drop_threat"):
 		enemy.drop_threat(source)
 
@@ -1119,7 +1224,7 @@ func forget(enemy: Node, source: Node, time: float) -> void:
 	if enemy == null or not is_instance_valid(enemy):
 		return
 	if is_client() and _connected():
-		rpc_id(1, "_sup_forget", token, member_of(source), enemy_id(enemy), time)
+		_out_to(1, "_sup_forget", token, member_of(source), enemy_id(enemy), time)
 	elif enemy.has_method("forget"):
 		enemy.forget(source, time)
 
@@ -1140,7 +1245,7 @@ func pull(enemy: Node, source: Node, to: Vector3, taunt_time: float) -> void:
 	if enemy == null or not is_instance_valid(enemy):
 		return
 	if is_client() and _connected():
-		rpc_id(1, "_sup_pull", token, member_of(source), enemy_id(enemy), to, taunt_time)
+		_out_to(1, "_sup_pull", token, member_of(source), enemy_id(enemy), to, taunt_time)
 	elif enemy.has_method("pull_to"):
 		enemy.pull_to(source, to, taunt_time, Balance.REEL_IN_DRAG_TIME)
 	elif enemy.has_method("taunt"):
@@ -1166,7 +1271,7 @@ func drag(enemy: Node, to: Vector3, drag_time: float) -> void:
 	if enemy == null or not is_instance_valid(enemy):
 		return
 	if is_client() and _connected():
-		rpc_id(1, "_sup_drag", token, enemy_id(enemy), to, drag_time)
+		_out_to(1, "_sup_drag", token, enemy_id(enemy), to, drag_time)
 	elif enemy.has_method("drag_to"):
 		enemy.drag_to(to, drag_time)
 
@@ -1186,7 +1291,7 @@ func _sup_drag(t: int, id: String, to: Vector3, drag_time: float) -> void:
 func decoy(whose: Node3D, at: Vector3, yaw: float, radius: float, time: float) -> void:
 	var scene := get_tree().current_scene
 	if is_client() and _connected():
-		rpc_id(1, "_sup_decoy", token, member_of(whose), at, yaw, radius, time)
+		_out_to(1, "_sup_decoy", token, member_of(whose), at, yaw, radius, time)
 		DECOY.spawn(scene, whose, at, yaw, time)
 	else:
 		DECOY.spawn(scene, whose, at, yaw, time, radius)
@@ -1204,7 +1309,7 @@ func _sup_decoy(t: int, member: int, at: Vector3, yaw: float, radius: float, tim
 ## Client: threat from healing goes to the host's enemies.
 func report_heal_threat(healer: Node, target: Node, amount: float) -> void:
 	if is_client() and _connected():
-		rpc_id(1, "_sup_heal_threat", token, member_of(healer), member_of(target), amount)
+		_out_to(1, "_sup_heal_threat", token, member_of(healer), member_of(target), amount)
 
 @rpc("any_peer", "call_remote", "reliable")
 func _sup_heal_threat(t: int, healer: int, target: int, amount: float) -> void:
@@ -1225,7 +1330,7 @@ func _sup_heal_threat(t: int, healer: int, target: int, amount: float) -> void:
 ## `cracks` = how cracked that Rime Shell is (0-2: RimeShellFx), so the others see it too.
 func send_support_state(has_shell: bool, lockouts: Dictionary, shell_by: int = 0, cracks: int = 0) -> void:
 	if with_others() and _connected() and _world() != null:
-		rpc("_sup_state", token, my_id(), has_shell, lockouts, shell_by, cracks)
+		_out("_sup_state", token, my_id(), has_shell, lockouts, shell_by, cracks)
 
 @rpc("any_peer", "call_remote", "reliable")
 func _sup_state(t: int, member: int, has_shell: bool, lockouts: Dictionary, shell_by: int = 0, cracks: int = 0) -> void:
@@ -1249,7 +1354,7 @@ func send_party_status(res: Resource) -> void:
 		return
 	if not with_others() or not _connected() or _world() == null:
 		return
-	rpc("_party_status", token, my_id(), res.resource_path)
+	_out("_party_status", token, my_id(), res.resource_path)
 
 @rpc("any_peer", "call_remote", "reliable")
 func _party_status(t: int, member: int, path: String) -> void:
@@ -1268,13 +1373,13 @@ func _party_status(t: int, member: int, path: String) -> void:
 func send_meter(events: Array) -> void:
 	if events.is_empty() or not with_others() or not _connected() or _world() == null:
 		return
-	rpc("_meter", token, my_id(), events)
+	_out("_meter", token, my_id(), events)
 
 ## Host: meter rows for `member` that only the host saw (their DoT ticks).
 func send_meter_for(member: int, events: Array) -> void:
 	if events.is_empty() or not is_host() or not with_others() or not _connected() or _world() == null:
 		return
-	rpc("_meter_fwd", token, member, events)
+	_out("_meter_fwd", token, member, events)
 
 @rpc("authority", "call_remote", "reliable")
 func _meter_fwd(t: int, member: int, events: Array) -> void:
@@ -1297,7 +1402,7 @@ func _meter(t: int, member: int, events: Array) -> void:
 func send_fx(kind: String, at: Vector3, target: Node = null, id: String = "", extra: Dictionary = {}) -> void:
 	if not with_others() or not _connected() or _world() == null:
 		return
-	rpc("_fx", token, my_id(), kind, at, enemy_id(target) if target else "", id, extra)
+	_out("_fx", token, my_id(), kind, at, enemy_id(target) if target else "", id, extra)
 
 @rpc("any_peer", "call_remote", "reliable")
 func _fx(t: int, member: int, kind: String, at: Vector3, target_id: String, id: String, extra: Dictionary) -> void:
@@ -1315,6 +1420,15 @@ func _fx(t: int, member: int, kind: String, at: Vector3, target_id: String, id: 
 		"ring":
 			if src.has_method("play_ring"):
 				src.play_ring(float(extra.get("r", 1.0)), extra.get("c", Color.WHITE), at)
+		"castfx":   # cast flair (CastFX): hand glow and rune circle while they cast
+			if src.has_method("play_cast_fx"):
+				src.play_cast_fx(extra.get("c", Color.WHITE), float(extra.get("d", 1.0)))
+		"castend":
+			if src.has_method("end_cast_fx"):
+				src.end_cast_fx()
+		"release":
+			if src.has_method("play_release_fx"):
+				src.play_release_fx(extra.get("c", Color.WHITE), bool(extra.get("p", false)))
 		"claws":
 			# A Shadow spell landing: hands claw up out of the ground there (only a picture).
 			BREACH_FX.burst(w, at, float(extra.get("r", 0.7)), int(extra.get("n", 4)), float(extra.get("h", 1.0)))
@@ -1530,7 +1644,7 @@ func _fx(t: int, member: int, kind: String, at: Vector3, target_id: String, id: 
 func enemy_fx(enemy: Node, kind: String, target: Node = null, extra: Dictionary = {}) -> void:
 	if not is_host() or not with_others() or not _connected() or _world() == null:
 		return
-	rpc("_efx", token, enemy_id(enemy), kind, member_of(target) if target else 0, extra)
+	_out("_efx", token, enemy_id(enemy), kind, member_of(target) if target else 0, extra)
 
 @rpc("authority", "call_remote", "reliable")
 func _efx(t: int, id: String, kind: String, target_member: int, extra: Dictionary) -> void:
@@ -1548,7 +1662,7 @@ func interrupt(enemy: Node, source: Node, lockout: float) -> void:
 	if enemy == null or not is_instance_valid(enemy):
 		return
 	if is_client() and _connected():
-		rpc_id(1, "_sup_interrupt", token, member_of(source), enemy_id(enemy), lockout)
+		_out_to(1, "_sup_interrupt", token, member_of(source), enemy_id(enemy), lockout)
 	elif enemy.has_method("interrupt"):
 		enemy.interrupt(source, lockout)
 
@@ -1567,7 +1681,7 @@ func remove_effect(enemy: Node, source: Node, effect_id: String) -> void:
 	if enemy == null or not is_instance_valid(enemy):
 		return
 	if is_client() and _connected():
-		rpc_id(1, "_sup_remove_effect", token, member_of(source), enemy_id(enemy), effect_id)
+		_out_to(1, "_sup_remove_effect", token, member_of(source), enemy_id(enemy), effect_id)
 	var st := enemy.get_node_or_null("Status")
 	if st:
 		st.remove_from(effect_id, source)
@@ -1588,7 +1702,7 @@ func set_effect_stacks(enemy: Node, source: Node, effect_id: String, stacks: int
 	if enemy == null or not is_instance_valid(enemy):
 		return
 	if is_client() and _connected():
-		rpc_id(1, "_sup_effect_stacks", token, member_of(source), enemy_id(enemy), effect_id, stacks)
+		_out_to(1, "_sup_effect_stacks", token, member_of(source), enemy_id(enemy), effect_id, stacks)
 	var st := enemy.get_node_or_null("Status")
 	if st:
 		st.set_stacks_from(effect_id, source, stacks)
@@ -1612,7 +1726,7 @@ func set_effect_remaining(enemy: Node, source: Node, effect_id: String, seconds:
 		return
 	var remote := is_client() and _connected()
 	if remote:
-		rpc_id(1, "_sup_effect_remaining", token, member_of(source), enemy_id(enemy), effect_id, seconds)
+		_out_to(1, "_sup_effect_remaining", token, member_of(source), enemy_id(enemy), effect_id, seconds)
 	var st := enemy.get_node_or_null("Status")
 	if st:
 		st.set_remaining_from(effect_id, source, seconds, EFFECT_CLOCK_HOLD if remote else 0.0)
@@ -1633,7 +1747,7 @@ func _sup_effect_remaining(t: int, member: int, id: String, effect_id: String, s
 ## Host: dungeon events (boss woke up, floor cleared) -> scene.net_event().
 func dungeon_event(ev: String, data: Dictionary = {}) -> void:
 	if is_host() and _connected() and _world() != null:
-		rpc("_devent", token, ev, data)
+		_out("_devent", token, ev, data)
 
 @rpc("authority", "call_remote", "reliable")
 func _devent(t: int, ev: String, data: Dictionary) -> void:
@@ -1738,7 +1852,7 @@ func _nearest_alive(from: Node3D, bodies: Array) -> Node3D:
 
 func _finish_host_migration() -> void:
 	if _connected():
-		rpc("_resume")   # first, so the roster below isn't ignored as "still migrating"
+		_out("_resume")   # first, so the roster below isn't ignored as "still migrating"
 	_end_migration()
 	_send_meta()
 	_say("You are now the party leader.")

@@ -90,6 +90,8 @@ func test_every_category_has_a_full_tree() -> void:
 		for r in Talents.ROWS:
 			var n := Talents.in_row(cat, r).size()
 			assert_true(n >= Talents.MIN_PER_ROW and n <= mini(Talents.MAX_PER_ROW, Talents.columns_of(cat)), "%s row %d has 2 to one per column" % [cat, r + 1])
+			if not Talents.groups_of(cat).is_empty():
+				continue   # the ribbon layout: each ribbon is symmetrical (test_ribbons_draw_their_shapes)
 			var cols: Array = Talents.layout(cat)[r].duplicate()
 			var mirrored: Array = cols.map(func(c): return Talents.columns_of(cat) - 1 - int(c))
 			mirrored.sort()
@@ -100,6 +102,47 @@ func test_every_category_has_a_full_tree() -> void:
 		var shape := str(Talents.layout(cat))
 		assert_false(shapes.has(shape), "%s has the same layout as %s" % [cat, shapes.get(shape, "")])
 		shapes[shape] = cat
+
+## The ribbon layout: each spec's ribbon is three columns, its rows 1-9 hold 18 talents
+## drawing its shape (Talents.SHAPES: mirror-symmetric, 1-3 per row, no two specs alike),
+## its capstone sits alone in the middle of row 10, and the open talents fill one column.
+func test_ribbons_draw_their_shapes() -> void:
+	var seen := {}
+	for cat in Talents.GROUPS:
+		for g in Talents.groups_of(cat):
+			var gname := str(g[0])
+			var first := int(g[1])
+			if gname == Talents.OPEN_GROUP:
+				assert_eq(int(g[2]), first, "%s: the open talents fill one column" % cat)
+				continue
+			assert_eq(int(g[2]) - first + 1, Talents.RIBBON_COLUMNS, "%s: three columns" % gname)
+			if Talents.UNFINISHED_SPECS.has(gname):
+				# A spec not built yet: a short ribbon of the talents it has, no shape, no capstone.
+				const Abilities = preload("res://scripts/abilities.gd")
+				assert_false(Talents.SHAPES.has(gname), "%s has no shape yet" % gname)
+				for id in Talents.in_group(cat, gname):
+					assert_true(Talents.tier_of(id) < Talents.ROWS - 1, "%s has no capstone yet" % gname)
+				for spec in Abilities.SPECS[cat]:
+					if str(spec[0]) == gname:
+						assert_eq((spec[1] as Array).size(), 1, "%s really is unfinished (one ability)" % gname)
+				continue
+			assert_true(Talents.SHAPES.has(gname), "%s has a shape" % gname)
+			var rows: Array = Talents.SHAPES[gname][1]
+			assert_eq(rows.size(), Talents.ROWS - 1)
+			var key := str(rows)
+			assert_false(seen.has(key), "%s draws the same shape as %s" % [gname, seen.get(key, "")])
+			seen[key] = gname
+			var n := 0
+			for r in Talents.ROWS:
+				var want: Array = [1] if r == Talents.ROWS - 1 else Talents.SHAPE_COLUMNS[str(rows[r])]
+				var have: Array = []
+				for c in Talents.layout(cat)[r]:
+					if int(c) >= first and int(c) <= int(g[2]):
+						have.append(int(c) - first)
+				have.sort()
+				assert_eq(have, want, "%s row %d follows its %s" % [gname, r + 1, Talents.SHAPES[gname][0]])
+				n += have.size()
+			assert_eq(n, 19, "%s: 18 talents and a capstone" % gname)
 
 ## Warrior, Rogue and Ranger are one book now: Martial. (The damage type its
 ## abilities deal is still called Physical.)
@@ -239,7 +282,7 @@ func test_mana_is_on_the_health_scale() -> void:
 func test_frost_row3_row4_talent_values() -> void:
 	var pd := _pd()
 	pd.level = 20
-	pd.talents = {"frost_r1c3": 3, Talents.id_for_key("frost_bolt_cast"): 3, Talents.id_for_key("frost_discipline"): 2}
+	pd.talents = {"frost_r1c5": 3, Talents.id_for_key("frost_bolt_cast"): 3, Talents.id_for_key("frost_discipline"): 2}
 	assert_eq(pd.talent_value("frost_bolt_cast"), 0.3)
 	assert_eq(pd.talent_value("frost_discipline"), 3.0, "mana cost -3% at rank 2")
 	assert_eq(pd.talent_value("frost_discipline", "values2"), 10.0, "threat -10% at rank 2")
@@ -259,13 +302,13 @@ func test_chilled_effect_id() -> void:
 func test_frost_talent_values() -> void:
 	var pd := _pd()
 	pd.level = 10
-	assert_eq(Talents.id_for_key("frost_haste"), "frost_r1c5")
-	assert_eq(Talents.id_for_key("frost_absorb"), "frost_r3c5")
+	assert_eq(Talents.id_for_key("frost_haste"), "frost_r1c7")
+	assert_eq(Talents.id_for_key("frost_absorb"), "frost_r3c7")
 	assert_eq(pd.talent_value("frost_absorb"), 0.0)
-	pd.talents = {"frost_r1c1": 3, "frost_r2c1": 3, Talents.id_for_key("frost_absorb"): 2}   # (rows 1-2 open row 3)
+	pd.talents = {"frost_r1c2": 3, "frost_r2c3": 3, Talents.id_for_key("frost_absorb"): 2}   # (rows 1-2 open row 3)
 	pd.learn_ability("frostbolt")
 	assert_eq(pd.talent_value("frost_absorb"), 10.0, "Rime Ward rank 2")
-	pd.invest_talent("frost_r1c5")
+	pd.invest_talent("frost_r1c7")
 	pd.changed.emit()
 	assert_true(absf(float(pd.total_stats().get("haste", 0.0)) - 0.7) < 0.001, "Frozen Focus rank 1 = +0.7% haste")
 
@@ -273,7 +316,7 @@ func test_frost_talent_values() -> void:
 func test_shard_proc_talent_is_a_keyword_talent() -> void:
 	var pd := _pd()
 	pd.level = 20
-	pd.talents = {"frost_r1c1": 3, "frost_r2c1": 3, "frost_r3c1": 3, Talents.id_for_key("frost_shard_proc"): 1,
+	pd.talents = {"frost_r1c2": 3, "frost_r2c3": 3, "frost_r3c1": 3, Talents.id_for_key("frost_shard_proc"): 1,
 		Talents.id_for_key("frost_shardstorm"): 1}
 	assert_eq(pd.talent_value("frost_shard_proc"), 10.0, "no ability needed")
 	assert_eq(pd.talent_value("frost_shardstorm"), 0.0, "Ice Shards not known")

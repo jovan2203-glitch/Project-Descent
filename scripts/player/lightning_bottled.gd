@@ -123,7 +123,7 @@ func _on_damage_dealt_lightning(info: RefCounted) -> void:
 	elif id == LightningCasterKit.LIVE_WIRE_ID:
 		_wire_landed(info.target)
 	elif id == "dot_" + LightningCasterKit.LIVE_WIRE_FX:
-		player._gain("energy", Balance.LIVE_WIRE_ENERGY)   # every tick of the tether gives Energy back
+		player._gain("energy", player.lightning_talents.spell_energy(Balance.LIVE_WIRE_ENERGY))   # every tick of the tether gives Energy back (+ Feedback)
 
 ## My Live Wire landed on `foe`: the tether is on it now, and off anyone else.
 func _wire_landed(foe: Node) -> void:
@@ -186,10 +186,10 @@ func _raise_thunderhead() -> void:
 	var res := Abilities.get_resource(LightningCasterKit.THUNDERHEAD_ID)
 	player.cooldowns[LightningCasterKit.THUNDERHEAD_ID] = Abilities.cooldown_of(res)
 	var tick := maxf(Balance.THUNDERHEAD_TICK / player.haste_mult(), 0.1)   # strikes come faster with Haste
-	StormArrowKit.THUNDERHEAD.spawn(player.get_tree().current_scene, player.cast_point, float(res.radius), Balance.THUNDERHEAD_TIME, tick,
+	StormArrowKit.THUNDERHEAD.spawn(player.get_tree().current_scene, player.cast_point, float(res.radius), Balance.THUNDERHEAD_TIME + player.lightning_talents.lingering(), tick,
 		player, float(res.damage))
 	# The party sees the cloud; its damage comes from here.
-	player._net_fx(LightningCasterKit.THUNDERHEAD_ID, player.cast_point, null, {"r": float(res.radius), "time": Balance.THUNDERHEAD_TIME, "tick": tick})
+	player._net_fx(LightningCasterKit.THUNDERHEAD_ID, player.cast_point, null, {"r": float(res.radius), "time": Balance.THUNDERHEAD_TIME + player.lightning_talents.lingering(), "tick": tick})
 
 ## Damage coefficients of a Forked Bolt's hits: two prongs of `damage` when there
 ## is a second enemy to fork to, one bigger hit when there isn't.
@@ -301,7 +301,8 @@ func _overflow(energy: float) -> void:
 
 ## Is `spell` the Lightning Bolt that Flicker makes instant?
 func flicker_ready(spell: String) -> bool:
-	return spell == "lightningbolt" and player.status != null and player.status.has(LightningCasterKit.FLICKER_FX)
+	return (spell == "lightningbolt" and player.status != null and player.status.has(LightningCasterKit.FLICKER_FX)) \
+		or player.lightning_talents.snap_cast_ready(spell)   # (or Snap Cast's)
 
 ## Energy the Capacitor takes out of a bar holding `energy`.
 static func capacitor_takes(energy: float) -> float:

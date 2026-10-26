@@ -120,14 +120,14 @@ func test_phoenix() -> void:
 
 func test_new_talents() -> void:
 	var want := {
-		"fire_slow_cooling": ["fire_r2c6", [0.5, 1.0, 1.5]],   # (was the Forge Heat talent)
-		"fire_long_burn": ["fire_r5c2", [1.0, 2.0, 3.0]],
-		"fire_stoked_kiln": ["fire_r6c1", [5.0, 10.0, 15.0]],
-		"fire_slag_mending": ["fire_r2c3", [0.7, 1.3, 2.0]],
-		"fire_deep_brand": ["fire_r2c4", [2.0, 4.0, 6.0]],
-		"fire_stoked_breath": ["fire_r1c1", [5.0, 10.0, 15.0, 20.0]],
-		"fire_warm_blood": ["fire_r8c5", [2.0, 4.0, 6.0]],
-		"fire_white_heat": ["fire_r1c6", [4.0, 8.0, 12.0, 16.0]],
+		"fire_slow_cooling": ["fire_r1c10", [0.5, 1.0, 1.5]],   # (was the Forge Heat talent)
+		"fire_long_burn": ["fire_r6c1", [1.0, 2.0, 3.0]],
+		"fire_stoked_kiln": ["fire_r6c2", [5.0, 10.0, 15.0]],
+		"fire_slag_mending": ["fire_r1c6", [0.7, 1.3, 2.0]],
+		"fire_deep_brand": ["fire_r2c5", [2.0, 4.0, 6.0]],
+		"fire_stoked_breath": ["fire_r1c2", [5.0, 10.0, 15.0, 20.0]],
+		"fire_warm_blood": ["fire_r8c7", [2.0, 4.0, 6.0]],
+		"fire_white_heat": ["fire_r1c8", [4.0, 8.0, 12.0, 16.0]],
 	}
 	for key in want:
 		var id := Talents.id_for_key(key)

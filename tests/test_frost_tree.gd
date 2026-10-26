@@ -127,7 +127,7 @@ func test_each_spec_is_deep_and_mostly_keyword_talents() -> void:
 	assert_true(float(requires) / TREE.size() <= 0.25, "at most a quarter need one ability (%d of %d)" % [requires, TREE.size()])
 
 func test_column_groups() -> void:
-	assert_eq(Talents.columns_of("frost"), 11)
+	assert_eq(Talents.columns_of("frost"), 16)
 	assert_eq(Talents.groups_of("frost").size(), 6)
 	for g in CAPSTONES:
 		var id := Talents.id_for_key(str(CAPSTONES[g]))
@@ -137,8 +137,10 @@ func test_column_groups() -> void:
 	assert_false(Talents.capstone_gated(Talents.id_for_key("frost_glass_cold")))
 	assert_false(Talents.capstone_gated(Talents.id_for_key("frost_discipline")), "the Open column has no gate")
 	assert_true(Talents.TREE_VERSION >= 7, "the new tree refunds every point")
-	for link in Talents.links():
-		assert_false(str(link[0]).begins_with("frost_") or str(link[1]).begins_with("frost_"), "no links in the column-group tree")
+	for link in Talents.links_in_tree("frost"):
+		assert_eq(Talents.group_of(link[0]), Talents.group_of(link[1]), "a link stays in its spec's ribbon")
+		assert_eq(Talents.col_of(link[0]), Talents.col_of(link[1]), "straight down one column")
+		assert_true(Talents.tier_of(link[1]) - Talents.tier_of(link[0]) >= 2, "it skips a row")
 
 # --- Rules -------------------------------------------------------------------------------
 

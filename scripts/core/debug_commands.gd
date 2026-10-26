@@ -6,9 +6,12 @@ extends RefCounted
 const Items = preload("res://scripts/items.gd")
 const ItemDB = preload("res://scripts/core/item_db.gd")
 const Balance = preload("res://scripts/balance.gd")
+const TestKit = preload("res://scripts/core/test_kit.gd")
 
 const HELP := [
 	"/help — this list",
+	"/testkit <spec> — ready to play a spec: level 50, its abilities on your bars, Epic gear for it, talents picked (e.g. /testkit venomstring)",
+	"/bug <what happened> — note a bug in your log, with where you were",
 	"/give <item> [rarity] [item level] — e.g. /give storm idol epic 30  (type /give alone for the item list)",
 	"/level <n> — set your level",
 	"/xp <n> — gain experience",
@@ -40,7 +43,54 @@ static func run(tree: SceneTree, line: String) -> Array:
 	var gl := root.get_node_or_null("GameLog")
 	if gl:
 		gl.info("debug", "Command: %s" % line)
+	# "/testkit_venomstring" and "/test kit_venomstring" mean "/testkit venomstring".
+	if cmd == "test" and not args.is_empty() and str(args[0]).to_lower().begins_with("kit"):
+		cmd = "testkit"
+		var rest := args.slice(1)
+		args = PackedStringArray([str(args[0]).substr(3).trim_prefix("_")])
+		args.append_array(rest)
+	elif cmd.begins_with("testkit_"):
+		var given := args
+		args = PackedStringArray([cmd.trim_prefix("testkit_")])
+		args.append_array(given)
+		cmd = "testkit"
 	match cmd:
+		"testkit":
+			if args.is_empty() or " ".join(args).strip_edges() == "":
+				var names: Array = TestKit.specs().keys()
+				names.sort()
+				return ["Usage: /testkit <spec>, e.g. /testkit venomstring. Specs: %s" % ", ".join(names)]
+			var out: Array = TestKit.apply(pd, " ".join(args))
+			if player and player.has_method("_on_level_up"):
+				player._on_level_up(pd.level)
+			# Buttons past the main bar: switch on the extra bars they sit on.
+			var settings := root.get_node_or_null("Settings")
+			if settings:
+				var turned := false
+				for bar in range(1, pd.ACTION_BARS):
+					var on := false
+					for i in range(bar * pd.ACTION_SLOTS, (bar + 1) * pd.ACTION_SLOTS):
+						if str(pd.action_bar[i]) != "":
+							on = true
+					if on and not settings.is_bar_on(bar):
+						settings.extra_bars[bar - 1] = true
+						turned = true
+				if turned:
+					settings.apply_interface()
+					settings.save()
+			return out
+		"bug":
+			var text := " ".join(args).strip_edges()
+			if text == "":
+				return ["Usage: /bug <what happened> — notes it in your log (Esc > Open Logs Folder) with where you were"]
+			var gm := root.get_node_or_null("GameManager")
+			var net := root.get_node_or_null("Net")
+			var where := "main menu" if player == null else "%s, floor %d" % [str(tree.current_scene.scene_file_path.get_file().get_basename()) if tree.current_scene else "?", int(gm.dungeon_depth) if gm else 0]
+			var who := str(net.member_name(net.my_id())) if net and net.online else str(root.get_node("Online").my_name) if root.has_node("Online") else "?"
+			var pos := " at (%.0f, %.0f, %.0f)" % [player.global_position.x, player.global_position.y, player.global_position.z] if player else ""
+			if gl:
+				gl.warn("bug", "BUG REPORT from %s | %s%s | party of %d | %s" % [who, where, pos, int(net.members.size()) if net and net.online else 1, text])
+			return ["Bug noted in your log — thanks! Send game.log after the session (Esc > Open Logs Folder)."]
 		"help", "?":
 			return HELP
 		"give":

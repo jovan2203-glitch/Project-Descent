@@ -47,12 +47,17 @@ Open gaps: Arcane has no party tool; Holy's only crowd control is Binding Ring a
 - Goal: about 65 of the 80 points fully build one spec; hybrids give up a little in one spec to gain a little in another. Taking talents from other books is normal. Most talents should key off a resource, keyword or damage type (they reach every build using it); at most about a quarter are "Requires X" talents, and those change how the ability works. Runes connect specs; talents never reference another book's content.
 - Pass 1 (done): 2-rank "Requires X" talents became 3 ranks with the same max (rank 3 = the old rank 2), except the ones whose steps are whole numbers (extra targets, darts, Reflections, Cracks, Flow, arrows, Incense, Energy per zap, Pin hits, Easy Release). In and Out, Steady Pace, No Letup and Long Memory no longer require one ability (they work off Flow, Streak and Traces).
 - Folded into their abilities (slots left empty for new keyword talents; their icons are kept in TalentIcons.SPARE): Furnace Heart (Cinder Guard costs 20 Fury), Thick Pitch (pitch lasts 12 s), Thick Hide (Winter Hide 40 s cooldown), Honed Edge (Charged Edge gives 30 Energy), Deep Well (Collapse pulls 5 m), Cut Short (Hush: 4 s off when it interrupts), Quick Return (Return to Bloom 4 s cast), Big Herd (Wild Herd 90 s), Deep Pockets (Snatch 10 s), Round Two (One More 9 s), Last Rites (Last Verse 2 min), Swift Light (Step of Light 10 s), High Censer (Raise the Censer 1 min, cost 1.3 mana points).
-- Choice talents (2026-10-22): one slot can hold two talents (`{"choice": [a, b]}` in `Talents.TALENTS`; ids `<slot>a` / `<slot>b`, `Talents.options_of`). Points go into only one of the two; refunding it frees the other. Hover the slot to pick (a popup with both); the slot shows both icons split, or the chosen one. The slot counts toward row unlocks like any talent; choice slots take no links. First one: Fire r4c1, Damped Embers or Wild Embers.
-- Column-group layout (2026-10-22; Martial first, the pilot; Fire and Frost 2026-10-23):
-  - A book's specs sit side by side as column groups (`Talents.GROUPS`, a per-book grid via `Talents.columns_of`), with the open talents in their own group. The tree page draws faint lines between the groups and each group's name and points on top.
+- Choice talents (2026-10-22): one slot can hold two talents (`{"choice": [a, b]}` in `Talents.TALENTS`; ids `<slot>a` / `<slot>b`, `Talents.options_of`). Points go into only one of the two; refunding it frees the other. Hover the slot to pick (a popup with both); the slot shows both icons split, or the chosen one. The slot counts toward row unlocks like any talent; choice slots take no links. First one: Fire r5c1 (Steady Flame), Damped Embers or Wild Embers.
+- Ribbon layout (2026-10-26; replaced the column-group grid of 2026-10-22, which looked too much like WoW). Martial, Fire, Frost, Lightning and Arcane:
+  - A book's specs sit side by side as column groups (`Talents.GROUPS`, a per-book grid via `Talents.columns_of`), each 3 columns wide and drawn as a bookmark ribbon in a shade of the book's colour. The open talents fill one column between them, drawn as beads on a stitched thread down the book's spine.
+  - Each spec's 18 talents in rows 1-9 are wax seals placed to form a symbol of its own (`Talents.SHAPES`: rows of 1, 2 or 3 seals, mirror-symmetric in the ribbon; no two specs share one). Talents moved up to two rows to make the shapes (TREE_VERSION 7 -> 8 refunded every point).
+  - The ribbon unrolls to the deepest row its spec has points in (rolled-up lip, then a faint stitched outline of the rest). A clasp on top shows the spec's name and points toward 25. The capstone hangs at the tail with a gold ring that fills toward 25. Each spec's ribbon edges carry their own stitch (`RibbonDrawer.EMBROIDERY`). Ranks show as gold dots under each seal.
+  - Links: a stitched thread straight down one column of a ribbon, over rows its shape leaves empty there; maxing the first talent opens the next before its row does. 1-2 per spec, joining talents of one keyword.
+  - Drawing: scripts/ui/ribbon_drawer.gd, used by the book (scripts/menu/talent_tree.gd) and the Spellbook view (scripts/ui/talent_tree_view.gd).
   - Rows 1-9 hold the spec's talents; row 10 its 5-rank capstone. A capstone needs `Balance.CAPSTONE_GATE` (25) points in its spec's group, the capstone itself not counted (`PlayerData.gate_points`). The global row unlock stays for everything.
   - Size: about 19 talents and 50-55 ranks per spec, so a pure spec reaches ~65 points with open or other-book picks. At most a quarter need one ability.
   - Books not in `GROUPS` keep the old 10×7 tree until their own pass.
+  - A spec not built yet (`Talents.UNFINISHED_SPECS`: Stormstring, Aetherstring, Nightstring) gets a short ribbon holding only the talents it has: no shape, no capstone, and its clasp shows plain points.
 - Keywords talents key off (each spec's own, plus the shared ones):
   - Shared: damage types, Fury, Energy, mana, spells, abilities, melee, thrown, auto-attacks, crits, knockdowns, health thresholds.
   - The Wheel: Cracks, finishers (Break), weapons breaking, uses, riders (Axe Cleave, Second Hit), Stagger, Fillers / Heavy Fillers, Weapon Arts.
@@ -61,9 +66,11 @@ Open gaps: Arcane has no party tool; Holy's only crowd control is Binding Ring a
   - Sharpshooter: cuts, full resets, Overcut, Streak, engine shots, Loose.
   - Fire: Fury, Venting, non-crits, burns (Burning / Blaze), Concentrated Fire; Slag, shatters, blocks, Branded, shield abilities; Heat, Sparks, Heat bands, Heat spenders, auto-swings; Pitch, Ignites, arrows, auto-shots.
   - Frost: Chilled, Frozen (Freezing, thawing), shatters, Ice Shard charges, Hoarfrost; Rime Shell, Rime Shards, Runoff, Thawing, Frost shields; Glaze, finishers (Calving, Icebreaker), Winter's Bite; Ice Layers (breaking, forming), shield abilities; arrows, auto-shots, roots.
+  - Lightning: Energy gained and spent, spending all of it, leaps and forks, lingering lightning (Ball Lightning, Thunderhead, Live Wire), Grounding Surge, full Energy; auto-attacks, Energy builders, low Energy, Lightning weapon abilities; parries, two-handed weapon, arcs, hits on everything around you, enemies forced to attack you, low health.
+  - Arcane: Arcane cooldowns (time taken off, spells on cooldown, coming off cooldown), Arcane spell crits, mana, moving, roots; Reflections (created, held, shattered), dodges, dual wield, threat; Traces (left, held, replayed), replays, cuts, low health.
   - The other books get their lists in their own pass.
 - Frost is the first five-spec book: 11 columns (Talents.GRID_COLUMNS), so Talents.MAX_PER_ROW is 11.
-- Next: the same pass for the other five books (Lightning, Arcane, Shadow, Nature, Holy), one book at a time.
+- Lightning done 2026-10-26 (TREE_VERSION 9), Arcane done 2026-10-26 (TREE_VERSION 10). Next: the same pass for Shadow, Nature and Holy, one book at a time.
 
 ## Abilities, spellbook, action bars
 - Level-up draft offers new abilities. Skill Cards are equipped as a loadout in their own main-menu tab.
@@ -96,6 +103,8 @@ Open gaps: Arcane has no party tool; Holy's only crowd control is Binding Ring a
 ## Multiplayer and lobby
 - Player-hosted, host-authoritative via Steam. Steam friends invites, parties up to 5, queue auto-fills; a full party goes in instantly. Host migration when the leader leaves (brief pause is fine).
 - Main menu lobby: party chat with console commands, only on the Lobby tab; podiums under party invite cards with members' character models. Later: equipped gear on models, character customization.
+- Inspect (scripts/ui/inspect_window.gd): click a member's lobby card, or right-click their party frame in game. Their game sends `PlayerData.inspect_snapshot()` (gear with its item records and runes, bars, talents, stat inputs) through the host's relay (Net.request_inspect); ours loads it into a detached PlayerData and shows gear, stats, gear runes, bar abilities (tooltips with their stats: `Abilities.stat_override`) and talents (TalentTreeView with `data_source`). Read only, never saved.
+- Builds must match: lobbies carry the build version (BuildInfo) and the host turns away other builds. The in-game Spellbook's talents can be changed in the training area only.
 
 ## Items and meters
 - Gear has level requirements; higher stats = higher level. Every bank gets basic starter weapons. Shift over an item compares with the equipped one (green/red).

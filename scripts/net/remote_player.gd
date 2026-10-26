@@ -9,7 +9,8 @@ const SOURCE_ANIM = "mixamo_com"
 const MODEL_SCENE: PackedScene = preload("res://assets/player/Idle.fbx")
 const WALK_SCENE: PackedScene = preload("res://assets/player/Walking.fbx")
 const CAST_SCENE: PackedScene = preload("res://assets/player/Spell Casting.fbx")
-const FOLLOW := 14.0          # interpolation speed toward the streamed state
+const CastFX = preload("res://scripts/core/cast_fx.gd")
+const FOLLOW := 14.0         # interpolation speed toward the streamed state
 const SNAP_DISTANCE := 5.0    # further than this: teleport (blink, respawn)
 
 var member_id := 0
@@ -223,6 +224,31 @@ func play_slash(yaw: float) -> void:
 	t.tween_property(slash, "rotation:y", 1.2, 0.18)
 	t.tween_property(mat, "albedo_color:a", 0.0, 0.18)
 	t.chain().tween_callback(pivot.queue_free)
+	var fwd := Vector3(-sin(yaw), 0, -cos(yaw))
+	CastFX.swing_sparks(get_parent(), global_position + fwd * 0.6 + Vector3(0, 0.3, 0), fwd, Color(0.9, 0.95, 1.0))
+
+# --- Cast flair (CastFX), mirrored from their machine ------------------------
+var _cast_fx: Node3D
+
+## Where their casting hand roughly is (no bone lookup for remote bodies).
+func _hand() -> Vector3:
+	return global_position + global_basis.z * -0.45 + global_basis.x * 0.2 + Vector3(0, 0.3, 0)
+
+func play_cast_fx(color: Color, duration: float) -> void:
+	end_cast_fx()
+	_cast_fx = CastFX.start_cast(self, _hand, global_position.y - 0.9, color)
+	# A lost "castend" never leaves it hanging.
+	var fx := _cast_fx
+	get_tree().create_timer(duration + 0.5).timeout.connect(func(): CastFX.end_cast(fx))
+
+func end_cast_fx() -> void:
+	if _cast_fx:
+		CastFX.end_cast(_cast_fx)
+		_cast_fx = null
+
+func play_release_fx(color: Color, physical: bool) -> void:
+	end_cast_fx()
+	CastFX.release(get_parent(), _hand(), global_position - Vector3(0, 0.9, 0), color, physical)
 
 ## Expanding ground ring (Frost Nova, Blink, Ice Barrier, Battle Shout).
 func play_ring(radius: float, color: Color, at: Vector3) -> void:

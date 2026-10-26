@@ -46,11 +46,13 @@ func _ranks_with(group: String, n: int) -> Dictionary:
 	return ranks
 
 func test_grid_per_book() -> void:
-	assert_eq(Talents.columns_of("martial"), 9)
-	assert_eq(Talents.columns_of("fire"), 9, "Fire is on column groups too")
-	assert_eq(Talents.columns_of("lightning"), Talents.COLUMNS, "the other books keep the old grid")
+	assert_eq(Talents.columns_of("martial"), 13)
+	assert_eq(Talents.columns_of("fire"), 13, "Fire is on ribbons too")
+	assert_eq(Talents.columns_of("lightning"), 13, "Lightning too")
+	assert_eq(Talents.columns_of("arcane"), 13, "and Arcane")
+	assert_eq(Talents.columns_of("shadow"), Talents.COLUMNS, "the other books keep the old grid")
 	assert_eq(Talents.rows_of("martial"), Talents.ROWS)
-	assert_true(Talents.groups_of("lightning").is_empty(), "no groups (and no gate) until a book's own pass")
+	assert_true(Talents.groups_of("shadow").is_empty(), "no groups (and no gate) until a book's own pass")
 
 func test_group_of() -> void:
 	assert_eq(Talents.group_of(Talents.id_for_key("martial_hard_break")), "The Wheel")
@@ -59,7 +61,10 @@ func test_group_of() -> void:
 	assert_eq(Talents.group_of(Talents.id_for_key("martial_scar_tissue")), "Brawler")
 	assert_eq(Talents.group_of(Talents.id_for_key("martial_keen_eye")), "Sharpshooter")
 	assert_eq(Talents.group_of(Talents.id_for_key("fire_tempered_flame")), "Steady Flame")
-	assert_eq(Talents.group_of(Talents.id_for_key("lightning_long_reach")), "", "a book without groups")
+	assert_eq(Talents.group_of(Talents.id_for_key("lightning_long_reach")), "Lightning Rod")
+	assert_eq(Talents.group_of(Talents.id_for_key("lightning_rod")), "Stormstring", "an unfinished spec's short ribbon")
+	assert_eq(Talents.group_of(Talents.id_for_key("arcane_echo")), Talents.OPEN_GROUP)
+	assert_eq(Talents.group_of(Talents.id_for_key("shadow_interest")), "", "a book without groups")
 	assert_eq(Talents.in_group("martial", "Rogue").size(), 19)
 
 func test_the_gate_opens_at_25_points() -> void:

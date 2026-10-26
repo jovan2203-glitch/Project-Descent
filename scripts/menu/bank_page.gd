@@ -26,7 +26,7 @@ func _wire_bank() -> void:
 				func(_pos): return null,
 				func(_pos, data): return data is Dictionary and data.get("type") == "bank",
 				func(_pos, data): _trash(data["indices"]))
-	pd.changed_late.connect(_refresh_bank)
+	pd.changed_late.connect(_refresh_if_shown.bind(menu.pages["Bank"], _refresh_bank))
 	_refresh_bank()
 
 func _on_bank_clicked(idx: int) -> void:

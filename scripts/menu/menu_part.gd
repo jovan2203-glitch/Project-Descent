@@ -28,3 +28,27 @@ const DB = preload("res://scripts/dungeon/dungeon_db.gd")
 
 ## The main menu this part works for.
 var menu: MainMenu
+
+## For PlayerData.changed_late, bound to a page and its refresh:
+## `pd.changed_late.connect(_refresh_if_shown.bind(page, _refresh_x))`.
+## Refreshes now while `page` is showing, otherwise once it is next shown, so a
+## hidden page doesn't rebuild on every change (e.g. each talent point). A bound
+## method, not a lambda: Godot drops it when the menu is freed.
+func _refresh_if_shown(page: Control, refresh: Callable) -> void:
+	if page.is_visible_in_tree():
+		refresh.call()
+		return
+	if not page.has_meta("_stale"):
+		page.visibility_changed.connect(_refresh_stale.bind(page))
+	var stale: Array = page.get_meta("_stale", [])
+	if not stale.has(refresh):
+		stale.append(refresh)
+	page.set_meta("_stale", stale)
+
+func _refresh_stale(page: Control) -> void:
+	if not page.is_visible_in_tree():
+		return
+	var stale: Array = page.get_meta("_stale", [])
+	page.set_meta("_stale", [])
+	for refresh in stale:
+		refresh.call()

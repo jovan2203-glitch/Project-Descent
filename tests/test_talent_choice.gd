@@ -2,13 +2,13 @@
 extends McpTestSuite
 
 # Choice talents: one slot holding two talents, points go into only one of them
-# (Talents.options_of; the first is the Fire book's r5c5, Damped or Wild Embers).
+# (Talents.options_of; the first is in the Fire book's row 5, Damped or Wild Embers).
 
 const Talents = preload("res://scripts/talents.gd")
 const TalentIcons = preload("res://scripts/talent_icons.gd")
 const PlayerDataScript = preload("res://scripts/player_data.gd")
 
-const SLOT := "fire_r4c1"
+const SLOT := "fire_r5c1"
 
 func suite_name() -> String:
 	return "talent_choice"
@@ -33,12 +33,12 @@ func test_the_slot_and_its_two() -> void:
 	assert_eq(_b(), SLOT + "b")
 	assert_eq(Talents.sibling_of(_a()), _b())
 	assert_eq(Talents.sibling_of(_b()), _a())
-	assert_eq(Talents.sibling_of("fire_r1c2"), "", "an ordinary talent has no sibling")
+	assert_eq(Talents.sibling_of("fire_r2c1"), "", "an ordinary talent has no sibling")
 	assert_eq(Talents.choice_slot_of(_a()), SLOT)
-	assert_true(Talents.in_row("fire", 3).has(SLOT), "rows see the slot")
-	assert_false(Talents.in_row("fire", 3).has(_a()), "not its two")
+	assert_true(Talents.in_row("fire", 4).has(SLOT), "rows see the slot")
+	assert_false(Talents.in_row("fire", 4).has(_a()), "not its two")
 	for id in [_a(), _b()]:
-		assert_eq(Talents.tier_of(id), 3, "%s sits in the slot's row" % id)
+		assert_eq(Talents.tier_of(id), 4, "%s sits in the slot's row" % id)
 		assert_eq(Talents.max_rank(id), 3)
 		assert_eq(Talents.required_ability(id), "embervolley")
 		assert_true(TalentIcons.has_icon(id), "%s has an icon" % id)
@@ -72,7 +72,7 @@ func test_both_at_once_is_invalid() -> void:
 func test_the_slot_counts_toward_row_unlocks() -> void:
 	var pd = _pd()
 	var ranks := {}
-	for row in 3:
+	for row in 4:
 		var left := 3
 		for id in Talents.in_row("fire", row):
 			if left <= 0 or Talents.is_choice_slot(id):
@@ -82,7 +82,7 @@ func test_the_slot_counts_toward_row_unlocks() -> void:
 			left -= n
 		assert_eq(left, 0, "row %d holds 3 points" % (row + 1))
 	ranks[_a()] = 3
-	assert_true(PlayerDataScript.talents_valid(ranks), "row 4 is open: the choice takes points")
+	assert_true(PlayerDataScript.talents_valid(ranks), "row 5 is open: the choice takes points")
 	pd.free()
 
 func test_tooltips_fill_for_both() -> void:

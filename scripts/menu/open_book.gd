@@ -191,15 +191,23 @@ func _close_book() -> void:
 	_book_cat = ""
 	menu.talent_tree._talent_buttons.clear()
 	_ability_cells.clear()
+	_abilities_shown = ""
 	menu.book_search._hover_key = ""
 	menu.book_search._search_focus = ""
 	menu.talent_tree._row_status.clear()
 	_book.visible = false
 	_book_tabs.visible = false
 	menu.shelf._shelf.visible = true
+	menu.talent_tree._refresh_shelf_info(menu.get_node("/root/PlayerData"))
 	menu.book_search._refresh_search()
 
 func _refresh_book_abilities() -> void:
+	var pd := menu.get_node("/root/PlayerData")
+	# Rebuilt only when what it shows changed (not on every talent point).
+	var key := "%s|%s|%s" % [_book_cat, str(_wheel_open), str(Abilities.in_category(_book_cat).filter(func(a): return pd.has_ability(a)))]
+	if key == _abilities_shown and not _ability_cells.is_empty():
+		return
+	_abilities_shown = key
 	for c in _book_abilities.get_children():
 		c.queue_free()
 	_ability_cells.clear()
@@ -207,7 +215,6 @@ func _refresh_book_abilities() -> void:
 	if specs.is_empty():
 		_book_abilities.add_child(menu._label("No abilities in this book yet.", 14, MainMenu.INK_DIM))
 		return
-	var pd := menu.get_node("/root/PlayerData")
 	var col := Categories.color(_book_cat).lightened(0.35)
 	for spec in specs:
 		if spec[0] != "":
@@ -282,6 +289,7 @@ func _refresh_book_abilities() -> void:
 
 ## Weapon id -> its dropdown is open (the Wheel, Martial warrior).
 var _wheel_open := {}
+var _abilities_shown := ""   # what the ability column was last built for (book, dropdowns, learned)
 
 func _toggle_wheel_weapon(weapon: String) -> void:
 	_wheel_open[weapon] = not bool(_wheel_open.get(weapon, false))

@@ -119,6 +119,7 @@ func _unravel_cooldowns() -> void:
 	for id in player.cooldowns.keys():
 		if str(id) == UNRAVEL_ID or not _is_arcane_spell(str(id)):
 			continue
+		player.arcane_talents.time_taken_off()   # Unwinding
 		var left := unravel_cooldown(float(player.cooldowns[id]))
 		if left <= 0.0:
 			player.cooldowns.erase(id)
@@ -641,6 +642,8 @@ func _glint(res: Resource) -> void:
 func _cut_cooldown(id: String, seconds: float) -> void:
 	if not player.cooldowns.has(id):
 		return
+	if seconds > 0.0 and _is_arcane_spell(id):
+		player.arcane_talents.time_taken_off()   # Unwinding
 	var left := float(player.cooldowns[id]) - seconds
 	if left <= 0.0:
 		player.cooldowns.erase(id)
@@ -650,12 +653,14 @@ func _cut_cooldown(id: String, seconds: float) -> void:
 ## One of my spells' own hits critically struck. Etched Darts: a dart may take
 ## time off Countdown and Collapse. Frayed: Unravel may take its time off again.
 func _arcane_crit_talents(id: String) -> void:
-	if id == SIGIL_DARTS_ID:
+	if _is_arcane_spell(id):
+		# Etched Darts: any Arcane spell's crit may take time off the others.
 		var etched := player._talent("arcane_etched_darts")
 		if etched > 0.0 and randf() * 100.0 < etched:
-			_cut_cooldown(COUNTDOWN_ID, Balance.ETCHED_DARTS_SECONDS)
-			_cut_cooldown(COLLAPSE_ID, Balance.ETCHED_DARTS_SECONDS)
-	elif id == UNRAVEL_ID:
+			for cd in player.cooldowns.keys():
+				if str(cd) != id and _is_arcane_spell(str(cd)):
+					_cut_cooldown(str(cd), Balance.ETCHED_DARTS_SECONDS)
+	if id == UNRAVEL_ID:
 		var frayed := player._talent("arcane_frayed")
 		if frayed > 0.0 and randf() * 100.0 < frayed:
 			_unravel_cooldowns()

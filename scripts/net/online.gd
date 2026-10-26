@@ -23,7 +23,8 @@ signal friends_changed
 signal toast(text: String)
 
 const APP_ID := 480               # Steam's public test app (Spacewar) until the game has its own id
-const GAME_KEY := "ngp_coop_v1"   # lobby tag: only ever match with this game (and this version)
+const GAME_KEY := "ngp_coop_v1"   # lobby tag: only ever match with this game
+const BuildInfo = preload("res://scripts/core/build_info.gd")   # lobby "ver": only the same build
 const MAX_PARTY := 5
 const LAN_PORT := 24570
 const SEARCH_INTERVAL := 4.0
@@ -435,6 +436,7 @@ func _tick_queue(delta: float) -> void:
 	if _search_timer <= 0.0:
 		_search_timer = SEARCH_INTERVAL
 		steam.addRequestLobbyListStringFilter("game", GAME_KEY, LOBBY_EQUAL)
+		steam.addRequestLobbyListStringFilter("ver", BuildInfo.version(), LOBBY_EQUAL)
 		steam.addRequestLobbyListStringFilter("queue", queue_instance, LOBBY_EQUAL)
 		steam.addRequestLobbyListFilterSlotsAvailable(party_size())
 		steam.addRequestLobbyListDistanceFilter(LOBBY_DISTANCE_WORLDWIDE)
@@ -494,6 +496,7 @@ func _on_lobby_created(...a: Array) -> void:
 		return
 	lobby_id = int(a[1])
 	steam.setLobbyData(lobby_id, "game", GAME_KEY)
+	steam.setLobbyData(lobby_id, "ver", BuildInfo.version())
 	steam.setLobbyData(lobby_id, "host", str(my_id))
 	steam.setLobbyData(lobby_id, "queue", "")
 	steam.setLobbyJoinable(lobby_id, true)
@@ -525,6 +528,13 @@ func _on_lobby_joined(...a: Array) -> void:
 	var host := _lobby_host(lid)
 	lobby_id = lid
 	if host == my_id:
+		return
+	# Checked before connecting: different builds may not even agree on messages.
+	var ver := str(steam.getLobbyData(lid, "ver"))
+	if ver != BuildInfo.version():
+		_moving = false
+		_toast(BuildInfo.mismatch_text(ver if ver != "" else "older", BuildInfo.version()))
+		leave_party(true)
 		return
 	var peer := make_client_peer(host)
 	_moving = false
@@ -579,6 +589,7 @@ func sync_owner() -> void:
 	if str(steam.getLobbyData(lobby_id, "host")) != str(my_id):
 		steam.setLobbyData(lobby_id, "host", str(my_id))
 		steam.setLobbyData(lobby_id, "game", GAME_KEY)
+		steam.setLobbyData(lobby_id, "ver", BuildInfo.version())
 		steam.setLobbyData(lobby_id, "queue", queue_instance)
 
 ## Net: we just became the host through migration.

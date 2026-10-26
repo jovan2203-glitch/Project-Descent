@@ -103,11 +103,14 @@ static func roll_stats(rarity: int, ilvl: int) -> Dictionary:
 	var out := {}
 	for i in clampi(rarity, 0, 3):
 		var stat := _pick_roll_stat()
-		var amount := float(ROLL_POOL[stat]) * (Stats.pct_scale(ilvl) if Stats.scales_like_percent(stat) else Stats.flat_unit(ilvl))
-		# Percent stats (Haste 1.6%, Lifesteal 0.3%) keep one decimal; the rest are whole numbers.
-		amount = roundf(amount * 10.0) / 10.0 if Stats.is_percent(stat) else roundf(amount)
-		out[stat] = float(out.get(stat, 0.0)) + amount
+		out[stat] = float(out.get(stat, 0.0)) + roll_amount(stat, ilvl)
 	return out
+
+## One roll of `stat` at item level `ilvl` (as random rolls give it).
+static func roll_amount(stat: String, ilvl: int) -> float:
+	var amount := float(ROLL_POOL.get(stat, 1.0)) * (Stats.pct_scale(ilvl) if Stats.scales_like_percent(stat) else Stats.flat_unit(ilvl))
+	# Percent stats (Haste 1.6%, Lifesteal 0.3%) keep one decimal; the rest are whole numbers.
+	return roundf(amount * 10.0) / 10.0 if Stats.is_percent(stat) else roundf(amount)
 
 ## A random stat from ROLL_POOL, weighted by ROLL_WEIGHTS (secondary stats are rare).
 static func _pick_roll_stat() -> String:
@@ -150,31 +153,44 @@ static func load_records(saved: Variant) -> void:
 	if not (saved is Dictionary):
 		return
 	for id in saved:
-		var r: Variant = saved[id]
-		if not (r is Dictionary) or not is_instance_id(str(id)):
-			continue
-		var base := str(r.get("base", ""))
-		records[str(id)] = {
-			# A piece of armor saved before armor types existed gets the type it was
-			# named after then (Iron = Heavy, Chain = Medium, Leather = Light).
-			"armor_type": resolve_armor_type(base, int(r.get("armor_type", Balance.ARMOR_LEGACY_TYPE.get(base, NO_ARMOR_TYPE)))),
-			"base": str(r.get("base", "")),
-			# "enchants" = saves from before runes were renamed
-			# (runes that no longer exist, like Smoldering Focus, are dropped)
-			"runes": Array(r.get("runes", r.get("enchants", []))).map(func(e): return str(e)).filter(func(e): return Runes.PATHS.has(e)),
-			"ilvl": maxi(int(r.get("ilvl", 1)), 1),
-			"rarity": clampi(int(r.get("rarity", 0)), 0, RARITY_NAMES.size() - 1),
-			"rolled": r.get("rolled", {}) if r.get("rolled", {}) is Dictionary else {},
-			"stack": maxi(int(r.get("stack", 1)), 1),
-			"stat_v": STAT_VERSION,
-		}
-		# Items saved before Critical Strike Rating: crit_chance -> rating, haste -20%
-		# (once: the record is saved back with the current stat_v).
-		if int(r.get("stat_v", 1)) < 2:
-			records[str(id)]["rolled"] = Stats.migrate_item_stats(records[str(id)]["rolled"])
-		# Items saved before the stat squish: smaller numbers, same worth; less haste.
-		if int(r.get("stat_v", 1)) < 3:
-			records[str(id)]["rolled"] = Stats.squish_item_stats(records[str(id)]["rolled"])
-		# Mysterious Runes remember their revealed choices.
-		if r.get("choices") is Array:
-			records[str(id)]["choices"] = Array(r["choices"]).map(func(x): return str(x))
+		if is_instance_id(str(id)) and saved[id] is Dictionary:
+			records[str(id)] = _clean_record(saved[id])
+
+## Adds records from somewhere else (another player's inspect snapshot) without
+## touching yours: ids already known are skipped. Never saved (SaveSystem saves
+## only your own items).
+static func merge_records(saved: Variant) -> void:
+	if not (saved is Dictionary):
+		return
+	for id in saved:
+		if is_instance_id(str(id)) and saved[id] is Dictionary and not records.has(str(id)):
+			records[str(id)] = _clean_record(saved[id])
+
+## A saved record, checked and brought up to date.
+static func _clean_record(r: Dictionary) -> Dictionary:
+	var base := str(r.get("base", ""))
+	var rec := {
+		# A piece of armor saved before armor types existed gets the type it was
+		# named after then (Iron = Heavy, Chain = Medium, Leather = Light).
+		"armor_type": resolve_armor_type(base, int(r.get("armor_type", Balance.ARMOR_LEGACY_TYPE.get(base, NO_ARMOR_TYPE)))),
+		"base": str(r.get("base", "")),
+		# "enchants" = saves from before runes were renamed
+		# (runes that no longer exist, like Smoldering Focus, are dropped)
+		"runes": Array(r.get("runes", r.get("enchants", []))).map(func(e): return str(e)).filter(func(e): return Runes.PATHS.has(e)),
+		"ilvl": maxi(int(r.get("ilvl", 1)), 1),
+		"rarity": clampi(int(r.get("rarity", 0)), 0, RARITY_NAMES.size() - 1),
+		"rolled": r.get("rolled", {}) if r.get("rolled", {}) is Dictionary else {},
+		"stack": maxi(int(r.get("stack", 1)), 1),
+		"stat_v": STAT_VERSION,
+	}
+	# Items saved before Critical Strike Rating: crit_chance -> rating, haste -20%
+	# (once: the record is saved back with the current stat_v).
+	if int(r.get("stat_v", 1)) < 2:
+		rec["rolled"] = Stats.migrate_item_stats(rec["rolled"])
+	# Items saved before the stat squish: smaller numbers, same worth; less haste.
+	if int(r.get("stat_v", 1)) < 3:
+		rec["rolled"] = Stats.squish_item_stats(rec["rolled"])
+	# Mysterious Runes remember their revealed choices.
+	if r.get("choices") is Array:
+		rec["choices"] = Array(r["choices"]).map(func(x): return str(x))
+	return rec
