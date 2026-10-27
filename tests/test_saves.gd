@@ -57,7 +57,7 @@ func test_v11_refunds_the_folded_talents() -> void:
 	assert_eq(int(ranks.get("fire_r1c1", 0)), 3, "other talents keep their points")
 	assert_eq(Talents.FOLDED_INTO_ABILITIES.size(), 13)
 	for id in Talents.FOLDED_INTO_ABILITIES:
-		if id.begins_with("martial_") or id.begins_with("fire_") or id.begins_with("frost_") or id.begins_with("lightning_") or id.begins_with("arcane_"):   # books on ribbons (Talents.GROUPS): their slots hold new talents
+		if id.begins_with("martial_") or id.begins_with("fire_") or id.begins_with("frost_") or id.begins_with("lightning_") or id.begins_with("arcane_") or id.begins_with("shadow_") or id.begins_with("nature_") or id.begins_with("holy_"):   # books on ribbons (Talents.GROUPS): their slots hold new talents
 			continue
 		assert_true(bool(Talents.get_talent(id).get("placeholder", false)), "%s is an empty slot now" % id)
 

@@ -220,7 +220,7 @@ func test_talent_budget_limited_by_level() -> void:
 	assert_eq(pd.invest_talent(_plain(0)), "")
 	assert_eq(pd.invest_talent(_t("shadow", 0)), "")
 	assert_eq(pd.invest_talent(_t("shadow", 0)), "")
-	assert_eq(pd.invest_talent(_t("shadow", 0, 1)), "")
+	assert_eq(pd.invest_talent(_t("shadow", 0, 2)), "")
 	assert_eq(pd.talent_points_left(), 0)
 	assert_ne(pd.invest_talent(_t("holy", 0)), "", "no points left at level 1")
 

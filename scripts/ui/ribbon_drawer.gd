@@ -30,6 +30,9 @@ const EMBROIDERY := {
 	"Pitch and Cinder": "drop", "The Wheel": "ring", "Rogue": "x", "Brawler": "bar", "Sharpshooter": "dot",
 	"Live Current": "cloud", "Stormdancer": "bolt", "Lightning Rod": "diamond", "Stormstring": "tick",
 	"Clockwork": "cog", "Hall of Mirrors": "glint", "Second Act": "mask", "Aetherstring": "tick",
+	"The Breach": "pit", "Pack of Two": "paw", "Strings Attached": "knot", "Nightstring": "tick",
+	"Thornweaver": "thorn", "Shepherd": "petal", "Colossus": "leaf", "Venomstring": "fang",
+	"Choir of One": "note", "Censer Bearer": "smoke", "Line of Light": "facet", "Lightstring": "ray",
 }
 
 ## How many rows a group's ribbon reaches: one past the deepest row it has points in
@@ -342,5 +345,41 @@ static func _glyph(c: CanvasItem, kind: String, p: Vector2, s: float, col: Color
 			c.draw_arc(p + Vector2(0, -s * 0.2), s * 0.75, 0.15, PI - 0.15, 8, col, 1.4, true)
 			c.draw_circle(p + Vector2(-s * 0.35, -s * 0.2), s * 0.15, col)
 			c.draw_circle(p + Vector2(s * 0.35, -s * 0.2), s * 0.15, col)
+		"pit":
+			c.draw_arc(p, s * 0.75, 0.0, PI, 8, col, 1.2, true)
+			c.draw_line(p - Vector2(s * 0.75, 0), p + Vector2(s * 0.75, 0), col, 1.2, true)
+		"paw":
+			c.draw_circle(p + Vector2(0, s * 0.3), s * 0.4, col)
+			for k in 3:
+				c.draw_circle(p + Vector2((k - 1) * s * 0.55, -s * 0.45 + absf(k - 1) * s * 0.15), s * 0.18, col)
+		"knot":
+			c.draw_circle(p, s * 0.3, col)
+			c.draw_line(p + Vector2(-s * 0.3, -s * 0.3), p + Vector2(-s * 0.8, -s), col, 1.0, true)
+			c.draw_line(p + Vector2(s * 0.3, -s * 0.3), p + Vector2(s * 0.8, -s), col, 1.0, true)
+		"thorn":
+			c.draw_line(p + Vector2(-s * 0.8, s * 0.3), p + Vector2(s * 0.8, s * 0.3), col, 1.0, true)
+			c.draw_colored_polygon(PackedVector2Array([p + Vector2(-s * 0.3, s * 0.3), p + Vector2(s * 0.3, s * 0.3), p + Vector2(0, -s * 0.7)]), col)
+		"petal":
+			for k in 4:
+				var a := TAU * k / 4.0 + PI / 4.0
+				c.draw_circle(p + Vector2(cos(a), sin(a)) * s * 0.4, s * 0.25, col)
+		"leaf":
+			c.draw_colored_polygon(PackedVector2Array([p + Vector2(0, -s * 0.8), p + Vector2(s * 0.45, 0), p + Vector2(0, s * 0.8), p + Vector2(-s * 0.45, 0)]), col)
+		"fang":
+			c.draw_colored_polygon(PackedVector2Array([p + Vector2(-s * 0.35, -s * 0.6), p + Vector2(s * 0.35, -s * 0.6), p + Vector2(0, s * 0.7)]), col)
+		"note":
+			c.draw_circle(p + Vector2(-s * 0.2, s * 0.4), s * 0.3, col)
+			c.draw_line(p + Vector2(s * 0.1, s * 0.4), p + Vector2(s * 0.1, -s * 0.7), col, 1.0, true)
+		"smoke":
+			c.draw_arc(p + Vector2(0, s * 0.2), s * 0.45, PI, TAU, 8, col, 1.0, true)
+			c.draw_arc(p + Vector2(s * 0.3, -s * 0.4), s * 0.3, 0.0, PI, 6, col, 1.0, true)
+		"facet":
+			c.draw_polyline(PackedVector2Array([p + Vector2(-s * 0.6, -s * 0.2), p + Vector2(0, -s * 0.7), p + Vector2(s * 0.6, -s * 0.2),
+				p + Vector2(0, s * 0.7), p + Vector2(-s * 0.6, -s * 0.2)]), col, 1.0, true)
+		"ray":
+			c.draw_circle(p, s * 0.25, col)
+			for k in 4:
+				var a := TAU * k / 4.0
+				c.draw_line(p + Vector2(cos(a), sin(a)) * s * 0.4, p + Vector2(cos(a), sin(a)) * s * 0.8, col, 1.0, true)
 		_:
 			c.draw_circle(p, s * 0.45, col)

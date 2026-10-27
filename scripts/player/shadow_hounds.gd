@@ -80,6 +80,7 @@ const PACK_LEADER_LABEL := "Pack Leader"
 const PINCER_LABEL := "Pincer"
 const TAKE_IT_LABEL := "Take It With You"
 const STILL_WET_LABEL := "Still Wet"
+const SCENT_LABEL := "Scent of Blood"
 ## Worked Up's capstone: the extra crit chance a bite carries (adjust_crit reads it).
 const HOUND_CRIT_META := "hound_crit"
 const FEEDING_FRENZY_FX := "feeding_frenzy"
@@ -99,6 +100,8 @@ var _roused_fx: Resource
 var _hound_crit := false        # did the Hound hit dealt last critically strike?
 var _hounds_roused_next := false   # Take It With You's capstone: the next pair arrives Roused
 var _drag_watch := {}           # enemy instance id -> time until which its death is Drag Down's kill
+var _pack_fury := 0.0            # Pack Leader's capstone: Fury spent toward its next step
+var _pack_given := 0.0           # ... and the seconds this pair already got from it
 
 ## Does using ability `id` call the Hounds when none are out?
 static func calls_hounds(id: String) -> bool:
@@ -135,6 +138,21 @@ static func hound_hit_bonuses(id: String, pack_pct: float, pincer_pct: float, dr
 		out.append([drag_pct, TAKE_IT_LABEL])
 	return out
 
+## Scent of Blood: is an enemy with this health low enough? (null: it has none.)
+static func scent_of_blood_applies(health: Variant, max_health: Variant) -> bool:
+	if health == null or max_health == null or float(max_health) <= 0.0:
+		return false
+	return float(health) / float(max_health) * 100.0 < Balance.SCENT_OF_BLOOD_HEALTH_PCT
+
+## Pack Leader's capstone: [seconds my Hounds stay longer, Fury still counted toward
+## the next step] after spending `spent` Fury with `counted` toward it, when this pair
+## already got `given` seconds.
+static func pack_leader_steps(counted: float, spent: float, given: float) -> Array:
+	var total := maxf(counted, 0.0) + maxf(spent, 0.0)
+	var steps := floori(total / Balance.PACK_LEADER_EVERY)
+	var more := minf(steps * Balance.PACK_LEADER_TIME, maxf(Balance.PACK_LEADER_MAX - given, 0.0))
+	return [more, total - steps * Balance.PACK_LEADER_EVERY]
+
 ## Worked Up's capstone: the crit chance a bite gets on top while my Hounds are Roused.
 static func worked_up_crit(roused: bool, capstone: bool) -> float:
 	return Balance.WORKED_UP_CRIT if roused and capstone else 0.0
@@ -143,7 +161,7 @@ static func worked_up_crit(roused: bool, capstone: bool) -> float:
 static func hole_feed(dealt: int, pct: float) -> float:
 	return maxf(float(dealt), 0.0) * maxf(pct, 0.0) / 100.0
 
-## Stand Over: health a bite gives me back during Guard Dogs (`pct` % of my maximum).
+## Stand Over: health a bite gives me back while my Hounds are Roused (`pct` % of my maximum).
 static func stand_over_heal(max_hp: int, pct: float) -> int:
 	return int(round(maxf(float(max_hp), 0.0) * maxf(pct, 0.0) / 100.0))
 
@@ -297,6 +315,8 @@ func _call_hounds(at_prey: Node3D) -> void:
 	var now := _hound_now()
 	_hounds_until = now + time
 	_hound_prey = at_prey if _prey_ok(at_prey) else null
+	_pack_fury = 0.0
+	_pack_given = 0.0
 	# Their first bites come once they are out of the ground, and never both at once.
 	var every := _hound_bite_every()
 	_hound_bite_at = []
@@ -316,6 +336,21 @@ func _call_hounds(at_prey: Node3D) -> void:
 ## Seconds between one Hound's bites right now (Haste, Off the Chain, Lean and Hungry).
 func _hound_bite_every() -> float:
 	return hound_bite_interval(player.haste_mult(), player.status != null and player.status.has(OFF_THE_CHAIN_FX), player._talent("shadow_lean_and_hungry"))
+
+## I spent `cost` Fury (_pay). Pack Leader's capstone: every PACK_LEADER_EVERY of it
+## keeps my Hounds out a little longer, up to PACK_LEADER_MAX for each pair.
+func fury_spent(cost: float) -> void:
+	if not hounds_out() or not player.frost_melee._capstone("shadow_pack_leader"):
+		return
+	var step := pack_leader_steps(_pack_fury, cost, _pack_given)
+	_pack_fury = float(step[1])
+	var more := float(step[0])
+	if more <= 0.0:
+		return
+	_pack_given += more
+	_hounds_until += more
+	player.status.set_remaining(HOUNDS_FX, _hounds_until - _hound_now())
+	_tell_hounds()
 
 ## I spent Fury (_pay, _hounds_on_ability): my Hounds are Roused.
 func _rouse_hounds() -> void:
@@ -405,9 +440,9 @@ func _hound_bite(i: int) -> void:
 	var hole := player._talent("shadow_out_of_the_hole")
 	if hole > 0.0:
 		player.decay._decay_feed(foe, hole_feed(dealt, hole))
-	# Stand Over: during Guard Dogs every bite gives me health back.
+	# Stand Over: while they are Roused every bite gives me health back.
 	var stand := player._talent("shadow_stand_over")
-	if stand > 0.0 and player.status.has(GUARD_DOGS_FX):
+	if stand > 0.0 and player.status.has(ROUSED_FX):
 		player._combat().heal(player, player, float(stand_over_heal(player.max_health, stand)), STAND_OVER_ID, true)
 	if not player.status.has(RUN_DOWN_FX):
 		return
@@ -441,6 +476,10 @@ func _hound_hit(foe: Variant, coef: float, id: String, bonuses: Array = [], crit
 	for b in bonuses + hound_hit_bonuses(id, player._talent("shadow_pack_leader"), player._talent("shadow_pincer"),
 			player._talent("shadow_take_it_with_you")):
 		info.add_bonus(float(b[0]), str(b[1]))
+	# Scent of Blood: enemies low on health.
+	var scent := player._talent("shadow_scent_of_blood")
+	if scent > 0.0 and scent_of_blood_applies(foe.get("health"), foe.get("max_health")):
+		info.add_bonus(scent, SCENT_LABEL)
 	player._combat().deal(info)
 	var dealt := 0 if info.avoided() else int(info.amount)
 	_hound_crit = dealt > 0 and bool(info.crit)
@@ -528,13 +567,14 @@ func _third_hound_gone() -> void:
 	_tell_hounds()
 
 ## `hounds` Hounds drag at `prey` on their way down (Drag Down). Take It With
-## You's capstone watches whether it dies of it (_on_enemy_died_shadow).
+## You's capstone watches whether it dies of it (_on_enemy_died_shadow). Fetch: Fury for each.
 func _drag_down(prey: Node3D, hounds: int) -> void:
 	if _drag_watch.size() >= 16:
 		_drag_watch.clear()
 	_drag_watch[prey.get_instance_id()] = _hound_now() + Balance.DRAG_KILL_WINDOW
 	for i in hounds:
 		_hound_hit(prey, Balance.HOUND_DRAG, HOUND_DRAG_ID)
+		player._gain("fury", player._talent("shadow_fetch"))   # Fetch: Fury for each
 
 ## Bring It Down: my Hounds go back under now, each dragging at its prey as if
 ## their time was up. At heel, they take my target. My next Shadow melee

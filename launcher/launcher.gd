@@ -14,12 +14,15 @@ extends Control
 ##         ProjectDescent.pck
 ##         version.txt          <- release tag of the installed build
 ##
-## Publishing a new build:
-##   1. Export the game (Windows Desktop) as ProjectDescent.exe into an empty folder.
-##   2. Zip that folder's contents -> ProjectDescent-windows.zip
-##   3. GitHub -> Releases -> Draft a new release, new tag (v0.1.0, v0.1.1, ...),
-##      write the patch notes in the description, attach the zip, Publish.
-##   Every launcher sees the new tag on its next start and offers UPDATE.
+## Publishing a new build: tools/release.sh X.Y.Z in the game project. GitHub
+## Actions attaches the zip, every build file on its own and manifest.json
+## (name, size, SHA-256 of each file). Every launcher sees the new tag on its
+## next start and offers UPDATE.
+##
+## Updates: a fresh install downloads the zip. An installed game is patched
+## (patcher.gd): only build files whose SHA-256 changed are downloaded, and the
+## .pck is rebuilt from the installed one plus just the files inside it that
+## changed. If patching fails for any reason, the full zip is used instead.
 ##
 ## Options are written straight into the game's own settings file
 ## (%APPDATA%/ProjectDescent/settings.cfg), so they are the same
@@ -33,6 +36,8 @@ const GAME_DIR_NAME := "game"
 const GAME_EXE := "ProjectDescent.exe"          # any other .exe in game/ is used as a fallback
 const ASSET_SUFFIX := "-windows.zip"           # preferred release asset; else the first .zip
 const VERSION_FILE := "version.txt"
+const MANIFEST := "manifest.json"
+const PATCH_DIR := ".patch"                    # inside game/; staging for patch updates
 ## Must match the game's application/config/custom_user_dir_name — the game
 ## saves to %APPDATA%/<this>/ (its user:// folder).
 const GAME_USER_DIR := "ProjectDescent"
@@ -64,6 +69,9 @@ var _http: HTTPRequest
 var _dl_http: HTTPRequest
 var _thread: Thread
 var _fallback_state := State.INSTALL   # where to go back to if an update fails
+var _patch := {}           # patch plan for the latest release; empty = use the zip
+var _dl_base := 0          # bytes already downloaded by earlier requests of this update
+var _dl_total := 0         # bytes this update downloads (0 = take it from the request)
 
 # Settings (same meaning as the game's Settings autoload).
 var _cfg := ConfigFile.new()
@@ -185,8 +193,11 @@ func _on_release_info(result: int, code: int, _headers: PackedStringArray, body:
 		_set_state(State.INSTALL)
 		_set_status("Ready to install %s (%s)." % [tag, _mb(_latest.size)], TEXT)
 	elif _local_version != tag:
+		_set_status("Update available: %s → %s. Checking what changed…" % [_local_version, tag], ACCENT)
+		_patch = await _plan_patch(data.get("assets", []))
+		var size: int = _patch.bytes if not _patch.is_empty() else _latest.size
 		_set_state(State.UPDATE)
-		_set_status("Update available: %s → %s (%s)." % [_local_version, tag, _mb(_latest.size)], ACCENT)
+		_set_status("Update available: %s → %s (%s)." % [_local_version, tag, _mb(size)], ACCENT)
 	else:
 		_set_state(State.PLAY)
 		_set_status("Up to date.", DIM)
@@ -226,6 +237,8 @@ func _download() -> void:
 		_set_status("Can't write to %s — move the launcher to a folder you own." % _install_dir, ERROR_COLOR)
 		return
 	_set_state(State.BUSY)
+	_dl_base = 0
+	_dl_total = 0
 	var zip_path := _install_dir.path_join("update.zip")
 	_dl_http = HTTPRequest.new()
 	_dl_http.download_file = zip_path
@@ -241,10 +254,10 @@ func _download() -> void:
 func _process(_delta: float) -> void:
 	if _state != State.BUSY or _dl_http == null:
 		return
-	var total := _dl_http.get_body_size()
+	var total := _dl_total if _dl_total > 0 else _dl_http.get_body_size()
 	if total <= 0:
 		total = int(_latest.get("size", 0))
-	var got := _dl_http.get_downloaded_bytes()
+	var got := _dl_base + _dl_http.get_downloaded_bytes()
 	if total > 0:
 		_progress.value = got * 100.0 / total
 	_set_status("Downloading %s…  %s / %s" % [_latest.tag, _mb(got), _mb(total)], TEXT)
@@ -309,11 +322,16 @@ func _on_extract_done(error: String, zip_path: String) -> void:
 	if not _is_installed():
 		_fail_update("The build didn't contain a game .exe.", "")
 		return
+	_finish_install()
+
+
+func _finish_install() -> void:
 	var f := FileAccess.open(_game_dir.path_join(VERSION_FILE), FileAccess.WRITE)
 	if f:
 		f.store_string(str(_latest.tag))
 		f.close()
 	_local_version = str(_latest.tag)
+	_patch = {}
 	_set_state(State.PLAY)
 	_set_status("Installed %s. Have fun!" % _latest.tag, ACCENT)
 
@@ -354,6 +372,188 @@ func _remove_dir(path: String) -> void:
 	DirAccess.remove_absolute(path)
 
 
+# --- Patch updates (see patcher.gd) ----------------------------------------------------------
+
+## What the latest release needs downloaded, or {} to use the zip:
+## {files: name -> {size, sha256, url}, whole: [names], pck: {...} or {}, bytes}.
+func _plan_patch(assets: Variant) -> Dictionary:
+	var urls := {}
+	if assets is Array:
+		for a in assets:
+			if a is Dictionary:
+				urls[str(a.get("name", ""))] = str(a.get("browser_download_url", ""))
+	if not urls.has(MANIFEST):
+		return {}
+	var m := await _fetch(urls[MANIFEST])
+	if not m.ok:
+		return {}
+	var manifest: Variant = JSON.parse_string(m.body.get_string_from_utf8())
+	if not manifest is Dictionary or not manifest.get("files") is Array:
+		return {}
+	var files := {}
+	for f in manifest.files:
+		var n := str(f.get("name", "")) if f is Dictionary else ""
+		if n == "" or n == VERSION_FILE or n.begins_with(".") or n.contains("/") or n.contains("\\") or not urls.has(n):
+			return {}
+		files[n] = {"size": int(f.get("size", 0)), "sha256": str(f.get("sha256", "")).to_lower(), "url": urls[n]}
+	var pck_name := GAME_EXE.get_basename() + ".pck"
+	if not files.has(pck_name):
+		return {}
+	var local_sha: Dictionary = await _in_thread(_hash_local.bind(files.keys()))
+	var p := {"files": files, "whole": [], "pck": {}, "bytes": 0}
+	for n in files:
+		if local_sha.get(n, "") == files[n].sha256:
+			continue
+		if n == pck_name:
+			p.pck = await _plan_pck(files[n])
+			if not p.pck.is_empty():
+				p.bytes += p.pck.plan.bytes
+				continue
+		p.whole.append(n)
+		p.bytes += files[n].size
+	return p
+
+
+## SHA-256 of each named file in game/ ("" if missing). Runs on a worker thread.
+func _hash_local(names: Array) -> Dictionary:
+	var out := {}
+	for n in names:
+		var path := _game_dir.path_join(n)
+		out[n] = FileAccess.get_sha256(path) if FileAccess.file_exists(path) else ""
+	return out
+
+
+## Plans rebuilding the .pck: reads the installed pack's directory and the new
+## one's header + directory (two small Range requests). {} if it can't patch.
+func _plan_pck(info: Dictionary) -> Dictionary:
+	var local_path := _game_dir.path_join(GAME_EXE.get_basename() + ".pck")
+	var local := Patcher.read_local(local_path)
+	if local.is_empty():
+		return {}
+	var h := await _fetch_range(info.url, 0, mini(Patcher.HEADER_FETCH, info.size))
+	if not h.ok:
+		return {}
+	var remote := Patcher.parse_header(h.body)
+	if remote.is_empty() or remote.dir_offset >= info.size:
+		return {}
+	var d := await _fetch_range(info.url, remote.dir_offset, info.size)
+	if not d.ok:
+		return {}
+	remote["entries"] = Patcher.parse_dir(d.body)
+	if remote.entries.is_empty():
+		return {}
+	return {"remote": remote, "header": h.body, "dir": d.body, "plan": Patcher.plan(local, remote),
+		"local": local_path, "url": info.url, "sha256": info.sha256}
+
+
+func _apply_patch() -> void:
+	_fallback_state = _state
+	_set_state(State.BUSY)
+	var staging := _game_dir.path_join(PATCH_DIR)
+	_remove_dir(staging)
+	DirAccess.make_dir_recursive_absolute(staging)
+	_dl_base = 0
+	_dl_total = _patch.bytes
+	var err := ""
+	for n in _patch.whole:
+		var f: Dictionary = _patch.files[n]
+		var r := await _fetch(f.url, PackedStringArray(), staging.path_join(n))
+		if not r.ok or FileAccess.get_sha256(staging.path_join(n)) != f.sha256:
+			err = "Download of %s failed." % n
+			break
+		_dl_base += f.size
+	var pck: Dictionary = _patch.pck
+	var pck_name := GAME_EXE.get_basename() + ".pck"
+	if err == "" and not pck.is_empty():
+		var parts: Array = []
+		for i in pck.plan.ranges.size():
+			var rg: Dictionary = pck.plan.ranges[i]
+			var part := staging.path_join("part%d.bin" % i)
+			var r := await _fetch_range(pck.url, rg.start, rg.end, part)
+			if not r.ok or FileAccess.get_size(part) != rg.end - rg.start:
+				err = "Download of the game data failed."
+				break
+			parts.append(part)
+			_dl_base += rg.end - rg.start
+		if err == "":
+			_progress.value = 0
+			_set_status("Patching %s…" % _latest.tag, TEXT)
+			var report := func(done: int, total: int) -> void:
+				_on_patch_progress.call_deferred(done, total)
+			err = await _in_thread(Patcher.rebuild.bind(staging.path_join(pck_name), pck.header, pck.remote,
+				pck.dir, pck.plan, pck.local, parts, pck.sha256, report))
+	if err == "":
+		var moved: Array = _patch.whole.duplicate()
+		if not pck.is_empty():
+			moved.append(pck_name)
+		for n in moved:
+			if DirAccess.rename_absolute(staging.path_join(n), _game_dir.path_join(n)) != OK:
+				err = "Couldn't replace %s — is the game still running?" % n
+				break
+	if err != "":
+		_remove_dir(staging)
+		# Anything that went wrong: the full zip still works.
+		_patch = {}
+		_set_state(_fallback_state)
+		_set_status(err + " Downloading the full game instead…", ERROR_COLOR)
+		_download()
+		return
+	_remove_dir(staging)
+	for f in DirAccess.get_files_at(_game_dir):
+		if f != VERSION_FILE and not _patch.files.has(f):
+			DirAccess.remove_absolute(_game_dir.path_join(f))
+	_finish_install()
+
+
+func _on_patch_progress(done: int, total: int) -> void:
+	_progress.value = done * 100.0 / total
+	_set_status("Patching %s…  %d / %d files" % [_latest.tag, done, total], TEXT)
+
+
+## One HTTP request; to_file streams the body to disk. {ok, result, code, headers, body}.
+func _fetch(url: String, extra: PackedStringArray = PackedStringArray(), to_file := "", redirects := 10) -> Dictionary:
+	var req := HTTPRequest.new()
+	req.accept_gzip = false
+	req.max_redirects = redirects
+	req.timeout = 0.0 if to_file != "" else 20.0
+	req.download_chunk_size = 1 << 20
+	req.download_file = to_file
+	add_child(req)
+	_dl_http = req
+	var r := {"ok": false, "result": -1, "code": 0, "headers": PackedStringArray(), "body": PackedByteArray()}
+	if req.request(url, PackedStringArray([USER_AGENT]) + extra) == OK:
+		var res: Array = await req.request_completed
+		r.merge({"result": res[0], "code": res[1], "headers": res[2], "body": res[3]}, true)
+		r.ok = res[0] == HTTPRequest.RESULT_SUCCESS and res[1] == 200
+	if _dl_http == req:
+		_dl_http = null
+	req.queue_free()
+	return r
+
+
+## Bytes [start, end) of a release asset. GitHub's asset link redirects to a
+## short-lived signed storage URL, so it is resolved fresh for every range.
+func _fetch_range(url: String, start: int, end: int, to_file := "") -> Dictionary:
+	var target := url
+	var hop := await _fetch(url, PackedStringArray(), "", 0)
+	for h in hop.headers:
+		if h.to_lower().begins_with("location:"):
+			target = h.substr(9).strip_edges()
+	var r := await _fetch(target, PackedStringArray(["Range: bytes=%d-%d" % [start, end - 1]]), to_file)
+	r.ok = r.result == HTTPRequest.RESULT_SUCCESS and r.code == 206
+	return r
+
+
+func _in_thread(job: Callable) -> Variant:
+	_thread = Thread.new()
+	_thread.start(job)
+	while _thread.is_alive():
+		await get_tree().process_frame
+	var out: Variant = _thread.wait_to_finish()
+	_thread = null
+	return out
+
+
 # --- Launch ---------------------------------------------------------------------------
 
 func _launch() -> void:
@@ -369,6 +569,9 @@ func _launch() -> void:
 
 
 func _on_main_pressed() -> void:
+	if _state == State.UPDATE and not _patch.is_empty():
+		_apply_patch()
+		return
 	match _state:
 		State.INSTALL, State.UPDATE:
 			_download()

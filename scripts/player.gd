@@ -635,9 +635,11 @@ func _ready() -> void:
 	_bus().damage_dealt.connect(bottled_kit._on_damage_dealt_lightning)
 	_bus().damage_dealt.connect(arcane_caster._on_damage_dealt_arcane)
 	_bus().damage_dealt.connect(decay._on_damage_dealt_shadow)
+	_bus().enemy_died.connect(nature_open._on_enemy_died_nature)   # Food Chain (before Carrion forgets whom I hit)
 	_bus().enemy_died.connect(shadow_talents._on_enemy_died_shadow)   # Carrion
 	_bus().heal_done.connect(strings._on_heal_done_strings)    # the Strings share my heals
 	_bus().heal_done.connect(hymns._on_heal_done_hymns)      # the Hymns: Chorus, Vigil, Mercy's Ear
+	_bus().heal_done.connect(holy_talents._on_heal_done_holy)   # Candlelight
 	_bus().damage_dealt.connect(hymns._on_damage_dealt_holy)  # High Note's heal
 	_bus().cast_finished.connect(pacts_kit._pact_on_ability)     # Pact of the Purist: an ability of mine went off
 	_bus().dungeon_cleared.connect(func(_summary): pacts_kit._pact_cleared = true)   # Pact of the Restless: nothing left to fight
@@ -1374,6 +1376,8 @@ func resource_cost(id: String, with_storm_cycle: bool = true) -> float:
 		if Abilities.tags_of(id).has("Ranged"):
 			cost = maxf(cost - _talent("fire_light_string"), 0.0)                                         # Easy Draw: arrows
 		cost = LightningCasterKit.surge_energy_cost(cost, lightning_caster.surge_active())                   # Grounding Surge
+		if Abilities.category_of(id) == "holy":
+			cost *= 1.0 - _talent("holy_light_draw") / 100.0                                                 # Light Draw
 		if with_storm_cycle and bottled_kit.storm_cycle_ready():
 			cost = 0.0                                                   # Storm Cycle: this one is free
 	if cost > 0.0 and Abilities.resource_of(id) == "fury":
@@ -1389,6 +1393,8 @@ func resource_cost(id: String, with_storm_cycle: bool = true) -> float:
 			cost *= 1.0 - float(pd.talent_value("frost_discipline")) / 100.0   # Cold Discipline
 	if HolyTalentsKit.is_holy_heal(id):
 		cost *= 1.0 - _talent("holy_clear_mind") / 100.0   # Clear Mind (both Holy healers)
+	cost *= NatureTalentsOpenKit.lush_mult(id, _talent("nature_lush"))   # Lush
+	cost *= NatureTalentsOpenKit.mist_mult(id, _talent("nature_morning_mist"))   # Morning Mist
 	if FrostTalentsKit.is_frost_care(id):
 		cost *= 1.0 - _talent("frost_cold_hands") / 100.0   # Cold Hands
 	cost *= arcane_talents.mana_mult(id)   # Thrifty Mind
@@ -1417,6 +1423,7 @@ func _pay(id: String) -> bool:
 			lightning_talents.energy_spent(cost, id)   # Afterspark, Built Charge, Spinning Up, Draw Down
 		if HoundsKit.rouses(res, cost):
 			hounds._rouse_hounds()   # Shadow melee: spending Fury Rouses my Hounds
+			hounds.fury_spent(cost)   # Pack Leader's capstone: and keeps them out longer
 	return true
 
 func _gain(res: String, amount: float) -> void:
@@ -1435,7 +1442,7 @@ func resource_max(res: String) -> float:
 func _tick_resources(delta: float) -> void:
 	if is_dead():
 		return
-	_gain("mana", MANA_REGEN * mana_unit() * delta)
+	_gain("mana", MANA_REGEN * mana_unit() * delta * (1.0 if in_combat else nature_open.hibernate_mult()))   # (Hibernate)
 	_gain("energy", LightningMeleeKit.energy_regen(ENERGY_REGEN, lightning_talents.regen_pct()) * delta)   # Quick Charge, Afterflow
 	if not casting:   # (no Fury is lost while casting or channeling: the Fire caster's)
 		_gain("fury", -HoundsKit.fury_decay(FURY_DECAY, _talent("shadow_thick_blood")) * delta
@@ -1458,6 +1465,8 @@ func _tick_health_regen(delta: float) -> void:
 		pct = Balance.HP_REGEN_OUT_OF_COMBAT_PCT if now - _out_of_combat_since >= Balance.HP_REGEN_OOC_DELAY \
 			else Balance.HP_REGEN_IN_COMBAT_PCT
 	pct *= 1.0 + _talent("martial_hardy") / 100.0   # Hardy
+	if not in_combat:
+		pct *= nature_open.hibernate_mult()   # Hibernate
 	_regen_carry += float(max_health) * pct / 100.0 * delta
 	if _regen_carry < 1.0:
 		return
@@ -1614,6 +1623,10 @@ func absorb_mult() -> float:
 	var pd := get_node_or_null("/root/PlayerData")
 	return 1.0 + (float(pd.talent_value("frost_absorb")) / 100.0 if pd else 0.0)
 
+## Multiplier for shields I put on myself (StatusContainer.set_absorb asks): Woodgrain.
+func self_absorb_mult() -> float:
+	return 1.0 + _talent("nature_woodgrain") / 100.0
+
 func _talent(key: String, field: String = "values") -> float:
 	var pd := get_node_or_null("/root/PlayerData")
 	return float(pd.talent_value(key, field)) if pd else 0.0
@@ -1664,6 +1677,7 @@ func _on_damage_modify(info: RefCounted) -> void:
 		strings._crossed_incoming(info) # Crossed Strings: part of it goes to an enemy
 		pacts_kit._pact_incoming(info)    # my Pact: more or less damage taken
 		nature_open._nature_talents_incoming(info)   # Old Growth
+		holy_talents._holy_talents_incoming(info)   # Full Censer
 		return
 	if info.source != self:
 		return
@@ -1822,6 +1836,8 @@ func _on_hit_talents(ability_id: String, tgt: Node, amount: int, _crit: bool, is
 	if tgt == null or not is_instance_valid(tgt) or not tgt.is_alive():
 		return
 	var periodic := ability_id.begins_with("dot_") or ability_id.begins_with("burst_")
+	if ability_id == "auto_ranged":
+		venomstring.dripping_tips(tgt)   # Dripping Tips
 	# Fresh Tinder: melee abilities (not procs, not ticks) may feed my Burning on the target.
 	var tinder := _talent("fire_fresh_tinder")
 	if tinder > 0.0 and not is_proc and not periodic and Abilities.tags_of(ability_id).has("Ability") \
@@ -2261,9 +2277,10 @@ func _begin_spell(spell: String, display_name: String, duration: float, channel:
 		duration = FrostBowKit.thin_ice_cast(duration, _talent("frost_thin_ice"), frost_bow._chilled_by_me(target))   # Thin Ice
 	elif spell == StringsKit.HOIST_ID:
 		duration = StringsKit.heave_cast(duration, strings.strings_on(_cast_target), frost_melee._capstone("shadow_heave"))   # Heave's capstone
-	elif spell == DecayKit.ERODE_ID:
-		duration = StringsKit.deep_call_cast(duration, _talent("shadow_deep_call"), decay.decay_open_on(target))   # Deep Call
 	duration = maxf(duration - frost_talents.cold_rush(spell, _cast_target if _cast_kind in ["self", "ally"] else null), 0.2)   # Cold Rush
+	if ShadowTalentsKit.deep_call_spell(Abilities.tags_of(spell)):
+		duration = StringsKit.deep_call_cast(duration, _talent("shadow_deep_call"), decay.decay_open_on(target))   # Deep Call
+	duration = weaver.quickening(spell, duration)   # Quickening
 	duration *= arcane_talents.cast_mult(spell)   # Clock Hands
 	duration /= haste_mult()
 	if Abilities.INSTANT_ON_ALLIES.has(spell) and (_cast_kind in ["self", "ally"] or (spell == "rimeshell" and frost_healer.frost_tide_on())):
@@ -2809,7 +2826,9 @@ func _use_drafted(id: String) -> void:
 	if id == FireCasterKit.VENT_ID:
 		fire_caster._vent_charge_used(float(res.cooldown))   # Hair Trigger: charges instead of one cooldown
 	if res.resource_generated > 0:
-		_gain(Abilities.resource_of(id), lightning_talents.generated(id, float(Abilities.generated_of(id))))   # (+ Edge Current)
+		_gain(Abilities.resource_of(id), NatureTalentsOpenKit.groundswell_fury(id, ShadowTalentsKit.snarl_fury(id,
+			lightning_talents.generated(id, float(Abilities.generated_of(id))), _talent("shadow_snarl")),
+			_talent("nature_groundswell")))   # (+ Edge Current, Snarl, Groundswell)
 	if res.requires_target and _has_valid_target():
 		var dir := target.global_position - global_position
 		rotation.y = atan2(-dir.x, -dir.z)
@@ -3380,6 +3399,7 @@ func _update_combat_state() -> void:
 			_out_of_combat_since = now   # fast regen kicks in a moment later
 		if in_combat:
 			fire_talents._on_combat_start()   # Warm Start
+			holy_talents._on_combat_start()   # First Light
 		_bus().combat_state_changed.emit(in_combat)
 
 # --- Friendly target (party members) --------------------------------------------------
@@ -3786,6 +3806,7 @@ func _net_taunt(tgt: Node, duration: float) -> void:
 	if tgt == null or not is_instance_valid(tgt):
 		return
 	lightning_talents.note_forced(tgt, duration)   # Hard Stare
+	nature_open.called_out()   # Called Out
 	var net := _net()
 	if net:
 		net.taunt(tgt, self, duration)
@@ -3900,6 +3921,8 @@ func adjust_crit(info: RefCounted, chance: float) -> float:
 	chance = frost_steel.adjust_crit(info, chance)   # Frost DPS: Glinting Rime
 	chance = fire_melee.adjust_crit(info, chance)   # Fire DPS: Sparks (no melee crits while holding Heat)
 	chance = wheel.adjust_crit(info, chance)   # Sharp Fragments (the Wheel's Cracks)
+	if id == LightstringKit.REFRACTION_ID:
+		chance += _talent("holy_dazzle")   # Dazzle: my refracted arrows
 	var tags: PackedStringArray = info.tags
 	if fire_cooldowns.cool_head_active() and FireCooldownsKit.is_fire_action(tags):
 		return 0.0                               # Cool Head: no Fire crits at all (ticks and Vent Flames included)

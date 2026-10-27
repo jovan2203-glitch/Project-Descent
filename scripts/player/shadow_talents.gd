@@ -37,6 +37,27 @@ static func inevitable_applies(first_hit: float, now: float) -> bool:
 static func carrion_mana(max_mana: float, pct: float) -> float:
 	return maxf(max_mana, 0.0) * maxf(pct, 0.0) / 100.0
 
+## Deep Call: a Shadow spell of mine that hurts (not a heal; its cast time is what it cuts).
+static func deep_call_spell(tags: PackedStringArray) -> bool:
+	return DecayKit.shadow_spell(tags) and not tags.has("Heal")
+
+## Hungry Dark: does a hit get it? A Shadow spell's own hit (no tick, no proc) on an
+## enemy whose Breach of mine is open.
+static func hungry_dark_applies(tags: PackedStringArray, is_proc: bool, is_dot: bool, breach_open: bool) -> bool:
+	return breach_open and DecayKit.shadow_spell(tags) and not is_proc and not is_dot
+
+## Blood Up: does a hit get it? The own hit of a Shadow ability that costs Fury,
+## while my Hounds are Roused.
+static func blood_up_applies(tags: PackedStringArray, spends_fury: bool, is_proc: bool, roused: bool) -> bool:
+	return roused and spends_fury and tags.has("Shadow") and tags.has("Ability") and not is_proc
+
+## Snarl: Fury a Shadow ability `id` builds, `amount` with `pct` % more.
+static func snarl_fury(id: String, amount: float, pct: float) -> float:
+	var tags := Abilities.tags_of(id)
+	if pct <= 0.0 or Abilities.resource_of(id) != "fury" or not (tags.has("Shadow") and tags.has("Ability")):
+		return amount
+	return amount * (1.0 + pct / 100.0)
+
 const ILL_WILL_LABEL := "Ill Will"
 
 ## A hit of mine that just rolled a critical strike (CombatSystem.deal asks,
@@ -49,7 +70,7 @@ static func ill_will_bonus(is_dot: bool, pct: float) -> Array:
 	return [pct, ILL_WILL_LABEL] if is_dot and pct > 0.0 else []
 
 ## A hit of mine, before its damage is worked out (_on_damage_modify): Slow
-## Death, Finish It, Inevitable, Spite.
+## Death, Finish It, Inevitable, Hungry Dark, Blood Up, Spite.
 func _shadow_talents_modify(info: RefCounted, id: String) -> void:
 	# Slow Death: my damage over time hits harder.
 	if bool(info.is_dot):
@@ -72,12 +93,21 @@ func _shadow_talents_modify(info: RefCounted, id: String) -> void:
 		var inevitable := player._talent("shadow_inevitable")
 		if inevitable > 0.0 and inevitable_applies(float(_first_hit.get((foe as Node).get_instance_id(), 0.0)), player.decay._decay_now()):
 			info.add_bonus(inevitable, "Inevitable")
+		# Hungry Dark: my Shadow spells on an enemy whose Breach of mine is open.
+		var hungry := player._talent("shadow_hungry_dark")
+		if hungry > 0.0 and hungry_dark_applies(info.tags, bool(info.is_proc), bool(info.is_dot), player.decay.decay_open_on(foe)):
+			info.add_bonus(hungry, "Hungry Dark")
 		# Still Wet's capstone: my own direct hits also hit an enemy I Laid Open
 		# harder (the Hounds' bites have Open Up's own bonus).
 		if not bool(info.is_proc) and not bool(info.is_dot) and player.frost_melee._capstone("shadow_still_wet"):
 			var wet: Node = (foe as Node).get_node_or_null("Status")
 			if HoundsKit.still_wet_applies(true, wet != null and wet.has_from(HoundsKit.LAID_OPEN_FX, player), false, false):
 				info.add_bonus(Balance.STILL_WET_PCT, HoundsKit.STILL_WET_LABEL)
+	# Blood Up: my Shadow abilities that spend Fury, while my Hounds are Roused.
+	var blood := player._talent("shadow_blood_up")
+	if blood > 0.0 and blood_up_applies(info.tags, Abilities.resource_of(id) == "fury" and float(Abilities.cost_of(id)) > 0.0,
+			bool(info.is_proc), player.status != null and player.status.has(HoundsKit.ROUSED_FX)):
+		info.add_bonus(blood, "Blood Up")
 	_spite_hit(info, id)
 
 ## Remember when I first damaged `foe` (Inevitable counts from then).

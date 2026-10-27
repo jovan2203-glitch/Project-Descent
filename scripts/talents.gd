@@ -31,7 +31,7 @@ const POINTS_TO_UNLOCK_NEXT := 3
 ## Bump this whenever a talent is added, moved, removed or changed. A profile saved
 ## with another number gets all its talent points back on its next load
 ## (SaveSystem), so talent changes never need a save migration.
-const TREE_VERSION := 10
+const TREE_VERSION := 12
 const POINTS_AT_LEVEL_1 := 5
 const POINTS_PER_LEVEL := 1
 ## Every this many levels (2, 4, 6...) gives one extra point on top.
@@ -81,29 +81,9 @@ const DEFAULT_LAYOUT := [
 ##   Frost      on the ribbon layout (GROUPS, SHAPES), like Martial and Fire: see LAYOUTS.
 ##   Lightning  on the ribbon layout (GROUPS, SHAPES), like Martial, Fire and Frost: see LAYOUTS.
 ##   Arcane     on the ribbon layout (GROUPS, SHAPES), like Martial, Fire, Frost and Lightning: see LAYOUTS.
-##   Shadow     the caster (the Breach) down the middle, melee (the Hounds) down
-##              both edges of rows 3-9: what the Hounds themselves do on the
-##              left (column 0, and column 1 of row 8), one ability's talents
-##              each on the right (column 6). Open talents fill rows 1 and 2
-##              and one slot of the bottom row; Pack Leader is the melee build's
-##              5-rank talent there. The healer (the Strings) has the middle of
-##              row 3 and the slot beside Interest in row 4 for the Strings
-##              themselves, three slots of row 8 (columns 2, 4 and 5),
-##              columns 2 and 4 of row 9, and Steady Hands, its 5-rank talent,
-##              in the bottom row. Its three open talents took the edges of
-##              row 1 and the middle of row 2.
-##              Small Change sits straight under Interest (row 5), so the middle
-##              column below it holds one talent per row: Deep Call (caster),
-##              Ill Will (open), Hard Pull (healer), Wide Pack (melee).
-##              One slot is still empty (row 10, column 5).
-##   Nature     the healer (Shepherd) left of the middle, the tank (Colossus)
-##              down the middle, the caster (Weaver) right of it, the bow
-##              (Venomstring) down the right edge, the open talents down the
-##              left edge of rows 1-4. Row 1 holds the healer's and caster's
-##              linked talents, row 2 the tank's and the bow's. Rows hold at
-##              most 4, so one tank talent (Wide Awake) sits on the left edge
-##              of row 9. The bottom row: the 5-rank talents of the healer,
-##              tank and caster (the bow's is in row 9).
+##   Shadow     on the ribbon layout (GROUPS, SHAPES), like Martial, Fire, Frost, Lightning and Arcane: see LAYOUTS.
+##   Nature     on the ribbon layout (GROUPS, SHAPES), like the books above: see LAYOUTS.
+##   Holy       on the ribbon layout (GROUPS, SHAPES), like the books above: see LAYOUTS.
 const LAYOUTS := {
 	# (Fire, on the ribbon layout (GROUPS, 13 columns): Steady Flame in columns 0-2, Slagforged
 	# 3-5, the open talents on the spine (6), Forge Heat 7-9, Pitch and Cinder 10-12. Each spec's
@@ -133,9 +113,27 @@ const LAYOUTS := {
 		[0, 2, 3, 5, 6, 7, 9], [0, 1, 2, 3, 4, 5, 6, 7, 9], [0, 1, 2, 4, 6, 7, 9], [0, 2, 4, 6, 7, 9],
 		[0, 2, 4, 6, 7, 9], [1, 3, 4, 5, 6, 8],
 		[1, 4, 8]],
-	"shadow": [[0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5]],
-	"nature": [[0, 2, 4, 6], [0, 3, 6], [0, 2, 4, 6], [0, 3, 6], [2, 3, 4], [2, 3, 4], [1, 3, 5], [1, 2, 4, 5], [0, 3, 6], [2, 3, 4]],
-	"holy": [[0, 1, 3, 5, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5]],
+	# (Shadow, on the ribbon layout (GROUPS, 13 columns): The Breach in columns 0-2, Pack of Two
+	# 3-5, the open talents on the spine (6), Strings Attached 7-9, and Nightstring 10-12: an empty
+	# short ribbon until the spec is built.)
+	"shadow": [[0, 1, 2, 3, 5, 6, 8], [0, 2, 4, 6, 7, 8, 9], [0, 2, 3, 5, 6, 8], [0, 2, 4, 6, 7, 8, 9],
+		[1, 3, 4, 5, 6, 8], [1, 3, 4, 5, 6, 7, 9], [0, 2, 3, 4, 5, 6, 7, 9], [0, 2, 3, 5, 6, 7, 9],
+		[0, 1, 2, 4, 6, 7, 8, 9],
+		[1, 4, 8]],
+	# (Nature, on the ribbon layout (GROUPS, 13 columns): Thornweaver in columns 0-2, Shepherd
+	# 3-5, the open talents on the spine (6), Colossus 7-9, Venomstring 10-12. Each spec's rows
+	# 1-9 draw its shape (SHAPES); row 10 its capstone.)
+	"nature": [[0, 2, 4, 6, 8, 10, 12], [1, 3, 4, 5, 6, 7, 9, 10, 11, 12], [0, 2, 3, 4, 5, 6, 7, 8, 9, 11],
+		[1, 4, 6, 7, 8, 9, 10, 12], [0, 1, 2, 4, 6, 7, 8, 9, 11], [1, 3, 5, 6, 8, 10, 12], [0, 2, 3, 4, 5, 6, 8, 11],
+		[0, 1, 2, 3, 5, 6, 8, 10, 11, 12], [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12],
+		[1, 4, 8, 11]],
+	# (Holy, on the ribbon layout (GROUPS, 13 columns): Choir of One in columns 0-2, Censer
+	# Bearer 3-5, the open talents on the spine (6), Line of Light 7-9, Lightstring 10-12. Each
+	# spec's rows 1-9 draw its shape (SHAPES); row 10 its capstone.)
+	"holy": [[1, 4, 6, 8, 10, 11, 12], [0, 2, 4, 6, 7, 9, 10, 12], [1, 3, 4, 5, 6, 7, 8, 9, 11],
+		[0, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12], [0, 2, 3, 5, 6, 7, 9, 11], [0, 2, 3, 5, 6, 7, 9, 11],
+		[0, 2, 3, 4, 5, 6, 7, 9, 11], [0, 1, 2, 4, 6, 7, 9, 10, 11, 12], [0, 1, 2, 3, 4, 5, 6, 8, 10, 11, 12],
+		[1, 4, 8, 11]],
 	# (One book where Warrior, Rogue and Ranger used to be three.) The ribbon layout (GROUPS,
 	# 13 columns): the Wheel in columns 0-2, the Rogue 3-5, the open talents on the spine (6,
 	# skipping row 7), the Brawler 7-9, the Sharpshooter 10-12. Each spec's rows 1-9 draw its
@@ -925,250 +923,374 @@ const TALENTS := {
 			{"key": "arcane_fine_edge", "values": [2.0, 4.0, 6.0, 8.0, 10.0]}],
 	},
 	"shadow": {
-		# Open talents: themed to the book (damage over time, a slow end, paying for
-		# it) but they work with every book's spells and abilities. They fill rows
-		# 1 and 2, and one sits in the bottom row (player.gd, "Shadow: the open
-		# talents"). Slow Death and Wasting also count for the Breach.
-		# (The Breach - the hole under an enemy that demons claw through - is
-		# "decay" in the code, its first name. So are the talent keys below: Lure is
-		# shadow_seep, Wider Still
-		# shadow_running_over, Hooked Claws shadow_rot_through, Baited Steel
-		# shadow_tainted_steel. The spells: see player.gd, "Shadow caster: Decay".)
-		"r1c2": ["Slow Death", 3, "Your damage over time effects deal {v}% more damage.",
-			{"key": "shadow_slow_death", "values": [2.0, 4.0, 6.0]}],
-		"r1c4": ["Wasting", 3, "Your damage over time effects deal their damage {v}% more often.",
-			{"key": "shadow_wasting", "values": [2.0, 4.0, 6.0]}],
-		"r1c6": ["Finish It", 3, "You deal {v}% more damage to enemies below {b:FINISH_IT_HEALTH_PCT}% health.",
-			{"key": "shadow_finish_it", "values": [3.0, 6.0, 9.0]}],
-		"r2c3": ["Spite", 3, "After you take damage, your next spell or ability within {b:SPITE_TIME} sec deals {v}% more damage.",
-			{"key": "shadow_spite", "values": [3.0, 6.0, 9.0]}],
-		"r2c5": ["Carrion", 2, "When an enemy that carries one of your damage over time effects dies, you regain {v}% of your maximum mana.",
-			{"key": "shadow_carrion", "values": [1.0, 2.0]}],
-		"r10c5": ["Inevitable", 5, "Enemies you first damaged more than {b:INEVITABLE_TIME} sec ago take {v}% more damage from you.",
-			{"key": "shadow_inevitable", "values": [2.0, 4.0, 6.0, 8.0, 10.0]}],
-		# The Shadow caster's Decay (player.gd, "Shadow caster: Decay"), down the
-		# middle of rows 4-8, with one talent in the bottom row. Lure:
-		# Player._on_damage_dealt_shadow; Interest, Small Change: _call_due; Next of
-		# Kin: _decay_jump; Bitter End, Hooked Claws: _tick_decay; No Floor:
-		# _start_bottomless.
-		"r4c3": ["Lure", 3, "The periodic damage of {n:corruption} adds {v}% of what it deals to your Breach under the target while it is open.",
-			{"key": "shadow_seep", "values": [17.0, 33.0, 50.0], "requires": "corruption"}],
-		"r4c4": ["Interest", 3, "{n:calldue} deals {v+b:CALL_DUE_BONUS_PCT}% more than what it takes out of your Breach, instead of {b:CALL_DUE_BONUS_PCT}%.",
+		# The ribbon layout (GROUPS, 13 columns): The Breach (the caster) in columns
+		# 1-3, Pack of Two (melee, the Hounds) in 4-6, the open talents on the spine
+		# (column 7), Strings Attached (the healer) in 8-10 and Nightstring (the bow,
+		# unfinished: an empty short ribbon) in 11-13. Rows 1-9 hold 18 talents per
+		# finished spec in its shape (SHAPES); row 10 its 5-rank capstone, which needs
+		# Balance.CAPSTONE_GATE points in the spec. Most key off the book's words (the
+		# Breach open or closed, its ticks, feeding it; the Hounds, bites, Roused, Fury;
+		# Strings, their heals, three on one ally, crossing, loose Strings...).
+		# (The Breach - the hole under an enemy that demons claw through - is "decay"
+		# in the code, its first name. So are some talent keys: Lure is shadow_seep,
+		# Wider Still shadow_running_over, Hooked Claws shadow_rot_through, Baited
+		# Steel shadow_tainted_steel, Helping Hands shadow_many_hands.)
+		# Code: shadow_decay.gd (the Breach), shadow_hounds.gd (the Hounds),
+		# shadow_strings.gd (the Strings) and shadow_talents.gd (hit bonuses, the open talents).
+		# --- The Breach.
+		"r1c1": ["Lure", 3, "Your periodic Shadow damage (other than the Breach's own) adds {v}% of what it deals to your Breach under the target while it is open.",
+			{"key": "shadow_seep", "values": [17.0, 33.0, 50.0]}],
+		"r1c2": ["Interest", 3, "{n:calldue} deals {v+b:CALL_DUE_BONUS_PCT}% more than what it takes out of your Breach, instead of {b:CALL_DUE_BONUS_PCT}%.",
 			{"key": "shadow_interest", "values": [5.0, 10.0, 15.0], "requires": "calldue",
 			"capstone": "If that Breach was still open, your next {n:blight} within {b:INTEREST_TIME} sec is instant.", "capstone_requires": "blight"}],
-		# (r4c5 is empty: Impatience went with Usher In, the spell it was about.)
-		# Hush, Spill and Gnaw: one talent each, either side of the middle.
-		# Wider Still: _spill; Bite Down: _tick_decay, adjust_crit.
-		# (r5c2 is empty: Cut Short was folded into Hush's cooldown.)
-		"r5c6": ["Wider Still", 3, "{n:spill} copies {v+b:SPILL_PCT}% of what is left in your Breach, instead of {b:SPILL_PCT}%.",
+		"r1c3": ["Held Open", 2, "Your Breach stays open {v} sec longer each time it is opened.",
+			{"key": "shadow_held_open", "values": [1.0, 2.0]}],
+		"r2c1": ["Hungry Dark", 3, "While your Breach under the target is open, your Shadow spells deal {v}% more damage to it.",
+			{"key": "shadow_hungry_dark", "values": [2.0, 4.0, 6.0]}],
+		# Deep Call: Player._begin_spell, StringsKit.deep_call_cast.
+		"r2c3": ["Deep Call", 3, "While your Breach under the target is open, your Shadow spells with a cast time take {v} sec less to cast.",
+			{"key": "shadow_deep_call", "values": [0.15, 0.35, 0.5]}],
+		"r3c1": ["Wider Still", 3, "{n:spill} copies {v+b:SPILL_PCT}% of what is left in your Breach, instead of {b:SPILL_PCT}%.",
 			{"key": "shadow_running_over", "values": [7.0, 13.0, 20.0], "requires": "spill",
 			"capstone": "Every copy is open for at least {b:RUNNING_OVER_OPEN_TIME} sec."}],
-		"r7c5": ["Bite Down", 3, "While {n:gnaw} makes your Breach under a target deal its damage more often, its ticks have {v}% more chance to critically strike.",
+		"r3c3": ["Bite Down", 3, "While {n:gnaw} makes your Breach under a target deal its damage more often, its ticks have {v}% more chance to critically strike.",
 			{"key": "shadow_bite_down", "values": [7.0, 13.0, 20.0], "requires": "gnaw"}],
-		"r6c3": ["Next of Kin", 3, "When an enemy standing on your Breach dies, {v}% more than what was left in it moves under the nearest enemy.",
-			{"key": "shadow_next_of_kin", "values": [10.0, 20.0, 30.0], "requires": "blight",
-			"capstone": "The next nearest enemy gets {b:NEXT_OF_KIN_SECOND_PCT}% of it as well."}],
-		"r6c5": ["Bitter End", 3, "The last tick of your Breach, the one that deals all that is left in it, deals {v}% more damage.",
-			{"key": "shadow_bitter_end", "values": [33.0, 67.0, 100.0], "requires": "blight"}],
-		"r7c3": ["No Floor", 3, "{n:bottomless} lasts {v} sec longer.",
+		"r4c1": ["Many Mouths", 3, "Your Shadow spells that hit an area add {v}% more to each open Breach of yours they hit.",
+			{"key": "shadow_many_mouths", "values": [10.0, 20.0, 30.0]}],
+		"r4c3": ["No Floor", 3, "{n:bottomless} lasts {v} sec longer.",
 			{"key": "shadow_no_floor", "values": [1.5, 2.5, 4.0], "requires": "bottomless",
 			"capstone": "Your Breach cannot close while it lasts."}],
-		"r5c4": ["Small Change", 3, "{n:calldue} leaves {v}% of what it takes out in your Breach instead of ending it.",
+		"r5c2": ["Small Change", 3, "{n:calldue} leaves {v}% of what it takes out in your Breach instead of ending it.",
 			{"key": "shadow_small_change", "values": [7.0, 13.0, 20.0], "requires": "calldue"}],
-		"r10c3": ["Hooked Claws", 5, "The ticks of your Breach deal {v}% more damage. It does not shrink any faster for it.",
-			{"key": "shadow_rot_through", "values": [2.0, 4.0, 6.0, 8.0, 10.0], "requires": "blight"}],
-		# For a Shadow melee or bow build that only dips into Decay: its abilities
-		# add to an open Decay too. On the left edge of row 3.
-		# Player.decay_feed_pct, _on_damage_dealt_shadow.
-		# (Its twin for the other books' spells is the Rune of Invitation, rune id "rot".)
-		"r3c1": ["Baited Steel", 3, "Your Shadow abilities add {v}% of the direct damage they deal to your Breach under the target while it is open.",
-			{"key": "shadow_tainted_steel", "values": [10.0, 20.0, 30.0], "requires": "blight"}],
-		# Two more open talents, on the edges of row 2: Fury for every build that
-		# runs on it, and Haste when what you damaged dies.
-		# Thick Blood: Player._tick_resources; Feeding Frenzy: _on_enemy_died_shadow.
-		"r2c1": ["Thick Blood", 3, "Your Fury decays {v}% slower.",
-			{"key": "shadow_thick_blood", "values": [15.0, 30.0, 45.0]}],
-		"r2c7": ["Feeding Frenzy", 3, "When an enemy you damaged dies, you gain {v}% Haste for {b:FEEDING_FRENZY_TIME} sec.",
-			{"key": "shadow_feeding_frenzy", "values": [2.0, 4.0, 6.0]}],
-		# Shadow melee: the Hounds (player.gd, "Shadow melee: the Hounds", has the
-		# list of where each one is in the code). Down the left edge, what the
-		# Hounds themselves do, whichever ability called them (so no "requires";
-		# Out of the Hole needs the spell that opens a Breach). Lean and Hungry, Fed
-		# and Worked Up are linked, and so are Long Night and Take It With You.
-		"r4c1": ["Lean and Hungry", 3, "Your Hounds bite {v}% faster.",
-			{"key": "shadow_lean_and_hungry", "values": [4.0, 8.0, 12.0]}],
-		"r5c1": ["Fed", 2, "A bite of your Hounds that critically strikes gives you {v} Fury.",
-			{"key": "shadow_fed", "values": [2.0, 4.0]}],
-		"r6c1": ["Worked Up", 2, "Roused lasts {v} sec longer.",
-			{"key": "shadow_worked_up", "values": [2.0, 4.0],
-			"capstone": "While your Hounds are Roused, their bites have {b:WORKED_UP_CRIT}% more chance to critically strike."}],
-		"r7c1": ["Out of the Hole", 3, "The bites of your Hounds add {v}% of the damage they deal to your Breach under the enemy while it is open.",
-			{"key": "shadow_out_of_the_hole", "values": [17.0, 33.0, 50.0], "requires": "blight"}],
-		"r8c2": ["Long Night", 2, "Your Hounds stay {v} sec longer.",
+		"r6c2": ["Shut Tight", 3, "The ticks of your Breach deal {v}% more damage while it is closed.",
+			{"key": "shadow_shut_tight", "values": [5.0, 10.0, 15.0]}],
+		"r7c1": ["Next of Kin", 3, "When an enemy standing on your Breach dies, {v}% more than what was left in it moves under the nearest enemy.",
+			{"key": "shadow_next_of_kin", "values": [10.0, 20.0, 30.0],
+			"capstone": "The next nearest enemy gets {b:NEXT_OF_KIN_SECOND_PCT}% of it as well."}],
+		"r7c3": ["Grasping Hands", 3, "The ticks of your Breach have {v}% more chance to critically strike.",
+			{"key": "shadow_grasping_hands", "values": [1.0, 2.0, 3.0]}],
+		# Baited Steel: for a Shadow melee build that dips into the Breach (its twin for
+		# the other books' spells is the Rune of Invitation, rune id "rot").
+		"r8c1": ["Baited Steel", 3, "Your Shadow abilities add {v}% of the direct damage they deal to your Breach under the target while it is open.",
+			{"key": "shadow_tainted_steel", "values": [10.0, 20.0, 30.0]}],
+		"r8c3": ["Ill Will", 3, "Critical strikes of your damage over time effects deal {v}% more damage.",
+			{"key": "shadow_ill_will", "values": [5.0, 10.0, 15.0]}],
+		"r9c1": ["Carrion", 2, "When an enemy that carries one of your damage over time effects dies, you regain {v}% of your maximum mana.",
+			{"key": "shadow_carrion", "values": [1.0, 2.0]}],
+		"r9c2": ["Bitter End", 3, "The last tick of your Breach, the one that deals all that is left in it, deals {v}% more damage.",
+			{"key": "shadow_bitter_end", "values": [33.0, 67.0, 100.0]}],
+		"r9c3": ["Paid in Full", 2, "When your Breach ends with {n:calldue} or its last tick, you regain {v}% of your maximum mana.",
+			{"key": "shadow_paid_in_full", "values": [1.0, 2.0]}],
+		"r10c2": ["Hooked Claws", 5, "The ticks of your Breach deal {v}% more damage. It does not shrink any faster for it.",
+			{"key": "shadow_rot_through", "values": [2.0, 4.0, 6.0, 8.0, 10.0],
+			"capstone": "A tick of your Breach that critically strikes keeps it open {b:HOOKED_CLAWS_HOLD} sec longer, up to {b:HOOKED_CLAWS_MAX} sec each time it is opened."}],
+		# --- Pack of Two (shadow_hounds.gd has the list of where each one is in the code).
+		"r1c4": ["Long Night", 2, "Your Hounds stay {v} sec longer.",
 			{"key": "shadow_long_night", "values": [3.0, 6.0]}],
-		"r9c1": ["Take It With You", 2, "Drag Down, the damage each of your Hounds deals to its prey as it goes back under the ground, is {v}% larger.",
-			{"key": "shadow_take_it_with_you", "values": [25.0, 50.0],
-			"capstone": "If Drag Down kills the enemy, your next pair of Hounds arrives already Roused."}],
-		"r10c4": ["Pack Leader", 5, "Your Hounds deal {v}% more damage.",
-			{"key": "shadow_pack_leader", "values": [3.0, 6.0, 9.0, 12.0, 15.0]}],
-		# Down the right edge, one ability's talents each. Pincer and Again (both
-		# Both At Once's) are linked.
-		"r3c7": ["Still Wet", 3, "Laid Open lasts {v} sec longer.",
-			{"key": "shadow_still_wet", "values": [1.5, 2.5, 4.0], "requires": "openup",
-			"capstone": "Your own direct hits also deal {b:STILL_WET_PCT}% more damage to that enemy."}],
-		"r4c7": ["Share the Kill", 3, "The heal of {n:shadowstrike} is {v}% larger while your Hounds are out.",
-			{"key": "shadow_share_the_kill", "values": [33.0, 67.0, 100.0], "requires": "shadowstrike"}],
-		"r5c7": ["Pincer", 3, "The lunges of {n:bothatonce} deal {v}% more damage.",
+		"r1c6": ["Pincer", 3, "The lunges of {n:bothatonce} deal {v}% more damage.",
 			{"key": "shadow_pincer", "values": [10.0, 20.0, 30.0], "requires": "bothatonce",
 			"capstone": "A lunge that critically strikes gives you {b:PINCER_FURY} Fury back."}],
-		"r6c7": ["Again", 3, "{n:bothatonce} has a {v}% chance to reset its own cooldown.",
+		"r2c5": ["Still Wet", 3, "Laid Open lasts {v} sec longer.",
+			{"key": "shadow_still_wet", "values": [1.5, 2.5, 4.0], "requires": "openup",
+			"capstone": "Your own direct hits also deal {b:STILL_WET_PCT}% more damage to that enemy."}],
+		"r3c4": ["Take It With You", 2, "Drag Down, the damage each of your Hounds deals to its prey as it goes back under the ground, is {v}% larger.",
+			{"key": "shadow_take_it_with_you", "values": [25.0, 50.0],
+			"capstone": "If Drag Down kills the enemy, your next pair of Hounds arrives already Roused."}],
+		"r3c6": ["Again", 3, "{n:bothatonce} has a {v}% chance to reset its own cooldown.",
 			{"key": "shadow_again", "values": [10.0, 20.0, 30.0], "requires": "bothatonce"}],
-		"r7c7": ["Stand Over", 3, "During {n:guarddogs}, each bite of your Hounds heals you for {v}% of your maximum health.",
-			{"key": "shadow_stand_over", "values": [0.7, 1.3, 2.0], "requires": "guarddogs"}],
-		"r9c7": ["Slipped Leash", 3, "{n:offthechain} lasts {v} sec longer.",
+		"r4c5": ["Slipped Leash", 3, "{n:offthechain} lasts {v} sec longer.",
 			{"key": "shadow_slipped_leash", "values": [1.5, 2.5, 4.0], "requires": "offthechain",
 			"capstone": "A third Hound joins your pair for as long as it lasts."}],
-		# Shadow healer: the Strings (player.gd, "Shadow healer: the Strings"; what
-		# each talent changes is a static there: string_time_with, string_recharge,
-		# cross_pct_with, full_harness_pct, first_stitch_coef, heave_mult, snaps_back,
-		# slack_time, steady_heal). The Strings themselves need no one ability:
-		# First Stitch, Long Thread (Spare Spool straight under it, linked), Full Harness, Taking
-		# the Weight and, in the bottom row, Steady Hands.
-		"r3c3": ["First Stitch", 2, "Tying a String to an ally heals it at once, for as much as {v} heals of one String.",
-			{"key": "shadow_first_stitch", "values": [2.0, 4.0]}],
-		"r3c5": ["Long Thread", 2, "Your Strings on allies last {v} sec longer.",
-			{"key": "shadow_long_thread", "values": [2.0, 4.0]}],
-		"r4c5": ["Spare Spool", 2, "Your Strings that were used up come back {v} sec sooner.",
-			{"key": "shadow_spare_spool", "values": [1.0, 2.0]}],
-		"r8c3": ["Full Harness", 2, "An ally that has {b:STRING_STACKS} of your Strings takes {v}% less damage.",
-			{"key": "shadow_full_harness", "values": [3.0, 6.0]}],
-		"r8c5": ["Taking the Weight", 2, "Crossed Strings moves {v}% of the damage the ally takes to the enemy, instead of {b:STRING_CROSS_PCT}%.",
-			{"key": "shadow_taking_the_weight", "values": [5.0, 7.0],
-			"capstone": "A crossing holds up to {b:TAKING_THE_WEIGHT_RANGE} m apart, instead of {b:STRING_CROSS_RANGE} m."}],
-		"r10c2": ["Steady Hands", 5, "Your Strings heal {v}% more.",
-			{"key": "shadow_steady_hands", "values": [3.0, 6.0, 9.0, 12.0, 15.0]}],
-		# One ability's talent each. Heave: Player._string_cast_heal, _begin_spell;
-		# Long Drop: _string_up, _tick_long_drops; Snap Back: _pull_taut; Give and
-		# Take: _slack.
-		"r3c4": ["Heave", 3, "{n:hoist} heals {v}% more for each of your Strings on its target.",
+		"r5c4": ["Lean and Hungry", 3, "Your Hounds bite {v}% faster.",
+			{"key": "shadow_lean_and_hungry", "values": [4.0, 8.0, 12.0]}],
+		"r5c5": ["Out of the Hole", 3, "The bites of your Hounds add {v}% of the damage they deal to your Breach under the enemy while it is open.",
+			{"key": "shadow_out_of_the_hole", "values": [17.0, 33.0, 50.0]}],
+		"r5c6": ["Snarl", 3, "Your Shadow abilities that build Fury build {v}% more.",
+			{"key": "shadow_snarl", "values": [5.0, 10.0, 15.0]}],
+		"r6c4": ["Fed", 2, "A bite of your Hounds that critically strikes gives you {v} Fury.",
+			{"key": "shadow_fed", "values": [2.0, 4.0]}],
+		"r6c5": ["Worked Up", 2, "Roused lasts {v} sec longer.",
+			{"key": "shadow_worked_up", "values": [2.0, 4.0],
+			"capstone": "While your Hounds are Roused, their bites have {b:WORKED_UP_CRIT}% more chance to critically strike."}],
+		"r6c6": ["Blood Up", 3, "While your Hounds are Roused, your Shadow abilities that spend Fury deal {v}% more damage.",
+			{"key": "shadow_blood_up", "values": [3.0, 6.0, 9.0]}],
+		"r7c4": ["Stand Over", 3, "While your Hounds are Roused, each of their bites heals you for {v}% of your maximum health.",
+			{"key": "shadow_stand_over", "values": [0.2, 0.4, 0.6]}],
+		"r7c5": ["Wide Pack", 2, "During {n:runthemdown}, each bite of your Hounds hits {v} more enemies.",
+			{"key": "shadow_wide_pack", "values": [1.0, 2.0], "requires": "runthemdown"}],
+		"r7c6": ["Fetch", 3, "Each Drag Down of your Hounds gives you {v} Fury.",
+			{"key": "shadow_fetch", "values": [3.0, 6.0, 10.0]}],
+		"r8c4": ["Thick Blood", 3, "Your Fury decays {v}% slower.",
+			{"key": "shadow_thick_blood", "values": [15.0, 30.0, 45.0]}],
+		"r8c6": ["Scent of Blood", 3, "The bites, lunges and Drag Downs of your Hounds deal {v}% more damage to enemies below {b:SCENT_OF_BLOOD_HEALTH_PCT}% health.",
+			{"key": "shadow_scent_of_blood", "values": [5.0, 10.0, 15.0]}],
+		# Share the Kill: RuneFrostfireKit (the heals of my abilities), HoundsKit.leech_heal_mult.
+		"r9c5": ["Share the Kill", 3, "Your Shadow abilities that heal you heal {v}% more while your Hounds are out.",
+			{"key": "shadow_share_the_kill", "values": [33.0, 67.0, 100.0]}],
+		"r10c5": ["Pack Leader", 5, "Your Hounds deal {v}% more damage.",
+			{"key": "shadow_pack_leader", "values": [3.0, 6.0, 9.0, 12.0, 15.0],
+			"capstone": "Every {b:PACK_LEADER_EVERY} Fury you spend keeps your Hounds out {b:PACK_LEADER_TIME} sec longer, up to {b:PACK_LEADER_MAX} sec for each pair."}],
+		# --- Open talents: themed to the book (damage over time, a slow end, helping
+		# others, holding things in place) but they work with every book's spells,
+		# abilities, heals, stuns and roots (shadow_talents.gd; Helping Hands and Lean
+		# On Me: shadow_strings.gd; Left Hanging: Abilities.effect_time_bonus).
+		"r1c7": ["Slow Death", 3, "Your damage over time effects deal {v}% more damage.",
+			{"key": "shadow_slow_death", "values": [2.0, 4.0, 6.0]}],
+		"r2c7": ["Wasting", 3, "Your damage over time effects deal their damage {v}% more often.",
+			{"key": "shadow_wasting", "values": [2.0, 4.0, 6.0]}],
+		"r3c7": ["Finish It", 3, "You deal {v}% more damage to enemies below {b:FINISH_IT_HEALTH_PCT}% health.",
+			{"key": "shadow_finish_it", "values": [3.0, 6.0, 9.0]}],
+		"r4c7": ["Spite", 3, "After you take damage, your next spell or ability within {b:SPITE_TIME} sec deals {v}% more damage.",
+			{"key": "shadow_spite", "values": [3.0, 6.0, 9.0]}],
+		"r5c7": ["Feeding Frenzy", 3, "When an enemy you damaged dies, you gain {v}% Haste for {b:FEEDING_FRENZY_TIME} sec.",
+			{"key": "shadow_feeding_frenzy", "values": [2.0, 4.0, 6.0]}],
+		"r6c7": ["Helping Hands", 3, "Your heals on allies other than yourself are {v}% larger.",
+			{"key": "shadow_many_hands", "values": [2.0, 4.0, 6.0]}],
+		"r7c7": ["Lean On Me", 3, "After you heal an ally other than yourself, you take {v}% less damage for {b:LEAN_ON_ME_TIME} sec.",
+			{"key": "shadow_lean_on_me", "values": [2.0, 4.0, 6.0]}],
+		"r8c7": ["Left Hanging", 2, "Your stuns and roots last {v}% longer.",
+			{"key": "shadow_left_hanging", "values": [10.0, 20.0]}],
+		"r9c7": ["Inevitable", 5, "Enemies you first damaged more than {b:INEVITABLE_TIME} sec ago take {v}% more damage from you.",
+			{"key": "shadow_inevitable", "values": [2.0, 4.0, 6.0, 8.0, 10.0]}],
+		# --- Strings Attached (shadow_strings.gd, "Shadow healer: the Strings").
+		"r1c9": ["Heave", 3, "{n:hoist} heals {v}% more for each of your Strings on its target.",
 			{"key": "shadow_heave", "values": [3.0, 7.0, 10.0], "requires": "hoist",
 			"capstone": "On a target with {b:STRING_STACKS} of your Strings, its cast time is {b:HEAVE_CAST} sec shorter."}],
-		"r8c6": ["Long Drop", 3, "When {n:stringup} ends, the enemy drops and takes {vdmg:stringup} Shadow damage.",
-			{"key": "shadow_long_drop", "values": [0.3, 0.7, 1.0], "requires": "stringup"}],
-		"r9c3": ["Snap Back", 3, "{n:pulltaut} has a {v}% chance to put its String straight back in your hand instead of using it up.",
-			{"key": "shadow_snap_back", "values": [17.0, 33.0, 50.0], "requires": "pulltaut"}],
-		"r9c5": ["Give and Take", 3, "{n:slack} stops your Strings healing for {v} sec less.",
-			{"key": "shadow_give_and_take", "values": [1.0, 2.0, 3.0], "requires": "slack"}],
-		# Three more open talents, themed to the healer (helping others, holding
-		# things in place) but for every book's heals, stuns and roots. Helping Hands (key shadow_many_hands):
-		# Player._others_heal_mult; Lean On Me: _lean_on_me (any heal of mine on
-		# someone else); Left Hanging: Abilities.effect_time_bonus.
-		"r1c1": ["Helping Hands", 3, "Your heals on allies other than yourself are {v}% larger.",
-			{"key": "shadow_many_hands", "values": [2.0, 4.0, 6.0]}],
-		"r1c7": ["Lean On Me", 3, "After you heal an ally other than yourself, you take {v}% less damage for {b:LEAN_ON_ME_TIME} sec.",
-			{"key": "shadow_lean_on_me", "values": [2.0, 4.0, 6.0]}],
-		"r2c4": ["Left Hanging", 2, "Your stuns and roots last {v}% longer.",
-			{"key": "shadow_left_hanging", "values": [10.0, 20.0]}],
-		# Down the middle column under Small Change, one each: the caster, an open
-		# one, the healer, melee. Deep Call: Player._begin_spell, deep_call_cast;
-		# Ill Will: Player.crit_hit_bonus (CombatSystem.deal asks it); Hard Pull:
-		# _tug, tug_time; Wide Pack: _hound_bite, run_down_targets.
-		"r6c4": ["Deep Call", 3, "While your Breach under the target is open, {n:erode} takes {v} sec less to cast.",
-			{"key": "shadow_deep_call", "values": [0.15, 0.35, 0.5], "requires": "erode"}],
-		"r7c4": ["Ill Will", 3, "Critical strikes of your damage over time effects deal {v}% more damage.",
-			{"key": "shadow_ill_will", "values": [5.0, 10.0, 15.0]}],
-		"r8c4": ["Hard Pull", 3, "{n:tug} makes the ally's Strings heal faster for {v} sec longer.",
+		"r2c8": ["Long Thread", 2, "Your Strings on allies last {v} sec longer.",
+			{"key": "shadow_long_thread", "values": [2.0, 4.0]}],
+		"r2c9": ["Quick Hands", 3, "Your Strings heal {v}% more often.",
+			{"key": "shadow_quick_hands", "values": [4.0, 8.0, 12.0]}],
+		"r2c10": ["Three Ply", 3, "An ally with {b:STRING_STACKS} of your Strings is healed {v}% more by them.",
+			{"key": "shadow_three_ply", "values": [5.0, 10.0, 15.0]}],
+		"r3c9": ["First Stitch", 2, "Tying a String to an ally heals it at once, for as much as {v} heals of one String.",
+			{"key": "shadow_first_stitch", "values": [2.0, 4.0]}],
+		"r4c8": ["Spare Spool", 2, "Your Strings that were used up come back {v} sec sooner.",
+			{"key": "shadow_spare_spool", "values": [1.0, 2.0]}],
+		"r4c9": ["Hard Pull", 3, "{n:tug} makes the ally's Strings heal faster for {v} sec longer.",
 			{"key": "shadow_hard_pull", "values": [0.7, 1.3, 2.0], "requires": "tug"}],
-		"r9c4": ["Wide Pack", 2, "During {n:runthemdown}, each bite of your Hounds hits {v} more enemies.",
-			{"key": "shadow_wide_pack", "values": [1.0, 2.0], "requires": "runthemdown"}],
+		"r4c10": ["Full Harness", 2, "An ally that has {b:STRING_STACKS} of your Strings takes {v}% less damage.",
+			{"key": "shadow_full_harness", "values": [3.0, 6.0]}],
+		"r5c9": ["Pass It On", 3, "The share of your heals that reaches your other allies on a String is {v}% larger.",
+			{"key": "shadow_pass_it_on", "values": [10.0, 20.0, 30.0]}],
+		"r6c8": ["Taking the Weight", 2, "Crossed Strings moves {v}% of the damage the ally takes to the enemy, instead of {b:STRING_CROSS_PCT}%.",
+			{"key": "shadow_taking_the_weight", "values": [5.0, 7.0],
+			"capstone": "A crossing holds up to {b:TAKING_THE_WEIGHT_RANGE} m apart, instead of {b:STRING_CROSS_RANGE} m."}],
+		"r6c10": ["Fair Trade", 3, "The damage Crossed Strings moves to the enemy also heals the ally for {v}% of it.",
+			{"key": "shadow_fair_trade", "values": [10.0, 20.0, 30.0]}],
+		"r7c8": ["Snap Back", 3, "{n:pulltaut} has a {v}% chance to put its String straight back in your hand instead of using it up.",
+			{"key": "shadow_snap_back", "values": [17.0, 33.0, 50.0], "requires": "pulltaut"}],
+		"r7c10": ["Hold Fast", 3, "Your Strings heal {v}% more on allies below {b:HOLD_FAST_HEALTH_PCT}% health.",
+			{"key": "shadow_hold_fast", "values": [7.0, 13.0, 20.0]}],
+		"r8c8": ["Give and Take", 3, "{n:slack} stops your Strings healing for {v} sec less.",
+			{"key": "shadow_give_and_take", "values": [1.0, 2.0, 3.0], "requires": "slack"}],
+		"r8c10": ["Firm Grip", 3, "Your Strings on enemies last {v} sec longer.",
+			{"key": "shadow_firm_grip", "values": [1.5, 3.0, 4.5]}],
+		"r9c8": ["Loose Weave", 2, "Your loose Strings last {v} sec longer.",
+			{"key": "shadow_loose_weave", "values": [2.0, 4.0]}],
+		"r9c9": ["Long Drop", 3, "When {n:stringup} ends, the enemy drops and takes {vdmg:stringup} Shadow damage.",
+			{"key": "shadow_long_drop", "values": [0.3, 0.7, 1.0], "requires": "stringup"}],
+		"r9c10": ["Nothing Wasted", 2, "When your Strings on an ally run their full time, you regain {v}% of your maximum mana.",
+			{"key": "shadow_nothing_wasted", "values": [0.3, 0.6]}],
+		"r10c9": ["Steady Hands", 5, "Your Strings heal {v}% more.",
+			{"key": "shadow_steady_hands", "values": [3.0, 6.0, 9.0, 12.0, 15.0],
+			"capstone": "While none of your Strings are left in your hand, your Strings Attached heals are {b:STEADY_HANDS_ALL_OUT_PCT}% larger."}],
 	},
 	"nature": {
-		# Row 1: the two specs' linked talents. The caster (the Weaver: player.gd, "Nature
-		# caster: the Weaver"): Hunting Party on Briar Tiger. The healer (the Shepherd: player.gd,
-		# "Nature healer: the Shepherd"): Running Herd on Fawn.
-		"r1c3": ["Running Herd", 4, "{n:fawn} heals {v}% more.",
-			{"key": "nature_running_herd", "values": [5.0, 10.0, 15.0, 15.0], "requires": "fawn",
-			"capstone": "Every second {n:fawn} bounces {b:RUNNING_HERD_EXTRA} more times."}],
-		"r1c5": ["Hunting Party", 4, "{n:briartiger} deals {v}% more damage.",
+		# The ribbon layout (GROUPS, 13 columns): Thornweaver (the caster) in columns
+		# 1-3, Shepherd (the healer) in 4-6, the open talents on the spine (column 7),
+		# Colossus (the tank) in 8-10 and Venomstring (the bow) in 11-13. Rows 1-9 hold
+		# 18 talents per spec in its shape (SHAPES); row 10 its 5-rank capstone, which
+		# needs Balance.CAPSTONE_GATE points in the spec. Most key off the book's words
+		# (Mulch patches, woven and rooted creatures, finishers, Thornburst; Blossoms;
+		# Sap, Fury, holds, taunts; poisons, Venom, Venom Flow, Steeped...).
+		# Code: each spec's component in scripts/player/ (nature_weaver.gd,
+		# nature_shepherd.gd, nature_colossus.gd, nature_venomstring.gd); hit, heal and
+		# cost bonuses and the open talents: nature_talents_open.gd.
+		# --- Thornweaver.
+		"r1c1": ["Compost", 1, "{n:thornshot} leaves a Mulch patch once every {b:COMPOST_PATCH_EVERY} hits that land, instead of every {b:THORNSHOT_PATCH_EVERY}.",
+			{"key": "nature_compost", "values": [1.0], "requires": "thornshot"}],
+		"r1c3": ["Thick Mulch", 2, "Your Mulch patches last {v} sec longer.",
+			{"key": "nature_thick_mulch", "values": [5.0, 10.0]}],
+		"r2c2": ["Hunting Party", 4, "{n:briartiger} deals {v}% more damage.",
 			{"key": "nature_hunting_party", "values": [5.0, 10.0, 15.0, 15.0], "requires": "briartiger",
 			"capstone": "Every second {n:briartiger} also strikes {b:HUNTING_PARTY_EXTRA} more enemies within {b:HUNTING_PARTY_RADIUS} m of the target and leaves Mulch under each."}],
-		# Row 2: the tank's (the Colossus: player.gd, "Nature tank: the Colossus"): Thick Sap on Heartsap.
-		"r2c4": ["Thick Sap", 4, "{n:heartsap} heals {v}% more.",
+		"r3c1": ["Bramble Burst", 3, "Your Thornburst deals {v}% more damage.",
+			{"key": "nature_bramble_burst", "values": [10.0, 20.0, 30.0],
+			"capstone": "They reach {b:BRAMBLE_BURST_RADIUS} m from each patch instead of {b:THORNBURST_RADIUS} m."}],
+		"r3c3": ["Well Rotted", 3, "Mulch patches that lay for at least {b:WELL_ROTTED_AGE} sec add {v}% more to {n:mossback} and {n:chokingvipers}.",
+			{"key": "nature_well_rotted", "values": [20.0, 40.0, 60.0]}],
+		"r4c2": ["Rich Soil", 3, "The damage each Mulch patch adds to {n:mossback} and {n:chokingvipers} is {v}% higher.",
+			{"key": "nature_rich_soil", "values": [10.0, 20.0, 30.0]}],
+		"r5c1": ["Second Growth", 3, "{n:mossback} has a {v}% chance to leave a Mulch patch where it strikes.",
+			{"key": "nature_second_growth", "values": [10.0, 20.0, 30.0], "requires": "mossback"}],
+		"r5c2": ["Circling Hawk", 3, "When {n:mossback} or {n:chokingvipers} uses {b:CIRCLING_HAWK_PATCHES} or more Mulch patches, the cooldown of {n:thornwing} is cut by {v} sec.",
+			{"key": "nature_circling_hawk", "values": [2.0, 4.0, 6.0], "requires": "thornwing"}],
+		"r5c3": ["Fertile Ground", 3, "An enemy that dies with your {n:chokingvipers} on it has a {v}% chance to leave a Mulch patch where it fell.",
+			{"key": "nature_fertile_ground", "values": [33.0, 67.0, 100.0], "requires": "chokingvipers"}],
+		"r6c2": ["Long Roots", 3, "{n:mossback} and {n:chokingvipers} use Mulch patches up to {v} m further from where they strike.",
+			{"key": "nature_long_roots", "values": [1.0, 2.0, 3.0]}],
+		"r7c1": ["Tight Weave", 3, "Your woven creatures deal {v}% more damage.",
+			{"key": "nature_tight_weave", "values": [4.0, 8.0, 12.0]}],
+		"r7c3": ["Old Roots", 3, "Your rooted creatures deal {v}% more damage.",
+			{"key": "nature_old_roots", "values": [4.0, 8.0, 12.0]}],
+		"r8c1": ["Steady Weave", 3, "Your Nature spells with a cast time deal {v}% more damage.",
+			{"key": "nature_steady_weave", "values": [3.0, 6.0, 9.0]}],
+		"r8c2": ["Harvest", 3, "When {n:mossback} or {n:chokingvipers} uses {b:HARVEST_PATCHES} or more Mulch patches, it gives back {v}% of its mana cost.",
+			{"key": "nature_harvest", "values": [20.0, 40.0, 60.0]}],
+		"r8c3": ["Leaf Litter", 3, "When a Mulch patch of yours runs out unused, you regain {v}% of your maximum mana.",
+			{"key": "nature_leaf_litter", "values": [0.3, 0.6, 1.0]}],
+		"r9c1": ["Hunted", 3, "Your woven creatures deal {v}% more damage to enemies below {b:HUNTED_HEALTH_PCT}% health.",
+			{"key": "nature_hunted", "values": [5.0, 10.0, 15.0]}],
+		"r9c2": ["Lush", 3, "Your Nature spells that deal damage cost {v}% less mana.",
+			{"key": "nature_lush", "values": [3.0, 6.0, 9.0]}],
+		"r9c3": ["Quickening", 2, "Laying a Mulch patch makes your next Nature spell with a cast time within {b:QUICKENING_TIME} sec cast {v}% faster.",
+			{"key": "nature_quickening", "values": [10.0, 20.0]}],
+		"r10c2": ["Overgrown", 5, "Your Nature spells deal {v}% more damage for each Mulch patch you have.",
+			{"key": "nature_overgrown", "values": [0.4, 0.8, 1.2, 1.6, 2.0],
+			"capstone": "When {n:mossback} or {n:chokingvipers} uses {b:OVERGROWN_PATCHES} Mulch patches, it leaves one behind where it struck."}],
+		# --- Shepherd.
+		"r1c5": ["Running Herd", 4, "{n:fawn} heals {v}% more.",
+			{"key": "nature_running_herd", "values": [5.0, 10.0, 15.0, 15.0], "requires": "fawn",
+			"capstone": "Every second {n:fawn} bounces {b:RUNNING_HERD_EXTRA} more times."}],
+		"r2c4": ["Morning Dew", 3, "{n:dewfall} heals {v}% more for each Blossom on its target, instead of {b:DEWFALL_PER_BLOSSOM}%.",
+			{"key": "nature_morning_dew", "values": [15.0, 18.0, 20.0], "requires": "dewfall"}],
+		"r2c5": ["Old Bark", 3, "{n:rootguard}'s shield absorbs {v}% more.",
+			{"key": "nature_old_bark", "values": [10.0, 20.0, 30.0], "requires": "rootguard"}],
+		"r2c6": ["Return Flight", 3, "After {n:owl} dives, it keeps watching the ally for the rest of its time and can dive once more, healing and striking for {v}% as much.",
+			{"key": "nature_return_flight", "values": [20.0, 40.0, 60.0], "requires": "owl"}],
+		"r3c4": ["Second Bud", 3, "Your woven heals have a {v}% chance to leave one more Blossom.",
+			{"key": "nature_second_bud", "values": [10.0, 20.0, 30.0]}],
+		"r3c5": ["Deep Bloom", 3, "Full Bloom from {n:heartwoodelk} lasts {v} sec longer.",
+			{"key": "nature_deep_bloom", "values": [1.5, 2.5, 4.0], "requires": "heartwoodelk"}],
+		"r3c6": ["Long Bloom", 2, "Your Blossoms last {v} sec longer.",
+			{"key": "nature_long_bloom", "values": [3.0, 6.0]}],
+		"r4c5": ["Heavy Petals", 3, "Each Blossom adds {v}% more to the heal or shield of your rooted creatures.",
+			{"key": "nature_heavy_petals", "values": [10.0, 20.0, 30.0]}],
+		"r5c5": ["Soft Weave", 3, "Your woven creatures heal {v}% more.",
+			{"key": "nature_soft_weave", "values": [4.0, 8.0, 12.0]}],
+		"r6c4": ["Pollen", 3, "When your rooted creatures use up {b:BLOSSOM_MAX} Blossoms on an ally, there is a {v}% chance a Blossom goes to the lowest-health ally within {b:POLLEN_REACH} m of them.",
+			{"key": "nature_pollen", "values": [33.0, 67.0, 100.0]}],
+		"r6c6": ["Canopy", 3, "An ally you give a Blossom takes {v}% less damage for {b:CANOPY_TIME} sec.",
+			{"key": "nature_canopy", "values": [1.0, 2.0, 3.0]}],
+		"r7c4": ["In Full Flower", 3, "Your heals heal {v}% more on an ally with {b:BLOSSOM_MAX} of your Blossoms.",
+			{"key": "nature_in_full_flower", "values": [5.0, 10.0, 15.0]}],
+		"r7c5": ["Close Herd", 3, "Each bounce of your Fawns heals {v+b:FAWN_KEEP_PCT}% as much as the one before, instead of {b:FAWN_KEEP_PCT}%.",
+			{"key": "nature_close_herd", "values": [5.0, 10.0, 15.0]}],
+		"r7c6": ["New Shoots", 3, "Your Nature heals heal {v}% more on an ally with none of your Blossoms.",
+			{"key": "nature_new_shoots", "values": [4.0, 8.0, 12.0]}],
+		"r8c4": ["Nectar", 3, "Each of your Blossoms that is used up gives you back {v}% of your maximum mana.",
+			{"key": "nature_nectar", "values": [0.1, 0.2, 0.3]}],
+		"r8c6": ["Patient Hands", 3, "Your Nature heals with a cast time heal {v}% more.",
+			{"key": "nature_patient_hands", "values": [3.0, 6.0, 9.0]}],
+		"r9c4": ["Wide Grove", 2, "Your rooted creatures reach {v} m further.",
+			{"key": "nature_wide_grove", "values": [2.0, 4.0]}],
+		"r9c6": ["Morning Mist", 3, "Your Nature heals cost {v}% less mana.",
+			{"key": "nature_morning_mist", "values": [3.0, 6.0, 9.0]}],
+		"r10c5": ["Evergreen", 5, "Each of your Blossoms heals its ally for {v}% of their maximum health every second.",
+			{"key": "nature_evergreen", "values": [0.05, 0.1, 0.15, 0.2, 0.25],
+			"capstone": "Your Blossoms that run out unused heal their ally for {h:EVERGREEN_FADE_HEAL} each."}],
+		# --- Open talents: themed to the book (growth, the wild, the hunt) but they
+		# work with every book's spells, abilities and heals (nature_talents_open.gd).
+		"r1c7": ["Rough Bark", 3, "Increases your Armor by {v}%.",
+			{"key": "nature_rough_bark", "values": [3.0, 6.0, 9.0], "stats": {"armor%": 3.0}}],
+		"r2c7": ["Green Thumb", 3, "Your heals over time heal {v}% more.",
+			{"key": "nature_green_thumb", "values": [4.0, 8.0, 12.0]}],
+		"r3c7": ["Undergrowth", 3, "Your damage over time effects deal {v}% more damage to an enemy you have rooted, held in place or slowed.",
+			{"key": "nature_undergrowth", "values": [4.0, 8.0, 12.0]}],
+		"r4c7": ["Clinging Vines", 2, "When a root or hold of yours on an enemy ends, it moves {v}% slower for {b:CLINGING_VINES_TIME} sec.",
+			{"key": "nature_clinging_vines", "values": [20.0, 40.0]}],
+		"r5c7": ["Startle", 3, "Your first spell or ability on an enemy at full health deals {v}% more damage.",
+			{"key": "nature_startle", "values": [5.0, 10.0, 15.0]}],
+		"r6c7": ["Pack Hunter", 3, "You deal {v}% more damage to an enemy that is attacking someone other than you.",
+			{"key": "nature_pack_hunter", "values": [2.0, 4.0, 6.0]}],
+		"r7c7": ["Tending", 3, "Your heals heal {v}% more on an ally who carries one of your heals over time.",
+			{"key": "nature_tending", "values": [3.0, 6.0, 9.0]}],
+		"r8c7": ["Food Chain", 3, "When an enemy you damaged dies, you heal for {v}% of your maximum health.",
+			{"key": "nature_food_chain", "values": [1.0, 2.0, 3.0]}],
+		"r9c7": ["Hibernate", 2, "Out of combat, your health and mana come back {v}% faster.",
+			{"key": "nature_hibernate", "values": [25.0, 50.0]}],
+		# --- Colossus.
+		"r1c9": ["Groundswell", 3, "Your Nature abilities that build Fury build {v}% more.",
+			{"key": "nature_groundswell", "values": [5.0, 10.0, 15.0]}],
+		"r2c8": ["Thick Sap", 4, "{n:heartsap} heals {v}% more.",
 			{"key": "nature_thick_sap", "values": [5.0, 10.0, 15.0, 15.0], "requires": "heartsap",
 			"capstone": "{n:heartsap} leaves you {b:THICK_SAP_KEEP} Sap."}],
-		# The archer's (Venomstring: player.gd, "Nature archer: Venomstring"): Lingering Venom on Venom Burst.
-		"r2c7": ["Lingering Venom", 4, "{n:venomburst} deals {v}% more damage.",
+		"r2c10": ["Crushing Grip", 3, "When {n:giantshands} bursts, it deals {v}% more damage for each hit it soaked, up to {b:CRUSHING_GRIP_HITS} hits.",
+			{"key": "nature_crushing_grip", "values": [5.0, 10.0, 15.0], "requires": "giantshands"}],
+		"r3c8": ["Rising Sap", 3, "Each Sap heals you for {v+b:SAP_HEAL_PCT}% of your maximum health every second, instead of {b:SAP_HEAL_PCT}%.",
+			{"key": "nature_rising_sap", "values": [0.1, 0.2, 0.3]}],
+		"r3c9": ["Heavy Limbs", 3, "Your Nature abilities that spend Fury deal {v}% more damage.",
+			{"key": "nature_heavy_limbs", "values": [3.0, 6.0, 9.0]}],
+		"r3c10": ["Broad Fist", 2, "{n:vinefist} also hits {v} more enemies near its target.",
+			{"key": "nature_broad_fist", "values": [1.0, 2.0], "requires": "vinefist"}],
+		"r4c8": ["Spreading Roots", 3, "The roots {n:stomp} leaves last {v} sec longer and reach {v2} m further. Their damage per second stays the same.",
+			{"key": "nature_spreading_roots", "values": [1.5, 2.5, 4.0], "values2": [0.7, 1.3, 2.0], "requires": "stomp"}],
+		"r4c9": ["Firm Hold", 3, "Your holds on enemies last {v} sec longer, and each one you put on gives you {v2} Fury.",
+			{"key": "nature_firm_hold", "values": [0.3, 0.7, 1.0], "values2": [3.0, 7.0, 10.0]}],
+		"r4c10": ["Wide Awake", 3, "{n:awaken} lasts {v} sec longer.",
+			{"key": "nature_wide_awake", "values": [2.0, 4.0, 6.0], "requires": "awaken"}],
+		"r5c8": ["Long Sap", 2, "Your Sap lasts {v} sec longer.",
+			{"key": "nature_long_sap", "values": [5.0, 10.0]}],
+		"r5c9": ["Sap Run", 3, "Your Nature abilities that give Sap have a {v}% chance to give one more.",
+			{"key": "nature_sap_run", "values": [10.0, 20.0, 30.0]}],
+		"r5c10": ["Taproot", 3, "Each Sap you use up gives you {v} Fury.",
+			{"key": "nature_taproot", "values": [1.0, 2.0, 3.0]}],
+		"r6c9": ["Long Limbs", 3, "Your Nature abilities that hit everything around you reach {v} m further.",
+			{"key": "nature_long_limbs", "values": [1.0, 2.0, 3.0]}],
+		"r7c9": ["Called Out", 3, "Each enemy your taunts hit gives you {v} Fury, up to {b:CALLED_OUT_ENEMIES} enemies at a time.",
+			{"key": "nature_called_out", "values": [2.0, 4.0, 6.0]}],
+		"r8c9": ["Creaking Bark", 3, "Your Nature abilities make {v}% more threat.",
+			{"key": "nature_creaking_bark", "values": [5.0, 10.0, 15.0]}],
+		"r9c8": ["Brimming", 3, "While you have {b:SAP_MAX} Sap, your Sap heals {v}% more.",
+			{"key": "nature_brimming", "values": [20.0, 40.0, 60.0]}],
+		"r9c9": ["Woodgrain", 3, "Your shields on yourself absorb {v}% more.",
+			{"key": "nature_woodgrain", "values": [7.0, 13.0, 20.0]}],
+		"r9c10": ["Old Oak", 3, "While you are below {b:OLD_OAK_HEALTH_PCT}% health, your Sap heals {v}% more.",
+			{"key": "nature_old_oak", "values": [33.0, 67.0, 100.0]}],
+		"r10c9": ["Old Growth", 5, "Each Sap you hold makes you take {v}% less damage.",
+			{"key": "nature_old_growth", "values": [0.4, 0.8, 1.2, 1.6, 2.0],
+			"capstone": "A hit that takes {b:OLD_GROWTH_HIT_PCT}% or more of your maximum health gives you a Sap, at most once every {b:OLD_GROWTH_EVERY} sec."}],
+		# --- Venomstring.
+		"r1c11": ["Long Fangs", 3, "{n:fangarrow} adds {v+b:FANG_EXTEND} sec to your poisons instead of {b:FANG_EXTEND}.",
+			{"key": "nature_long_fangs", "values": [0.7, 1.3, 2.0], "requires": "fangarrow"}],
+		"r1c13": ["Lingering Venom", 4, "{n:venomburst} deals {v}% more damage.",
 			{"key": "nature_lingering_venom", "values": [5.0, 10.0, 15.0, 15.0], "requires": "venomburst",
 			"capstone": "Each poison {n:venomburst} would remove has a {b:LINGERING_VENOM_KEEP}% chance to stay on the target."}],
-		# The rest of the book. Shepherd on the left (columns 2-3), the Colossus down the
-		# middle (and Wide Awake on the left edge of row 9), the Weaver right of the
-		# middle (columns 5-6), Venomstring down the right edge, the open talents
-		# down the left edge of rows 1-4. Each spec's 5-rank talent sits in the
-		# bottom row (Venomstring's in row 9). Code: each spec's component in
-		# scripts/player/ (nature_weaver.gd, nature_shepherd.gd, nature_colossus.gd,
-		# nature_venomstring.gd); the open talents: nature_talents_open.gd.
-		# Open talents (Nature in theme, useful to anyone).
-		"r1c1": ["Rough Bark", 3, "Increases your Armor by {v}%.",
-			{"key": "nature_rough_bark", "values": [3.0, 6.0, 9.0], "stats": {"armor%": 3.0}}],
-		"r2c1": ["Green Thumb", 3, "Your heals over time heal {v}% more.",
-			{"key": "nature_green_thumb", "values": [4.0, 8.0, 12.0]}],
-		"r3c1": ["Undergrowth", 3, "Your damage over time effects deal {v}% more damage to an enemy you have rooted, held in place or slowed.",
-			{"key": "nature_undergrowth", "values": [4.0, 8.0, 12.0]}],
-		"r4c1": ["Clinging Vines", 2, "When a root or hold of yours on an enemy ends, it moves {v}% slower for {b:CLINGING_VINES_TIME} sec.",
-			{"key": "nature_clinging_vines", "values": [20.0, 40.0]}],
-		# Venomstring, down the right edge under Lingering Venom; Soaked Through in row 9.
-		"r1c7": ["Long Fangs", 3, "{n:fangarrow} adds {v+b:FANG_EXTEND} sec to your poisons instead of {b:FANG_EXTEND}.",
-			{"key": "nature_long_fangs", "values": [0.7, 1.3, 2.0], "requires": "fangarrow"}],
-		"r3c7": ["Hungry Venom", 2, "When a poisoned enemy dies, your poisons on it jump to an enemy up to {v} m away instead of {b:POISON_SPREAD}, and deal {v2}% more damage after jumping.",
-			{"key": "nature_hungry_venom", "values": [15.0, 20.0], "values2": [10.0, 20.0]}],
-		"r4c7": ["Spring Trap", 2, "The thorn trap of {n:coilback} catches up to {v} enemies instead of one.",
+		"r2c11": ["Slow Acting", 2, "Your poisons last {v} sec longer.",
+			{"key": "nature_slow_acting", "values": [2.0, 4.0]}],
+		"r2c12": ["Virulent", 3, "Your poisons deal {v}% more damage.",
+			{"key": "nature_virulent", "values": [3.0, 6.0, 9.0]}],
+		"r2c13": ["Spring Trap", 2, "The thorn trap of {n:coilback} catches up to {v} enemies instead of one.",
 			{"key": "nature_spring_trap", "values": [2.0, 3.0], "requires": "coilback"}],
-		"r9c7": ["Soaked Through", 5, "Your poisons on a Steeped enemy deal {v+b:STEEPED_PCT}% more damage instead of {b:STEEPED_PCT}%.",
-			{"key": "nature_soaked_through", "values": [2.0, 4.0, 6.0, 8.0, 10.0]}],
-		# The Shepherd: Rootguard's and Dewfall's at the top, Wild Herd's and the rez's lower.
-		"r3c3": ["Old Bark", 3, "{n:rootguard}'s shield absorbs {v}% more.",
-			{"key": "nature_old_bark", "values": [10.0, 20.0, 30.0], "requires": "rootguard"}],
-		"r5c3": ["Morning Dew", 3, "{n:dewfall} heals {v}% more for each Blossom on its target, instead of {b:DEWFALL_PER_BLOSSOM}%.",
-			{"key": "nature_morning_dew", "values": [15.0, 18.0, 20.0], "requires": "dewfall"}],
-		"r6c3": ["Return Flight", 3, "After {n:owl} dives, it keeps watching the ally for the rest of its time and can dive once more, healing and striking for {v}% as much.",
-			{"key": "nature_return_flight", "values": [20.0, 40.0, 60.0], "requires": "owl"}],
-		"r7c2": ["Deep Bloom", 3, "Full Bloom from {n:heartwoodelk} lasts {v} sec longer.",
-			{"key": "nature_deep_bloom", "values": [1.5, 2.5, 4.0], "requires": "heartwoodelk"}],
-		# (r8c3 is empty: Big Herd was folded into Wild Herd's cooldown.)
-		# (r8c2 is empty: Quick Return was folded into Return to Bloom's cast.)
-		"r10c3": ["Evergreen", 5, "Each of your Blossoms heals its ally for {v}% of their maximum health every second.",
-			{"key": "nature_evergreen", "values": [0.05, 0.1, 0.15, 0.2, 0.25]}],
-		# The Colossus, down the middle under Thick Sap.
-		"r4c4": ["Rising Sap", 3, "Each Sap heals you for {v+b:SAP_HEAL_PCT}% of your maximum health every second, instead of {b:SAP_HEAL_PCT}%.",
-			{"key": "nature_rising_sap", "values": [0.1, 0.2, 0.3]}],
-		"r5c4": ["Crushing Grip", 3, "When {n:giantshands} bursts, it deals {v}% more damage for each hit it soaked, up to {b:CRUSHING_GRIP_HITS} hits.",
-			{"key": "nature_crushing_grip", "values": [5.0, 10.0, 15.0], "requires": "giantshands"}],
-		"r6c4": ["Broad Fist", 2, "{n:vinefist} also hits {v} more enemies near its target.",
-			{"key": "nature_broad_fist", "values": [1.0, 2.0], "requires": "vinefist"}],
-		"r7c4": ["Spreading Roots", 3, "The roots {n:stomp} leaves last {v} sec longer and reach {v2} m further. Their damage per second stays the same.",
-			{"key": "nature_spreading_roots", "values": [1.5, 2.5, 4.0], "values2": [0.7, 1.3, 2.0], "requires": "stomp"}],
-		"r9c4": ["Firm Hold", 3, "{n:grasp} holds the enemy {v} sec longer and gives you {v2} Fury back.",
-			{"key": "nature_firm_hold", "values": [0.3, 0.7, 1.0], "values2": [3.0, 7.0, 10.0], "requires": "grasp"}],
-		"r9c1": ["Wide Awake", 3, "{n:awaken} lasts {v} sec longer.",
-			{"key": "nature_wide_awake", "values": [2.0, 4.0, 6.0], "requires": "awaken"}],
-		"r10c4": ["Old Growth", 5, "Each Sap you hold makes you take {v}% less damage.",
-			{"key": "nature_old_growth", "values": [0.4, 0.8, 1.2, 1.6, 2.0]}],
-		# The Weaver, right of the middle. Compost opens Bramble Burst (both Thornshot).
-		"r3c5": ["Rich Soil", 3, "The damage each Mulch patch adds to {n:mossback} and {n:chokingvipers} is {v}% higher.",
-			{"key": "nature_rich_soil", "values": [10.0, 20.0, 30.0]}],
-		"r5c5": ["Compost", 1, "{n:thornshot} leaves a Mulch patch once every {b:COMPOST_PATCH_EVERY} hits that land, instead of every {b:THORNSHOT_PATCH_EVERY}.",
-			{"key": "nature_compost", "values": [1.0], "requires": "thornshot"}],
-		"r6c5": ["Bramble Burst", 3, "The thorns {n:thornshot} bursts from your Mulch deal {v}% more damage.",
-			{"key": "nature_bramble_burst", "values": [10.0, 20.0, 30.0], "requires": "thornshot",
-			"capstone": "They reach {b:BRAMBLE_BURST_RADIUS} m from each patch instead of {b:THORNBURST_RADIUS} m."}],
-		"r7c6": ["Fertile Ground", 3, "An enemy that dies with your {n:chokingvipers} on it has a {v}% chance to leave a Mulch patch where it fell.",
-			{"key": "nature_fertile_ground", "values": [33.0, 67.0, 100.0], "requires": "chokingvipers"}],
-		"r8c5": ["Second Growth", 3, "{n:mossback} has a {v}% chance to leave a Mulch patch where it strikes.",
-			{"key": "nature_second_growth", "values": [10.0, 20.0, 30.0], "requires": "mossback"}],
-		"r8c6": ["Circling Hawk", 3, "When {n:mossback} or {n:chokingvipers} uses {b:CIRCLING_HAWK_PATCHES} or more Mulch patches, the cooldown of {n:thornwing} is cut by {v} sec.",
-			{"key": "nature_circling_hawk", "values": [2.0, 4.0, 6.0], "requires": "thornwing"}],
-		"r10c5": ["Overgrown", 5, "Your Nature spells deal {v}% more damage for each Mulch patch you have.",
-			{"key": "nature_overgrown", "values": [0.4, 0.8, 1.2, 1.6, 2.0]}],
+		"r3c12": ["Hungry Venom", 2, "When a poisoned enemy dies, your poisons on it jump to an enemy up to {v} m away instead of {b:POISON_SPREAD}, and deal {v2}% more damage after jumping.",
+			{"key": "nature_hungry_venom", "values": [15.0, 20.0], "values2": [10.0, 20.0]}],
+		"r4c11": ["Fresh Host", 3, "A poison of yours that jumps to a new enemy lasts {v} sec longer there.",
+			{"key": "nature_fresh_host", "values": [2.0, 4.0, 6.0]}],
+		"r4c13": ["Double Dose", 3, "Your poisons on an enemy with two different ones of yours deal {v+b:TWO_POISONS_PCT}% more damage instead of {b:TWO_POISONS_PCT}%.",
+			{"key": "nature_double_dose", "values": [3.0, 6.0, 9.0]}],
+		"r5c12": ["Quick Venom", 3, "Your poisons deal their damage {v}% more often.",
+			{"key": "nature_quick_venom", "values": [3.0, 6.0, 9.0]}],
+		"r6c11": ["Swollen", 3, "Your poisons that are copied onto other enemies deal {v}% more damage there.",
+			{"key": "nature_swollen", "values": [10.0, 20.0, 30.0]}],
+		"r6c13": ["Full Brew", 3, "Your direct hits deal {v}% more damage to Steeped enemies.",
+			{"key": "nature_full_brew", "values": [3.0, 6.0, 9.0]}],
+		"r7c12": ["Full Glands", 3, "While you have Venom Flow, each tick of your poisons gives {v} more Venom.",
+			{"key": "nature_full_glands", "values": [0.5, 1.0, 1.5]}],
+		"r8c11": ["Spare Venom", 3, "Spending Venom has a {v}% chance to give half of it back.",
+			{"key": "nature_spare_venom", "values": [10.0, 20.0, 30.0]}],
+		"r8c12": ["Running Venom", 3, "While you have Venom Flow, your bow shots deal {v}% more damage.",
+			{"key": "nature_running_venom", "values": [3.0, 6.0, 9.0]}],
+		"r8c13": ["Dragging Feet", 3, "Your bow shots deal {v}% more damage to enemies you slowed.",
+			{"key": "nature_dragging_feet", "values": [4.0, 8.0, 12.0]}],
+		"r9c11": ["Dripping Tips", 3, "Your auto-shots have a {v}% chance to add {b:DRIPPING_TIPS_TIME} sec to your poisons on the target.",
+			{"key": "nature_dripping_tips", "values": [10.0, 20.0, 30.0]}],
+		"r9c12": ["Final Bite", 3, "Your poisons deal {v}% more damage to enemies below {b:FINAL_BITE_HEALTH_PCT}% health.",
+			{"key": "nature_final_bite", "values": [5.0, 10.0, 15.0]}],
+		"r9c13": ["First Bite", 2, "Your first poison on an enemy that has none of yours goes on {v}% stronger.",
+			{"key": "nature_first_bite", "values": [10.0, 20.0]}],
+		"r10c12": ["Soaked Through", 5, "Your poisons on a Steeped enemy deal {v+b:STEEPED_PCT}% more damage instead of {b:STEEPED_PCT}%.",
+			{"key": "nature_soaked_through", "values": [2.0, 4.0, 6.0, 8.0, 10.0],
+			"capstone": "While you have Venom Flow, each tick of your poisons on a Steeped enemy gives {b:SOAKED_THROUGH_VENOM} more Venom."}],
 	},
 	"martial": {
 		# The ribbon layout (GROUPS): the Wheel (warrior) in columns 1-3, the Rogue in
@@ -1359,126 +1481,199 @@ const TALENTS := {
 			{"key": "martial_keen_eye", "values": [1.0, 2.0, 3.0, 4.0, 5.0]}],
 	},
 	"holy": {
-		# The healer (the Hymns: player.gd, "Holy healer: the Hymns"). Row 1: a way for
-		# each Hymn to give Verses (their value: the seconds between two of them).
-		# Row 2: Key Change on the left, Shelter's talent on the right.
-		"r1c2": ["Mercy's Ear", 2, "Healing an ally below {b:MERCYS_EAR_HEALTH_PCT}% health gives you a Mercy Verse, at most once every {v} sec.",
-			{"key": "holy_mercys_ear", "values": [6.0, 3.0]}],
-		"r1c4": ["Many Voices", 2, "A heal of yours that lands on {b:MANY_VOICES_ALLIES} or more allies at once gives you a Chorus Verse, at most once every {v} sec. Chorus's extra heals count.",
+		# The ribbon layout (GROUPS, 13 columns): Choir of One (the Hymns healer) in
+		# columns 1-3, Censer Bearer (the tank) in 4-6, the open talents on the spine
+		# (column 7), Line of Light (the Prisms healer) in 8-10 and Lightstring (the bow)
+		# in 11-13. Rows 1-9 hold 18 talents per spec in its shape (SHAPES); row 10 its
+		# 5-rank capstone, which needs Balance.CAPSTONE_GATE points in the spec. Most key
+		# off the book's words (Hymns, Verses, booms, Full Choir; Incense, motes of light,
+		# blocks; prisms, beams, shattering; gold prisms, Refraction, bow shots...).
+		# Code: each spec's component in scripts/player/ (holy_hymns.gd, holy_censer.gd,
+		# holy_prisms.gd, holy_lightstring.gd); hit and heal bonuses and the open
+		# talents: holy_talents.gd.
+		# --- Choir of One (the Hymns).
+		"r1c2": ["Many Voices", 2, "A heal of yours that lands on {b:MANY_VOICES_ALLIES} or more allies at once gives you a Chorus Verse, at most once every {v} sec. Chorus's extra heals count.",
 			{"key": "holy_many_voices", "values": [6.0, 3.0]}],
-		"r1c6": ["Watchful", 2, "An ally standing in your Vigil who takes a hit of {b:WATCHFUL_HIT_PCT}% of their maximum health or more gives you a Vigil Verse, at most once every {v} sec.",
+		"r2c1": ["Watchful", 2, "An ally standing in your Vigil who takes a hit of {b:WATCHFUL_HIT_PCT}% of their maximum health or more gives you a Vigil Verse, at most once every {v} sec.",
 			{"key": "holy_watchful", "values": [6.0, 3.0]}],
-		"r2c1": ["Key Change", 3, "Singing a Hymn without a boom keeps {v} of your Verses. A boom still spends them all.",
+		"r2c3": ["Mercy's Ear", 2, "Healing an ally below {b:MERCYS_EAR_HEALTH_PCT}% health gives you a Mercy Verse, at most once every {v} sec.",
+			{"key": "holy_mercys_ear", "values": [6.0, 3.0]}],
+		"r3c2": ["Choir Loft", 2, "Chorus's extra heals reach {v} more allies.",
+			{"key": "holy_choir_loft", "values": [1.0, 2.0]}],
+		"r4c1": ["Night Watch", 3, "Vigil makes allies take {v+b:VIGIL_DR_PCT}% less damage instead of {b:VIGIL_DR_PCT}%.",
+			{"key": "holy_night_watch", "values": [1.0, 2.0, 3.0]}],
+		"r4c3": ["Key Change", 3, "Singing a Hymn without a boom keeps {v} of your Verses. A boom still spends them all.",
 			{"key": "holy_key_change", "values": [1.0, 2.0, 3.0]}],
-		"r2c7": ["Open Doors", 4, "{n:shelter}'s shield absorbs {v}% more.",
+		"r5c1": ["Open Doors", 4, "{n:shelter}'s shield absorbs {v}% more.",
 			{"key": "holy_open_doors", "values": [10.0, 20.0, 30.0, 40.0], "requires": "shelter",
 			"capstone": "Its cooldown is {b:OPEN_DOORS_COOLDOWN} sec."}],
-		# Open talents (Holy in theme, useful to anyone): the edges of row 1, the
-		# middle of row 2, the right of row 3 and the edges of row 9. Long Note
-		# (Hymns) sits under Key Change.
-		"r1c1": ["Grace", 3, "Your heals on others heal {v}% more.",
-			{"key": "holy_grace", "values": [2.0, 4.0, 6.0]}],
-		"r1c7": ["Burnished", 3, "Your Holy damage is increased by {v}%.",
-			{"key": "holy_burnished", "values": [2.0, 4.0, 6.0]}],
-		"r2c4": ["Steadfast", 3, "Increases your Block chance by {v}%.",
-			{"key": "holy_steadfast", "values": [2.0, 3.0, 4.0]}],
-		"r3c1": ["Long Note", 3, "Bulwark of Song lasts {v} sec longer.",
-			{"key": "holy_long_note", "values": [1.0, 2.0, 3.0]}],
-		"r3c7": ["Overflowing", 3, "{v}% of your overhealing becomes a shield on that ally for {b:OVERFLOWING_TIME} sec, up to {b:OVERFLOWING_CAP_PCT}% of their maximum health. A bigger one replaces a smaller one.",
-			{"key": "holy_overflowing", "values": [10.0, 20.0, 30.0]}],
-		"r9c1": ["Penitent", 3, "After you take a hit worth {b:PENITENT_HIT_PCT}% of your maximum health, your next heal on yourself is {v}% stronger.",
-			{"key": "holy_penitent", "values": [10.0, 20.0, 30.0]}],
-		"r9c7": ["Zeal", 2, "After you use an ability with a cooldown of {b:ZEAL_COOLDOWN} sec or more, you move {v}% faster for {b:ZEAL_TIME} sec.",
-			{"key": "holy_zeal", "values": [5.0, 10.0]}],
-		# Shared by several specs: Clear Mind, Sheltering Light and Second Breath for both
-		# healers; Long Glass for both prism specs (the second healer and the archer).
-		"r2c2": ["Clear Mind", 3, "Your Holy heals cost {v}% less mana.",
-			{"key": "holy_clear_mind", "values": [3.0, 6.0, 9.0]}],
-		"r2c6": ["Sheltering Light", 3, "Your Holy shields absorb {v}% more: Shelter, Vigil's Ward, Prism Ward and Overflowing's shield.",
-			{"key": "holy_sheltering_light", "values": [10.0, 20.0, 30.0]}],
-		"r5c4": ["Long Glass", 2, "Your prisms of both colours last {v} sec longer.",
-			{"key": "holy_long_glass", "values": [15.0, 30.0]}],
-		"r10c6": ["Second Breath", 2, "When a heal of yours lifts an ally from below {b:SECOND_BREATH_LOW_PCT}% to above {b:SECOND_BREATH_HIGH_PCT}% health, you get {v}% of your maximum mana back.",
-			{"key": "holy_second_breath", "values": [1.0, 2.0]}],
-		# More for each spec (the room once kept for a melee and a caster): the tank down
-		# the left, the archer down the middle, the Hymns and the Prisms on the right.
-		"r4c1": ["Heavy Chain", 2, "{n:censerswing} gives {v} more Incense.",
-			{"key": "holy_heavy_chain", "values": [1.0, 2.0], "requires": "censerswing"}],
-		"r5c1": ["Absolution", 3, "{n:absolve} heals {v}% more.",
-			{"key": "holy_absolution", "values": [10.0, 20.0, 30.0], "requires": "absolve"}],
-		"r10c2": ["Unbroken", 3, "{n:unfallen} lasts {v} sec longer.",
-			{"key": "holy_unbroken", "values": [0.7, 1.3, 2.0], "requires": "unfallen"}],
-		"r3c4": ["Glimmering", 3, "{n:glimmershot} deals {v}% more damage.",
-			{"key": "holy_glimmering", "values": [5.0, 10.0, 15.0], "requires": "glimmershot"}],
-		"r7c4": ["Steady Aim", 3, "{n:refractingshot}'s cast is {v} sec shorter.",
-			{"key": "holy_steady_aim", "values": [0.15, 0.35, 0.5], "requires": "refractingshot"}],
-		"r4c7": ["Swelling Chorus", 3, "Chorus's extra heals heal {v}% more.",
+		"r5c3": ["Swelling Chorus", 3, "Chorus's extra heals heal {v}% more.",
 			{"key": "holy_swelling_chorus", "values": [10.0, 20.0, 30.0], "requires": "singchorus"}],
-		"r5c7": ["Quick Lance", 3, "{n:brightlance}'s cast is {v} sec shorter.",
-			{"key": "holy_quick_lance", "values": [0.15, 0.35, 0.5], "requires": "brightlance"}],
-		# The last six (the tree is full at 50): the archer's middle column, the tank
-		# left, the Hymns and the Prisms right; Watchful Eye for both healers.
-		"r8c4": ["Full Quiver", 3, "{n:prismarrow} recharges {v} sec faster.",
-			{"key": "holy_full_quiver", "values": [1.5, 2.5, 4.0], "requires": "prismarrow"}],
-		"r9c4": ["Wide Break", 3, "{n:prismbreaker} reaches {v} m further.",
-			{"key": "holy_wide_break", "values": [1.5, 2.5, 4.0], "requires": "prismbreaker"}],
-		"r6c1": ["Watchful Eye", 2, "Your heals on an ally who was hit in the last {b:WATCHFUL_EYE_WINDOW} sec heal {v}% more.",
-			{"key": "holy_watchful_eye", "values": [10.0, 20.0]}],
-		# (r6c7 is empty: Last Rites was folded into Last Verse's cooldown.)
-		"r7c3": ["Bright Motes", 3, "Your motes of light heal {v}% more.",
-			{"key": "holy_bright_motes", "values": [17.0, 33.0, 50.0], "requires": "censerswing"}],
-		"r7c5": ["Steady Ray", 3, "{n:mendingray} heals {v}% more.",
-			{"key": "holy_steady_ray", "values": [7.0, 13.0, 20.0], "requires": "mendingray"}],
-		# The bottom row: one 5-rank talent per side (the tank left, the archer in the
-		# middle, both healers right).
-		"r10c3": ["Censer's Weight", 5, "Your censer abilities, Incense and Bright Burst deal {v}% more damage.",
-			{"key": "holy_censers_weight", "values": [3.0, 6.0, 9.0, 12.0, 15.0]}],
-		"r10c4": ["Sunsteel", 5, "Your Lightstring shots, refracted arrows and Spectrum Volley's arrows deal {v}% more damage.",
-			{"key": "holy_sunsteel", "values": [3.0, 6.0, 9.0, 12.0, 15.0]}],
-		"r10c5": ["Radiance", 5, "Your Holy heals heal {v}% more.",
-			{"key": "holy_radiance", "values": [2.0, 4.0, 6.0, 8.0, 10.0]}],
-		# The tank (the Censer: player.gd, "Holy tank: the Censer"), down the left side:
-		# motes of light and the barrier first, then Hallowed Arc -> Pour Out, Raise the Censer.
-		"r3c3": ["Mote Magnet", 2, "You pick up motes of light from {v} m further away.",
+		"r6c1": ["Warded Song", 3, "The shield Vigil leaves on the allies you heal is {v}% larger.",
+			{"key": "holy_warded_song", "values": [33.0, 67.0, 100.0]}],
+		"r6c3": ["Rising Voice", 3, "Your booms are {v}% stronger.",
+			{"key": "holy_rising_voice", "values": [5.0, 10.0, 15.0]}],
+		"r7c1": ["Long Note", 3, "Bulwark of Song lasts {v} sec longer.",
+			{"key": "holy_long_note", "values": [1.0, 2.0, 3.0]}],
+		"r7c3": ["Long Echo", 3, "{n:reprise} repeats the boom at {v}% instead of {b:REPRISE_PCT}%.",
+			{"key": "holy_long_echo", "values": [45.0, 50.0, 55.0], "requires": "reprise"}],
+		"r8c1": ["Sheltering Light", 3, "Your Holy shields absorb {v}% more: Shelter, Vigil's Ward, Prism Ward and Overflowing's shield.",
+			{"key": "holy_sheltering_light", "values": [10.0, 20.0, 30.0]}],
+		"r8c2": ["Tender Mercy", 3, "While you sing Mercy, your heals on a single ally heal {v}% more on top.",
+			{"key": "holy_tender_mercy", "values": [4.0, 8.0, 12.0]}],
+		"r8c3": ["Full Voice", 2, "A Full Choir gives you back {v} more Verses.",
+			{"key": "holy_full_voice", "values": [1.0, 2.0]}],
+		"r9c1": ["Held Note", 2, "Out of combat, your Verses fade one every {v} sec instead of every {b:VERSE_DRAIN_EVERY}.",
+			{"key": "holy_held_note", "values": [4.0, 6.0]}],
+		"r9c2": ["Mercy Seat", 3, "Benediction heals {v}% more on an ally below {b:MERCY_SEAT_HEALTH_PCT}% health.",
+			{"key": "holy_mercy_seat", "values": [10.0, 20.0, 30.0]}],
+		"r9c3": ["Breath Between", 3, "Each of your booms gives you back {v}% of your maximum mana.",
+			{"key": "holy_breath_between", "values": [1.0, 2.0, 3.0]}],
+		"r10c2": ["Radiance", 5, "Your Holy heals heal {v}% more.",
+			{"key": "holy_radiance", "values": [2.0, 4.0, 6.0, 8.0, 10.0],
+			"capstone": "A boom whose {b:VERSE_MAX} spent Verses all suit its Hymn is {b:RADIANCE_MATCH_PCT}% stronger (Bulwark of Song: lasts {b:RADIANCE_MATCH_PCT}% longer)."}],
+		# --- Censer Bearer (the Censer).
+		"r1c5": ["Heavy Chain", 2, "{n:censerswing} gives {v} more Incense.",
+			{"key": "holy_heavy_chain", "values": [1.0, 2.0], "requires": "censerswing"}],
+		"r2c5": ["Absolution", 3, "{n:absolve} heals {v}% more.",
+			{"key": "holy_absolution", "values": [10.0, 20.0, 30.0], "requires": "absolve"}],
+		"r3c4": ["Mote Magnet", 2, "You pick up motes of light from {v} m further away.",
 			{"key": "holy_mote_magnet", "values": [1.0, 2.0]}],
-		"r4c2": ["Bright Barrier", 3, "Each stack of Incense gives {v}% more Block.",
-			{"key": "holy_bright_barrier", "values": [0.02, 0.04, 0.06]}],
-		"r5c2": ["Lingering Light", 2, "Your motes of light last {v} sec longer.",
-			{"key": "holy_lingering_light", "values": [3.0, 6.0]}],
-		"r6c3": ["Wide Arc", 3, "{n:hallowedarc} reaches {v} m further.",
+		"r3c5": ["Wide Arc", 3, "{n:hallowedarc} reaches {v} m further.",
 			{"key": "holy_wide_arc", "values": [0.7, 1.3, 2.0], "requires": "hallowedarc"}],
-		"r7c1": ["Deep Pour", 3, "{n:pourout} deals {v}% more damage.",
+		"r3c6": ["Bright Barrier", 3, "Each stack of Incense gives {v}% more Block.",
+			{"key": "holy_bright_barrier", "values": [0.02, 0.04, 0.06]}],
+		"r4c4": ["Lingering Light", 2, "Your motes of light last {v} sec longer.",
+			{"key": "holy_lingering_light", "values": [3.0, 6.0]}],
+		"r4c6": ["Bright Motes", 3, "Your motes of light heal {v}% more.",
+			{"key": "holy_bright_motes", "values": [17.0, 33.0, 50.0]}],
+		"r5c4": ["Offering", 3, "Your abilities that spend Incense deal or heal {v}% more.",
+			{"key": "holy_offering", "values": [5.0, 10.0, 15.0]}],
+		"r5c6": ["Full Censer", 3, "While you have {b:FULL_CENSER_INCENSE} or more Incense, you take {v}% less damage.",
+			{"key": "holy_full_censer", "values": [2.0, 4.0, 6.0]}],
+		"r6c4": ["Heavy Smoke", 3, "The Holy damage your Incense deals around you is {v}% higher.",
+			{"key": "holy_heavy_smoke", "values": [10.0, 20.0, 30.0]}],
+		"r6c6": ["Unbroken", 3, "{n:unfallen} lasts {v} sec longer.",
+			{"key": "holy_unbroken", "values": [0.7, 1.3, 2.0], "requires": "unfallen"}],
+		"r7c4": ["Heavy Motes", 3, "Your motes of light give {v} more Incense.",
+			{"key": "holy_heavy_motes", "values": [1.0, 2.0, 3.0]}],
+		"r7c5": ["Deep Pour", 3, "{n:pourout} deals {v}% more damage.",
 			{"key": "holy_deep_pour", "values": [10.0, 20.0, 30.0], "requires": "pourout",
 			"capstone": "It drops motes of light worth {b:DEEP_POUR_MOTE_PCT}% of what it spent."}],
-		# (r8c2 is empty: High Censer was folded into Raise the Censer's cooldown.)
-		# The second healer (the Prisms: player.gd, "Holy healer: the Prisms"), down the right
-		# side: the beam and the prisms first, then shattering them (Wide Burst -> Prismatic Burst), Realign.
-		"r3c5": ["Clear Glass", 2, "Your beams pass through prisms up to {v} m further from their line.",
-			{"key": "holy_clear_glass", "values": [0.5, 1.0]}],
-		"r4c6": ["Deep Crystal", 3, "Your prisms hold {v}% more light.",
-			{"key": "holy_deep_crystal", "values": [20.0, 40.0, 60.0]}],
-		"r5c6": ["Sharp Facets", 2, "A heal is {v}% stronger for each prism it passes through, on top of the usual.",
-			{"key": "holy_sharp_facets", "values": [5.0, 10.0]}],
-		"r6c5": ["Wide Burst", 3, "Your prisms reach allies and enemies {v} m further when they shatter.",
+		"r7c6": ["Turned Aside", 3, "Each attack you block heals you for {v}% of your maximum health.",
+			{"key": "holy_turned_aside", "values": [0.3, 0.6, 1.0]}],
+		"r8c5": ["Cloying Smoke", 3, "Your censer abilities and your Incense make {v}% more threat.",
+			{"key": "holy_cloying_smoke", "values": [5.0, 10.0, 15.0]}],
+		"r9c4": ["Shaken Loose", 3, "Your censer abilities that knock motes of light loose have a {v}% chance to knock one more loose.",
+			{"key": "holy_shaken_loose", "values": [10.0, 20.0, 30.0]}],
+		"r9c5": ["Ringing Censer", 2, "Each attack you block gives you {v} more Incense.",
+			{"key": "holy_ringing_censer", "values": [1.0, 2.0]}],
+		"r9c6": ["Hold the Line", 3, "While you are below {b:HOLD_THE_LINE_HEALTH_PCT}% health, your Incense gives {v}% more Block.",
+			{"key": "holy_hold_the_line", "values": [33.0, 67.0, 100.0]}],
+		"r10c5": ["Censer's Weight", 5, "Your censer abilities, Incense and Bright Burst deal {v}% more damage.",
+			{"key": "holy_censers_weight", "values": [3.0, 6.0, 9.0, 12.0, 15.0],
+			"capstone": "While you have {b:INCENSE_MAX} Incense, they deal {b:CENSERS_WEIGHT_FULL_PCT}% more on top."}],
+		# --- Open talents: themed to the book (grace, standing firm, light) but they work
+		# with every book's spells, abilities, heals and shields (holy_talents.gd).
+		"r1c7": ["Grace", 3, "Your heals on others heal {v}% more.",
+			{"key": "holy_grace", "values": [2.0, 4.0, 6.0]}],
+		"r2c7": ["Steadfast", 3, "Increases your Block chance by {v}%.",
+			{"key": "holy_steadfast", "values": [2.0, 3.0, 4.0]}],
+		"r3c7": ["Overflowing", 3, "{v}% of your overhealing becomes a shield on that ally for {b:OVERFLOWING_TIME} sec, up to {b:OVERFLOWING_CAP_PCT}% of their maximum health. A bigger one replaces a smaller one.",
+			{"key": "holy_overflowing", "values": [10.0, 20.0, 30.0]}],
+		"r4c7": ["Watchful Eye", 2, "Your heals on an ally who was hit in the last {b:WATCHFUL_EYE_WINDOW} sec heal {v}% more.",
+			{"key": "holy_watchful_eye", "values": [10.0, 20.0]}],
+		"r5c7": ["Second Breath", 2, "When a heal of yours lifts an ally from below {b:SECOND_BREATH_LOW_PCT}% to above {b:SECOND_BREATH_HIGH_PCT}% health, you get {v}% of your maximum mana back.",
+			{"key": "holy_second_breath", "values": [1.0, 2.0]}],
+		"r6c7": ["Penitent", 3, "After you take a hit worth {b:PENITENT_HIT_PCT}% of your maximum health, your next heal on yourself is {v}% stronger.",
+			{"key": "holy_penitent", "values": [10.0, 20.0, 30.0]}],
+		"r7c7": ["Candlelight", 3, "After you heal an ally other than yourself, your next spell or ability that deals damage within {b:CANDLELIGHT_TIME} sec deals {v}% more.",
+			{"key": "holy_candlelight", "values": [4.0, 8.0, 12.0]}],
+		"r8c7": ["First Light", 3, "For {b:FIRST_LIGHT_TIME} sec after you enter combat, your spells and abilities deal and heal {v}% more.",
+			{"key": "holy_first_light", "values": [4.0, 8.0, 12.0]}],
+		"r9c7": ["Zeal", 2, "After you use an ability with a cooldown of {b:ZEAL_COOLDOWN} sec or more, you move {v}% faster for {b:ZEAL_TIME} sec.",
+			{"key": "holy_zeal", "values": [5.0, 10.0]}],
+		# --- Line of Light (the Prisms).
+		"r1c9": ["Wide Burst", 3, "Your prisms reach allies and enemies {v} m further when they shatter.",
 			{"key": "holy_wide_burst", "values": [1.5, 2.5, 4.0], "requires": "shatterall"}],
-		"r7c7": ["Prismatic Burst", 3, "Your shattering prisms deal {v}% more damage.",
+		"r2c8": ["Quick Lance", 3, "{n:brightlance}'s cast is {v} sec shorter.",
+			{"key": "holy_quick_lance", "values": [0.15, 0.35, 0.5], "requires": "brightlance"}],
+		"r2c10": ["Steady Ray", 3, "{n:mendingray} heals {v}% more.",
+			{"key": "holy_steady_ray", "values": [7.0, 13.0, 20.0], "requires": "mendingray"}],
+		"r3c8": ["Clear Glass", 2, "Your beams pass through prisms up to {v} m further from their line.",
+			{"key": "holy_clear_glass", "values": [0.5, 1.0]}],
+		"r3c9": ["Prismatic Burst", 3, "Your shattering prisms deal {v}% more damage.",
 			{"key": "holy_prismatic_burst", "values": [20.0, 40.0, 60.0], "requires": "shatterall"}],
-		"r8c6": ["Quick Realign", 3, "{n:realign}'s cooldown is {v} sec shorter.",
+		"r3c10": ["Deep Crystal", 3, "Your prisms hold {v}% more light.",
+			{"key": "holy_deep_crystal", "values": [20.0, 40.0, 60.0]}],
+		"r4c8": ["Quick Realign", 3, "{n:realign}'s cooldown is {v} sec shorter.",
 			{"key": "holy_quick_realign", "values": [3.0, 7.0, 10.0], "requires": "realign"}],
-		# The archer (Lightstring: player.gd, "Holy archer: Lightstring"), its archery
-		# talents grouped down the middle: refraction first, then Sunlit Arrow -> Spectrum Volley.
-		"r4c4": ["Wide Fan", 2, "Your refracted arrows find enemies up to {v} m further from the prism.",
-			{"key": "holy_wide_fan", "values": [2.0, 4.0]}],
-		"r6c4": ["Split Light", 3, "Your refracted arrows deal {v}% more damage.",
-			{"key": "holy_split_light", "values": [10.0, 20.0, 30.0]}],
-		"r8c3": ["Bright Quiver", 2, "Your auto-shots charge your gold prisms {v}% more.",
-			{"key": "holy_bright_quiver", "values": [50.0, 100.0]}],
-		"r8c5": ["Deep Burn", 3, "{n:sunlitarrow} deals {v}% more damage from the light it drains.",
+		"r4c9": ["Thirsty Glass", 3, "Your beams charge your prisms {v}% more.",
+			{"key": "holy_thirsty_glass", "values": [10.0, 20.0, 30.0]}],
+		"r4c10": ["Sharp Facets", 2, "A heal is {v}% stronger for each prism it passes through, on top of the usual.",
+			{"key": "holy_sharp_facets", "values": [5.0, 10.0]}],
+		"r5c8": ["Clear Mind", 3, "Your Holy heals cost {v}% less mana.",
+			{"key": "holy_clear_mind", "values": [3.0, 6.0, 9.0]}],
+		"r5c10": ["Long Glass", 2, "Your prisms of both colours last {v} sec longer.",
+			{"key": "holy_long_glass", "values": [15.0, 30.0]}],
+		"r6c8": ["Bright Shards", 3, "Each of your prisms that shatters gives you back {v}% of your maximum mana.",
+			{"key": "holy_bright_shards", "values": [0.3, 0.6, 1.0]}],
+		"r6c10": ["Polish", 3, "A prism you move with {n:moveprism} or {n:realign} gains {v}% of the light it can hold.",
+			{"key": "holy_polish", "values": [10.0, 20.0, 30.0]}],
+		"r7c8": ["Aftershine", 3, "For {b:AFTERSHINE_TIME} sec after a shattering prism heals an ally, your heals on them heal {v}% more.",
+			{"key": "holy_aftershine", "values": [3.0, 6.0, 9.0]}],
+		"r7c10": ["Lifeline", 3, "Heals that reach an ally through your beam heal {v}% more on allies below {b:LIFELINE_HEALTH_PCT}% health.",
+			{"key": "holy_lifeline", "values": [7.0, 13.0, 20.0]}],
+		"r8c8": ["Focused Light", 3, "A shattering prism with only one ally near it heals them {v}% more.",
+			{"key": "holy_focused_light", "values": [10.0, 20.0, 30.0]}],
+		"r8c10": ["Last Glint", 2, "Your white prisms that run out shatter on their own with {v}% of their light.",
+			{"key": "holy_last_glint", "values": [50.0, 100.0]}],
+		"r9c9": ["Full Glass", 3, "A heal whose beam passes through a full prism heals {v}% more.",
+			{"key": "holy_full_glass", "values": [5.0, 10.0, 15.0]}],
+		"r10c9": ["Brilliance", 5, "Your shattering prisms heal {v}% more.",
+			{"key": "holy_brilliance", "values": [4.0, 8.0, 12.0, 16.0, 20.0],
+			"capstone": "A heal whose beam passes through {b:BRILLIANCE_PRISMS} of your prisms is {b:BRILLIANCE_PCT}% stronger."}],
+		# --- Lightstring (the bow, gold prisms).
+		"r1c11": ["Full Quiver", 3, "{n:prismarrow} recharges {v} sec faster.",
+			{"key": "holy_full_quiver", "values": [1.5, 2.5, 4.0], "requires": "prismarrow"}],
+		"r1c12": ["Glimmering", 3, "Your instant bow shots deal {v}% more damage.",
+			{"key": "holy_glimmering", "values": [5.0, 10.0, 15.0]}],
+		"r1c13": ["Steady Aim", 3, "{n:refractingshot}'s cast is {v} sec shorter.",
+			{"key": "holy_steady_aim", "values": [0.15, 0.35, 0.5], "requires": "refractingshot"}],
+		"r2c11": ["Deep Burn", 3, "{n:sunlitarrow} deals {v}% more damage from the light it drains.",
 			{"key": "holy_deep_burn", "values": [10.0, 20.0, 30.0], "requires": "sunlitarrow",
 			"capstone": "It leaves {b:DEEP_BURN_KEEP_PCT}% of the light in each prism."}],
-		# (r9c3 is empty: Swift Light was folded into Step of Light's cooldown.)
-		"r9c5": ["Long Volley", 3, "{n:spectrumvolley} lasts {v} sec longer.",
+		"r2c13": ["Wide Fan", 2, "Your refracted arrows find enemies up to {v} m further from the prism.",
+			{"key": "holy_wide_fan", "values": [2.0, 4.0]}],
+		"r3c12": ["Split Light", 3, "Your refracted arrows deal {v}% more damage.",
+			{"key": "holy_split_light", "values": [10.0, 20.0, 30.0]}],
+		"r4c11": ["Long Volley", 3, "{n:spectrumvolley} lasts {v} sec longer.",
 			{"key": "holy_long_volley", "values": [1.5, 2.5, 4.0], "requires": "spectrumvolley"}],
+		"r4c12": ["Wide Break", 3, "{n:prismbreaker} reaches {v} m further.",
+			{"key": "holy_wide_break", "values": [1.5, 2.5, 4.0], "requires": "prismbreaker"}],
+		"r4c13": ["Gilded", 3, "Your shots charge your gold prisms {v}% more.",
+			{"key": "holy_gilded", "values": [10.0, 20.0, 30.0]}],
+		"r5c12": ["Pinpoint", 3, "A shot that passes a gold prism with no other enemy near it is {v+b:REFRACT_FOCUS_PCT}% stronger instead of {b:REFRACT_FOCUS_PCT}%.",
+			{"key": "holy_pinpoint", "values": [3.0, 6.0, 9.0]}],
+		"r6c12": ["Burnished", 3, "Your Holy damage is increased by {v}%.",
+			{"key": "holy_burnished", "values": [2.0, 4.0, 6.0]}],
+		"r7c12": ["Lined Up", 3, "A shot that passes through {b:LINED_UP_PRISMS} or more of your gold prisms deals {v}% more damage.",
+			{"key": "holy_lined_up", "values": [4.0, 8.0, 12.0]}],
+		"r8c11": ["Bright Quiver", 2, "Your auto-shots charge your gold prisms {v}% more.",
+			{"key": "holy_bright_quiver", "values": [50.0, 100.0]}],
+		"r8c12": ["Light Draw", 3, "Your Holy abilities that cost Energy cost {v}% less.",
+			{"key": "holy_light_draw", "values": [3.0, 6.0, 9.0]}],
+		"r8c13": ["Full Gold", 3, "The refracted arrows of a full gold prism deal {v}% more damage.",
+			{"key": "holy_full_gold", "values": [10.0, 20.0, 30.0]}],
+		"r9c11": ["Gilt Tips", 3, "Your auto-shots deal {v}% more damage.",
+			{"key": "holy_gilt_tips", "values": [4.0, 8.0, 12.0]}],
+		"r9c12": ["Dazzle", 3, "Your refracted arrows have {v}% more chance to critically strike.",
+			{"key": "holy_dazzle", "values": [3.0, 6.0, 9.0]}],
+		"r9c13": ["Sundown", 3, "Your bow shots deal {v}% more damage to enemies below {b:SUNDOWN_HEALTH_PCT}% health.",
+			{"key": "holy_sundown", "values": [5.0, 10.0, 15.0]}],
+		"r10c12": ["Sunsteel", 5, "Your Lightstring shots, refracted arrows and Spectrum Volley's arrows deal {v}% more damage.",
+			{"key": "holy_sunsteel", "values": [3.0, 6.0, 9.0, 12.0, 15.0],
+			"capstone": "Your gold prisms start with {b:SUNSTEEL_START_PCT}% of the light they can hold."}],
 	},
 }
 
@@ -1488,7 +1683,7 @@ const TALENTS := {
 ## "key" (it follows the talent when its slot changes) or a talent id.
 ## A line must not run behind another talent, and the bottom row has no links.
 const LINKS := [
-	# --- Martial, Fire, Frost, Lightning and Arcane (the ribbon layout): straight down one column of a
+	# --- Every book is on the ribbon layout: straight down one column of a
 	# spec's ribbon, over the rows its shape leaves empty there.
 	["martial_twice_over", "martial_gather_pace"],       # the Wheel: Weapon Arts
 	["martial_steady_pace", "martial_deep_flow"],        # Rogue: Flow
@@ -1519,28 +1714,28 @@ const LINKS := [
 	["arcane_quick_answer", "arcane_spare_copy"],        # Hall of Mirrors: dodges
 	["arcane_last_copy", "arcane_crowded_room"],         # Hall of Mirrors: Reflections held
 	["arcane_standing_ovation", "arcane_time_signature"],   # Second Act: replays
-	# --- Shadow ---
-	# Call Due's two, straight down the middle.
-	["shadow_interest", "shadow_small_change"],
-	# The Hounds themselves, down the left edge: faster bites, Fury from them, Roused.
-	["shadow_lean_and_hungry", "shadow_fed"],
-	["shadow_fed", "shadow_worked_up"],
-	# How long a pair stays, and what it does as it goes.
-	["shadow_long_night", "shadow_take_it_with_you"],
-	# Both At Once's two, down the right edge.
-	["shadow_pincer", "shadow_again"],
-	# The healer: how long a String lasts, then how soon a used-up one is back.
-	["shadow_long_thread", "shadow_spare_spool"],
-	# --- Holy ---
-	# The tank: Hallowed Arc's talent opens Pour Out's.
-	["holy_wide_arc", "holy_deep_pour"],
-	# The second healer: Wide Burst opens Prismatic Burst.
-	["holy_wide_burst", "holy_prismatic_burst"],
-	# The archer: Deep Burn opens Long Volley (straight down).
-	["holy_deep_burn", "holy_long_volley"],
-	# --- Nature ---
-	# The caster: Compost opens Bramble Burst (both Thornshot), straight down.
-	["nature_compost", "nature_bramble_burst"],
+	["shadow_interest", "shadow_small_change"],     # The Breach: Call Due
+	["shadow_shut_tight", "shadow_bitter_end"],     # The Breach: a closed Breach and its end
+	["shadow_long_night", "shadow_take_it_with_you"],   # Pack of Two: a pair's time and its going
+	["shadow_pincer", "shadow_again"],             # Pack of Two: Both At Once
+	["shadow_long_thread", "shadow_spare_spool"],  # Strings Attached: Strings coming back
+	["shadow_three_ply", "shadow_full_harness"],   # Strings Attached: three on one ally
+	["nature_compost", "nature_bramble_burst"],      # Thornweaver: Thornshot's Mulch
+	["nature_thick_mulch", "nature_well_rotted"],    # Thornweaver: patches lasting
+	["nature_second_bud", "nature_pollen"],          # Shepherd: Blossoms given
+	["nature_long_bloom", "nature_canopy"],          # Shepherd: Blossoms held
+	["nature_groundswell", "nature_heavy_limbs"],    # Colossus: Fury built, then spent
+	["nature_long_sap", "nature_brimming"],          # Colossus: Sap held
+	["nature_slow_acting", "nature_fresh_host"],     # Venomstring: poisons lasting
+	["nature_double_dose", "nature_full_brew"],      # Venomstring: mixing poisons
+	["holy_many_voices", "holy_choir_loft"],        # Choir of One: Chorus
+	["holy_watchful", "holy_night_watch"],          # Choir of One: Vigil
+	["holy_wide_arc", "holy_deep_pour"],            # Censer Bearer: the censer's swing, then its pour
+	["holy_heavy_motes", "holy_shaken_loose"],      # Censer Bearer: motes of light
+	["holy_wide_burst", "holy_prismatic_burst"],    # Line of Light: shattering
+	["holy_thirsty_glass", "holy_full_glass"],      # Line of Light: light stored
+	["holy_deep_burn", "holy_long_volley"],         # Lightstring: the gold prisms' light, spent
+	["holy_gilded", "holy_full_gold"],              # Lightstring: gold light
 ]
 
 static var _db := {}
@@ -1563,7 +1758,7 @@ static func layout(category: String) -> Array:
 # in GROUPS keep the old 10 x COLUMNS grid until their own pass.
 
 ## Columns of a book's grid.
-const GRID_COLUMNS := {"martial": 13, "fire": 13, "frost": 16, "lightning": 13, "arcane": 13}
+const GRID_COLUMNS := {"martial": 13, "fire": 13, "frost": 16, "lightning": 13, "arcane": 13, "shadow": 13, "nature": 13, "holy": 13}
 
 ## Book -> its groups: [name, first column, last column] (0-based, left to right).
 const GROUPS := {
@@ -1575,6 +1770,10 @@ const GROUPS := {
 		["Stormstring", 10, 12]],
 	"arcane": [["Clockwork", 0, 2], ["Hall of Mirrors", 3, 5], ["Open", 6, 6], ["Second Act", 7, 9],
 		["Aetherstring", 10, 12]],
+	"shadow": [["The Breach", 0, 2], ["Pack of Two", 3, 5], ["Open", 6, 6], ["Strings Attached", 7, 9],
+		["Nightstring", 10, 12]],
+	"nature": [["Thornweaver", 0, 2], ["Shepherd", 3, 5], ["Open", 6, 6], ["Colossus", 7, 9], ["Venomstring", 10, 12]],
+	"holy": [["Choir of One", 0, 2], ["Censer Bearer", 3, 5], ["Open", 6, 6], ["Line of Light", 7, 9], ["Lightstring", 10, 12]],
 }
 ## Specs not built yet (one ability so far): their ribbon holds only the talents they
 ## have, with no shape and no capstone until the spec is built.
@@ -1606,6 +1805,17 @@ const SHAPES := {
 	"Clockwork": ["clock face", ["M", "LR", "LR", "LR", "LMR", "LMR", "LR", "LR", "M"]],
 	"Hall of Mirrors": ["hand mirror", ["LMR", "LR", "LR", "LR", "LMR", "M", "M", "M", "LMR"]],
 	"Second Act": ["stage curtains", ["LMR", "LR", "LR", "LR", "LR", "LR", "LR", "LR", "M"]],
+	"The Breach": ["the pit", ["LMR", "LR", "LR", "LR", "M", "M", "LR", "LR", "LMR"]],
+	"Pack of Two": ["paw print", ["LR", "M", "LR", "M", "LMR", "LMR", "LMR", "LR", "M"]],
+	"Strings Attached": ["puppet cross", ["M", "LMR", "M", "LMR", "M", "LR", "LR", "LR", "LMR"]],
+	"Thornweaver": ["bramble", ["LR", "M", "LR", "M", "LMR", "M", "LR", "LMR", "LMR"]],
+	"Shepherd": ["flower", ["M", "LMR", "LMR", "M", "M", "LR", "LMR", "LR", "LR"]],
+	"Colossus": ["oak", ["M", "LR", "LMR", "LMR", "LMR", "M", "M", "M", "LMR"]],
+	"Venomstring": ["coiled snake", ["LR", "LMR", "M", "LR", "M", "LR", "M", "LMR", "LMR"]],
+	"Choir of One": ["bell", ["M", "LR", "M", "LR", "LR", "LR", "LR", "LMR", "LMR"]],
+	"Censer Bearer": ["censer", ["M", "M", "LMR", "LR", "LR", "LR", "LMR", "M", "LMR"]],
+	"Line of Light": ["cut gem", ["M", "LR", "LMR", "LMR", "LR", "LR", "LR", "LR", "M"]],
+	"Lightstring": ["sun arrow", ["LMR", "LR", "M", "LMR", "M", "M", "M", "LMR", "LMR"]],
 }
 ## Which of a ribbon's three columns (0 left, 1 middle, 2 right) a SHAPES row fills.
 const SHAPE_COLUMNS := {"M": [1], "LR": [0, 2], "LMR": [0, 1, 2]}
@@ -1692,10 +1902,9 @@ const LINKS_MOVED := {
 
 ## Small Change moved up from row 8 to row 5, straight under Interest, to make
 ## room down the middle of the Shadow book (save version 6 -> 7,
-## SaveSystem._migrate_6_to_7). Its old slot now holds Hard Pull, so like
-## LINKS_MOVED this is applied once, to saves made before the change.
+## SaveSystem._migrate_6_to_7). Its entry went with the Shadow ribbon tree, which
+## refunded every point (TREE_VERSION).
 const SHADOW_MIDDLE_MOVED := {
-	"shadow_r8c4": "shadow_r5c4",   # Small Change: row 8 -> row 5
 }
 
 ## Frozen Instinct moved one column left in row 7, straight under Cold Snap,

@@ -47,10 +47,6 @@ Code: player.gd, "Holy healer: the Hymns". Numbers: balance.gd (VERSE_*, MERCY_*
 - Rest - 60 s cooldown: 40% less damage for 6 s; singing without a boom during it keeps your Verses.
 - Last Verse - 3 min cooldown, needs 6 Verses and spends them: lifts the nearest downed ally within 30 m at 30% health.
 
-### Talents (Holy tree)
-- Row 1: Mercy's Ear (2): healing an ally below 35% gives a Mercy Verse, once per 6/3 s. Many Voices (2): a heal landing on 3+ allies (Chorus's splash counts) gives a Chorus Verse, once per 6/3 s. Watchful (2): an ally in your Vigil taking a hit of 10%+ of max health gives a Vigil Verse, once per 6/3 s.
-- Row 2: Key Change (3): singing without a boom keeps 1/2/3 Verses. Open Doors (4, requires Shelter): Shelter absorbs 10/20/30/40% more; capstone: its cooldown is 4 s.
-
 ### Runes (Epic)
 - Resounding: booms also deal 0.6 FB Holy damage within 8 m (Benediction around the ally, the others around you), split past the AoE cap.
 - Overture: after a boom, your next spell with a cast time within 3 s is instant (and can be cast on the move). It is used up when that cast lands.
@@ -76,14 +72,6 @@ Code: player.gd, "Holy healer: the Prisms". Numbers: balance.gd (PRISM_*, HEALS)
 - Infuse - 45 s cd: fills one prism to full. 1 mana.
 - Kaleidoscope - 2 min cd, 10 s: your beams pass through every prism, wherever it stands.
 
-### Talents (Holy tree, right side)
-- r3 Clear Glass (2): beam catches prisms 0.5/1 m further from the line.
-- r4 Deep Crystal (3): prisms hold 20/40/60% more light.
-- r5 Sharp Facets (2): +5/10% amplify per prism.
-- r6 Wide Burst (3, requires Shatter All): shatter radius +1.5/2.5/4 m. Maxing it opens Prismatic Burst.
-- r7 Prismatic Burst (3, requires Shatter All): shatter damage +20/40/60%.
-- r8 Quick Realign (3, requires Realign): cooldown -3/7/10 s.
-
 ## Archer (Lightstring, bow, Energy) - spec "Lightstring" - BUILT 2026-10-16
 Code: player.gd, "Holy archer: Lightstring". Numbers: balance.gd (REFRACT_*, GOLD_*, SUNLIT_*, BREAKER_*, VOLLEY_*).
 - **Prism colours (the hybrid rule):** the healer's Set Prism makes WHITE prisms, used only by heals; Prism Arrow makes GOLD prisms, used only by arrows. Light never moves between the colours. The 3-prism limit counts both, so a healer/archer hybrid has to split them. Realign, Move Prism and Step of Light work with either colour (moving converts nothing).
@@ -97,14 +85,6 @@ Code: player.gd, "Holy archer: Lightstring". Numbers: balance.gd (REFRACT_*, GOL
 - Prism Breaker - 15 s cd: shoots a gold prism (mouseover, clicked, closest); it shatters for 0.6 FB + 0.06 per point of light within 8 m (split past the AoE cap). Heals nothing. 25.
 - Step of Light - off GCD, 20 s cd, 40 m: you appear next to one of your prisms (either colour).
 - Spectrum Volley - 2 min cd, 8 s: every second each gold prism shoots the nearest enemy within 8 m for 0.4 FB + 0.02 per point of its light (own meter line).
-
-### Talents (Holy tree, middle column: the archery talents together)
-- r4 Wide Fan (2): refraction reaches 2/4 m further.
-- r6 Split Light (3): refracted arrows +10/20/30%.
-- r8 Bright Quiver (2): auto-shots charge 50/100% more.
-- r8 Deep Burn (3, requires Sunlit Arrow): +10/20/30% from drained light; capstone: leaves 25% of the light. Maxing it opens Long Volley.
-- r9 Swift Light: folded into Step of Light (10 s cooldown); the slot is empty.
-- r9 Long Volley (3, requires Spectrum Volley): +1.5/2.5/4 s.
 
 ## Tank (the Censer) - spec "Censer Bearer" - BUILT 2026-10-16
 Code: player.gd, "Holy tank: the Censer". Numbers: balance.gd (INCENSE_*, MOTE_*, ...). Pictures: scripts/censer.gd, scripts/light_mote.gd.
@@ -132,14 +112,6 @@ Code: player.gd, "Holy tank: the Censer". Numbers: balance.gd (INCENSE_*, MOTE_*
 - Gather the Light - off GCD, 30 s cd: picks up every mote at once.
 - Raise the Censer - 90 s cd, 30 m: the censer hangs 4 m over the enemy for 8 s. Enemies within 10 m of it must attack you for 4 s; it sheds a mote every second. Meanwhile your Incense gives no Block and no aura (it is kept and comes back). Utility, not damage. 2 mana.
 - Unfallen - off GCD, 120 s cd, 8 s: nothing can kill you, hits give double Incense; when it ends you heal for 30% of the damage taken during it.
-
-### Talents (Holy tree, left side)
-- r3 Mote Magnet (2): pick up motes 1/2 m further away.
-- r4 Bright Barrier (3): +0.02/0.04/0.06% Block per stack.
-- r5 Lingering Light (2): motes last 3/6 s longer.
-- r6 Wide Arc (3, requires Hallowed Arc): +0.7/1.3/2 m. Maxing it opens Deep Pour.
-- r7 Deep Pour (3, requires Pour Out): +10/20/30% damage; capstone: its motes are worth 80%.
-- r8 High Censer: folded into Raise the Censer (1 min cooldown, cost 1.3 mana points so a minute still costs the same); the slot is empty.
 
 ### Rune (Epic)
 - Bright Burst: picking up a mote deals 0.15 FB Holy within 5 m, 4x threat, own meter line.
@@ -173,16 +145,15 @@ Code: player.gd, "Holy tank: the Censer". Numbers: balance.gd (INCENSE_*, MOTE_*
 - Ascend - 90 s cooldown, 12 s: you and the Herald merge; spells +30%, Ray is instant.
 - A bow spell; the Herald repeats it like any Holy spell.
 
-## Open talents and the bottom row - BUILT 2026-10-16
-Code: player.gd, "Holy: the open talents and the bottom row" and "Holy: talents shared by several specs"; Steadfast in PlayerData. Every older talent kept its place as rows were widened.
-- Open: Grace (r1, 3: heals on others +2/4/6%), Burnished (r1, 3: Holy damage +2/4/6%), Steadfast (r2 middle, 3: Block +2/3/4%), Overflowing (r3, 3: 10/20/30% of overhealing becomes a shield for 6 s, up to 10% of their max health), Penitent (r9, 3: after a hit of 15%+ max health, your next heal on yourself +10/20/30%), Zeal (r9, 2: after an ability with a 30 s+ cooldown, +5/10% move speed for 4 s).
-- Hymns: Long Note (r3, under Key Change, 3: Bulwark of Song +1/2/3 s).
-- Bottom row (5 ranks): Censer's Weight (tank: censer abilities, Incense, Bright Burst +3-15%), Sunsteel (archer: Lightstring shots, refracted and volley arrows +3-15%), Radiance (both healers: Holy heals +2-10%).
-- Shared by several specs: Clear Mind (r2, 3: both healers' Holy heals cost 3/6/9% less mana), Sheltering Light (r2, 3: Holy shields absorb +10/20/30%: Shelter, Vigil's Ward, Prism Ward, Overflowing), Long Glass (r5 middle, 2: prisms of both colours last +15/30 s), Second Breath (r10, 2: a heal lifting an ally from below 30% to above 50% gives 1/2% max mana back).
-- More per spec: Heavy Chain (r4, tank, 2: Censer Swing +1/2 Incense), Absolution (r5, tank, 3: Absolve +10/20/30%), Unbroken (r10, tank, 3: Unfallen +0.7/1.3/2 s), Glimmering (r3 middle, archer, 3: Glimmer Shot +5/10/15%), Steady Aim (r7 middle, archer, 3: Refracting Shot cast -0.15/0.35/0.5 s), Swelling Chorus (r4, Hymns, 3: Chorus's extra heals +10/20/30%), Quick Lance (r5, Prisms, 3: Bright Lance cast -0.15/0.35/0.5 s).
-- The last six: Full Quiver (r8 middle, archer, 3: Prism Arrow recharges 1.5/2.5/4 s faster), Wide Break (r9 middle, archer, 3: Prism Breaker +1.5/2.5/4 m), Watchful Eye (r6, both healers, 2: heals on an ally hit in the last 2 s +10/20%), Last Rites (r6, Hymns: folded into Last Verse, 2 min cooldown; slot empty), Bright Motes (r7, tank, 3: motes heal +17/33/50%), Steady Ray (r7, Prisms, 3: Mending Ray +7/13/20%).
-- The tree is FULL: 50 of 50 slots. Anything new for Holy now has to replace a talent, or wait for taller trees (12 rows).
-- The melee (Daylight) and caster (Herald) are NOT planned soon; their room went to the four built specs. If they come, the trees grow to 12 rows or they lean on shared talents.
+## Talents (ribbon layout, 2026-10-27; TREE_VERSION 12)
+- Specs side by side as ribbons: Choir of One (columns 1-3), Censer Bearer (4-6), the open talents on the spine (7), Line of Light (8-10), Lightstring (11-13). 19 talents per spec, at most 5 needing one ability; capstones need 25 points in the spec. Code: each spec's component (holy_hymns.gd, holy_censer.gd, holy_prisms.gd, holy_lightstring.gd); hit and heal bonuses and the open talents: holy_talents.gd. The tree is no longer full: the melee and caster drafts would get ribbons of their own.
+- Shapes: Choir of One "bell", Censer Bearer "censer", Line of Light "cut gem", Lightstring "sun arrow". Links: Many Voices -> Choir Loft, Watchful -> Night Watch; Wide Arc -> Deep Pour, Heavy Motes -> Shaken Loose; Wide Burst -> Prismatic Burst, Thirsty Glass -> Full Glass; Deep Burn -> Long Volley, Gilded -> Full Gold.
+- Choir of One (54 ranks): Many Voices (2), Watchful (2), Mercy's Ear (2), Choir Loft (2, Chorus reaches 1/2 more allies), Night Watch (3, Vigil 6/7/8% instead of 5%), Key Change (3), Open Doors (4, Shelter), Swelling Chorus (3, Sing Chorus), Warded Song (3, Vigil's shield 33/67/100% larger), Rising Voice (3, booms 5/10/15% stronger), Long Note (3), Long Echo (3, Reprise repeats at 45/50/55% instead of 40%), Sheltering Light (3, moved from the shared talents), Tender Mercy (3, Mercy's heals +4/8/12% on top), Full Voice (2, a Full Choir gives 1/2 more Verses back), Held Note (2, out of combat Verses fade every 4/6 s), Mercy Seat (3, Benediction +10/20/30% below 35% health), Breath Between (3, each boom gives 1/2/3% max mana). Capstone Radiance (5, Holy heals +2-10%; at max a boom whose 6 Verses all suit it is 20% stronger, Bulwark of Song 20% longer).
+- Censer Bearer (55 ranks): Heavy Chain (2, Censer Swing), Absolution (3, Absolve), Mote Magnet (2), Wide Arc (3, Hallowed Arc), Bright Barrier (3), Lingering Light (2), Bright Motes (3, no longer needs Censer Swing), Offering (3, Pour Out and Absolve +5/10/15%), Full Censer (3, 2/4/6% less damage taken at 75+ Incense), Heavy Smoke (3, the Incense aura +10/20/30%), Unbroken (3, Unfallen), Heavy Motes (3, motes give 1/2/3 more Incense), Deep Pour (3, Pour Out), Turned Aside (3, a block heals 0.3/0.6/1% max health; own meter line), Cloying Smoke (3, censer abilities and Incense +5/10/15% threat), Shaken Loose (3, a 10/20/30% chance a builder knocks one more mote loose), Ringing Censer (2, blocks give 1/2 more Incense), Hold the Line (3, below 35% health Incense gives 33/67/100% more Block, as a buff). Capstone Censer's Weight (5; at max, with 100 Incense, 10% more on top).
+- Line of Light (55 ranks): Wide Burst (3, Shatter All), Quick Lance (3, Bright Lance), Steady Ray (3, Mending Ray), Clear Glass (2), Prismatic Burst (3, Shatter All), Deep Crystal (3), Quick Realign (3, Realign), Thirsty Glass (3, beams charge 10/20/30% more), Sharp Facets (2), Clear Mind (3) and Long Glass (2) moved from the shared talents, Bright Shards (3, each shattering prism gives 0.3/0.6/1% max mana; gold ones too), Polish (3, a prism you move gains 10/20/30% of its cap), Aftershine (3, for 6 s after a shatter heals an ally, your heals on them +3/6/9%), Lifeline (3, beam heals +7/13/20% below 35% health), Focused Light (3, a shatter with one ally near heals them 10/20/30% more), Last Glint (2, white prisms that run out shatter with 50/100% of their light), Full Glass (3, a heal whose beam passes a full prism +5/10/15%). Capstone Brilliance (5, shatter heals +4-20%; at max a heal through 3 prisms is 20% stronger).
+- Lightstring (57 ranks): Full Quiver (3, Prism Arrow), Glimmering (3, instant bow shots +5/10/15%; no longer needs Glimmer Shot), Steady Aim (3, Refracting Shot), Deep Burn (3, Sunlit Arrow), Wide Fan (2), Split Light (3), Long Volley (3, Spectrum Volley), Wide Break (3, Prism Breaker), Gilded (3, shots charge gold prisms 10/20/30% more), Pinpoint (3, a focused shot 13/16/19% instead of 10%), Burnished (3, moved from the open talents: it names Holy), Lined Up (3, a shot through 2+ gold prisms +4/8/12%), Bright Quiver (2), Light Draw (3, Holy abilities cost 3/6/9% less Energy), Full Gold (3, a full gold prism's refracted arrows +10/20/30%), Gilt Tips (3, auto-shots +4/8/12%), Dazzle (3, refracted arrows +3/6/9% crit chance), Sundown (3, bow shots +5/10/15% below 35% health). Capstone Sunsteel (5; at max new gold prisms start with 33% of their light).
+- Open (9): Grace (3), Steadfast (3), Overflowing (3), Watchful Eye (2), Second Breath (2), Penitent (3), Candlelight (3, after healing another ally, your next damaging spell or ability within 6 s +4/8/12%), First Light (3, the first 6 s of a fight: spells and abilities deal and heal 4/8/12% more), Zeal (2).
+- Folded earlier: Last Rites (Last Verse 2 min), High Censer (Raise the Censer 1 min), Swift Light (Step of Light 10 s).
 
 ## Talents for the other specs (outline, ranks to be set when built)
 - Melee: High Noon (Noon from 70/65), Hot Iron (Noon bonus +5/10%), Long Shadow (Zenith +10/20%), Early Riser (Dawnstrike +5 Daylight per rank), Sunburnt (Sunfall cap +1/2 targets), Daybreak (5, bottom: finishers +3-15%).

@@ -14,64 +14,64 @@ const TalentIcons = preload("res://scripts/talent_icons.gd")
 
 ## [key, name, slot, ranks, values, the ability it needs ("" = an open talent)]
 const WANT := [
-	["shadow_slow_death", "Slow Death", "shadow_r1c2", 3, [2.0, 4.0, 6.0], ""],
-	["shadow_wasting", "Wasting", "shadow_r1c4", 3, [2.0, 4.0, 6.0], ""],
-	["shadow_finish_it", "Finish It", "shadow_r1c6", 3, [3.0, 6.0, 9.0], ""],
-	["shadow_spite", "Spite", "shadow_r2c3", 3, [3.0, 6.0, 9.0], ""],
-	["shadow_carrion", "Carrion", "shadow_r2c5", 2, [1.0, 2.0], ""],
-	["shadow_inevitable", "Inevitable", "shadow_r10c5", 5, [2.0, 4.0, 6.0, 8.0, 10.0], ""],
-	["shadow_seep", "Lure", "shadow_r4c3", 3, [17.0, 33.0, 50.0], "corruption"],
-	["shadow_interest", "Interest", "shadow_r4c4", 3, [5.0, 10.0, 15.0], "calldue"],
-	["shadow_next_of_kin", "Next of Kin", "shadow_r6c3", 3, [10.0, 20.0, 30.0], "blight"],
-	["shadow_bitter_end", "Bitter End", "shadow_r6c5", 3, [33.0, 67.0, 100.0], "blight"],
-	["shadow_no_floor", "No Floor", "shadow_r7c3", 3, [1.5, 2.5, 4.0], "bottomless"],
-	["shadow_small_change", "Small Change", "shadow_r5c4", 3, [7.0, 13.0, 20.0], "calldue"],
-	["shadow_rot_through", "Hooked Claws", "shadow_r10c3", 5, [2.0, 4.0, 6.0, 8.0, 10.0], "blight"],
-	["shadow_running_over", "Wider Still", "shadow_r5c6", 3, [7.0, 13.0, 20.0], "spill"],
-	["shadow_bite_down", "Bite Down", "shadow_r7c5", 3, [7.0, 13.0, 20.0], "gnaw"],
+	["shadow_slow_death", "Slow Death", "shadow_r1c7", 3, [2.0, 4.0, 6.0], ""],
+	["shadow_wasting", "Wasting", "shadow_r2c7", 3, [2.0, 4.0, 6.0], ""],
+	["shadow_finish_it", "Finish It", "shadow_r3c7", 3, [3.0, 6.0, 9.0], ""],
+	["shadow_spite", "Spite", "shadow_r4c7", 3, [3.0, 6.0, 9.0], ""],
+	["shadow_carrion", "Carrion", "shadow_r9c1", 2, [1.0, 2.0], ""],
+	["shadow_inevitable", "Inevitable", "shadow_r9c7", 5, [2.0, 4.0, 6.0, 8.0, 10.0], ""],
+	["shadow_seep", "Lure", "shadow_r1c1", 3, [17.0, 33.0, 50.0], ""],
+	["shadow_interest", "Interest", "shadow_r1c2", 3, [5.0, 10.0, 15.0], "calldue"],
+	["shadow_next_of_kin", "Next of Kin", "shadow_r7c1", 3, [10.0, 20.0, 30.0], ""],
+	["shadow_bitter_end", "Bitter End", "shadow_r9c2", 3, [33.0, 67.0, 100.0], ""],
+	["shadow_no_floor", "No Floor", "shadow_r4c3", 3, [1.5, 2.5, 4.0], "bottomless"],
+	["shadow_small_change", "Small Change", "shadow_r5c2", 3, [7.0, 13.0, 20.0], "calldue"],
+	["shadow_rot_through", "Hooked Claws", "shadow_r10c2", 5, [2.0, 4.0, 6.0, 8.0, 10.0], ""],
+	["shadow_running_over", "Wider Still", "shadow_r3c1", 3, [7.0, 13.0, 20.0], "spill"],
+	["shadow_bite_down", "Bite Down", "shadow_r3c3", 3, [7.0, 13.0, 20.0], "gnaw"],
 	# Two more open talents, on the edges of row 2.
-	["shadow_thick_blood", "Thick Blood", "shadow_r2c1", 3, [15.0, 30.0, 45.0], ""],
-	["shadow_feeding_frenzy", "Feeding Frenzy", "shadow_r2c7", 3, [2.0, 4.0, 6.0], ""],
+	["shadow_thick_blood", "Thick Blood", "shadow_r8c4", 3, [15.0, 30.0, 45.0], ""],
+	["shadow_feeding_frenzy", "Feeding Frenzy", "shadow_r5c7", 3, [2.0, 4.0, 6.0], ""],
 	# Melee (the Hounds): the Hounds themselves down the left edge ...
-	["shadow_lean_and_hungry", "Lean and Hungry", "shadow_r4c1", 3, [4.0, 8.0, 12.0], ""],
-	["shadow_fed", "Fed", "shadow_r5c1", 2, [2.0, 4.0], ""],
-	["shadow_worked_up", "Worked Up", "shadow_r6c1", 2, [2.0, 4.0], ""],
-	["shadow_out_of_the_hole", "Out of the Hole", "shadow_r7c1", 3, [17.0, 33.0, 50.0], "blight"],
-	["shadow_long_night", "Long Night", "shadow_r8c2", 2, [3.0, 6.0], ""],
-	["shadow_take_it_with_you", "Take It With You", "shadow_r9c1", 2, [25.0, 50.0], ""],
-	["shadow_pack_leader", "Pack Leader", "shadow_r10c4", 5, [3.0, 6.0, 9.0, 12.0, 15.0], ""],
+	["shadow_lean_and_hungry", "Lean and Hungry", "shadow_r5c4", 3, [4.0, 8.0, 12.0], ""],
+	["shadow_fed", "Fed", "shadow_r6c4", 2, [2.0, 4.0], ""],
+	["shadow_worked_up", "Worked Up", "shadow_r6c5", 2, [2.0, 4.0], ""],
+	["shadow_out_of_the_hole", "Out of the Hole", "shadow_r5c5", 3, [17.0, 33.0, 50.0], ""],
+	["shadow_long_night", "Long Night", "shadow_r1c4", 2, [3.0, 6.0], ""],
+	["shadow_take_it_with_you", "Take It With You", "shadow_r3c4", 2, [25.0, 50.0], ""],
+	["shadow_pack_leader", "Pack Leader", "shadow_r10c5", 5, [3.0, 6.0, 9.0, 12.0, 15.0], ""],
 	# ... and one ability's talents each down the right edge.
-	["shadow_still_wet", "Still Wet", "shadow_r3c7", 3, [1.5, 2.5, 4.0], "openup"],
-	["shadow_share_the_kill", "Share the Kill", "shadow_r4c7", 3, [33.0, 67.0, 100.0], "shadowstrike"],
-	["shadow_pincer", "Pincer", "shadow_r5c7", 3, [10.0, 20.0, 30.0], "bothatonce"],
-	["shadow_again", "Again", "shadow_r6c7", 3, [10.0, 20.0, 30.0], "bothatonce"],
-	["shadow_stand_over", "Stand Over", "shadow_r7c7", 3, [0.7, 1.3, 2.0], "guarddogs"],
-	["shadow_slipped_leash", "Slipped Leash", "shadow_r9c7", 3, [1.5, 2.5, 4.0], "offthechain"],
+	["shadow_still_wet", "Still Wet", "shadow_r2c5", 3, [1.5, 2.5, 4.0], "openup"],
+	["shadow_share_the_kill", "Share the Kill", "shadow_r9c5", 3, [33.0, 67.0, 100.0], ""],
+	["shadow_pincer", "Pincer", "shadow_r1c6", 3, [10.0, 20.0, 30.0], "bothatonce"],
+	["shadow_again", "Again", "shadow_r3c6", 3, [10.0, 20.0, 30.0], "bothatonce"],
+	["shadow_stand_over", "Stand Over", "shadow_r7c4", 3, [0.2, 0.4, 0.6], ""],
+	["shadow_slipped_leash", "Slipped Leash", "shadow_r4c5", 3, [1.5, 2.5, 4.0], "offthechain"],
 	# The healer (the Strings): the Strings themselves ...
-	["shadow_first_stitch", "First Stitch", "shadow_r3c3", 2, [2.0, 4.0], ""],
-	["shadow_long_thread", "Long Thread", "shadow_r3c5", 2, [2.0, 4.0], ""],
-	["shadow_spare_spool", "Spare Spool", "shadow_r4c5", 2, [1.0, 2.0], ""],
-	["shadow_full_harness", "Full Harness", "shadow_r8c3", 2, [3.0, 6.0], ""],
-	["shadow_taking_the_weight", "Taking the Weight", "shadow_r8c5", 2, [5.0, 7.0], ""],
-	["shadow_steady_hands", "Steady Hands", "shadow_r10c2", 5, [3.0, 6.0, 9.0, 12.0, 15.0], ""],
+	["shadow_first_stitch", "First Stitch", "shadow_r3c9", 2, [2.0, 4.0], ""],
+	["shadow_long_thread", "Long Thread", "shadow_r2c8", 2, [2.0, 4.0], ""],
+	["shadow_spare_spool", "Spare Spool", "shadow_r4c8", 2, [1.0, 2.0], ""],
+	["shadow_full_harness", "Full Harness", "shadow_r4c10", 2, [3.0, 6.0], ""],
+	["shadow_taking_the_weight", "Taking the Weight", "shadow_r6c8", 2, [5.0, 7.0], ""],
+	["shadow_steady_hands", "Steady Hands", "shadow_r10c9", 5, [3.0, 6.0, 9.0, 12.0, 15.0], ""],
 	# ... and one ability's talent each.
-	["shadow_heave", "Heave", "shadow_r3c4", 3, [3.0, 7.0, 10.0], "hoist"],
-	["shadow_long_drop", "Long Drop", "shadow_r8c6", 3, [0.3, 0.7, 1.0], "stringup"],
-	["shadow_snap_back", "Snap Back", "shadow_r9c3", 3, [17.0, 33.0, 50.0], "pulltaut"],
-	["shadow_give_and_take", "Give and Take", "shadow_r9c5", 3, [1.0, 2.0, 3.0], "slack"],
+	["shadow_heave", "Heave", "shadow_r1c9", 3, [3.0, 7.0, 10.0], "hoist"],
+	["shadow_long_drop", "Long Drop", "shadow_r9c9", 3, [0.3, 0.7, 1.0], "stringup"],
+	["shadow_snap_back", "Snap Back", "shadow_r7c8", 3, [17.0, 33.0, 50.0], "pulltaut"],
+	["shadow_give_and_take", "Give and Take", "shadow_r8c8", 3, [1.0, 2.0, 3.0], "slack"],
 	# Three more open talents, with the healer's theme.
-	["shadow_many_hands", "Helping Hands", "shadow_r1c1", 3, [2.0, 4.0, 6.0], ""],
-	["shadow_lean_on_me", "Lean On Me", "shadow_r1c7", 3, [2.0, 4.0, 6.0], ""],
-	["shadow_left_hanging", "Left Hanging", "shadow_r2c4", 2, [10.0, 20.0], ""],
+	["shadow_many_hands", "Helping Hands", "shadow_r6c7", 3, [2.0, 4.0, 6.0], ""],
+	["shadow_lean_on_me", "Lean On Me", "shadow_r7c7", 3, [2.0, 4.0, 6.0], ""],
+	["shadow_left_hanging", "Left Hanging", "shadow_r8c7", 2, [10.0, 20.0], ""],
 	# Down the middle column under Small Change: caster, open, healer, melee.
-	["shadow_deep_call", "Deep Call", "shadow_r6c4", 3, [0.15, 0.35, 0.5], "erode"],
-	["shadow_ill_will", "Ill Will", "shadow_r7c4", 3, [5.0, 10.0, 15.0], ""],
-	["shadow_hard_pull", "Hard Pull", "shadow_r8c4", 3, [0.7, 1.3, 2.0], "tug"],
-	["shadow_wide_pack", "Wide Pack", "shadow_r9c4", 2, [1.0, 2.0], "runthemdown"],
+	["shadow_deep_call", "Deep Call", "shadow_r2c3", 3, [0.15, 0.35, 0.5], ""],
+	["shadow_ill_will", "Ill Will", "shadow_r8c3", 3, [5.0, 10.0, 15.0], ""],
+	["shadow_hard_pull", "Hard Pull", "shadow_r4c9", 3, [0.7, 1.3, 2.0], "tug"],
+	["shadow_wide_pack", "Wide Pack", "shadow_r7c5", 2, [1.0, 2.0], "runthemdown"],
 ]
 const CAPSTONES := ["shadow_interest", "shadow_next_of_kin", "shadow_no_floor", "shadow_running_over",
 	"shadow_worked_up", "shadow_take_it_with_you", "shadow_still_wet", "shadow_pincer", "shadow_slipped_leash",
-	"shadow_heave", "shadow_taking_the_weight"]
+	"shadow_heave", "shadow_taking_the_weight", "shadow_rot_through", "shadow_pack_leader", "shadow_steady_hands"]
 ## The healer's talents (what each does in the game: tests/test_strings.gd).
 const STRING_TALENTS := ["shadow_first_stitch", "shadow_long_thread", "shadow_spare_spool", "shadow_full_harness",
 	"shadow_taking_the_weight", "shadow_steady_hands", "shadow_heave", "shadow_long_drop", "shadow_snap_back", "shadow_give_and_take",
@@ -114,28 +114,13 @@ func test_every_talent_sits_in_its_slot() -> void:
 			else:
 				assert_false(tip.contains("to be learned"), "%s is open to every build" % row[1])
 
-## The caster's talents and the open ones, the Hounds', Baited Steel, and the empty slots.
+## Every slot of the book holds a talent (the ribbon layout: tests/test_shadow_tree.gd has the rest).
 func test_the_books_talents_and_empty_slots() -> void:
-	assert_eq(Talents.layout("shadow"), [[0, 1, 3, 5, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 2, 3, 4, 6], [0, 1, 3, 5, 6], [0, 2, 3, 4, 6],
-		[0, 2, 3, 4, 6], [1, 2, 3, 4, 5], [0, 2, 3, 4, 6], [1, 2, 3, 4, 5]])
-	for row in Talents.layout("shadow"):
-		assert_true(row.size() >= Talents.MIN_PER_ROW and row.size() <= Talents.MAX_PER_ROW, "%s: two to seven in a row" % [row])
-		for col in row:
-			assert_true(row.has(Talents.COLUMNS - 1 - int(col)), "%s is mirrored around the middle" % [row])
 	var designed := 0
-	var empty := 0
 	for id in Talents.in_tree("shadow"):
-		if bool(Talents.get_talent(id).get("placeholder", true)):
-			empty += 1
-		else:
-			designed += 1
-	assert_eq(designed, WANT.size() + 1, "these, and Tainted Steel")
-	assert_eq(empty, 2, "the bottom row's mirror of Steady Hands (the healer took the two that were empty before), and Cut Short's (folded into Hush)")
-	# ... on an edge: the caster's talents keep to the middle.
-	for id in Talents.in_tree("shadow"):
-		if bool(Talents.get_talent(id).get("placeholder", true)):
-			var col := int(id.get_slice("c", 1))   # "shadow_r8c2" -> 2 (columns 1 to 7)
-			assert_true(col <= 2 or col >= 6 or id == "shadow_r4c5", "%s is on an edge" % id)
+		assert_false(bool(Talents.get_talent(id).get("placeholder", true)), "%s is designed" % id)
+		designed += 1
+	assert_true(designed > WANT.size(), "these, Baited Steel and the newer ones")
 
 func test_running_over_bite_down_and_hush() -> void:
 	var p := _player()
@@ -179,8 +164,7 @@ func test_capstones() -> void:
 	assert_contains(Talents.capstone_text(Talents.id_for_key("shadow_next_of_kin")), "50%")
 	assert_contains(Talents.capstone_text(Talents.id_for_key("shadow_interest")), "5 sec")
 
-## The Hounds' talents: the Hounds themselves down the left edge (they work
-## whichever ability called them), one ability's talents each down the right.
+## The Hounds' talents, all in their spec's ribbon; the ones that need one ability need a Shadow melee one.
 func test_the_hounds_talents() -> void:
 	var seen := {}
 	for row in WANT:
@@ -188,15 +172,10 @@ func test_the_hounds_talents() -> void:
 			continue
 		seen[str(row[0])] = true
 		var id := Talents.id_for_key(str(row[0]))
-		var col := int(Talents.col_of(id))   # 0 = the left edge
-		var tip := Talents.tooltip(id, 1) + " " + Talents.capstone_text(id)
+		assert_eq(Talents.group_of(id), "Pack of Two", "%s is in the Hounds' ribbon" % row[1])
 		if str(row[0]) == "shadow_pack_leader":
 			assert_eq(int(Talents.tier_of(id)), Talents.ROWS - 1, "the five-rank one sits in the bottom row")
-		elif str(row[5]) == "" or str(row[5]) == "blight":
-			assert_true(col <= 1, "%s is on the left edge" % row[1])
-			assert_contains(tip, "Hounds")
-		else:
-			assert_eq(col, Talents.COLUMNS - 1, "%s is on the right edge" % row[1])
+		elif str(row[5]) != "":
 			assert_true(Abilities.category_of(str(row[5])) == "shadow" and int(Abilities.get_resource(str(row[5])).weapon_requirement) == 1,
 				"%s needs a Shadow melee ability" % row[1])
 	assert_eq(seen.size(), HOUND_TALENTS.size(), "every one of them is in WANT")
@@ -210,13 +189,12 @@ func test_the_hounds_talents() -> void:
 	assert_contains(Talents.capstone_text(Talents.id_for_key("shadow_pincer")), "10 Fury")
 	assert_contains(Talents.capstone_text(Talents.id_for_key("shadow_take_it_with_you")), "already Roused")
 	assert_contains(Talents.capstone_text(Talents.id_for_key("shadow_slipped_leash")), "third Hound")
-	assert_contains(Talents.tooltip(Talents.id_for_key("shadow_share_the_kill"), 1), Abilities.ability_name("shadowstrike"))
+	assert_contains(Talents.tooltip(Talents.id_for_key("shadow_share_the_kill"), 1), "while your Hounds are out")
 	# Off the Chain and Open Up quote their time with the talent in it.
 	assert_contains(str(Abilities.get_resource("offthechain").description), "{chain_time}")
 	assert_contains(str(Abilities.get_resource("openup").description), "{fx_time}")
 	# Linked top down: the most important first.
-	for l in [["shadow_lean_and_hungry", "shadow_fed"], ["shadow_fed", "shadow_worked_up"],
-			["shadow_long_night", "shadow_take_it_with_you"], ["shadow_pincer", "shadow_again"]]:
+	for l in [["shadow_long_night", "shadow_take_it_with_you"], ["shadow_pincer", "shadow_again"]]:
 		var from := Talents.id_for_key(str(l[0]))
 		var to := Talents.id_for_key(str(l[1]))
 		assert_true(Talents.links_in_tree("shadow").has([from, to]), "%s opens %s" % l)
@@ -262,7 +240,7 @@ func test_the_healers_talents() -> void:
 	assert_true(int(Talents.tier_of(from)) < int(Talents.tier_of(to)), "the more important one sits higher")
 	assert_eq(int(Talents.col_of(from)), int(Talents.col_of(to)), "straight under it")
 
-## The middle column: Deep Call, Ill Will, Hard Pull, Wide Pack.
+## Deep Call, Ill Will, Hard Pull, Wide Pack.
 func test_the_middle_column() -> void:
 	var p := _player()
 	# Deep Call: only on a target whose Breach is open, never under 0.2 sec.
@@ -286,15 +264,15 @@ func test_the_middle_column() -> void:
 		var tip := Abilities.tooltip(id)
 		assert_eq(TextFill.leftover(tip), "", tip)
 		assert_false(tip.contains("?"), tip)
-	# Small Change moved up under Interest; old saves keep its points.
-	assert_eq(Talents.rearranged({"shadow_r8c4": 2}, Talents.SHADOW_MIDDLE_MOVED, []), {"shadow_r5c4": 2})
+	# Small Change's old move went with the ribbon tree, which refunded every point.
+	assert_true(Talents.SHADOW_MIDDLE_MOVED.is_empty())
 
 func test_call_dues_talents_are_linked_top_down() -> void:
 	var from := Talents.id_for_key("shadow_interest")
 	var to := Talents.id_for_key("shadow_small_change")
 	assert_true(Talents.links_in_tree("shadow").has([from, to]), "maxing Interest opens Small Change")
 	assert_true(int(Talents.get_talent(from).get("tier", 0)) < int(Talents.get_talent(to).get("tier", 0)), "the more important one sits higher")
-	assert_eq(int(Talents.get_talent(from).get("col", 0)), int(Talents.get_talent(to).get("col", -1)), "straight down the middle")
+	assert_eq(int(Talents.get_talent(from).get("col", 0)), int(Talents.get_talent(to).get("col", -1)), "straight down one column")
 
 func test_slow_death_and_wasting() -> void:
 	var p := _player()
@@ -351,10 +329,11 @@ func test_lure() -> void:
 	var p := _player()
 	assert_eq(DecayKit.WITHER_TICK_ID, "dot_corrupted", "a tick of Wither's effect")
 	assert_eq(str(Abilities.get_resource("corruption").on_hit_effect.id), "corrupted")
-	assert_eq(DecayKit.seep_feed_pct("dot_corrupted", 50.0), 50.0)
-	assert_eq(DecayKit.seep_feed_pct("dot_corrupted", 0.0), 0.0, "not without the talent")
-	assert_eq(DecayKit.seep_feed_pct("dot_burning", 50.0), 0.0, "no other damage over time")
-	assert_eq(DecayKit.seep_feed_pct("dot_decay", 50.0), 0.0, "Decay never feeds itself")
+	var dot := PackedStringArray(["Shadow", "Spell", "DoT"])
+	assert_eq(DecayKit.seep_feed_pct("dot_corrupted", dot, true, 50.0), 50.0)
+	assert_eq(DecayKit.seep_feed_pct("dot_corrupted", dot, true, 0.0), 0.0, "not without the talent")
+	assert_eq(DecayKit.seep_feed_pct("dot_burning", PackedStringArray(["Fire", "Spell", "DoT"]), true, 50.0), 0.0, "no other school's damage over time")
+	assert_eq(DecayKit.seep_feed_pct("dot_decay", dot, true, 50.0), 0.0, "Decay never feeds itself")
 	assert_eq(DecayKit.decay_feed_pct("dot_corrupted", PackedStringArray(["Shadow", "Spell", "DoT"]), false, true), 0.0, "on its own a tick adds nothing")
 
 func test_next_of_kin() -> void:

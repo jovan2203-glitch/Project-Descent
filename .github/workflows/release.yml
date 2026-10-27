@@ -1,5 +1,6 @@
 # A version tag (tools/release.sh 0.0.16 pushes v0.0.16) builds and publishes a release:
-# tests, Windows export, ProjectDescent-windows.zip (what the launcher downloads),
+# tests, Windows export, ProjectDescent-windows.zip (fresh installs), the raw build
+# files + manifest.json (launcher patch updates),
 # and the newest docs/PATCH_NOTES_*.md as the release text.
 name: Release
 
@@ -61,9 +62,20 @@ jobs:
           "$HOME/godot/Godot_v4.7.2-stable_win64_console.exe" --headless --path . --export-release "Windows Desktop" "$RUNNER_TEMP/build/ProjectDescent.exe"
           test -f "$RUNNER_TEMP/build/ProjectDescent.exe" && test -f "$RUNNER_TEMP/build/ProjectDescent.pck"
 
-      - name: Zip it
+      # dist/: the zip (fresh installs), every build file on its own and
+      # manifest.json (name, size, SHA-256 of each) so the launcher can patch:
+      # it downloads only the files that changed, and only the changed parts of the .pck.
+      - name: Zip it and write the manifest
         shell: pwsh
-        run: Compress-Archive -Path "$env:RUNNER_TEMP/build/*" -DestinationPath "$env:RUNNER_TEMP/ProjectDescent-windows.zip"
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Compress-Archive -Path "$env:RUNNER_TEMP/build/*" -DestinationPath dist/ProjectDescent-windows.zip
+          $files = @(Get-ChildItem "$env:RUNNER_TEMP/build" -File | ForEach-Object {
+            Copy-Item $_.FullName dist/
+            [ordered]@{ name = $_.Name; size = $_.Length; sha256 = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower() }
+          })
+          [ordered]@{ version = "$env:GITHUB_REF_NAME"; files = $files } | ConvertTo-Json -Depth 3 | Set-Content -Encoding utf8 dist/manifest.json
+          Get-Content dist/manifest.json
 
       - name: Find the patch notes
         id: notes
@@ -79,5 +91,5 @@ jobs:
         with:
           name: Project Descent ${{ steps.notes.outputs.version }}
           body_path: ${{ steps.notes.outputs.path }}
-          files: ${{ runner.temp }}/ProjectDescent-windows.zip
+          files: dist/*
           prerelease: ${{ contains(github.ref_name, '-') }}

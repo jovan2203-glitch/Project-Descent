@@ -67,7 +67,8 @@ const DECAY_ERROR := "Your Breach isn't under that target"
 ## enemy instance id -> {"target": Node3D, "amount": damage it has left, "open":
 ## time it closes, "next": time of its next tick, "fast": time Gnaw runs out,
 ## "pos": where the enemy was last seen, "shown": the debuff that shows it,
-## "dirty": that debuff's number is out of date, "sync": when it may be sent next}
+## "dirty": that debuff's number is out of date, "sync": when it may be sent next,
+## "held": seconds Hooked Claws' capstone has kept it open since it was opened}
 var _decay := {}
 var _bottomless_until := 0.0   # when the Bottomless I last used runs out (No Floor holds Decay open until then)
 
@@ -133,20 +134,36 @@ static func kin_amount(left: float, pct: float, second: bool = false) -> float:
 	var moved := maxf(left, 0.0) * (1.0 + maxf(pct, 0.0) / 100.0)
 	return moved * Balance.NEXT_OF_KIN_SECOND_PCT / 100.0 if second else moved
 
-## Seep: % of a hit's damage that goes into my open Decay because it is a tick
-## of Wither (`pct` = the talent; 0 = it is not, or no talent).
-static func seep_feed_pct(id: String, pct: float) -> float:
-	return maxf(pct, 0.0) if id == WITHER_TICK_ID else 0.0
+## Seep (Lure): % of a hit's damage that goes into my open Decay because it is
+## periodic Shadow damage of mine other than Decay's own (`pct` = the talent; 0 =
+## it is not, or no talent).
+static func seep_feed_pct(id: String, tags: PackedStringArray, is_dot: bool, pct: float) -> float:
+	return maxf(pct, 0.0) if is_dot and tags.has("Shadow") and id != DECAY_HIT_ID else 0.0
+
+## Many Mouths: the share `pct` a Shadow spell that hits an area (`tags`) feeds
+## each open Decay it hits, with `more` % more.
+static func many_mouths_pct(pct: float, tags: PackedStringArray, more: float) -> float:
+	return pct * (1.0 + maxf(more, 0.0) / 100.0) if shadow_spell(tags) and tags.has("AoE") else pct
+
+## Hooked Claws' capstone: seconds a tick that critically strikes adds to a Decay
+## open until `open_until`, which already got `held` seconds since it was opened.
+static func hooked_claws_hold(open_until: float, now: float, held: float) -> float:
+	if open_until <= now:
+		return 0.0   # (only an open one is held)
+	return clampf(Balance.HOOKED_CLAWS_MAX - maxf(held, 0.0), 0.0, Balance.HOOKED_CLAWS_HOLD)
 
 ## Seconds Bottomless lasts (`extra` = No Floor).
 static func bottomless_time(extra: float = 0.0) -> float:
 	return Balance.BOTTOMLESS_TIME + maxf(extra, 0.0)
 
-## % more a tick of my Decay deals: Slow Death (all my damage over time), Rot
-## Through (Decay's ticks) and, on the last drop, Bitter End. As [pct, label]
+## % more a tick of my Decay deals: Shut Tight (while it is closed), Slow Death (all
+## my damage over time), Rot Through (Decay's ticks) and, on the last drop, Bitter End. As [pct, label]
 ## pairs, one for each that adds something (each gets its own line on the meter).
-static func decay_tick_bonuses(slow_death: float, rot_through: float, bitter_end: float, last_drop: bool) -> Array:
+static func decay_tick_bonuses(slow_death: float, rot_through: float, bitter_end: float, last_drop: bool,
+		shut_tight: float = 0.0, closed: bool = false) -> Array:
 	var out: Array = []
+	if closed and shut_tight > 0.0:
+		out.append([shut_tight, "Shut Tight"])
 	if slow_death > 0.0:
 		out.append([slow_death, "Slow Death"])
 	if rot_through > 0.0:
@@ -270,14 +287,15 @@ func _decay_entry(foe: Node3D) -> Dictionary:
 	if not _decay.has(key):
 		_decay[key] = {"target": foe, "amount": 0.0, "open": 0.0,
 			"next": _decay_now() + decay_interval(player.haste_mult(), false, player._talent("shadow_wasting")),
-			"fast": 0.0, "pos": foe.global_position, "shown": "", "dirty": true, "sync": 0.0}
+			"fast": 0.0, "pos": foe.global_position, "shown": "", "dirty": true, "sync": 0.0, "held": 0.0}
 	return _decay[key]
 
-## Blight landed on `foe`: my Decay there is open for the next `seconds`.
+## Blight landed on `foe`: my Decay there is open for the next `seconds` (and Held Open's).
 func _open_decay(foe: Node3D, seconds: float) -> void:
 	var d := _decay_entry(foe)
 	var now := _decay_now()
-	d["open"] = maxf(float(d["open"]), now + seconds)
+	d["open"] = maxf(float(d["open"]), now + seconds + player._talent("shadow_held_open"))   # Held Open: longer
+	d["held"] = 0.0   # (Hooked Claws' capstone starts over)
 	_decay_show(d, now, true)
 
 ## Add `amount` damage to my Decay on `foe`, if it is open. Returns true if it grew.
@@ -311,7 +329,9 @@ func _on_damage_dealt_shadow(info: RefCounted) -> void:
 	var pct := decay_feed_pct(id, info.tags, bool(info.is_proc), bool(info.is_dot),
 		player._talent("shadow_tainted_steel"), rot_rune_pct(_rune_count(ROT_RUNE)))
 	if pct <= 0.0:
-		pct = seep_feed_pct(id, player._talent("shadow_seep"))   # Seep: Wither's ticks add to it too
+		pct = seep_feed_pct(id, info.tags, bool(info.is_dot), player._talent("shadow_seep"))   # Seep (Lure): my periodic Shadow damage adds to it too
+	else:
+		pct = many_mouths_pct(pct, info.tags, player._talent("shadow_many_mouths"))   # Many Mouths: spells that hit an area add more
 	if pct > 0.0:
 		_decay_feed(foe, float(info.amount) * pct / 100.0)
 
@@ -389,10 +409,11 @@ func _end_decay(key: int) -> void:
 ## `bonuses` = [pct, label] pairs of what my talents add to it (decay_tick_bonuses).
 ## `crit_bonus` = % crit chance it gets on top (Bite Down; adjust_crit adds it).
 ## `proc` = a rune caused it (the Rune of the Long Fall): nothing triggers off it.
+## Returns true if it critically struck (Hooked Claws' capstone).
 func _decay_hit(foe: Variant, amount: float, id: String, tick: bool, bonuses: Array = [], crit_bonus: float = 0.0,
-		proc: bool = false) -> void:
+		proc: bool = false) -> bool:
 	if amount <= 0.0 or not _decay_usable(foe):
-		return
+		return false
 	var hit := DamageInfo.make(player, foe, 1.0, id)
 	hit.is_proc = proc
 	if crit_bonus > 0.0:
@@ -408,6 +429,7 @@ func _decay_hit(foe: Variant, amount: float, id: String, tick: bool, bonuses: Ar
 	hit.damage_type = "shadow"
 	hit.tags = PackedStringArray(DECAY_TAGS if tick else SHADOW_TAGS)
 	player._combat().deal(hit)
+	return bool(hit.crit) and not hit.avoided()
 
 ## Every frame: my Decays tick, close, and move on when their enemy dies.
 func _tick_decay() -> void:
@@ -420,6 +442,9 @@ func _tick_decay() -> void:
 	var wasting := player._talent("shadow_wasting")
 	var slow_death := player._talent("shadow_slow_death")
 	var rot_through := player._talent("shadow_rot_through")
+	var shut_tight := player._talent("shadow_shut_tight")
+	var grasping := player._talent("shadow_grasping_hands")
+	var claws_hold := player.frost_melee._capstone("shadow_rot_through")
 	var long_fall := player.frost_melee._has_rune(LONG_FALL_RUNE)
 	var unit := -1.0
 	for key in _decay.keys():
@@ -458,19 +483,29 @@ func _tick_decay() -> void:
 			d["next"] = now + decay_interval(haste, fast, wasting)
 			if unit < 0.0:
 				unit = _decay_unit()
-			var bite := bite_down_crit(fast, player._talent("shadow_bite_down"))   # Bite Down: more crits during Gnaw
+			var bite := bite_down_crit(fast, player._talent("shadow_bite_down")) + grasping   # Bite Down: more crits during Gnaw; Grasping Hands
 			var amount := float(d["amount"])
-			if decay_last_drop(amount, now < float(d["open"]), unit):
+			var open := now < float(d["open"])
+			if decay_last_drop(amount, open, unit):
 				_end_decay(int(key))
 				# The last drop: all that is left (Bitter End: and more).
 				_decay_hit(foe, amount, DECAY_HIT_ID, true,
-					decay_tick_bonuses(slow_death, rot_through, player._talent("shadow_bitter_end"), true), bite)
+					decay_tick_bonuses(slow_death, rot_through, player._talent("shadow_bitter_end"), true, shut_tight, true), bite)
+				_paid_in_full()
 				continue
 			var tick := decay_tick(amount)
 			if not endless:
 				d["amount"] = amount - tick
 				d["dirty"] = true
-			_decay_hit(foe, tick, DECAY_HIT_ID, true, decay_tick_bonuses(slow_death, rot_through, 0.0, false), bite)
+			var crit := _decay_hit(foe, tick, DECAY_HIT_ID, true, decay_tick_bonuses(slow_death, rot_through, 0.0, false, shut_tight, not open), bite)
+			# Hooked Claws' capstone: a tick that critically strikes keeps it open a little longer.
+			if crit and claws_hold:
+				var more := hooked_claws_hold(float(d["open"]), now, float(d.get("held", 0.0)))
+				if more > 0.0:
+					d["open"] = float(d["open"]) + more
+					d["held"] = float(d.get("held", 0.0)) + more
+					if str(d["shown"]) == DECAY_FX:
+						_decay_effect_time(foe, DECAY_FX, float(d["open"]) - now)
 		_decay_show(d, now)
 
 ## Put `amount` more Decay of mine on `foe`, open until `open_until` (a time):
@@ -556,6 +591,8 @@ func _call_due() -> void:
 	player._ring_effect(1.3, Abilities.color_of(CALL_DUE_ID), foe.global_position)
 	_claws_at(foe, 8, 1.15)   # every hand at once, over its head
 	_decay_hit(foe, call_due_damage(amount, player._talent("shadow_interest")), CALL_DUE_ID, false)   # Interest: more on top
+	if amount > 0.0:
+		_paid_in_full()
 	# Interest's capstone: taking out an open Decay makes my next Blight instant.
 	if was_open and player.frost_melee._capstone("shadow_interest"):
 		var fx := StatusContainer.make_buff(INTEREST_FX, "Interest", INTEREST_FX, 0.0, Balance.INTEREST_TIME, 1,
@@ -564,6 +601,12 @@ func _call_due() -> void:
 		fx.tags = PackedStringArray(["Shadow"])
 		fx.description = "Your next %s is instant." % Abilities.ability_name(BLIGHT_ID)
 		player.status.apply(fx, player)
+
+## Paid in Full: my Decay ended with Call Due or its last drop, so I get mana back.
+func _paid_in_full() -> void:
+	var pct := player._talent("shadow_paid_in_full")
+	if pct > 0.0:
+		player._gain("mana", ShadowTalentsKit.carrion_mana(player.resource_max("mana"), pct))
 
 ## Gnaw: a small hit, and my Decay on the target ticks faster for a while.
 func _gnaw(res: Resource) -> void:

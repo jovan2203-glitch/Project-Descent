@@ -15,10 +15,14 @@ class_name ColossusKit
 # hits on the Hands give it, Heartsap uses it all. Everything is on my own
 # machine: the hits are mine, the party sees the limbs faint ("creature" fx).
 # Numbers: balance.gd (SAP_*, VINE_FIST_*, STOMP_*, GIANTS_HANDS_*, HEARTSAP_*,
-# AWAKEN_*, GRASP_*). Talents: Thick Sap (Heartsap), Rising Sap (Sap heals more),
-# Crushing Grip (the Hands' burst), Broad Fist (Vine Fist), Spreading Roots
-# (Stomp's roots), Firm Hold (Grasp), Wide Awake (Awaken); Old Growth (less
-# damage taken per Sap) is in nature_talents_open.gd, with the other incoming hits.
+# AWAKEN_*, GRASP_*). Talents: Thick Sap (Heartsap), Rising Sap, Brimming and Old
+# Oak (Sap heals more), Long Sap (its time), Sap Run (more of it), Taproot (Fury
+# from using it), Crushing Grip (the Hands' burst), Broad Fist (Vine Fist),
+# Spreading Roots (Stomp's roots), Long Limbs (the reach of what hits all around
+# me), Firm Hold (my holds), Wide Awake (Awaken); Old Growth (less damage taken
+# per Sap) is in nature_talents_open.gd, with the other incoming hits (its
+# capstone here). Heavy Limbs, Creaking Bark, Called Out, Groundswell and
+# Woodgrain work on any of my hits, taunts and shields (nature_talents_open.gd, Player).
 
 const VINE_FIST_ID := "vinefist"
 const GRASP_ID := "grasp"
@@ -45,6 +49,7 @@ var _hands_on := false       # Giant's Hands is up (it bursts when it goes)
 var _hands_hits := 0         # hits it soaked (Crushing Grip)
 var _stomp_roots := []       # [{"at", "radius", "coef", "ticks", "next", "every"}]
 var _grasped := {}           # enemy instance id -> until: held by my Grasp (Stomp hits them twice as hard)
+var _old_growth_at := -INF   # when Old Growth's capstone last gave me a Sap
 
 # Rules as static functions (tests/test_nature.gd).
 
@@ -65,6 +70,24 @@ static func crushing_grip_mult(hits: int, pct: float) -> float:
 static func stomp_roots_with(radius: float, more_time: float, more_reach: float) -> Array:
 	var time := Balance.STOMP_ROOTS_TIME + maxf(more_time, 0.0)
 	return [time, Balance.STOMP_ROOTS_DAMAGE * time / Balance.STOMP_ROOTS_TIME, radius + maxf(more_reach, 0.0)]
+
+## Seconds my Sap lasts (`long`: Long Sap's).
+static func sap_life(long: float) -> float:
+	return Balance.SAP_TIME + maxf(long, 0.0)
+
+## Brimming and Old Oak: how much more my Sap heals with `n` Sap, below their
+## health line or not (`brim`, `oak`: their % more).
+static func sap_heal_mult(n: int, low: bool, brim: float, oak: float) -> float:
+	var m := 1.0
+	if n >= Balance.SAP_MAX:
+		m *= 1.0 + maxf(brim, 0.0) / 100.0
+	if low:
+		m *= 1.0 + maxf(oak, 0.0) / 100.0
+	return m
+
+## Old Growth's capstone: does a hit of `amount` on `max_hp` give a Sap at `now` (last at `last`)?
+static func old_growth_gives(amount: int, max_hp: int, now: float, last: float) -> bool:
+	return max_hp > 0 and float(amount) * 100.0 >= float(max_hp) * Balance.OLD_GROWTH_HIT_PCT and now - last >= Balance.OLD_GROWTH_EVERY
 
 ## Old Growth: % less damage taken with `n` Sap (`per`: % each).
 static func old_growth_pct(n: int, per: float) -> float:
@@ -90,15 +113,19 @@ func sap() -> int:
 func awakened() -> bool:
 	return player.status != null and player.status.has(AWAKEN_FX)
 
-## Gain `more` Sap (more during Awaken); its time starts over.
-func _gain_sap(more: int) -> void:
+## Gain `more` Sap (more during Awaken); its time starts over. `ability`: an ability
+## of mine gives it (Sap Run may give one more).
+func _gain_sap(more: int, ability: bool = true) -> void:
 	if player.status == null or more <= 0 or player.is_dead():
 		return
+	if ability and WeaverKit.rolls(player._talent("nature_sap_run"), randf() * 100.0):
+		more += 1   # Sap Run
 	if awakened():
 		more *= Balance.AWAKEN_SAP_MULT
 	var want := sap_after(sap(), more)
-	if _sap_fx == null:
-		_sap_fx = StatusContainer.make_buff(SAP_FX, "Sap", Stats.BLOCK, 0.0, Balance.SAP_TIME, Balance.SAP_MAX, SAP_COLOR)
+	var life := sap_life(player._talent("nature_long_sap"))   # + Long Sap
+	if _sap_fx == null or not is_equal_approx(float(_sap_fx.duration), life):
+		_sap_fx = StatusContainer.make_buff(SAP_FX, "Sap", Stats.BLOCK, 0.0, life, Balance.SAP_MAX, SAP_COLOR)
 		_sap_fx.stat_modifiers = {}
 		_sap_fx.tags = PackedStringArray(["Nature"])
 		_sap_fx.description = "Sap glowing in your bark heals you every second. Heartsap uses it all up."
@@ -106,7 +133,7 @@ func _gain_sap(more: int) -> void:
 		return
 	if player.status.stacks_of(SAP_FX) != want:
 		player.status.set_stacks(SAP_FX, want)
-	player.status.set_remaining(SAP_FX, Balance.SAP_TIME)
+	player.status.set_remaining(SAP_FX, life)
 
 func _tick_colossus() -> void:
 	var now := Time.get_ticks_msec() / 1000.0
@@ -114,7 +141,9 @@ func _tick_colossus() -> void:
 	if player.status != null and player.status.has(SAP_FX) and now >= _sap_next:
 		_sap_next = now + 1.0
 		if not player.is_dead() and player.health < player.max_health:
+			var low := NatureTalentsOpenKit.below(float(player.health), float(player.max_health), Balance.OLD_OAK_HEALTH_PCT)
 			player.heal(sap_heal(player.max_health, sap(), player._talent("nature_rising_sap"))   # + Rising Sap
+				* sap_heal_mult(sap(), low, player._talent("nature_brimming"), player._talent("nature_old_oak"))   # + Brimming, Old Oak
 				* NatureTalentsOpenKit.green_thumb_mult(SAP_HEAL_ID, player._talent("nature_green_thumb")), SAP_HEAL_ID)   # + Green Thumb
 	# Giant's Hands went (used up or ran out): they burst open.
 	if _hands_on and (player.status == null or not player.status.has(GIANTS_HANDS_FX)):
@@ -172,11 +201,12 @@ func _vine_fist(res: Resource) -> void:
 				player.deal_damage(o, Balance.VINE_FIST_SPLASH, VINE_FIST_ID)
 		if awake:
 			# ... and slams the ground around me.
-			var near := player._enemies_within(Balance.AWAKEN_SLAM_RADIUS)
+			var slam := Balance.AWAKEN_SLAM_RADIUS + player._talent("nature_long_limbs")   # + Long Limbs
+			var near := player._enemies_within(slam)
 			var share := Balance.aoe_share(near.size())
 			for e in near:
 				player.deal_damage(e, Balance.AWAKEN_SLAM * share, GIANTS_SLAM_ID, true, "nature", PackedStringArray(COLOSSUS_TAGS))
-			player._ring_effect(Balance.AWAKEN_SLAM_RADIUS, SAP_COLOR)
+			player._ring_effect(slam, SAP_COLOR)
 		_gain_sap(Balance.VINE_FIST_SAP))
 
 ## Grasp: a hand rises under my target and drops it at my feet; it must attack me and is held.
@@ -200,9 +230,7 @@ func _grasp() -> void:
 			return
 		player._combat().apply_effect(player, foe, GRASPED_FX, GRASP_ID, PackedStringArray(COLOSSUS_TAGS))   # (Firm Hold: Abilities.effect_time_bonus)
 		_grasped[foe.get_instance_id()] = Time.get_ticks_msec() / 1000.0 + Balance.GRASP_HOLD + player._talent("nature_firm_hold")
-		var back := player._talent("nature_firm_hold", "values2")
-		if back > 0.0:
-			player._gain("fury", back))   # Firm Hold: Fury back
+		player.nature_open.firm_hold_fury())   # Firm Hold: Fury for a hold of mine
 
 ## Is `e` held by my Grasp right now?
 func grasped(e: Node) -> bool:
@@ -210,7 +238,7 @@ func grasped(e: Node) -> bool:
 
 ## Stomp: the foot comes down around me; every enemy there must attack me. Roots stay in the cracks.
 func _stomp(res: Resource) -> void:
-	var reach := Balance.AWAKEN_STOMP_RADIUS if awakened() else float(res.radius)
+	var reach := (Balance.AWAKEN_STOMP_RADIUS if awakened() else float(res.radius)) + player._talent("nature_long_limbs")   # + Long Limbs
 	var feet := player.weaver._ground_under(player)
 	player.weaver._creature("foot", feet + player.global_transform.basis.z * 0.5, feet - player.global_transform.basis.z * 1.2)
 	player.weaver._after(Balance.ROOTED_STRIKE_DELAY, func():
@@ -273,7 +301,7 @@ func _hands_burst() -> void:
 	if player.is_dead():
 		return
 	var res := Abilities.get_resource(GIANTS_HANDS_ID)
-	var reach := float(res.radius)
+	var reach := float(res.radius) + player._talent("nature_long_limbs")   # + Long Limbs
 	var foes := player._enemies_within(reach)
 	var share := Balance.aoe_share(foes.size()) * crushing_grip_mult(_hands_hits, player._talent("nature_crushing_grip"))   # + Crushing Grip
 	_hands_hits = 0
@@ -286,14 +314,21 @@ func _colossus_hit_taken(info: RefCounted) -> void:
 	if _hands_on and int(info.absorbed) > 0 and not bool(info.is_dot):
 		_hands_hits += 1
 		_gain_sap(Balance.HANDS_SAP)
+	# Old Growth's capstone: a big hit gives me a Sap now and then.
+	var now := Time.get_ticks_msec() / 1000.0
+	if not info.avoided() and old_growth_gives(int(info.amount) + int(info.absorbed), player.max_health, now, _old_growth_at) \
+			and player.frost_melee._capstone("nature_old_growth"):
+		_old_growth_at = now
+		_gain_sap(1, false)
 
 ## Heartsap: all my Sap at once as a heal.
 func _heartsap() -> void:
 	var n := sap()
 	player.status.remove(SAP_FX)
 	player.heal(float(player.max_health) * heartsap_pct(n, player._talent("nature_thick_sap")) / 100.0, HEARTSAP_ID)   # + Thick Sap
+	player._gain("fury", float(n) * player._talent("nature_taproot"))   # Taproot: Fury for the Sap used up
 	if player.frost_melee._capstone("nature_thick_sap"):
-		_gain_sap(Balance.THICK_SAP_KEEP)   # Thick Sap's capstone: some stays
+		_gain_sap(Balance.THICK_SAP_KEEP, false)   # Thick Sap's capstone: some stays
 	var feet := player.weaver._ground_under(player)
 	player.weaver._creature("chest", feet + player.global_transform.basis.z * 1.4, feet)
 	player._ring_effect(1.2, SAP_COLOR)

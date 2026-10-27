@@ -48,7 +48,7 @@ Open gaps: Arcane has no party tool; Holy's only crowd control is Binding Ring a
 - Pass 1 (done): 2-rank "Requires X" talents became 3 ranks with the same max (rank 3 = the old rank 2), except the ones whose steps are whole numbers (extra targets, darts, Reflections, Cracks, Flow, arrows, Incense, Energy per zap, Pin hits, Easy Release). In and Out, Steady Pace, No Letup and Long Memory no longer require one ability (they work off Flow, Streak and Traces).
 - Folded into their abilities (slots left empty for new keyword talents; their icons are kept in TalentIcons.SPARE): Furnace Heart (Cinder Guard costs 20 Fury), Thick Pitch (pitch lasts 12 s), Thick Hide (Winter Hide 40 s cooldown), Honed Edge (Charged Edge gives 30 Energy), Deep Well (Collapse pulls 5 m), Cut Short (Hush: 4 s off when it interrupts), Quick Return (Return to Bloom 4 s cast), Big Herd (Wild Herd 90 s), Deep Pockets (Snatch 10 s), Round Two (One More 9 s), Last Rites (Last Verse 2 min), Swift Light (Step of Light 10 s), High Censer (Raise the Censer 1 min, cost 1.3 mana points).
 - Choice talents (2026-10-22): one slot can hold two talents (`{"choice": [a, b]}` in `Talents.TALENTS`; ids `<slot>a` / `<slot>b`, `Talents.options_of`). Points go into only one of the two; refunding it frees the other. Hover the slot to pick (a popup with both); the slot shows both icons split, or the chosen one. The slot counts toward row unlocks like any talent; choice slots take no links. First one: Fire r5c1 (Steady Flame), Damped Embers or Wild Embers.
-- Ribbon layout (2026-10-26; replaced the column-group grid of 2026-10-22, which looked too much like WoW). Martial, Fire, Frost, Lightning and Arcane:
+- Ribbon layout (2026-10-26; replaced the column-group grid of 2026-10-22, which looked too much like WoW). Every book (Martial, Fire, Frost, Lightning, Arcane, Shadow, Nature, Holy):
   - A book's specs sit side by side as column groups (`Talents.GROUPS`, a per-book grid via `Talents.columns_of`), each 3 columns wide and drawn as a bookmark ribbon in a shade of the book's colour. The open talents fill one column between them, drawn as beads on a stitched thread down the book's spine.
   - Each spec's 18 talents in rows 1-9 are wax seals placed to form a symbol of its own (`Talents.SHAPES`: rows of 1, 2 or 3 seals, mirror-symmetric in the ribbon; no two specs share one). Talents moved up to two rows to make the shapes (TREE_VERSION 7 -> 8 refunded every point).
   - The ribbon unrolls to the deepest row its spec has points in (rolled-up lip, then a faint stitched outline of the rest). A clasp on top shows the spec's name and points toward 25. The capstone hangs at the tail with a gold ring that fills toward 25. Each spec's ribbon edges carry their own stitch (`RibbonDrawer.EMBROIDERY`). Ranks show as gold dots under each seal.
@@ -56,7 +56,7 @@ Open gaps: Arcane has no party tool; Holy's only crowd control is Binding Ring a
   - Drawing: scripts/ui/ribbon_drawer.gd, used by the book (scripts/menu/talent_tree.gd) and the Spellbook view (scripts/ui/talent_tree_view.gd).
   - Rows 1-9 hold the spec's talents; row 10 its 5-rank capstone. A capstone needs `Balance.CAPSTONE_GATE` (25) points in its spec's group, the capstone itself not counted (`PlayerData.gate_points`). The global row unlock stays for everything.
   - Size: about 19 talents and 50-55 ranks per spec, so a pure spec reaches ~65 points with open or other-book picks. At most a quarter need one ability.
-  - Books not in `GROUPS` keep the old 10×7 tree until their own pass.
+  - A click that can't spend or take back a point pulses the talents that would open it (light) or that hold it up (red), in every book (tests/test_talent_hints.gd).
   - A spec not built yet (`Talents.UNFINISHED_SPECS`: Stormstring, Aetherstring, Nightstring) gets a short ribbon holding only the talents it has: no shape, no capstone, and its clasp shows plain points.
 - Keywords talents key off (each spec's own, plus the shared ones):
   - Shared: damage types, Fury, Energy, mana, spells, abilities, melee, thrown, auto-attacks, crits, knockdowns, health thresholds.
@@ -68,9 +68,11 @@ Open gaps: Arcane has no party tool; Holy's only crowd control is Binding Ring a
   - Frost: Chilled, Frozen (Freezing, thawing), shatters, Ice Shard charges, Hoarfrost; Rime Shell, Rime Shards, Runoff, Thawing, Frost shields; Glaze, finishers (Calving, Icebreaker), Winter's Bite; Ice Layers (breaking, forming), shield abilities; arrows, auto-shots, roots.
   - Lightning: Energy gained and spent, spending all of it, leaps and forks, lingering lightning (Ball Lightning, Thunderhead, Live Wire), Grounding Surge, full Energy; auto-attacks, Energy builders, low Energy, Lightning weapon abilities; parries, two-handed weapon, arcs, hits on everything around you, enemies forced to attack you, low health.
   - Arcane: Arcane cooldowns (time taken off, spells on cooldown, coming off cooldown), Arcane spell crits, mana, moving, roots; Reflections (created, held, shattered), dodges, dual wield, threat; Traces (left, held, replayed), replays, cuts, low health.
-  - The other books get their lists in their own pass.
+  - Shadow: the Breach (open, closed, feeding it, its ticks, Call Due and the last tick), periodic Shadow damage, Shadow spells with a cast time, area spells, mana; the Hounds (bites, lunges, Drag Down, Roused, Laid Open), Fury built and spent, low health; Strings (their heals, three on one ally, shares, Crossed Strings, loose Strings, Strings on enemies, Strings in hand), low health, mana.
+  - Nature: Mulch patches (laid, lasting, old, used), woven and rooted creatures, finishers, Thornburst, Nature spells with a cast time, mana; Blossoms (given, held, used up, three on one ally, none), woven heals, rooted heals and shields, Fawn's bounces, Nature heals, mana; Sap (gained, held, used up, all five), Fury built and spent, holds, taunts, hits on everything around you, threat, shields on yourself, low health; poisons (their time, ticks, jumps, copies), two poisons, Steeped, Venom and Venom Flow, bow shots, auto-shots, slows, low health.
+  - Holy: Hymns (Mercy, Chorus, Vigil), Verses, booms, Full Choir, Reprise, mana; Incense (held, spent, full), motes of light, blocks, threat, low health; prisms (charged, full, moved, shattering, running out), beams, low health, mana; gold prisms, Refraction, focused shots, bow shots, instant shots, auto-shots, Energy, low health.
 - Frost is the first five-spec book: 11 columns (Talents.GRID_COLUMNS), so Talents.MAX_PER_ROW is 11.
-- Lightning done 2026-10-26 (TREE_VERSION 9), Arcane done 2026-10-26 (TREE_VERSION 10). Next: the same pass for Shadow, Nature and Holy, one book at a time.
+- Lightning done 2026-10-26 (TREE_VERSION 9), Arcane done 2026-10-26 (TREE_VERSION 10), Shadow done 2026-10-27 (TREE_VERSION 11), Nature and Holy done 2026-10-27 (TREE_VERSION 12): every book is on ribbons.
 
 ## Abilities, spellbook, action bars
 - Level-up draft offers new abilities. Skill Cards are equipped as a loadout in their own main-menu tab.
@@ -114,6 +116,9 @@ Open gaps: Arcane has no party tool; Holy's only crowd control is Binding Ring a
 
 ## Launcher
 - Settings pre-launcher that pulls updates from GitHub Releases.
+- Fresh installs download the zip. Updates are patches (`launcher/patcher.gd`): only build files whose SHA-256 changed (release `manifest.json`) are downloaded, and the .pck is rebuilt from the installed one plus only the files inside it that changed (HTTP Range requests on the release's raw .pck), verified byte for byte; any failure falls back to the zip. 0.0.22 → 0.0.23 would have been 5.5 MB instead of 137 MB.
+- The game exe's version resource is pinned to 1.0.0.0 (`export_presets.cfg`) so the exe stays identical between releases; the in-game version comes from `application/config/version`.
+- `launcher/tools/patch_test.gd` checks a rebuild between two real packs and a live Range request.
 - Open: Windows SmartScreen warning on launcher.exe.
 
 ## Code layout and tooling

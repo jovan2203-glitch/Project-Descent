@@ -291,6 +291,10 @@ var last_shield_source: Variant = null
 func set_absorb(id: String, amount: int, on_break: Callable = Callable(), keep_effect: bool = false) -> void:
 	if not effects.has(id) or amount <= 0:
 		return
+	# A shield its owner put on themselves may be bigger (the player's Woodgrain).
+	var owner_node := get_parent()
+	if owner_node != null and owner_node.has_method("self_absorb_mult") and applied_by(effects[id], owner_node):
+		amount = int(round(float(amount) * float(owner_node.self_absorb_mult())))
 	absorbs[id] = {"amount": amount, "full": amount, "on_break": on_break, "keep": keep_effect}
 	effects[id].erase("net_absorb")
 	changed.emit()
@@ -424,6 +428,15 @@ func has_from(id: String, source: Node) -> bool:
 	return false
 
 ## Is a root, hold or slow applied by `source` active here? (Own only: Undergrowth.)
+## Is any slow applied by `source` active here? (Own only: Dragging Feet.)
+func has_slow_from(source: Node) -> bool:
+	for k in effects:
+		var e: Dictionary = effects[k]
+		var res: Resource = e["res"]
+		if float(res.stat_modifiers.get("move_speed", 0.0)) < 0.0 and applied_by(e, source):
+			return true
+	return false
+
 func has_cc_from(source: Node) -> bool:
 	for k in effects:
 		var e: Dictionary = effects[k]

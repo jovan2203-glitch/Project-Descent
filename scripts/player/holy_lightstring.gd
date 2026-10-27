@@ -13,8 +13,10 @@ class_name LightstringKit
 # weakly. Sunlit Arrow drains that light as damage, Prism Breaker shatters a gold
 # prism into the enemies around it, Step of Light takes me to a prism, and
 # Spectrum Volley makes the gold prisms shoot by themselves. Numbers are in
-# balance.gd; the talents (Wide Fan, Split Light, Bright Quiver, Deep Burn,
-# Long Volley) in talents.gd.
+# balance.gd; the talents in talents.gd. Here: Wide Fan, Split Light, Full Gold
+# (refracted arrows), Pinpoint (a focused shot), Lined Up (several prisms), Gilded
+# and Bright Quiver (charging), Deep Burn, Long Volley, Wide Break, Full Quiver.
+# Glimmering, Gilt Tips, Sundown, Burnished, Sunsteel and Dazzle: holy_talents.gd, Player.
 
 const PRISM_ARROW_ID := "prismarrow"
 const GLIMMER_SHOT_ID := "glimmershot"
@@ -65,6 +67,14 @@ static func sunlit_bonus(lights: Array, deep: float) -> float:
 static func breaker_damage(light: float) -> float:
 	return Balance.BREAKER_DAMAGE + maxf(light, 0.0) * Balance.BREAKER_LIGHT
 
+## How much stronger a shot is for the gold prisms on its line: `focused` of them
+## had no other enemy near (Pinpoint's `pin` % more each), `passed` in all (Lined Up's `lined` %).
+static func line_mult(focused: int, passed: int, pin: float, lined: float) -> float:
+	var m := 1.0 + float(maxi(focused, 0)) * (Balance.REFRACT_FOCUS_PCT + maxf(pin, 0.0)) / 100.0
+	if passed >= Balance.LINED_UP_PRISMS:
+		m *= 1.0 + maxf(lined, 0.0) / 100.0
+	return m
+
 ## A Spectrum Volley arrow's damage (coefficient) from a gold prism holding `light`.
 static func volley_damage(light: float) -> float:
 	return Balance.VOLLEY_DAMAGE + maxf(light, 0.0) * Balance.VOLLEY_LIGHT
@@ -82,25 +92,31 @@ func _arrow_line(tgt: Node3D, coef: float, refract: float, charge: float, drain:
 	var cap := player.prism_kit._my_prism_cap()
 	var reach := Balance.REFRACT_RADIUS + player._talent("holy_wide_fan")   # + Wide Fan
 	var split := 1.0 + player._talent("holy_split_light") / 100.0          # + Split Light
+	var gilded := 1.0 + player._talent("holy_gilded") / 100.0              # + Gilded
 	var drained := []
 	var changed := false
+	var passed := 0
+	var focused := 0
 	for p in player.prism_kit._prisms:
 		if str(p.get("kind", "white")) != "gold" or not PrismsKit.on_beam(from, to, p["pos"], Balance.PRISM_BEAM_WIDTH):
 			continue
 		changed = true
+		passed += 1
 		var at: Vector3 = p["pos"]
 		var near := player._enemies_near(at, reach, tgt)
 		if not near.is_empty() and refract > 0.0:
 			var other: Node3D = near[0]
+			var full := 1.0 + player._talent("holy_full_gold") / 100.0 if float(p["light"]) >= cap - 0.001 else 1.0   # Full Gold
 			ARROW.spawn(player.get_tree().current_scene, at + Vector3(0, Balance.PRISM_HOVER, 0), other, player,
-				coef * refract / 100.0 * split, REFRACTION_ID)
+				coef * refract / 100.0 * split * full, REFRACTION_ID)
 		else:
-			out["mult"] = float(out["mult"]) + Balance.REFRACT_FOCUS_PCT / 100.0
+			focused += 1
 		if drain:
 			drained.append(float(p["light"]))
 			p["light"] = float(p["light"]) * (Balance.DEEP_BURN_KEEP_PCT / 100.0 if player.frost_melee._capstone("holy_deep_burn") else 0.0)
 		else:
-			p["light"] = gold_charged(float(p["light"]), coef, charge, cap)
+			p["light"] = gold_charged(float(p["light"]), coef, charge * gilded, cap)
+	out["mult"] = line_mult(focused, passed, player._talent("holy_pinpoint"), player._talent("holy_lined_up"))   # (+ Pinpoint, Lined Up)
 	if drain:
 		out["bonus"] = sunlit_bonus(drained, player._talent("holy_deep_burn"))   # + Deep Burn
 	if changed:
@@ -178,6 +194,7 @@ func _break_prism(i: int) -> void:
 	var coef := breaker_damage(float(p["light"])) * Balance.aoe_share(foes.size())
 	for e in foes:
 		player.deal_damage(e, coef, PRISM_BREAKER_ID)
+	player.holy_talents.bright_shards()   # Bright Shards
 	PrismsKit.PRISM.shatter(player.get_tree(), "me:" + str(p["key"]))
 	player._net_fx("prism_burst", at, null, {"k": str(p["key"])})
 	player._ring_effect(reach, PrismsKit.PRISM.GOLD, at)

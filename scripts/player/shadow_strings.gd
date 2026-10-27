@@ -63,6 +63,7 @@ const CROSSED_LABEL := "Crossed Strings"
 ## Talents: First Stitch's heal and Long Drop's hit (meter ids), Full Harness (the name of what it takes off a hit), Lean On Me (its buff).
 const FIRST_STITCH_ID := "first_stitch"
 const LONG_DROP_ID := "long_drop"
+const FAIR_TRADE_ID := "fair_trade"     # Fair Trade's heal (meter id)
 const FULL_HARNESS_LABEL := "Full Harness"
 const LEAN_ON_ME_FX := "lean_on_me"
 const STRING_BUFF := "on_a_string"          # what someone on a String carries: it shows how many, and for how long
@@ -142,7 +143,7 @@ static func heave_mult(strings: int, pct: float) -> float:
 	return 1.0 + maxf(pct, 0.0) * clampi(strings, 0, Balance.STRING_STACKS) / 100.0
 
 ## Heave's capstone: Hoist's cast time on someone with `strings` of my Strings.
-## Deep Call: Beckon's cast `cast` is `cut` sec shorter on a target whose Breach of mine is open.
+## Deep Call: a Shadow spell's cast `cast` is `cut` sec shorter on a target whose Breach of mine is open.
 static func deep_call_cast(cast: float, cut: float, open: bool) -> float:
 	return maxf(cast - cut, 0.2) if open and cut > 0.0 else cast
 
@@ -196,6 +197,26 @@ func _others_heal_mult(tgt: Variant) -> float:
 func _steady(coef: float) -> float:
 	return steady_heal(coef, player._talent("shadow_steady_hands"))
 
+## % of its health `who` has (100 when it can't be told).
+func _health_pct(who: Variant) -> float:
+	if who == null or not is_instance_valid(who):
+		return 100.0
+	var hp: Variant = (who as Object).get("health")
+	var max_hp: Variant = (who as Object).get("max_health")
+	if hp == null or max_hp == null or float(max_hp) <= 0.0:
+		return 100.0
+	return float(hp) * 100.0 / float(max_hp)
+
+## Nothing Wasted: Strings on an ally ran their full time, so I get mana back.
+func _nothing_wasted() -> void:
+	var pct := player._talent("shadow_nothing_wasted")
+	if pct > 0.0:
+		player._gain("mana", ShadowTalentsKit.carrion_mana(player.resource_max("mana"), pct))
+
+## Steady Hands' capstone: what my heals here are multiplied by (none of my Strings in hand).
+static func all_out_mult(in_hand: int, capstone: bool) -> float:
+	return 1.0 + Balance.STEADY_HANDS_ALL_OUT_PCT / 100.0 if capstone and in_hand <= 0 else 1.0
+
 ## Lean On Me: I healed someone else (_on_heal_done_strings).
 func _lean_on_me() -> void:
 	var pct := player._talent("shadow_lean_on_me")
@@ -239,13 +260,25 @@ static func string_placed(n: int, doubled: bool = false) -> Array:
 static func string_tick_heal(stacks: int, loose: bool = false) -> float:
 	return Balance.STRING_HEAL * (maxi(stacks, 0) + (1 if loose else 0))
 
-## Seconds between the heals of an ally's Strings (`haste` = my haste multiplier, `tugged` = Tug).
-static func string_tick_interval(haste: float, tugged: bool = false) -> float:
-	return maxf(Balance.STRING_TICK / (maxf(haste, 0.1) * (Balance.TUG_SPEED_MULT if tugged else 1.0)), 0.1)
+## Seconds between the heals of an ally's Strings (`haste` = my haste multiplier, `tugged` = Tug,
+## `quicker` = Quick Hands' %).
+static func string_tick_interval(haste: float, tugged: bool = false, quicker: float = 0.0) -> float:
+	return maxf(Balance.STRING_TICK / (maxf(haste, 0.1) * (Balance.TUG_SPEED_MULT if tugged else 1.0) * (1.0 + maxf(quicker, 0.0) / 100.0)), 0.1)
 
-## What every other ally on a String gets of a heal of `amount`.
-static func string_share(amount: int) -> int:
-	return int(round(maxf(float(amount), 0.0) * Balance.STRING_SHARE_PCT / 100.0))
+## What one tick of an ally's Strings heals is multiplied by: Three Ply (`three_ply` %,
+## when it has `stacks` = every String it can hold) and Hold Fast (`hold_fast` %, while it
+## is below HOLD_FAST_HEALTH_PCT: `health_pct`).
+static func string_tick_mult(stacks: int, three_ply: float, health_pct: float, hold_fast: float) -> float:
+	var mult := 1.0
+	if stacks >= Balance.STRING_STACKS:
+		mult *= 1.0 + maxf(three_ply, 0.0) / 100.0
+	if health_pct < Balance.HOLD_FAST_HEALTH_PCT:
+		mult *= 1.0 + maxf(hold_fast, 0.0) / 100.0
+	return mult
+
+## What every other ally on a String gets of a heal of `amount` (`more` = Pass It On's %).
+static func string_share(amount: int, more: float = 0.0) -> int:
+	return int(round(maxf(float(amount), 0.0) * Balance.STRING_SHARE_PCT / 100.0 * (1.0 + maxf(more, 0.0) / 100.0)))
 
 ## Is a heal `id` of mine shared along the Strings? A spell's or an ability's
 ## own heal (`is_ability`: it is in Abilities.PATHS): no Lifesteal, no talent or
@@ -513,7 +546,7 @@ func _tie_string(who: Node3D, is_enemy: bool, from_hand: bool = true) -> void:
 		else:
 			e["n"] = 1
 			_string_order.append(key)
-		e["until"] = now + Balance.STRING_ENEMY_TIME
+		e["until"] = now + Balance.STRING_ENEMY_TIME + player._talent("shadow_firm_grip")   # Firm Grip: longer
 		_cross_strings(key)
 	else:
 		var doubled: bool = from_hand and player.status != null and player.status.has(DOUBLE_THREAD_FX)
@@ -685,6 +718,10 @@ func _crossed_damage(ally: Variant, amount: int) -> void:
 	if a == null or int(a["cross"]) == 0 or not _strings.has(int(a["cross"])):
 		return
 	player.arcane_caster._exact_hit(_strings[int(a["cross"])]["node"], amount, CROSSED_ID, "shadow", PackedStringArray(STRING_TAGS))
+	# Fair Trade: the ally is healed for part of what was moved off it.
+	var trade := player._talent("shadow_fair_trade")
+	if trade > 0.0:
+		_heal_exact(ally, int(round(amount * trade / 100.0)), FAIR_TRADE_ID)
 
 ## Every frame: Strings heal, run out and come back; the demon and the party are kept up to date.
 func _tick_strings() -> void:
@@ -711,6 +748,8 @@ func _tick_strings() -> void:
 			_string_gone(int(key))   # dead, gone or too far away: back in my hand
 			continue
 		if int(e["n"]) > 0 and now >= float(e["until"]):
+			if not bool(e["enemy"]):
+				_nothing_wasted()
 			_strings_fall(int(key))  # ran their time: back in my hand
 			if not _strings.has(key):
 				continue
@@ -728,9 +767,10 @@ func _tick_strings() -> void:
 					_string_gone(int(key))
 			continue
 		if now >= float(e["next"]):
-			e["next"] = now + string_tick_interval(player.haste_mult(), now < float(e["fast"]))
+			e["next"] = now + string_tick_interval(player.haste_mult(), now < float(e["fast"]), player._talent("shadow_quick_hands"))   # (Quick Hands)
 			if not slack and (e["node"] as Node).is_alive():
-				_heal_coef(e["node"], _steady(string_tick_heal(int(e["n"]), loose)), STRING_ID)   # (Steady Hands)
+				var mult := string_tick_mult(int(e["n"]), player._talent("shadow_three_ply"), _health_pct(e["node"]), player._talent("shadow_hold_fast"))
+				_heal_coef(e["node"], _steady(string_tick_heal(int(e["n"]), loose)) * mult, STRING_ID)   # (Steady Hands, Three Ply, Hold Fast)
 	if _strings_dirty or now - _strings_told >= STRINGS_RETELL:
 		_show_strings()
 
@@ -789,7 +829,10 @@ func _heal_exact(tgt: Variant, amount: int, id: String) -> void:   # untyped: ma
 func _heal_coef(tgt: Variant, coef: float, id: String) -> int:
 	# (Many Hands and my Pact on someone else; my Pact alone on myself, since this heal does not go through heal().)
 	coef *= player.holy_talents._holy_heal_mult(id)   # Radiance
+	coef *= all_out_mult(string_charges(), player.frost_melee._capstone("shadow_steady_hands"))   # Steady Hands' capstone
 	coef *= NatureTalentsOpenKit.green_thumb_mult(id, player._talent("nature_green_thumb"))   # Green Thumb (heals over time)
+	coef *= player.nature_open.heal_mult(tgt, id)   # In Full Flower, New Shoots, Soft Weave, Patient Hands, Tending
+	coef *= player.holy_talents.heal_mult(tgt, id)   # Aftershine, First Light
 	if not is_same(tgt, player) and player.holy_talents.hit_recently(tgt, Balance.WATCHFUL_EYE_WINDOW):
 		coef *= 1.0 + player._talent("holy_watchful_eye") / 100.0   # Watchful Eye (both Holy healers)
 	var amount: int = player._combat().heal_amount(player, coef * (player.pacts_kit._pact_heal_mult() if is_same(tgt, player) else _others_heal_mult(tgt)), id)
@@ -809,7 +852,7 @@ func _on_heal_done_strings(source: Node, healed: Node, amount: int, _effective: 
 		return
 	if not shares_heal(id, Abilities.PATHS.has(id)) or not on_my_string(healed):
 		return
-	var share := string_share(amount)
+	var share := string_share(amount, player._talent("shadow_pass_it_on"))   # Pass It On: a bigger share
 	for key in _strings.keys():
 		var e: Variant = _strings.get(key)
 		if e == null or bool(e["enemy"]) or is_same(e["node"], healed) or not on_my_string(e["node"]):
@@ -837,7 +880,7 @@ func _tug() -> void:
 	if e != null:
 		var now := _str_now()
 		e["fast"] = now + tug_time(player._talent("shadow_hard_pull"))   # Hard Pull: longer
-		e["next"] = minf(float(e["next"]), now + string_tick_interval(player.haste_mult(), true))
+		e["next"] = minf(float(e["next"]), now + string_tick_interval(player.haste_mult(), true, player._talent("shadow_quick_hands")))
 	player._ring_effect(0.7, STRING_COLOR, (who as Node3D).global_position)
 
 ## Cat's Cradle: every ally near me is healed and gets a loose String (none of
@@ -853,7 +896,7 @@ func _cats_cradle(res: Resource) -> void:
 ## Cat's Cradle, and Climb the String (scripts/player/utility.gd) on an ally.
 func _tie_loose(a: Node3D, now: float = _str_now()) -> void:
 	var e := _string_entry(a, false)
-	e["loose"] = now + Balance.LOOSE_STRING_TIME
+	e["loose"] = now + Balance.LOOSE_STRING_TIME + player._talent("shadow_loose_weave")   # Loose Weave: longer
 	_tell_string(a.get_instance_id(), a)
 	player._ring_effect(0.7, STRING_COLOR, a.global_position)
 	_strings_dirty = true

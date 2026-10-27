@@ -1,10 +1,11 @@
 @tool
 extends McpTestSuite
 
-# The Nature book's talents: the four specs' (Weaver, Shepherd, Colossus,
+# The Nature book's older talents: the four specs' (Weaver, Shepherd, Colossus,
 # Venomstring) and the open ones (Rough Bark, Green Thumb, Undergrowth,
 # Clinging Vines). Their rules are static functions in each spec's component
 # (scripts/player/nature_*.gd); the hooks are checked in the player's source.
+# The tree itself and the newer talents: tests/test_nature_tree.gd.
 
 const Abilities = preload("res://scripts/abilities.gd")
 const Balance = preload("res://scripts/balance.gd")
@@ -12,20 +13,6 @@ const Talents = preload("res://scripts/talents.gd")
 const Keywords = preload("res://scripts/core/keywords.gd")
 const Details = preload("res://scripts/core/details.gd")
 const TalentIcons = preload("res://scripts/talent_icons.gd")
-
-## Every talent of the book: key -> [ranks, the ability it needs ("" = none)].
-const TREE := {
-	"nature_running_herd": [4, "fawn"], "nature_hunting_party": [4, "briartiger"],
-	"nature_thick_sap": [4, "heartsap"], "nature_lingering_venom": [4, "venomburst"],
-	"nature_rough_bark": [3, ""], "nature_green_thumb": [3, ""], "nature_undergrowth": [3, ""], "nature_clinging_vines": [2, ""],
-	"nature_long_fangs": [3, "fangarrow"], "nature_hungry_venom": [2, ""], "nature_spring_trap": [2, "coilback"], "nature_soaked_through": [5, ""],
-	"nature_old_bark": [3, "rootguard"], "nature_morning_dew": [3, "dewfall"], "nature_return_flight": [3, "owl"],
-	"nature_deep_bloom": [3, "heartwoodelk"], "nature_evergreen": [5, ""],
-	"nature_rising_sap": [3, ""], "nature_crushing_grip": [3, "giantshands"], "nature_broad_fist": [2, "vinefist"],
-	"nature_spreading_roots": [3, "stomp"], "nature_firm_hold": [3, "grasp"], "nature_wide_awake": [3, "awaken"], "nature_old_growth": [5, ""],
-	"nature_rich_soil": [3, ""], "nature_compost": [1, "thornshot"], "nature_bramble_burst": [3, "thornshot"], "nature_fertile_ground": [3, "chokingvipers"],
-	"nature_second_growth": [3, "mossback"], "nature_circling_hawk": [3, "thornwing"], "nature_overgrown": [5, ""],
-}
 
 func suite_name() -> String:
 	return "nature_talents"
@@ -35,33 +22,6 @@ func _src() -> String:
 
 func _near(a: float, b: float, msg: String = "") -> void:
 	assert_true(absf(a - b) <= 0.001, "%s (%s vs %s)" % [msg, a, b])
-
-# --- The tree ----------------------------------------------------------------------------
-
-func test_the_whole_book_is_designed() -> void:
-	var ids := Talents.in_tree("nature")
-	assert_eq(ids.size(), TREE.size() + 2, "every slot of the Nature book holds a talent, but the two folded into their abilities")
-	for id in ids:
-		assert_false(bool(Talents.get_talent(id).get("placeholder", true)) and not Talents.FOLDED_INTO_ABILITIES.has(id), "%s is designed (or was folded into its ability)" % id)
-	for key in TREE:
-		var id := Talents.id_for_key(key)
-		assert_ne(id, "", "%s exists" % key)
-		assert_eq(Talents.max_rank(id), int(TREE[key][0]), "%s: ranks" % key)
-		assert_eq(Talents.required_ability(id), str(TREE[key][1]), "%s: the ability it needs" % key)
-		assert_true(TalentIcons.has_icon(id), "%s has an icon" % key)
-		var tip := Talents.tooltip(id, 0)
-		assert_false(tip.contains("{") or tip.contains("}"), "%s: its text is filled in: %s" % [key, tip])
-
-func test_rows_hold_two_to_four() -> void:
-	for row in Talents.layout("nature"):
-		assert_true((row as Array).size() >= 2 and (row as Array).size() <= 4, "row %s" % [row])
-
-func test_compost_opens_bramble_burst() -> void:
-	var compost := Talents.id_for_key("nature_compost")
-	var bramble := Talents.id_for_key("nature_bramble_burst")
-	assert_true(Talents.targets_of(compost).has(bramble))
-	assert_eq(Talents.tier_of(bramble), Talents.tier_of(compost) + 1, "straight down, one row")
-	assert_eq(Talents.col_of(bramble), Talents.col_of(compost))
 
 # --- The Weaver --------------------------------------------------------------------------
 
@@ -86,8 +46,9 @@ func test_weaver_rules() -> void:
 func test_weaver_hooks() -> void:
 	var src := _src()
 	assert_contains(src, "thornshot_patch_every(_talent(\"nature_compost\") > 0.0)")
-	assert_contains(src, "rich_soil_per(Balance.MOSSBACK_PER_PATCH, _talent(\"nature_rich_soil\"))")
-	assert_contains(src, "rich_soil_per(Balance.VIPERS_PER_PATCH, _talent(\"nature_rich_soil\"))")
+	assert_contains(src, "rich_soil_per(per, _talent(\"nature_rich_soil\"))")
+	assert_contains(src, "_finisher_coef(MOSSBACK_ID, float(res.damage), Balance.MOSSBACK_PER_PATCH")
+	assert_contains(src, "_finisher_coef(VIPERS_ID, float(res.damage), Balance.VIPERS_PER_PATCH")
 	assert_contains(src, "rolls(_talent(\"nature_second_growth\"), randf() * 100.0)")
 	assert_contains(src, "rolls(_talent(\"nature_fertile_ground\"), randf() * 100.0)")
 	assert_contains(src, "_cut_cooldown(THORNWING_ID, cut)")
@@ -155,7 +116,7 @@ func test_venomstring_hooks() -> void:
 	var src := _src()
 	assert_contains(src, "Balance.FANG_EXTEND + _talent(\"nature_long_fangs\")")
 	assert_contains(src, "maxf(Balance.POISON_SPREAD, _talent(\"nature_hungry_venom\"))")
-	assert_contains(src, "poison_mult(poisons_on(e).size(), _talent(\"nature_soaked_through\"))")
+	assert_contains(src, "poison_mult(kinds, _talent(\"nature_soaked_through\"), _talent(\"nature_double_dose\"))")
 	assert_contains(src, "_talent(\"nature_spring_trap\")")
 
 # --- The open talents --------------------------------------------------------------------

@@ -507,6 +507,7 @@ const HIT_NAMES := {
 	"stand_over": "Stand Over",
 	"string_share": "Shared along the Strings",
 	"crossed_strings": "Crossed Strings",
+	"fair_trade": "Fair Trade",
 	"first_stitch": "First Stitch",
 	"long_drop": "Long Drop",
 	"benediction": "Benediction",
@@ -525,6 +526,8 @@ const HIT_NAMES := {
 	"runoff": "Runoff",
 	"splinterheal": "Splinterheal",
 	"evergreen": "Evergreen",
+	"food_chain": "Food Chain",
+	"turned_aside": "Turned Aside",
 	"catchyourbreath": "Catch Your Breath",
 	"getup": "Get Up",
 	"secondarrow": "Second Arrow",
@@ -603,7 +606,7 @@ static func spell_color(id: String) -> Color:
 			return Abilities.color_of("blink")
 		"thornburst":
 			return Abilities.color_of("thornshot")   # (Nature caster)
-		"owlstrike", "evergreen":
+		"owlstrike", "evergreen", "food_chain":
 			return Abilities.color_of("owl")   # (Nature healer)
 		"venomburst_splash":
 			return Abilities.color_of("venomburst")   # (Nature archer)
@@ -633,9 +636,9 @@ static func spell_color(id: String) -> Color:
 			return Abilities.color_of("corruption")
 		"hound_bite", "hound_lunge", "hound_drag", "stand_over":
 			return Color(0.8, 0.16, 0.3)   # the Hounds' red (Shadow melee)
-		"benediction", "chorale", "chorus_splash", "resounding", "antiphon_self", "incense_aura", "light_mote", "bright_burst", "prism_shatter", "refraction", "volley_arrow":
+		"benediction", "chorale", "chorus_splash", "resounding", "antiphon_self", "incense_aura", "light_mote", "bright_burst", "prism_shatter", "refraction", "volley_arrow", "turned_aside":
 			return Color(1.0, 0.88, 0.45)  # holy light (Holy healer: the Hymns)
-		"string_share", "crossed_strings", "first_stitch", "long_drop":
+		"string_share", "crossed_strings", "first_stitch", "long_drop", "fair_trade":
 			return Color(0.93, 0.86, 1.0)  # the Strings' pale thread (Shadow healer)
 	return Color(0.7, 0.7, 0.75)
 

@@ -27,6 +27,11 @@ class_name HymnsKit
 # standing in my Vigil they answer "vigil_hit" when a big hit lands (Watchful). The
 # ring around me is scripts/hymn_ring.gd (only a picture); the party sees it through
 # the "hymn" and "hymn_boom" fx. Numbers: balance.gd (VERSE_*, MERCY_*, ...).
+# Talents here: Mercy's Ear, Many Voices, Watchful (Verses now and then), Key Change,
+# Held Note (keeping Verses), Long Note, Rising Voice, Mercy Seat and Radiance's
+# capstone (the booms), Full Voice (Full Choir), Long Echo (Reprise), Breath
+# Between (mana from booms), Tender Mercy (Mercy), Choir Loft and Swelling Chorus
+# (Chorus), Night Watch and Warded Song (Vigil), Open Doors (Shelter).
 
 const HYMN_RING = preload("res://scripts/hymn_ring.gd")
 const HIGH_NOTE_ID := "highnote"
@@ -60,7 +65,8 @@ const SWELL_FX := "swell"
 const OVERTURE_FX := "overture"
 const SHELTER_FX := "shelter"
 const VIGIL_WARD_FX := "vigil_ward"
-const HYMN_DR_NAMES := {VIGIL_FX: "Vigil", STEADY_VOICE_FX: "Steady Voice", BULWARK_SONG_FX: "Bulwark of Song", REST_FX: "Rest", "full_bloom": "Full Bloom"}   # (Full Bloom: the Nature healer's, same path)
+const HYMN_DR_NAMES := {VIGIL_FX: "Vigil", STEADY_VOICE_FX: "Steady Voice", BULWARK_SONG_FX: "Bulwark of Song", REST_FX: "Rest",
+	"full_bloom": "Full Bloom", "canopy": "Canopy"}   # (Full Bloom, Canopy: the Nature healer's, same path)
 const HYMN_WARD_NAMES := {SHELTER_FX: "Shelter", VIGIL_WARD_FX: "Vigil's Ward", PrismsKit.PRISM_WARD_FX: "Prism Ward", HolyTalentsKit.OVERFLOWING_FX: "Overflowing"}   # (the Prisms' shield uses the same path)
 const HOLY_LIGHT := Color(1.0, 0.88, 0.45)
 
@@ -119,6 +125,19 @@ static func is_full_choir(booms: Array) -> bool:
 	var last := booms.slice(booms.size() - 3)
 	return last.has("mercy") and last.has("chorus") and last.has("vigil")
 
+## Seconds between two Verses fading out of combat (`held`: Held Note's, if longer).
+static func verse_drain_every(held: float) -> float:
+	return maxf(Balance.VERSE_DRAIN_EVERY, held)
+
+## The share (%) Reprise repeats a boom at (`call`: Long Echo's, if set).
+static func reprise_pct(call: float) -> float:
+	return call if call > 0.0 else Balance.REPRISE_PCT
+
+## Radiance's capstone: how much stronger a boom is when all `matches` of its spent
+## Verses suit it (`capstone`: it is on).
+static func radiance_boost(matches: int, capstone: bool) -> float:
+	return 1.0 + Balance.RADIANCE_MATCH_PCT / 100.0 if capstone and matches >= Balance.VERSE_MAX else 1.0
+
 ## Can Reprise be used `since` seconds after the last boom, with `count` Verses?
 static func reprise_ready(since: float, count: int) -> bool:
 	return since >= 0.0 and since <= Balance.REPRISE_WINDOW and count >= Balance.REPRISE_COST
@@ -161,16 +180,17 @@ func _tick_hymns() -> void:
 		_refrains.clear()
 		return
 	# Out of combat the Verses fade.
+	var drain := verse_drain_every(player._talent("holy_held_note"))   # (Held Note)
 	if verses.is_empty() or player.is_in_combat():
-		_verse_drain_at = now + Balance.VERSE_DRAIN_EVERY
+		_verse_drain_at = now + drain
 	elif now >= _verse_drain_at:
 		verses.pop_front()
-		_verse_drain_at = now + Balance.VERSE_DRAIN_EVERY
+		_verse_drain_at = now + drain
 	# Vigil: allies near me take less damage (renewed while they stay near).
 	if hymn == "vigil" and now >= _vigil_told:
 		_vigil_told = now + Balance.VIGIL_TELL_EVERY
 		for a in player.fire_cooldowns._allies_within(Balance.VIGIL_RADIUS):
-			_hymn_dr(a, VIGIL_FX, Balance.VIGIL_DR_PCT, Balance.VIGIL_BUFF_TIME)
+			_hymn_dr(a, VIGIL_FX, Balance.VIGIL_DR_PCT + player._talent("holy_night_watch"), Balance.VIGIL_BUFF_TIME)   # + Night Watch
 	_tick_refrains(now)
 	for key in _vigil_from.keys():
 		if now > float(_vigil_from[key]["until"]):
@@ -200,31 +220,39 @@ func _boom(h: String, spent: Array) -> void:
 		_booms.clear()   # (the next Full Choir needs three new booms)
 	var matches := matching_verses(spent, h)
 	_last_boom = {"hymn": h, "matches": matches, "full": full, "at": player.strings._str_now()}
-	_do_boom(h, matches, full, 1.0)
+	_do_boom(h, matches, full, 1.0, radiance_boost(matches, player.frost_melee._capstone("holy_radiance")))   # (Radiance's capstone)
+	var breath := player._talent("holy_breath_between")
+	if breath > 0.0:
+		player._gain("mana", player.resource_max("mana") * breath / 100.0)   # Breath Between
 	if full:
-		_add_verses(h, Balance.FULL_CHOIR_REFUND)
+		_add_verses(h, Balance.FULL_CHOIR_REFUND + int(round(player._talent("holy_full_voice"))))   # + Full Voice
 		player._combat().float_text(player, "Full Choir", Abilities.HYMN_COLORS[h], false)
 	if player.frost_melee._has_rune(OVERTURE_RUNE) and player.status != null:
 		player.status.apply(make_overture_fx(), player)
 
-## A boom of Hymn `h` (`scale` < 1: Reprise's repeat of it).
-func _do_boom(h: String, matches: int, full: bool, scale: float) -> void:
-	var mult := boom_mult(matches, full) * scale
+## A boom of Hymn `h` (`scale` < 1: Reprise's repeat of it; `boost`: Radiance's
+## capstone, stronger or, for Bulwark of Song, longer).
+func _do_boom(h: String, matches: int, full: bool, scale: float, boost: float = 1.0) -> void:
+	var rising := 1.0 + player._talent("holy_rising_voice") / 100.0   # Rising Voice
+	var mult := boom_mult(matches, full) * scale * rising * boost
 	var at := player.global_position
 	match h:
 		"mercy":
 			# My friendly target if Psalm could reach it (range, line of sight), else me.
 			var pick: Variant = player._pick_support_target("psalm")[0]
 			var who: Node3D = pick if pick != null else player
-			player.strings._heal_coef(who, Balance.BENEDICTION_HEAL * mult, BOOM_IDS[h])
+			var seat := 1.0
+			if NatureTalentsOpenKit.below(float(who.get("health")), float(who.get("max_health")), Balance.MERCY_SEAT_HEALTH_PCT):
+				seat += player._talent("holy_mercy_seat") / 100.0   # Mercy Seat
+			player.strings._heal_coef(who, Balance.BENEDICTION_HEAL * mult * seat, BOOM_IDS[h])
 			at = who.global_position
 		"chorus":
 			for a in player.fire_cooldowns._allies_within(Balance.CHORALE_RADIUS):
 				player.strings._heal_coef(a, Balance.CHORALE_HEAL * mult, BOOM_IDS[h])
 		"vigil":
-			var t := bulwark_song_time(matches, full) + player._talent("holy_long_note")   # + Long Note
+			var t := (bulwark_song_time(matches, full) + player._talent("holy_long_note")) * boost   # + Long Note
 			for a in player.fire_cooldowns._allies_within(Balance.BULWARK_SONG_RADIUS):
-				_hymn_dr(a, BULWARK_SONG_FX, Balance.BULWARK_SONG_PCT * scale, t)
+				_hymn_dr(a, BULWARK_SONG_FX, Balance.BULWARK_SONG_PCT * scale * rising, t)
 	# Rune of Resounding: the boom strikes the enemies around it as well.
 	if player.frost_melee._has_rune(RESOUNDING_RUNE):
 		var foes := player._enemies_near(at, Balance.RESOUNDING_RADIUS)
@@ -301,7 +329,7 @@ func _hymn_use(id: String, res: Resource) -> void:
 			player._ring_effect(float(res.radius), Abilities.HYMN_COLORS["vigil"])
 		"reprise":
 			verses = verses.slice(0, verses.size() - Balance.REPRISE_COST)
-			_do_boom(str(_last_boom["hymn"]), int(_last_boom["matches"]), bool(_last_boom["full"]), Balance.REPRISE_PCT / 100.0)
+			_do_boom(str(_last_boom["hymn"]), int(_last_boom["matches"]), bool(_last_boom["full"]), reprise_pct(player._talent("holy_long_echo")) / 100.0)   # (Long Echo)
 		"swell":
 			player.status.apply(make_swell_fx(), player)
 		"rest":
@@ -321,6 +349,7 @@ func _hymn_heal_coef(id: String) -> float:
 	var coef := float(Abilities.HEALS.get(id, 0.0))
 	if hymn == "mercy" and HYMN_SINGLE_HEALS.has(id):
 		coef *= 1.0 + Balance.MERCY_HEAL_PCT / 100.0
+		coef *= 1.0 + player._talent("holy_tender_mercy") / 100.0   # Tender Mercy
 	return coef
 
 ## Psalm, Outpour, Canticle and Exultation finished casting (_release_support).
@@ -397,7 +426,8 @@ func _on_heal_done_hymns(source: Node, healed: Node, amount: int, effective: int
 			if CHORUS_SPLASHES.has(id):
 				_chorus_splash(healed as Node3D, amount)
 		"vigil":
-			_hymn_ward(healed as Node3D, VIGIL_WARD_FX, int(round(amount * Balance.VIGIL_WARD_PCT / 100.0)), Balance.VIGIL_WARD_TIME)
+			_hymn_ward(healed as Node3D, VIGIL_WARD_FX, int(round(amount * Balance.VIGIL_WARD_PCT / 100.0
+				* (1.0 + player._talent("holy_warded_song") / 100.0))), Balance.VIGIL_WARD_TIME)   # + Warded Song
 
 ## Chorus: up to CHORUS_SPLASH_TARGETS other allies near the one I healed get a share.
 func _chorus_splash(healed: Node3D, amount: int) -> void:
@@ -409,7 +439,7 @@ func _chorus_splash(healed: Node3D, amount: int) -> void:
 			near.append(a)
 	near.sort_custom(func(a, b): return healed.global_position.distance_squared_to(a.global_position) \
 		< healed.global_position.distance_squared_to(b.global_position))
-	near = near.slice(0, Balance.CHORUS_SPLASH_TARGETS)
+	near = near.slice(0, Balance.CHORUS_SPLASH_TARGETS + int(round(player._talent("holy_choir_loft"))))   # + Choir Loft
 	var share := int(round(amount * Balance.CHORUS_SPLASH_PCT / 100.0 * (1.0 + player._talent("holy_swelling_chorus") / 100.0)))   # + Swelling Chorus
 	for a in near:
 		player.strings._heal_exact(a, share, CHORUS_SPLASH_ID)
@@ -496,11 +526,12 @@ func _vigil_taken(info: RefCounted) -> void:
 
 static func make_hymn_dr_fx(fx_id: String, pct: float, time: float) -> Resource:
 	var color: Color = Abilities.HYMN_COLORS["vigil"] if fx_id != REST_FX else HOLY_LIGHT
-	if fx_id == ShepherdKit.FULL_BLOOM_FX:
+	var nature := fx_id == ShepherdKit.FULL_BLOOM_FX or fx_id == ShepherdKit.CANOPY_FX
+	if nature:
 		color = ShepherdKit.BLOSSOM_COLOR
 	var fx := StatusContainer.make_buff(fx_id, str(HYMN_DR_NAMES.get(fx_id, fx_id)), fx_id, 0.0, time, 1, color)
 	fx.stat_modifiers = {}
-	fx.tags = PackedStringArray(["Nature" if fx_id == ShepherdKit.FULL_BLOOM_FX else "Holy", "Defensive"])
+	fx.tags = PackedStringArray(["Nature" if nature else "Holy", "Defensive"])
 	fx.damage_mod_pct = -absf(pct)
 	fx.modifies_incoming = true
 	fx.mod_affects_dots = true

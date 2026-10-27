@@ -16,13 +16,19 @@ class_name CenserKit
 # gives Incense and heals me. Only I can pick up mine; the party sees them faint.
 # Raise the Censer sends it over the enemies for a while (a mass grab that sheds
 # motes); while it is away my Incense gives no Block and no aura. Numbers are in
-# balance.gd; the talents (Mote Magnet, Bright Barrier, Lingering Light, Wide Arc,
-# Deep Pour) in talents.gd.
+# balance.gd; the talents in talents.gd. Here: Mote Magnet, Lingering Light, Heavy
+# Motes, Bright Motes and Shaken Loose (motes), Bright Barrier and Hold the Line
+# (Block), Heavy Chain, Wide Arc, Deep Pour, Absolution, Offering (spending
+# Incense), Ringing Censer and Turned Aside (blocks), Cloying Smoke (the procs'
+# threat), Unbroken. Censer's Weight, Heavy Smoke and Full Censer: holy_talents.gd.
 
 const CENSER = preload("res://scripts/censer.gd")
 const LIGHT_MOTE = preload("res://scripts/light_mote.gd")
 const INCENSE_FX := "incense"
 const AUREOLE_FX := "aureole"
+const HOLD_THE_LINE_FX := "hold_the_line"
+## Meter / log id of Turned Aside's heals (its own line: Details.HIT_NAMES).
+const TURNED_ASIDE_ID := "turned_aside"
 const UNFALLEN_FX := "unfallen"
 const CENSER_SWING_ID := "censerswing"
 const HALLOWED_ARC_ID := "hallowedarc"
@@ -59,6 +65,7 @@ var _motes: Array = []            # my motes: {"key": String, "pos": Vector3, "u
 var _mote_seq := 0
 var _unfallen_taken := 0          # damage taken during Unfallen
 var _unfallen_was := false
+var _hold_block := 0.0            # the Block Hold the Line's buff gives right now
 
 ## How much Incense I have (while the censer is raised: what it will give back).
 func incense() -> int:
@@ -99,10 +106,14 @@ static func motes_for_spend(spent: int, pct: float) -> Array:
 		worth -= v
 	return out
 
-## Incense a hit I take gives (`blocked`; during Unfallen: more).
-static func incense_for_hit(blocked: bool, unfallen: bool) -> int:
-	var n := Balance.INCENSE_PER_BLOCK if blocked else Balance.INCENSE_PER_HIT
+## Incense a hit I take gives (`blocked`; during Unfallen: more; `ringing`: Ringing Censer's, on a block).
+static func incense_for_hit(blocked: bool, unfallen: bool, ringing: int = 0) -> int:
+	var n := (Balance.INCENSE_PER_BLOCK + maxi(ringing, 0)) if blocked else Balance.INCENSE_PER_HIT
 	return n * (Balance.UNFALLEN_INCENSE_MULT if unfallen else 1)
+
+## Hold the Line: the Block `stacks` of Incense add on top while low (`pct` % more of it).
+static func hold_the_line_block(stacks: int, per: float, pct: float) -> float:
+	return float(maxi(stacks, 0)) * maxf(per, 0.0) * maxf(pct, 0.0) / 100.0
 
 ## What Unfallen lets through of a hit of `amount` with `health_left`: never the last point.
 static func unfallen_limit(amount: int, health_left: int) -> int:
@@ -198,7 +209,7 @@ func _pick_up_mote(i: int) -> void:
 	_motes.remove_at(i)
 	LIGHT_MOTE.take(player.get_tree(), str(m["key"]), player)
 	player._net_fx("motes", player.global_position, null, {"k": str(m["key"])})
-	_gain_incense(int(m.get("value", Balance.MOTE_VALUE)))
+	_gain_incense(int(m.get("value", Balance.MOTE_VALUE)) + int(round(player._talent("holy_heavy_motes"))))   # + Heavy Motes
 	if player.health < player.max_health:
 		player.heal(Balance.MOTE_HEAL_SHARE * Balance.REFERENCE_HEAL * (1.0 + player._talent("holy_bright_motes") / 100.0), LIGHT_MOTE_ID)   # + Bright Motes
 	if player.frost_melee._has_rune(BRIGHT_BURST_RUNE):
@@ -219,7 +230,7 @@ func _censer_proc_hit(e: Node, coef: float, id: String, threat: float) -> void:
 	var hit := DamageInfo.make(player, e, coef, id)
 	hit.tags = PackedStringArray(CENSER_TAGS)
 	hit.damage_type = "holy"
-	hit.threat_multiplier = threat
+	hit.threat_multiplier = threat * (1.0 + player._talent("holy_cloying_smoke") / 100.0)   # + Cloying Smoke
 	hit.is_proc = true
 	hit.no_empower = true
 	player._combat().deal(hit)
@@ -248,6 +259,7 @@ func _tick_censer() -> void:
 		if back > 0 and not player.is_dead():
 			player._combat().heal(player, player, float(back), UNFALLEN_ID, true)
 	_unfallen_was = unfallen_now
+	_tick_hold_the_line()
 	if not _censer_on:
 		return
 	# Raised: it sheds motes, then comes back with what it kept.
@@ -276,6 +288,33 @@ func _tick_censer() -> void:
 	if now - _censer_told >= CENSER_RETELL:
 		_tell_censer()
 
+## Hold the Line: while I am low, a buff gives the Block my Incense gives once more
+## (part of it, by rank), renewed while it lasts and gone when I am not low any more.
+func _tick_hold_the_line() -> void:
+	var pct := player._talent("holy_hold_the_line")
+	if pct <= 0.0 or player.status == null:
+		return
+	var low := NatureTalentsOpenKit.below(float(player.health), float(player.max_health), Balance.HOLD_THE_LINE_HEALTH_PCT)
+	var want := hold_the_line_block(incense() if not censer_raised() else 0,
+		incense_block_per_stack(player._talent("holy_bright_barrier")), pct) if low and not player.is_dead() else 0.0
+	if want <= 0.0:
+		if player.status.has(HOLD_THE_LINE_FX):
+			player.status.remove(HOLD_THE_LINE_FX)
+		return
+	if player.status.has(HOLD_THE_LINE_FX) and player.status.remaining_of(HOLD_THE_LINE_FX) > 0.5 and absf(_hold_block - want) < 0.05:
+		return   # (still on, and still the same)
+	_hold_block = want
+	var fx := StatusContainer.make_buff(HOLD_THE_LINE_FX, "Hold the Line", Stats.BLOCK, want, 1.0, 1, CENSER.LIGHT)
+	fx.tags = PackedStringArray(["Holy"])
+	fx.description = "You hold the line: your Incense gives more Block."
+	player.status.remove(HOLD_THE_LINE_FX)
+	player.status.apply(fx, player)
+
+## Shaken Loose: a censer ability that knocked a mote loose may knock one more.
+func _shaken_loose(near: Vector3) -> void:
+	if WeaverKit.rolls(player._talent("holy_shaken_loose"), randf() * 100.0):
+		_drop_mote(near)
+
 ## My buffs changed (or the censer did): the picture shows it, and the party is told.
 func _sync_censer() -> void:
 	var n := incense()
@@ -296,9 +335,13 @@ func _tell_censer() -> void:
 func _censer_hit_taken(info: RefCounted) -> void:
 	if player.status != null and player.status.has(UNFALLEN_FX) and not info.blocked:
 		_unfallen_taken += maxi(int(info.amount), 0)
+	# Turned Aside: every attack I block heals me a little (censer or not).
+	var aside := player._talent("holy_turned_aside")
+	if aside > 0.0 and bool(info.blocked) and not player.is_dead() and player.health < player.max_health:
+		player._combat().heal(player, player, float(player.max_health) * aside / 100.0, TURNED_ASIDE_ID, true)
 	if not _censer_on or bool(info.is_dot) or bool(info.dodged) or bool(info.parried):
 		return
-	_gain_incense(incense_for_hit(bool(info.blocked), player.status.has(UNFALLEN_FX)))
+	_gain_incense(incense_for_hit(bool(info.blocked), player.status.has(UNFALLEN_FX), int(round(player._talent("holy_ringing_censer")))))   # (+ Ringing Censer)
 	if info.blocked:
 		CENSER.flash(player)
 		player._net_fx("censer_flash", player.global_position)
@@ -344,6 +387,7 @@ func _censer_use(id: String, res: Resource) -> void:
 			player._slash_effect(col)
 			_gain_incense(Balance.CENSER_SWING_INCENSE + int(round(player._talent("holy_heavy_chain"))))   # + Heavy Chain
 			_drop_mote(near)
+			_shaken_loose(near)
 		HALLOWED_ARC_ID:
 			var reach := float(res.radius) + Abilities.radius_bonus(id)   # + Wide Arc
 			var hit := player._enemies_within(reach)
@@ -356,6 +400,8 @@ func _censer_use(id: String, res: Resource) -> void:
 				if loose < Balance.HALLOWED_ARC_MOTES:
 					_drop_mote(e.global_position)
 					loose += 1
+			if loose > 0:
+				_shaken_loose(near)
 			_gain_incense(Balance.HALLOWED_ARC_INCENSE * hit.size())
 			player._ring_effect(reach, col)
 			player._ring_effect(reach * 0.6, CENSER.GOLD)
@@ -363,13 +409,15 @@ func _censer_use(id: String, res: Resource) -> void:
 			player.deal_damage(player.target, float(res.damage), id)
 			_gain_incense(Balance.BECKON_INCENSE)
 			_drop_mote(near)
+			_shaken_loose(near)
 			player._ring_effect(0.8, col, near)
 		POUR_OUT_ID:
 			_pour_out(res)
 		ABSOLVE_ID:
 			var spent := _spend_incense(Balance.ABSOLVE_MAX, near)
 			if spent > 0:
-				player.heal(Balance.ABSOLVE_PER_STACK * Balance.REFERENCE_HEAL * float(spent) * (1.0 + player._talent("holy_absolution") / 100.0), id)   # + Absolution
+				player.heal(Balance.ABSOLVE_PER_STACK * Balance.REFERENCE_HEAL * float(spent) * (1.0 + player._talent("holy_absolution") / 100.0)
+					* (1.0 + player._talent("holy_offering") / 100.0), id)   # + Absolution, Offering
 			player._ring_effect(1.2, Color(0.45, 1.0, 0.5))
 			player._ring_effect(0.8, col)
 		AUREOLE_ID:
@@ -404,7 +452,7 @@ func _pour_out(res: Resource) -> void:
 	var pct := Balance.DEEP_POUR_MOTE_PCT if player.frost_melee._capstone("holy_deep_pour") else Balance.MOTE_SPEND_PCT   # Deep Pour's capstone
 	var reach := float(res.radius)
 	var hit := player._enemies_within(reach)
-	var per := Balance.POUR_OUT_PER_STACK * (1.0 + player._talent("holy_deep_pour") / 100.0)   # Deep Pour
+	var per := Balance.POUR_OUT_PER_STACK * (1.0 + player._talent("holy_deep_pour") / 100.0) * (1.0 + player._talent("holy_offering") / 100.0)   # Deep Pour, Offering
 	var coef := per * float(have) * Balance.aoe_share(hit.size())
 	for e in hit:
 		if is_instance_valid(e) and e.is_alive():

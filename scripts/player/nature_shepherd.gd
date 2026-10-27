@@ -19,7 +19,12 @@ class_name ShepherdKit
 # Own only: only my rooted creatures use my Blossoms. Numbers: balance.gd
 # (BLOSSOM_*, FAWN_*, ...; heals in HEALS). Talents: Running Herd (Fawn), Morning
 # Dew (Dewfall), Old Bark (Rootguard), Return Flight (Owl), Deep Bloom (Full
-# Bloom), Evergreen (my Blossoms heal).
+# Bloom), Evergreen (my Blossoms heal; its capstone when they fade), Long Bloom
+# (their time), Second Bud (one more), Heavy Petals (what each adds), Pollen (a
+# Blossom passed on), Nectar (mana when they are used up), Canopy (less damage
+# taken), Close Herd (Fawn's bounces), Wide Grove (the rooted creatures' reach).
+# The heal bonuses (Soft Weave, In Full Flower, New Shoots, Patient Hands):
+# nature_talents_open.gd.
 
 const DEWFALL_ID := "dewfall"
 const FAWN_ID := "fawn"
@@ -38,6 +43,7 @@ const BLOSSOM_FX := "blossom"       # on an ally: my Blossoms (per caster, stack
 const OWL_FX := "owl_watch"         # on an ally: my owl watching over them
 const ROOTGUARD_FX := "rootguard"   # on an ally: Rootguard's shield
 const FULL_BLOOM_FX := "full_bloom" # less damage taken (through the Hymns' path: HYMN_DR_NAMES)
+const CANOPY_FX := "canopy"         # Canopy: less damage taken after a Blossom (the same path)
 const BLOSSOM_COLOR := Color(1.0, 0.62, 0.82)
 
 var _blossoms := {}   # ally instance id -> {"who", "n", "until"}
@@ -82,6 +88,18 @@ static func fawn_pick(shares: Array, taken: Array) -> int:
 static func fawn_bounces(nth: int, capstone: bool) -> int:
 	return Balance.FAWN_BOUNCES + (Balance.RUNNING_HERD_EXTRA if capstone and nth > 0 and nth % 2 == 0 else 0)
 
+## Close Herd: the share of the heal before it each bounce keeps (`pct` % less lost).
+static func fawn_keep(pct: float) -> float:
+	return minf(Balance.FAWN_FALLOFF + maxf(pct, 0.0) / 100.0, 1.0)
+
+## Seconds my Blossoms last (`long`: Long Bloom's).
+static func blossom_life(long: float) -> float:
+	return Balance.BLOSSOM_TIME + maxf(long, 0.0)
+
+## Nectar: mana `n` Blossoms used up give back on a pool of `max_mana` (`pct` % each).
+static func nectar_mana(max_mana: float, n: int, pct: float) -> float:
+	return maxf(max_mana, 0.0) * maxf(pct, 0.0) / 100.0 * maxi(n, 0)
+
 ## My Blossoms on `who` (0 when they ran out).
 func blossoms_on(who: Variant) -> int:   # untyped: may be a freed node
 	if who == null or not is_instance_valid(who) or not (who is Node):
@@ -94,17 +112,37 @@ func _add_blossom(who: Node3D, k: int) -> void:
 	if who == null or not is_instance_valid(who) or k <= 0:
 		return
 	var n := blossom_add(blossoms_on(who), k)
-	_blossoms[who.get_instance_id()] = {"who": who, "n": n, "until": player.strings._str_now() + Balance.BLOSSOM_TIME}
-	_show_blossoms(who, n, Balance.BLOSSOM_TIME)
+	var life := blossom_life(player._talent("nature_long_bloom"))   # + Long Bloom
+	_blossoms[who.get_instance_id()] = {"who": who, "n": n, "until": player.strings._str_now() + life}
+	_show_blossoms(who, n, life)
+	# Canopy: an ally I give a Blossom takes less damage for a while.
+	var shade := player._talent("nature_canopy")
+	if shade > 0.0:
+		player.hymns._hymn_dr(who, CANOPY_FX, shade, Balance.CANOPY_TIME)
 
-## Use up my Blossoms on `who`: how many there were.
+## Use up my Blossoms on `who`: how many there were. Nectar: mana back for each.
 func _take_blossoms(who: Node3D) -> int:
 	var n := blossoms_on(who)
 	if who != null and is_instance_valid(who):
 		_blossoms.erase(who.get_instance_id())
 		if n > 0:
 			_show_blossoms(who, 0, 0.0)
+			player._gain("mana", nectar_mana(player.resource_max("mana"), n, player._talent("nature_nectar")))   # Nectar
 	return n
+
+## Pollen: my rooted creatures used up a full set of Blossoms on `who`, so one may
+## go on to the lowest-health ally near them.
+func _pollen(who: Node3D, n: int) -> void:
+	if n < Balance.BLOSSOM_MAX or not rolls_pollen():
+		return
+	var near: Array = player.prism_kit._allies_near(who.global_position, Balance.POLLEN_REACH).filter(func(a): return not is_same(a, who))
+	if near.is_empty():
+		return
+	var shares: Array = near.map(func(a): return player.hymns._health_share_of(a))
+	_add_blossom(near[FireCooldownsKit.lowest_share(shares)], 1)
+
+func rolls_pollen() -> bool:
+	return WeaverKit.rolls(player._talent("nature_pollen"), randf() * 100.0)
 
 ## The Blossom buff on `who`, on whichever machine they live.
 func _show_blossoms(who: Node3D, n: int, time: float) -> void:
@@ -160,6 +198,10 @@ func _tick_shepherd() -> void:
 		var e: Dictionary = _blossoms[key]
 		if float(e["until"]) <= now or not is_instance_valid(e["who"]):
 			_blossoms.erase(key)   # (the buff on them runs out by itself)
+			# Evergreen's capstone: Blossoms that ran out unused heal their ally once more.
+			var who: Variant = e["who"]
+			if who != null and is_instance_valid(who) and who.is_alive() and not player.is_dead() and player.frost_melee._capstone("nature_evergreen"):
+				player.strings._heal_coef(who, Balance.EVERGREEN_FADE_HEAL * Balance.REFERENCE_HEAL * int(e["n"]), EVERGREEN_ID)
 	_tick_evergreen(now)
 	for key in _owls.keys():
 		var e: Dictionary = _owls[key]
@@ -204,7 +246,7 @@ func _shepherd_use(id: String, res: Resource) -> void:
 			if who:
 				_rootguard(who)
 		ELK_ID:
-			_heartwood_elk(float(res.radius))
+			_heartwood_elk(float(res.radius) + Abilities.radius_bonus(id))   # + Wide Grove
 		WILD_HERD_ID:
 			_wild_herd(float(res.radius))
 
@@ -225,7 +267,10 @@ func _woven_heal(who: Node3D, coef: float, id: String) -> void:
 	var mh: Variant = who.get("max_health")
 	var missing := int(mh) - int(h) if h != null and mh != null else 1 << 30
 	var amount := player.strings._heal_coef(who, coef, id)
-	_add_blossom(who, 2 if overheals(amount, missing) else 1)
+	var k := 2 if overheals(amount, missing) else 1
+	if WeaverKit.rolls(player._talent("nature_second_bud"), randf() * 100.0):
+		k += 1   # Second Bud: one more
+	_add_blossom(who, k)
 
 # Fawn: a chain from ally to ally.
 
@@ -250,7 +295,7 @@ func _fawn_hop(who: Node3D, from_pos: Vector3, coef: float, left: int, healed: A
 		var taken: Array = near.map(func(a): return healed.has(a))
 		var i := fawn_pick(shares, taken)
 		if i >= 0:
-			_fawn_hop(near[i], who.global_position + Vector3(0, 0.5, 0), coef * Balance.FAWN_FALLOFF, left - 1, healed, id))
+			_fawn_hop(near[i], who.global_position + Vector3(0, 0.5, 0), coef * fawn_keep(player._talent("nature_close_herd")), left - 1, healed, id))   # (+ Close Herd)
 
 ## Wild Herd: a Fawn at each of the lowest-health allies within `radius` of me.
 func _wild_herd(radius: float) -> void:
@@ -349,7 +394,9 @@ static func _flat_dist(a: Vector3, b: Vector3) -> float:
 
 func _rootguard(who: Node3D) -> void:
 	var n := _take_blossoms(who)
-	var coef := WeaverKit.rooted_coef(float(Abilities.HEALS[ROOTGUARD_ID]), Balance.ROOTGUARD_PER_BLOSSOM, n)
+	var coef := WeaverKit.rooted_coef(float(Abilities.HEALS[ROOTGUARD_ID]),
+		WeaverKit.rich_soil_per(Balance.ROOTGUARD_PER_BLOSSOM, player._talent("nature_heavy_petals")), n)   # + Heavy Petals
+	_pollen(who, n)
 	var amount := int(round(player._combat().heal_amount(player, coef, ROOTGUARD_ID) * player.absorb_mult()
 		* (1.0 + player._talent("nature_old_bark") / 100.0)))   # (Rime Ward: bigger shields; Old Bark)
 	player.weaver._creature("roots", player.weaver._ground_under(who), who.global_position)
@@ -373,7 +420,7 @@ func _rootguard_on(st: Node, from: Node, amount: int, time: float, on_break: Cal
 func _rootguard_broke(who: Variant) -> void:
 	if who == null or not is_instance_valid(who) or player.is_dead():
 		return
-	for a in player.prism_kit._allies_near((who as Node3D).global_position, Balance.ROOTGUARD_SPREAD):
+	for a in player.prism_kit._allies_near((who as Node3D).global_position, Balance.ROOTGUARD_SPREAD + player._talent("nature_wide_grove")):   # + Wide Grove
 		_add_blossom(a, 1)
 
 # Heartwood Elk: heals every ally near me, more for their Blossoms.
@@ -390,7 +437,9 @@ func _heartwood_elk(radius: float) -> void:
 			if not is_instance_valid(a) or not a.is_alive():
 				continue
 			var n := _take_blossoms(a)
-			player.strings._heal_coef(a, WeaverKit.rooted_coef(float(Abilities.HEALS[ELK_ID]), Balance.ELK_PER_BLOSSOM, n) * share, ELK_ID)
+			player.strings._heal_coef(a, WeaverKit.rooted_coef(float(Abilities.HEALS[ELK_ID]),
+				WeaverKit.rich_soil_per(Balance.ELK_PER_BLOSSOM, player._talent("nature_heavy_petals")), n) * share, ELK_ID)   # + Heavy Petals
+			_pollen(a, n)
 			if n >= Balance.BLOSSOM_MAX:
 				player.hymns._hymn_dr(a, FULL_BLOOM_FX, Balance.FULL_BLOOM_PCT, Balance.FULL_BLOOM_TIME + player._talent("nature_deep_bloom"))   # Full Bloom (+ Deep Bloom)
 		player._ring_effect(radius, BLOSSOM_COLOR))

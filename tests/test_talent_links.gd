@@ -10,7 +10,7 @@ const PlayerDataScript = preload("res://scripts/player_data.gd")
 
 ## Every link, as talent keys: [from, to].
 const WANT := [
-	# The ribbon books (Martial, Fire, Frost, Lightning, Arcane).
+	# Every book is on ribbons.
 	["martial_twice_over", "martial_gather_pace"], ["martial_steady_pace", "martial_deep_flow"],
 	["martial_mix_it_up", "martial_hot_start"], ["martial_get_up", "martial_back_up"],
 	["martial_clean_release", "martial_run_it_back"],
@@ -28,14 +28,17 @@ const WANT := [
 	["arcane_sharp_edges", "arcane_glass_dust"], ["arcane_quick_answer", "arcane_spare_copy"],
 	["arcane_last_copy", "arcane_crowded_room"],
 	["arcane_standing_ovation", "arcane_time_signature"],
-	["shadow_interest", "shadow_small_change"],
-	["shadow_lean_and_hungry", "shadow_fed"], ["shadow_fed", "shadow_worked_up"],
+	["shadow_interest", "shadow_small_change"], ["shadow_shut_tight", "shadow_bitter_end"],
 	["shadow_long_night", "shadow_take_it_with_you"], ["shadow_pincer", "shadow_again"],
-	["shadow_long_thread", "shadow_spare_spool"],
-	["holy_wide_arc", "holy_deep_pour"],
-	["holy_wide_burst", "holy_prismatic_burst"],
-	["holy_deep_burn", "holy_long_volley"],
-	["nature_compost", "nature_bramble_burst"],
+	["shadow_long_thread", "shadow_spare_spool"], ["shadow_three_ply", "shadow_full_harness"],
+	["holy_many_voices", "holy_choir_loft"], ["holy_watchful", "holy_night_watch"],
+	["holy_wide_arc", "holy_deep_pour"], ["holy_heavy_motes", "holy_shaken_loose"],
+	["holy_wide_burst", "holy_prismatic_burst"], ["holy_thirsty_glass", "holy_full_glass"],
+	["holy_deep_burn", "holy_long_volley"], ["holy_gilded", "holy_full_gold"],
+	["nature_compost", "nature_bramble_burst"], ["nature_thick_mulch", "nature_well_rotted"],
+	["nature_second_bud", "nature_pollen"], ["nature_long_bloom", "nature_canopy"],
+	["nature_groundswell", "nature_heavy_limbs"], ["nature_long_sap", "nature_brimming"],
+	["nature_slow_acting", "nature_fresh_host"], ["nature_double_dose", "nature_full_brew"],
 ]
 
 func suite_name() -> String:

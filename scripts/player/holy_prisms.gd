@@ -13,8 +13,11 @@ class_name PrismsKit
 # Shatter Prism and Infuse do (the prism under the mouse with mouseover
 # casting, the one I clicked, or else my closest). Realign and Move Prism move
 # them (they flicker out and in). Own only: only my beams charge my prisms; the
-# party sees them. Numbers are in balance.gd; the talents (Clear Glass, Deep
-# Crystal, Sharp Facets, Wide Burst, Prismatic Burst, Quick Realign) in talents.gd.
+# party sees them. Numbers are in balance.gd; the talents in talents.gd. Here:
+# Clear Glass, Thirsty Glass, Deep Crystal, Sharp Facets, Full Glass and Brilliance's
+# capstone (the beam), Lifeline (low allies), Wide Burst, Prismatic Burst, Focused
+# Light, Brilliance, Bright Shards and Aftershine (shattering), Last Glint (prisms
+# running out), Polish (moving them), Quick Realign; the gold prisms' Sunsteel capstone.
 
 const PRISM = preload("res://scripts/prism.gd")
 const LIGHT_BEAM = preload("res://scripts/light_beam.gd")
@@ -73,9 +76,27 @@ static func on_beam(from: Vector3, to: Vector3, p: Vector3, width: float) -> boo
 static func prism_cap(deep: float) -> float:
 	return Balance.PRISM_CAP_HEALS * Balance.REFERENCE_HEAL * (1.0 + maxf(deep, 0.0) / 100.0)
 
-## A prism's light after a beam carrying `coef` passes through it.
-static func prism_charged(light: float, coef: float, cap: float) -> float:
-	return minf(maxf(light, 0.0) + maxf(coef, 0.0) * Balance.PRISM_CHARGE_PCT / 100.0, cap)
+## A prism's light after a beam carrying `coef` passes through it (`more`: Thirsty Glass, % more).
+static func prism_charged(light: float, coef: float, cap: float, more: float = 0.0) -> float:
+	return minf(maxf(light, 0.0) + maxf(coef, 0.0) * Balance.PRISM_CHARGE_PCT / 100.0 * (1.0 + maxf(more, 0.0) / 100.0), cap)
+
+## The heal of a shattering prism on each of `allies` allies, `share` before the
+## talents: Focused Light (only one ally there), Brilliance.
+static func shatter_heal(share: float, allies: int, focused: float, brilliance: float) -> float:
+	var m := 1.0 + maxf(brilliance, 0.0) / 100.0
+	if allies == 1:
+		m *= 1.0 + maxf(focused, 0.0) / 100.0
+	return share * m
+
+## Full Glass and Brilliance's capstone: how much more a heal is after passing `n`
+## prisms, `full` of them full.
+static func beam_bonus(n: int, full: int, glass: float, brilliance: bool) -> float:
+	var m := 1.0
+	if full > 0:
+		m *= 1.0 + maxf(glass, 0.0) / 100.0
+	if brilliance and n >= Balance.BRILLIANCE_PRISMS:
+		m *= 1.0 + Balance.BRILLIANCE_PCT / 100.0
+	return m
 
 ## How much stronger a heal is after passing through `n` prisms (`sharp` = Sharp Facets' %).
 static func amplify_mult(n: int, sharp: float) -> float:
@@ -182,24 +203,30 @@ func _prism_beam(to: Vector3, coef: float) -> float:
 	var all: bool = player.status != null and player.status.has(KALEIDOSCOPE_FX)
 	var cap := _my_prism_cap()
 	var n := 0
+	var full := 0
 	for p in _prisms:
 		if str(p.get("kind", "white")) != "white":
 			continue
 		if all or on_beam(from, to, p["pos"], width):
-			p["light"] = prism_charged(float(p["light"]), coef, cap)
+			if float(p["light"]) >= cap - 0.001:
+				full += 1
+			p["light"] = prism_charged(float(p["light"]), coef, cap, player._talent("holy_thirsty_glass"))   # + Thirsty Glass
 			n += 1
 	var start := player._muzzle() if player.is_inside_tree() else from
 	LIGHT_BEAM.flash(player.get_tree().current_scene, start, to + Vector3(0, 0.9, 0), PRISM_LIGHT)
 	player._net_fx("beam", start, null, {"to": to + Vector3(0, 0.9, 0)})
 	if n > 0:
 		_sync_prisms()
-	return amplify_mult(n, player._talent("holy_sharp_facets"))   # + Sharp Facets
+	return amplify_mult(n, player._talent("holy_sharp_facets")) \
+		* beam_bonus(n, full, player._talent("holy_full_glass"), player.frost_melee._capstone("holy_brilliance"))   # + Sharp Facets, Full Glass, Brilliance's capstone
 
 ## A heal of the kit on `who` (`coef` before the prisms): through the beam.
 func _prism_heal(who: Variant, coef: float, id: String) -> void:
 	if who == null or not is_instance_valid(who):
 		return
 	var mult := _prism_beam((who as Node3D).global_position, coef)
+	if NatureTalentsOpenKit.below(float(who.get("health")), float(who.get("max_health")), Balance.LIFELINE_HEALTH_PCT):
+		mult *= 1.0 + player._talent("holy_lifeline") / 100.0   # Lifeline
 	player.strings._heal_coef(who, coef * mult, id)
 
 ## Set Prism, Realign, Prism Arrow (ground-targeted).
@@ -246,7 +273,10 @@ func _start_prism_place(id: String, point: Vector3) -> void:
 func _add_prism(at: Vector3, kind: String = "white") -> void:
 	_prism_seq += 1
 	var key := "p%d" % _prism_seq
-	_prisms.append({"key": key, "pos": at, "light": 0.0, "kind": kind,
+	var start := 0.0
+	if kind == "gold" and player.frost_melee._capstone("holy_sunsteel"):
+		start = _my_prism_cap() * Balance.SUNSTEEL_START_PCT / 100.0   # Sunsteel's capstone: some light to start with
+	_prisms.append({"key": key, "pos": at, "light": start, "kind": kind,
 		"until": Time.get_ticks_msec() / 1000.0 + player.holy_talents._prism_time()})   # (+ Long Glass)
 	while _prisms.size() > player.holy_talents._prism_max():   # (Rune of the Fourth Facet: one more)
 		var old: Dictionary = _prisms.pop_front()
@@ -260,7 +290,15 @@ func _realign(center: Vector3) -> void:
 	for i in _prisms.size():
 		_prisms[i]["pos"] = spots[i]
 		_prisms[i]["until"] = until
+		_polish(i)
 	_sync_prisms()
+
+## Polish: a prism I moved gains some light.
+func _polish(i: int) -> void:
+	var pct := player._talent("holy_polish")
+	if pct > 0.0:
+		var cap := _my_prism_cap()
+		_prisms[i]["light"] = minf(float(_prisms[i]["light"]) + cap * pct / 100.0, cap)
 
 ## The ground point under the mouse (and whether I can see it).
 func _mouse_ground() -> Array:
@@ -321,6 +359,7 @@ func _prism_use(id: String, res: Resource) -> void:
 				var i := closest_index(_prism_spots(), spot)
 				if i >= 0:
 					_prisms[i]["pos"] = Vector3(spot.x, Combat.feet_y(player), spot.z)
+					_polish(i)   # Polish
 					_sync_prisms()
 		SHATTER_PRISM_ID:
 			var i := _target_prism()
@@ -355,9 +394,12 @@ func _shatter_prism(i: int) -> void:
 	var light := float(p["light"])
 	var reach := Balance.PRISM_SHATTER_RADIUS + player._talent("holy_wide_burst")   # + Wide Burst
 	var allies := _allies_near(at, reach)
-	var share := shatter_share(light, allies.size())
+	var share := shatter_heal(shatter_share(light, allies.size()), allies.size(),
+		player._talent("holy_focused_light"), player._talent("holy_brilliance"))   # + Focused Light, Brilliance
 	for a in allies:
 		player.strings._heal_coef(a, share, PRISM_SHATTER_ID)
+		player.holy_talents.aftershine(a)   # Aftershine
+	player.holy_talents.bright_shards()   # Bright Shards
 	var foes := player._enemies_near(at, reach)
 	var coef := shatter_damage(light, _my_prism_cap(), player._talent("holy_prismatic_burst")) * Balance.aoe_share(foes.size())   # + Prismatic Burst
 	if coef > 0.0:
@@ -439,8 +481,16 @@ func _tick_prisms() -> void:
 		return
 	var now := Time.get_ticks_msec() / 1000.0
 	var gone := false
+	var glint := player._talent("holy_last_glint")
 	for i in range(_prisms.size() - 1, -1, -1):
+		if i >= _prisms.size():
+			continue
 		if now >= float(_prisms[i]["until"]):
+			# Last Glint: a white prism that runs out shatters with part of its light.
+			if glint > 0.0 and str(_prisms[i].get("kind", "white")) == "white" and not player.is_dead():
+				_prisms[i]["light"] = float(_prisms[i]["light"]) * glint / 100.0
+				_shatter_prism(i)
+				continue
 			PRISM.remove(player.get_tree(), "me:" + str(_prisms[i]["key"]))
 			_prisms.remove_at(i)
 			gone = true

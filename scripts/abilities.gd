@@ -1170,6 +1170,7 @@ const SharpshooterIcons = preload("res://scripts/ui/sharpshooter_icons.gd")
 ## Talents that widen an ability: [talent key, metres of RADIUS per point of the
 ## talent's value]. Deep Crucible gives width, so half of it is radius.
 const RADIUS_TALENTS := {"cinderrain": ["fire_wide_rain", 0.5], "ripple": ["arcane_wide_rings", 1.0], "hallowedarc": ["holy_wide_arc", 1.0],
+	"heartwoodelk": ["nature_wide_grove", 1.0],
 	"sweep": ["martial_wide_stance", 1.0], "roundhouse": ["martial_wide_stance", 1.0]}
 
 ## Metres your talents add to ability `id`'s radius (the game and its {radius} / {width} use this).
@@ -1224,8 +1225,8 @@ static func effect_time_bonus(res: Resource, talent_of: Callable) -> float:
 		bonus += float(talent_of.call("frost_hard_freeze", "values"))  # Hard Freeze
 	if bool(res.get("root")):
 		bonus += float(talent_of.call("frost_deep_pin", "values"))     # Deep Pin: every root of mine
-	if id == "grasped":
-		bonus += float(talent_of.call("nature_firm_hold", "values"))   # Firm Hold
+	if id in ["grasped", "choked", "coiled"]:
+		bonus += float(talent_of.call("nature_firm_hold", "values"))   # Firm Hold: Nature's holds (NatureTalentsOpenKit.HOLD_EFFECTS)
 	if id == "pinned_shadow":
 		bonus += float(talent_of.call("martial_pinned_down", "values2"))   # Pinned Down
 	# Shadow melee (the Hounds): Open Up's mark, Roused and Off the Chain.

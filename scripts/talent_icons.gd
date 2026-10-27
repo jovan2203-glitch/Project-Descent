@@ -103,6 +103,10 @@ const ICONED := ["frost_deep_cracks", "frost_cold_spread", "frost_slow_runoff", 
 	"shadow_steady_hands", "shadow_heave", "shadow_long_drop", "shadow_snap_back", "shadow_give_and_take",
 	"shadow_many_hands", "shadow_lean_on_me", "shadow_left_hanging",
 	"shadow_deep_call", "shadow_ill_will", "shadow_hard_pull", "shadow_wide_pack",
+	"shadow_held_open", "shadow_hungry_dark", "shadow_many_mouths", "shadow_shut_tight", "shadow_grasping_hands", "shadow_paid_in_full",
+	"shadow_snarl", "shadow_blood_up", "shadow_fetch", "shadow_scent_of_blood",
+	"shadow_quick_hands", "shadow_three_ply", "shadow_pass_it_on", "shadow_hold_fast", "shadow_fair_trade", "shadow_firm_grip",
+	"shadow_loose_weave", "shadow_nothing_wasted",
 	"holy_mercys_ear", "holy_many_voices", "holy_watchful", "holy_key_change", "holy_open_doors",
 	"holy_grace", "holy_burnished", "holy_steadfast", "holy_long_note", "holy_overflowing", "holy_penitent", "holy_zeal",
 	"holy_clear_mind", "holy_sheltering_light", "holy_long_glass", "holy_second_breath", "holy_heavy_chain", "holy_absolution",
@@ -133,7 +137,26 @@ const ICONED := ["frost_deep_cracks", "frost_cold_spread", "frost_slow_runoff", 
 	"martial_get_up", "martial_bad_intentions", "martial_hardened", "martial_iron_chin", "martial_last_laugh", "martial_back_up",
 	"martial_ground_game", "martial_quick_release", "martial_deep_hold", "martial_on_a_roll", "martial_lucky_shot", "martial_long_range",
 	"martial_waiting_game", "martial_clean_release", "martial_long_streak", "martial_second_arrow", "martial_hard_target", "martial_run_it_back",
-	"martial_hold_steady"]
+	"martial_hold_steady",
+	"nature_thick_mulch", "nature_well_rotted", "nature_long_roots", "nature_tight_weave", "nature_old_roots",
+	"nature_steady_weave", "nature_harvest", "nature_leaf_litter", "nature_hunted", "nature_lush", "nature_quickening",
+	"nature_second_bud", "nature_long_bloom", "nature_heavy_petals", "nature_soft_weave", "nature_pollen", "nature_canopy",
+	"nature_in_full_flower", "nature_close_herd", "nature_new_shoots", "nature_nectar", "nature_patient_hands",
+	"nature_wide_grove", "nature_morning_mist",
+	"nature_startle", "nature_pack_hunter", "nature_tending", "nature_food_chain", "nature_hibernate",
+	"nature_groundswell", "nature_heavy_limbs", "nature_long_sap", "nature_sap_run", "nature_taproot", "nature_long_limbs",
+	"nature_called_out", "nature_creaking_bark", "nature_brimming", "nature_woodgrain", "nature_old_oak",
+	"nature_slow_acting", "nature_virulent", "nature_fresh_host", "nature_double_dose", "nature_quick_venom", "nature_swollen",
+	"nature_full_brew", "nature_full_glands", "nature_spare_venom", "nature_running_venom", "nature_dragging_feet",
+	"nature_dripping_tips", "nature_final_bite", "nature_first_bite",
+	"holy_choir_loft", "holy_night_watch", "holy_warded_song", "holy_rising_voice", "holy_long_echo", "holy_tender_mercy",
+	"holy_full_voice", "holy_held_note", "holy_mercy_seat", "holy_breath_between",
+	"holy_offering", "holy_full_censer", "holy_heavy_smoke", "holy_heavy_motes", "holy_turned_aside", "holy_cloying_smoke",
+	"holy_shaken_loose", "holy_ringing_censer", "holy_hold_the_line",
+	"holy_candlelight", "holy_first_light",
+	"holy_thirsty_glass", "holy_bright_shards", "holy_polish", "holy_aftershine", "holy_lifeline", "holy_focused_light",
+	"holy_last_glint", "holy_full_glass", "holy_brilliance",
+	"holy_gilded", "holy_pinpoint", "holy_lined_up", "holy_light_draw", "holy_full_gold", "holy_gilt_tips", "holy_dazzle", "holy_sundown"]
 
 ## Pictures kept from talents that were folded into their abilities, free for new
 ## talents (draw one under its new key). Not given to any talent today.
@@ -348,6 +371,52 @@ static func _hand(c: Control, at: Vector2, s: float, flip: float = 1.0) -> void:
 
 # --- One picture per talent ---------------------------------------------------------
 
+## Nature's colours: amber Sap, a Blossom's pink, the three poisons, mana.
+const SAP := Color(1.0, 0.72, 0.25)
+const PINK := Color(1.0, 0.62, 0.82)
+const VENOM := Color(0.4, 0.95, 0.3)
+const ASP := Color(1.0, 0.85, 0.25)
+const MANA := Color(0.35, 0.6, 1.0)
+
+## A leaf from `at` pointing along `dir`, `length` long.
+static func _leaf(c: Control, at: Vector2, dir: Vector2, length: float, fill: Color) -> void:
+	var d := dir.normalized()
+	var side := d.orthogonal() * length * 0.32
+	c.draw_colored_polygon(PackedVector2Array([at, at + d * length * 0.5 + side, at + d * length, at + d * length * 0.5 - side]), fill)
+	c.draw_line(at, at + d * length * 0.9, fill.darkened(0.35), maxf(length * 0.06, 1.0), true)
+
+## A Blossom: five petals round a gold middle, `r` across.
+static func _blossom(c: Control, at: Vector2, r: float, petal: Color) -> void:
+	for i in 5:
+		var a := TAU * i / 5.0 - PI / 2.0
+		c.draw_circle(at + Vector2(cos(a), sin(a)) * r * 0.55, r * 0.42, petal)
+	c.draw_circle(at, r * 0.28, HOLY_GOLD)
+
+## A patch of Mulch on the ground.
+static func _patch(c: Control, at: Vector2, k: float, scale: float = 1.0) -> void:
+	_ellipse(c, at, Vector2(9, 3.5) * k * scale, WOOD.darkened(0.15), WOOD.lightened(0.25), 1.2 * k)
+	for x in [-4.0, 0.0, 4.0]:
+		c.draw_circle(at + Vector2(x, -0.5) * k * scale, 1.0 * k * scale, HOLY_GOLD)
+
+## A snake's fang from `top` down `length`, a drop of `drip` at its tip.
+static func _fang(c: Control, top: Vector2, length: float, k: float, drip: Color) -> void:
+	c.draw_colored_polygon(PackedVector2Array([top + Vector2(-3.5, 0) * k, top + Vector2(3.5, 0) * k, top + Vector2(0.5, length) * k, top + Vector2(-0.5, length) * k]), WHITE)
+	_drop(c, top + Vector2(0, length + 3.0) * k, 0.28 * k, drip, WHITE, k)
+
+## Vigil's blue.
+const VIGIL_BLUE := Color(0.45, 0.7, 1.0)
+
+## A note of song at `at` (its head; the stem goes up), in `col`.
+static func _note(c: Control, at: Vector2, k: float, col: Color) -> void:
+	_ellipse(c, at, Vector2(3.2, 2.4) * k, col, col, 1.0 * k)
+	c.draw_line(at + Vector2(3, 0) * k, at + Vector2(3, -12) * k, col, 1.8 * k, true)
+	c.draw_line(at + Vector2(3, -12) * k, at + Vector2(8, -9) * k, col, 1.8 * k, true)
+
+## A mote of light at `at`.
+static func _mote(c: Control, at: Vector2, k: float, r: float = 4.5) -> void:
+	c.draw_circle(at, r * k, Color(HOLY_GOLD, 0.8))
+	c.draw_circle(at, r * 0.45 * k, WHITE)
+
 static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Color, light: Color) -> void:
 	match key:
 		# --- Holy healer: the Hymns ---
@@ -491,6 +560,192 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			c.draw_circle(mid + Vector2(14, -10) * k, 3.5 * k, HEAL_GREEN)
 			c.draw_line(mid + Vector2(-14, 10) * k, mid + Vector2(14, -10) * k, Color(WHITE, 0.45), 6.0 * k, true)
 			c.draw_line(mid + Vector2(-14, 10) * k, mid + Vector2(14, -10) * k, WHITE, 2.0 * k, true)
+		# --- Holy healer: Choir of One (the ribbon tree's newer talents) ---
+		"holy_choir_loft":   # a gallery of small singers raised high, the song reaching more
+			c.draw_rect(Rect2(mid + Vector2(-15, 2) * k, Vector2(30, 3) * k), HOLY_GOLD, true)
+			for i in 4:
+				c.draw_circle(mid + Vector2(-11 + i * 7.3, -3) * k, 2.6 * k, WHITE)
+			for i in 3:
+				c.draw_arc(mid + Vector2(0, 8) * k, (5.0 + i * 4.0) * k, PI * 0.15, PI * 0.85, 10, Color(WHITE, 0.8 - i * 0.2), 1.6 * k, true)
+		"holy_night_watch":   # a moon over a blue ring, a figure safe inside
+			c.draw_arc(mid + Vector2(0, 6) * k, 13.0 * k, 0.0, TAU, 24, VIGIL_BLUE, 2.4 * k, true)
+			_figure(c, mid + Vector2(0, 8) * k, 6.0 * k, WHITE, 1.6 * k)
+			c.draw_circle(mid + Vector2(10, -12) * k, 5.0 * k, WHITE)
+			c.draw_circle(mid + Vector2(12, -13) * k, 4.2 * k, col.darkened(0.75))
+		"holy_warded_song":   # a note inside a blue shield
+			_shield(c, mid, k, Color(VIGIL_BLUE, 0.4), VIGIL_BLUE)
+			_note(c, mid + Vector2(-3, 5) * k, k, WHITE)
+		"holy_rising_voice":   # notes climbing higher, an arrow up
+			for i in 3:
+				_note(c, mid + Vector2(-12 + i * 8, 12 - i * 7) * k, k * (0.8 + i * 0.15), HOLY_GOLD if i < 2 else WHITE)
+			c.draw_line(mid + Vector2(14, 12) * k, mid + Vector2(14, -10) * k, WHITE, 1.8 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(14, -15), Vector2(18, -9), Vector2(10, -9)]), WHITE)
+		"holy_long_echo":   # a boom of light, its echo rings going far
+			c.draw_circle(mid + Vector2(-8, 0) * k, 5.0 * k, HOLY_GOLD)
+			for i in 3:
+				c.draw_arc(mid + Vector2(-8, 0) * k, (9.0 + i * 5.0) * k, -PI * 0.35, PI * 0.35, 10, Color(HOLY_GOLD, 0.9 - i * 0.25), 2.0 * k, true)
+		"holy_tender_mercy":   # a gold heart held in an open hand
+			c.draw_arc(mid + Vector2(0, 8) * k, 11.0 * k, PI * 0.1, PI * 0.9, 12, WHITE, 3.0 * k, true)
+			c.draw_circle(mid + Vector2(-3.5, -4) * k, 4.5 * k, HOLY_GOLD)
+			c.draw_circle(mid + Vector2(3.5, -4) * k, 4.5 * k, HOLY_GOLD)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-8, -2.5), Vector2(8, -2.5), Vector2(0, 7)]), HOLY_GOLD)
+		"holy_full_voice":   # three booms of the three Hymns, Verses coming back
+			var hymn_cols := [HOLY_GOLD, WHITE, VIGIL_BLUE]
+			for i in 3:
+				c.draw_circle(mid + Vector2(-10 + i * 10, -6) * k, 4.5 * k, hymn_cols[i])
+			for i in 3:
+				c.draw_rect(Rect2(mid + Vector2(-9 + i * 7, 8) * k, Vector2(4, 6) * k), HOLY_GOLD, true)
+		"holy_held_note":   # a note held under a long tie, a clock
+			_note(c, mid + Vector2(-8, 8) * k, k, HOLY_GOLD)
+			c.draw_arc(mid + Vector2(2, 12) * k, 10.0 * k, PI * 1.15, PI * 1.85, 12, WHITE, 1.6 * k, true)
+			_clock(c, mid + Vector2(10, -8) * k, 6.0 * k, WHITE, k)
+		"holy_mercy_seat":   # a column of gold light on a low health bar
+			c.draw_rect(Rect2(mid + Vector2(-4, -16) * k, Vector2(8, 24) * k), Color(HOLY_GOLD, 0.6), true)
+			c.draw_rect(Rect2(mid + Vector2(-1.5, -16) * k, Vector2(3, 24) * k), WHITE, true)
+			c.draw_rect(Rect2(mid + Vector2(-14, 11) * k, Vector2(28, 4) * k), Color(0.2, 0.05, 0.06), true)
+			c.draw_rect(Rect2(mid + Vector2(-14, 11) * k, Vector2(8, 4) * k), HOUND_RED, true)
+		"holy_breath_between":   # a boom, and a drop of mana breathed back in
+			c.draw_circle(mid + Vector2(-6, 4) * k, 8.0 * k, Color(HOLY_GOLD, 0.6))
+			c.draw_circle(mid + Vector2(-6, 4) * k, 3.5 * k, WHITE)
+			_drop(c, mid + Vector2(10, -6) * k, 0.45 * k, MANA, WHITE, k)
+			c.draw_arc(mid + Vector2(4, 2) * k, 8.0 * k, -PI * 0.9, -PI * 0.3, 8, Color(WHITE, 0.6), 1.4 * k, true)
+		# --- Holy tank: Censer Bearer (the ribbon tree's newer talents) ---
+		"holy_offering":   # a censer tipped out, an offering of light in a bowl
+			_censer(c, mid + Vector2(-6, -8) * k, k)
+			c.draw_arc(mid + Vector2(4, 8) * k, 9.0 * k, 0.0, PI, 12, WHITE, 2.4 * k, true)
+			_mote(c, mid + Vector2(4, 8) * k, k, 3.5)
+		"holy_full_censer":   # a censer brimming with light, a shield behind it
+			_shield(c, mid, k, Color(HOLY_GOLD, 0.25), HOLY_GOLD)
+			_censer(c, mid + Vector2(0, 2) * k, k)
+		"holy_heavy_smoke":   # thick smoke of light rolling off a censer
+			_censer(c, mid + Vector2(-6, 6) * k, k)
+			for i in 3:
+				c.draw_arc(mid + Vector2(2 + i * 4, -6 - i * 3) * k, (5.0 + i) * k, PI * 0.9, PI * 2.1, 10, Color(HOLY_GOLD, 0.9 - i * 0.2), 2.4 * k, true)
+		"holy_heavy_motes":   # one big mote, heavier than the rest
+			_mote(c, mid + Vector2(2, 2) * k, k, 9.0)
+			_mote(c, mid + Vector2(-12, -10) * k, k, 3.0)
+			_mote(c, mid + Vector2(13, -11) * k, k, 3.0)
+		"holy_turned_aside":   # a blow glancing off a shield of light, a heal
+			_shield(c, mid + Vector2(-3, 0) * k, k, Color(HOLY_GOLD, 0.3), HOLY_GOLD)
+			c.draw_line(mid + Vector2(16, -14) * k, mid + Vector2(6, -4) * k, HOUND_RED, 2.4 * k, true)
+			c.draw_line(mid + Vector2(6, -4) * k, mid + Vector2(14, 2) * k, Color(HOUND_RED, 0.6), 2.0 * k, true)
+			_plus(c, mid + Vector2(12, 12) * k, 3.5 * k, HEAL_GREEN, 2.2 * k)
+		"holy_cloying_smoke":   # sweet smoke curling round enemy marks
+			for i in 2:
+				c.draw_circle(mid + Vector2(-8 + i * 16, 8) * k, 3.5 * k, HOUND_RED)
+			c.draw_polyline(_p(mid, k, [Vector2(-14, 2), Vector2(-8, -4), Vector2(-2, 2), Vector2(4, -6), Vector2(10, 0), Vector2(16, -6)]), HOLY_GOLD, 2.6 * k, true)
+			c.draw_arc(mid + Vector2(0, -12) * k, 5.0 * k, 0.0, TAU, 12, Color(HOLY_GOLD, 0.6), 1.6 * k, true)
+		"holy_shaken_loose":   # a censer shaking, two motes falling free
+			_censer(c, mid + Vector2(-4, -6) * k, k)
+			for i in 2:
+				c.draw_line(mid + Vector2(-14 + i * 18, -10) * k, mid + Vector2(-12 + i * 18, -4) * k, Color(WHITE, 0.6), 1.4 * k, true)
+			_mote(c, mid + Vector2(-2, 12) * k, k, 3.5)
+			_mote(c, mid + Vector2(8, 10) * k, k, 3.5)
+		"holy_ringing_censer":   # a censer ringing as a blow is blocked
+			_censer(c, mid + Vector2(-4, 2) * k, k)
+			for i in 3:
+				c.draw_arc(mid + Vector2(-4, 2) * k, (12.0 + i * 3.5) * k, -PI * 0.3, PI * 0.3, 8, Color(WHITE, 0.8 - i * 0.2), 1.6 * k, true)
+		"holy_hold_the_line":   # a line of light on the ground, a figure standing on it, health low
+			c.draw_line(mid + Vector2(-16, 8) * k, mid + Vector2(16, 8) * k, HOLY_GOLD, 3.0 * k, true)
+			_figure(c, mid + Vector2(0, 0) * k, 7.0 * k, WHITE, 1.8 * k)
+			c.draw_rect(Rect2(mid + Vector2(-14, 12) * k, Vector2(28, 4) * k), Color(0.2, 0.05, 0.06), true)
+			c.draw_rect(Rect2(mid + Vector2(-14, 12) * k, Vector2(8, 4) * k), HOUND_RED, true)
+		# --- Holy: the newer open talents ---
+		"holy_candlelight":   # a candle lit from a heal, its flame a spark of harm
+			c.draw_rect(Rect2(mid + Vector2(-4, -2) * k, Vector2(8, 16) * k), WHITE.darkened(0.15), true)
+			_fire(c, mid + Vector2(0, -8) * k, 0.7 * k, HOLY_GOLD, WHITE)
+			_plus(c, mid + Vector2(-12, 8) * k, 3.5 * k, HEAL_GREEN, 2.2 * k)
+			_star(c, mid + Vector2(12, -10) * k, 4.5 * k, WHITE, 4)
+		"holy_first_light":   # the sun rising over the edge of the world
+			c.draw_line(mid + Vector2(-16, 8) * k, mid + Vector2(16, 8) * k, WHITE, 2.0 * k, true)
+			c.draw_arc(mid + Vector2(0, 8) * k, 8.0 * k, PI, TAU, 14, HOLY_GOLD, 6.0 * k, true)
+			for i in 5:
+				var a := PI + PI * (i + 0.5) / 5.0
+				c.draw_line(mid + Vector2(0, 8) * k + Vector2(cos(a), sin(a)) * 12.0 * k, mid + Vector2(0, 8) * k + Vector2(cos(a), sin(a)) * 17.0 * k, HOLY_GOLD, 1.8 * k, true)
+		# --- Holy healer: Line of Light (the ribbon tree's newer talents) ---
+		"holy_thirsty_glass":   # a prism drinking in a beam
+			_pane(c, mid + Vector2(4, 0) * k, Vector2(6, 11) * k, Color(WHITE, 0.3), WHITE, 1.6 * k)
+			c.draw_line(mid + Vector2(-16, 0) * k, mid + Vector2(-2, 0) * k, HEAL_GREEN, 3.0 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-1, 4), Vector2(9, 4), Vector2(9, 10), Vector2(-1, 10)]), HEAL_GREEN)
+		"holy_bright_shards":   # shards of a prism, a drop of mana among them
+			for i in 4:
+				var a := TAU * i / 4.0 + 0.4
+				_shard(c, mid + Vector2(cos(a), sin(a)) * 13.0 * k, Vector2(cos(a), sin(a)), 7.0 * k, 2.6 * k, WHITE, light, k)
+			_drop(c, mid, 0.45 * k, MANA, WHITE, k)
+		"holy_polish":   # a cloth polishing a prism to a shine
+			_pane(c, mid + Vector2(-4, 0) * k, Vector2(6, 11) * k, Color(WHITE, 0.5), WHITE, 1.6 * k)
+			c.draw_arc(mid + Vector2(8, 6) * k, 6.0 * k, PI * 0.2, PI * 1.6, 10, HOLY_GOLD, 3.0 * k, true)
+			_star(c, mid + Vector2(-8, -10) * k, 4.0 * k, WHITE, 4)
+		"holy_aftershine":   # a figure still glowing after a prism burst
+			_figure(c, mid + Vector2(0, 2) * k, 8.0 * k, WHITE, 1.8 * k)
+			c.draw_arc(mid + Vector2(0, 0) * k, 13.0 * k, 0.0, TAU, 20, Color(HEAL_GREEN, 0.6), 2.0 * k, true)
+			for i in 3:
+				_shard(c, mid + Vector2(-14 + i * 14, -14) * k, Vector2(0, -1), 5.0 * k, 2.0 * k, WHITE, light, k)
+		"holy_lifeline":   # a beam reaching a low health bar
+			c.draw_line(mid + Vector2(-16, -12) * k, mid + Vector2(10, 6) * k, HEAL_GREEN, 3.0 * k, true)
+			_pane(c, mid + Vector2(-4, -4) * k, Vector2(3, 5) * k, WHITE, WHITE, 1.2 * k)
+			c.draw_rect(Rect2(mid + Vector2(-14, 11) * k, Vector2(28, 4) * k), Color(0.2, 0.05, 0.06), true)
+			c.draw_rect(Rect2(mid + Vector2(-14, 11) * k, Vector2(8, 4) * k), HEAL_GREEN, true)
+		"holy_focused_light":   # a prism bursting all its light into one figure
+			_pane(c, mid + Vector2(-8, -6) * k, Vector2(5, 8) * k, Color(WHITE, 0.7), WHITE, 1.4 * k)
+			_figure(c, mid + Vector2(9, 6) * k, 6.0 * k, WHITE, 1.6 * k)
+			for i in 3:
+				c.draw_line(mid + Vector2(-4, -4 + i * 3) * k, mid + Vector2(6, 2 + i) * k, HEAL_GREEN, 1.6 * k, true)
+		"holy_last_glint":   # a prism fading out, a last glint breaking from it
+			_pane(c, mid + Vector2(-2, 2) * k, Vector2(6, 11) * k, Color(WHITE, 0.15), Color(WHITE, 0.5), 1.4 * k)
+			_star(c, mid + Vector2(8, -9) * k, 7.0 * k, WHITE, 4)
+			_hourglass(c, mid + Vector2(-12, -10) * k, 0.5 * k, HOLY_GOLD, WHITE)
+		"holy_full_glass":   # a full prism, a beam going on brighter beyond it
+			_pane(c, mid, Vector2(6, 11) * k, HEAL_GREEN, WHITE, 1.6 * k)
+			c.draw_line(mid + Vector2(-16, 4) * k, mid + Vector2(-6, 2) * k, Color(HEAL_GREEN, 0.6), 2.0 * k, true)
+			c.draw_line(mid + Vector2(6, 0) * k, mid + Vector2(16, -2) * k, HEAL_GREEN, 4.0 * k, true)
+		"holy_brilliance":   # three prisms in a row, the beam through them blazing
+			for i in 3:
+				_pane(c, mid + Vector2(-10 + i * 10, 0) * k, Vector2(3, 6) * k, Color(WHITE, 0.6), WHITE, 1.2 * k)
+			c.draw_line(mid + Vector2(-16, 0) * k, mid + Vector2(16, 0) * k, HEAL_GREEN, 2.2 * k, true)
+			for i in 6:
+				var a := TAU * i / 6.0
+				c.draw_line(mid + Vector2(cos(a), sin(a)) * 11.0 * k, mid + Vector2(cos(a), sin(a)) * 15.0 * k, HOLY_GOLD, 1.6 * k, true)
+		# --- Holy archer: Lightstring (the ribbon tree's newer talents) ---
+		"holy_gilded":   # an arrow passing a gold prism, gold soaking into it
+			_pane(c, mid + Vector2(4, -4) * k, Vector2(5, 9) * k, HOLY_GOLD, WHITE, 1.4 * k)
+			c.draw_line(mid + Vector2(-16, 8) * k, mid + Vector2(14, -6) * k, WHITE, 2.0 * k, true)
+			for i in 3:
+				c.draw_circle(mid + Vector2(-8 + i * 4, 6 - i * 2) * k, 1.6 * k, HOLY_GOLD)
+		"holy_pinpoint":   # a gold prism focusing an arrow onto one point
+			_pane(c, mid + Vector2(-8, 0) * k, Vector2(4, 8) * k, HOLY_GOLD, WHITE, 1.2 * k)
+			c.draw_line(mid + Vector2(-4, -6) * k, mid + Vector2(12, 0) * k, Color(HOLY_GOLD, 0.6), 1.4 * k, true)
+			c.draw_line(mid + Vector2(-4, 6) * k, mid + Vector2(12, 0) * k, Color(HOLY_GOLD, 0.6), 1.4 * k, true)
+			c.draw_circle(mid + Vector2(12, 0) * k, 3.0 * k, WHITE)
+			c.draw_arc(mid + Vector2(12, 0) * k, 5.5 * k, 0.0, TAU, 12, WHITE, 1.2 * k, true)
+		"holy_lined_up":   # two gold prisms in a line, one arrow through both
+			for x in [-6.0, 6.0]:
+				_pane(c, mid + Vector2(x, 0) * k, Vector2(3.5, 7) * k, HOLY_GOLD, WHITE, 1.2 * k)
+			c.draw_line(mid + Vector2(-16, 0) * k, mid + Vector2(14, 0) * k, WHITE, 2.0 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(18, 0), Vector2(12, -4), Vector2(12, 4)]), WHITE)
+		"holy_light_draw":   # a bow drawn lightly, an Energy bar barely dented
+			c.draw_arc(mid + Vector2(-6, 0) * k, 13.0 * k, -PI * 0.45, PI * 0.45, 12, HOLY_GOLD, 2.6 * k, true)
+			c.draw_line(mid + Vector2(-1, -12) * k, mid + Vector2(-1, 12) * k, Color(WHITE, 0.7), 1.2 * k, true)
+			c.draw_rect(Rect2(mid + Vector2(8, -12) * k, Vector2(5, 24) * k), Color(0.25, 0.2, 0.05), true)
+			c.draw_rect(Rect2(mid + Vector2(8, -9) * k, Vector2(5, 21) * k), Color(1.0, 0.9, 0.3), true)
+		"holy_full_gold":   # a full gold prism splitting off a bright arrow
+			_pane(c, mid + Vector2(-6, 0) * k, Vector2(6, 11) * k, HOLY_GOLD, WHITE, 1.6 * k)
+			c.draw_line(mid + Vector2(0, -4) * k, mid + Vector2(16, -14) * k, WHITE, 2.4 * k, true)
+			c.draw_line(mid + Vector2(0, 4) * k, mid + Vector2(16, 12) * k, WHITE, 2.4 * k, true)
+		"holy_gilt_tips":   # an arrowhead dipped in gold
+			c.draw_line(mid + Vector2(-14, 14) * k, mid + Vector2(4, -4) * k, WHITE.darkened(0.2), 2.0 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(12, -12), Vector2(2, -8), Vector2(8, -2)]), HOLY_GOLD)
+			_star(c, mid + Vector2(13, -13) * k, 3.5 * k, WHITE, 4)
+		"holy_dazzle":   # a refracted arrow with a blinding glint at its tip
+			_pane(c, mid + Vector2(-10, 4) * k, Vector2(4, 7) * k, HOLY_GOLD, WHITE, 1.2 * k)
+			c.draw_line(mid + Vector2(-6, 2) * k, mid + Vector2(8, -6) * k, WHITE, 2.0 * k, true)
+			_star(c, mid + Vector2(10, -8) * k, 8.0 * k, WHITE, 6)
+		"holy_sundown":   # the sun setting behind an arrow, a low health bar
+			c.draw_arc(mid + Vector2(0, 4) * k, 9.0 * k, PI, TAU, 14, Color(1.0, 0.55, 0.25), 6.0 * k, true)
+			c.draw_line(mid + Vector2(-16, 4) * k, mid + Vector2(16, 4) * k, WHITE, 1.6 * k, true)
+			c.draw_line(mid + Vector2(-14, -12) * k, mid + Vector2(10, -6) * k, WHITE, 2.0 * k, true)
+			c.draw_rect(Rect2(mid + Vector2(-14, 11) * k, Vector2(28, 4) * k), Color(0.2, 0.05, 0.06), true)
+			c.draw_rect(Rect2(mid + Vector2(-14, 11) * k, Vector2(8, 4) * k), HOUND_RED, true)
 		# --- Holy: the bottom row ---
 		"holy_censers_weight":   # a heavy censer swinging down hard
 			_censer(c, mid + Vector2(2, 2) * k, k)
@@ -758,6 +1013,281 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			c.draw_circle(mid + Vector2(-9, -9) * k, 9.0 * k, col.lightened(0.15))
 			for r in [3.0, 6.0, 9.0]:
 				c.draw_arc(mid + Vector2(9, 8) * k, r * k, 0.0, TAU, 14, Color(1.0, 0.72, 0.25), 1.4 * k, true)
+		# --- Nature caster: Thornweaver (the ribbon tree's newer talents) ---
+		"nature_thick_mulch":   # a deep heap of mulch, an hourglass on it
+			_patch(c, mid + Vector2(0, 11) * k, k, 1.6)
+			_patch(c, mid + Vector2(0, 6) * k, k, 1.2)
+			_hourglass(c, mid + Vector2(0, -8) * k, k, SAP, WHITE)
+		"nature_well_rotted":   # an old patch, gone dark, with a clock and a stronger glow
+			_ellipse(c, mid + Vector2(0, 10) * k, Vector2(14, 5) * k, WOOD.darkened(0.45), HOLY_GOLD, 1.8 * k)
+			for x in [-7.0, 0.0, 7.0]:
+				c.draw_line(mid + Vector2(x, 8) * k, mid + Vector2(x, 2) * k, Color(HOLY_GOLD, 0.7), 1.4 * k, true)
+			_clock(c, mid + Vector2(0, -8) * k, 7.0 * k, WHITE, k)
+		"nature_long_roots":   # a bear's head, roots reaching far out to a distant patch
+			c.draw_circle(mid + Vector2(-8, -4) * k, 7.0 * k, WOOD.lightened(0.15))
+			c.draw_circle(mid + Vector2(-13, -10) * k, 2.5 * k, WOOD.lightened(0.15))
+			c.draw_circle(mid + Vector2(-3, -10) * k, 2.5 * k, WOOD.lightened(0.15))
+			c.draw_polyline(_p(mid, k, [Vector2(-8, 4), Vector2(-2, 9), Vector2(6, 8), Vector2(12, 12)]), light, 2.0 * k, true)
+			_patch(c, mid + Vector2(12, 13) * k, k, 0.6)
+		"nature_tight_weave":   # vines braided tight into a claw
+			for i in 3:
+				var off := float(i - 1) * 3.0
+				c.draw_polyline(_p(mid, k, [Vector2(-14, 12 + off), Vector2(-6, 4 + off), Vector2(2, 0 - off), Vector2(10, -8)]), light if i == 1 else col.lightened(0.25), 2.0 * k, true)
+			for i in 3:
+				c.draw_line(mid + Vector2(8 + i * 3, -6) * k, mid + Vector2(12 + i * 3, -15) * k, WHITE, 1.8 * k, true)
+		"nature_old_roots":   # thick old roots bursting up from the ground into a fist
+			c.draw_line(mid + Vector2(-16, 14) * k, mid + Vector2(16, 14) * k, WOOD.darkened(0.2), 2.4 * k, true)
+			for x in [-7.0, 0.0, 7.0]:
+				c.draw_line(mid + Vector2(x * 1.5, 14) * k, mid + Vector2(x * 0.5, -2) * k, WOOD.lightened(0.15), 3.6 * k, true)
+			c.draw_circle(mid + Vector2(0, -6) * k, 7.0 * k, WOOD.lightened(0.25))
+			c.draw_arc(mid + Vector2(0, -6) * k, 7.0 * k, PI, TAU, 10, light, 1.6 * k, true)
+		"nature_steady_weave":   # a hand held still, vines slowly winding from it
+			c.draw_circle(mid + Vector2(-10, 6) * k, 6.0 * k, Color(0.95, 0.78, 0.62))
+			c.draw_polyline(_p(mid, k, [Vector2(-5, 4), Vector2(1, -2), Vector2(6, 2), Vector2(11, -5), Vector2(15, -1)]), light, 2.2 * k, true)
+			c.draw_arc(mid + Vector2(8, -10) * k, 6.0 * k, PI * 1.1, PI * 1.9, 8, Color(WHITE, 0.6), 1.4 * k, true)
+		"nature_harvest":   # a sickle over the patches, a drop of mana rising
+			c.draw_arc(mid + Vector2(-2, -2) * k, 11.0 * k, PI * 1.1, PI * 1.9, 14, WHITE, 2.6 * k, true)
+			c.draw_line(mid + Vector2(-12, -3) * k, mid + Vector2(-12, 10) * k, WOOD.lightened(0.2), 2.6 * k, true)
+			_patch(c, mid + Vector2(4, 12) * k, k, 0.8)
+			_drop(c, mid + Vector2(10, -2) * k, 0.4 * k, MANA, WHITE, k)
+		"nature_leaf_litter":   # leaves sinking into the ground, mana coming back up
+			for i in 3:
+				_leaf(c, mid + Vector2(-12 + i * 7, -6 + i * 4) * k, Vector2(1, 0.4), 9.0 * k, Color(0.85, 0.6, 0.25) if i != 1 else light)
+			c.draw_line(mid + Vector2(-16, 13) * k, mid + Vector2(16, 13) * k, WOOD.lightened(0.2), 2.0 * k, true)
+			_drop(c, mid + Vector2(12, -8) * k, 0.4 * k, MANA, WHITE, k)
+		"nature_hunted":   # a tiger's eyes in the dark, a weakened mark below them
+			for x in [-7.0, 7.0]:
+				_ellipse(c, mid + Vector2(x, -6) * k, Vector2(5, 2.2) * k, SAP, WHITE, 1.0 * k)
+				c.draw_line(mid + Vector2(x, -8) * k, mid + Vector2(x, -4) * k, Color(0, 0, 0), 1.4 * k, true)
+			c.draw_rect(Rect2(mid + Vector2(-12, 8) * k, Vector2(24, 5) * k), Color(0.2, 0.05, 0.06), true)
+			c.draw_rect(Rect2(mid + Vector2(-12, 8) * k, Vector2(7, 5) * k), HOUND_RED, true)
+		"nature_lush":   # a lush leaf over a small drop of mana
+			_leaf(c, mid + Vector2(-12, 10) * k, Vector2(1, -1), 26.0 * k, light)
+			_drop(c, mid + Vector2(10, 8) * k, 0.45 * k, MANA, WHITE, k)
+			c.draw_line(mid + Vector2(4, 14) * k, mid + Vector2(16, 14) * k, WHITE, 1.6 * k, true)
+		"nature_quickening":   # a patch, and a shoot springing up fast from it
+			_patch(c, mid + Vector2(-4, 12) * k, k, 1.2)
+			c.draw_line(mid + Vector2(-4, 10) * k, mid + Vector2(-4, -10) * k, HEAL_GREEN, 2.4 * k, true)
+			_leaf(c, mid + Vector2(-4, -4) * k, Vector2(1, -0.6), 9.0 * k, HEAL_GREEN)
+			for i in 3:
+				c.draw_line(mid + Vector2(6 + i * 4, 6 - i * 2) * k, mid + Vector2(6 + i * 4, -6 - i * 2) * k, Color(WHITE, 0.6), 1.4 * k, true)
+		# --- Nature healer: Shepherd (the ribbon tree's newer talents) ---
+		"nature_second_bud":   # a Blossom, a second bud opening beside it
+			_blossom(c, mid + Vector2(-5, 3) * k, 14.0 * k, PINK)
+			_blossom(c, mid + Vector2(10, -9) * k, 8.0 * k, PINK.lightened(0.3))
+			_plus(c, mid + Vector2(12, 11) * k, 3.0 * k, WHITE, 2.0 * k)
+		"nature_long_bloom":   # a Blossom with an hourglass behind it
+			_hourglass(c, mid + Vector2(9, -4) * k, k, SAP, WHITE)
+			_blossom(c, mid + Vector2(-5, 4) * k, 16.0 * k, PINK)
+		"nature_heavy_petals":   # big petals falling onto roots, the roots glowing
+			c.draw_line(mid + Vector2(-16, 13) * k, mid + Vector2(16, 13) * k, WOOD.lightened(0.2), 3.0 * k, true)
+			for x in [-10.0, 0.0, 10.0]:
+				c.draw_line(mid + Vector2(x, 13) * k, mid + Vector2(x * 0.6, 5) * k, Color(HEAL_GREEN, 0.8), 2.0 * k, true)
+			for v in [Vector2(-9, -8), Vector2(3, -12), Vector2(10, -4)]:
+				c.draw_circle(mid + (v as Vector2) * k, 4.5 * k, PINK)
+		"nature_soft_weave":   # a fawn woven of soft vines, a heal beside it
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-12, 6), Vector2(2, 0), Vector2(6, -6), Vector2(8, -1), Vector2(3, 6), Vector2(-10, 9)]), light)
+			for x in [-8.0, 0.0]:
+				c.draw_line(mid + Vector2(x, 8) * k, mid + Vector2(x - 2, 15) * k, light, 1.4 * k, true)
+			c.draw_arc(mid + Vector2(-2, 4) * k, 12.0 * k, PI * 1.1, PI * 1.6, 8, Color(PINK, 0.8), 1.4 * k, true)
+			_plus(c, mid + Vector2(12, -10) * k, 4.0 * k, HEAL_GREEN, 2.4 * k)
+		"nature_pollen":   # a full Blossom blowing pollen to a second ally
+			_blossom(c, mid + Vector2(-8, 4) * k, 14.0 * k, PINK)
+			for i in 4:
+				c.draw_circle(mid + Vector2(1 + i * 4, -2 - i * 3) * k, 1.4 * k, HOLY_GOLD)
+			_figure(c, mid + Vector2(13, -2) * k, 5.0 * k, WHITE, 1.4 * k)
+		"nature_canopy":   # a canopy of leaves over a small figure
+			for i in 5:
+				_leaf(c, mid + Vector2(0, -2) * k, Vector2(cos(PI * (1.1 + i * 0.2)), sin(PI * (1.1 + i * 0.2))), 15.0 * k, light if i == 2 else col.lightened(0.2))
+			_figure(c, mid + Vector2(0, 9) * k, 6.0 * k, WHITE, 1.6 * k)
+			c.draw_circle(mid + Vector2(-12, 6) * k, 3.0 * k, PINK)
+		"nature_in_full_flower":   # three Blossoms in a row, the heal growing over them
+			for i in 3:
+				_blossom(c, mid + Vector2(-11 + i * 11, 8) * k, 9.0 * k, PINK)
+			_plus(c, mid + Vector2(0, -9) * k, 6.0 * k, HEAL_GREEN, 3.0 * k)
+		"nature_close_herd":   # two fawns leaping close together, the second as bright as the first
+			for i in 2:
+				var o := mid + Vector2(-7 + i * 9, 4 - i * 7) * k
+				c.draw_colored_polygon(_p(o, k, [Vector2(-6, 2), Vector2(4, -2), Vector2(7, -6), Vector2(8, -2), Vector2(4, 3), Vector2(-5, 5)]), light)
+			_plus(c, mid + Vector2(-10, -10) * k, 3.0 * k, HEAL_GREEN, 2.0 * k)
+			_plus(c, mid + Vector2(12, 10) * k, 3.0 * k, HEAL_GREEN, 2.0 * k)
+		"nature_new_shoots":   # a bare ally, a fresh shoot coming up beside them
+			_figure(c, mid + Vector2(-6, 2) * k, 7.0 * k, WHITE, 1.6 * k)
+			c.draw_line(mid + Vector2(10, 14) * k, mid + Vector2(10, 0) * k, HEAL_GREEN, 2.0 * k, true)
+			_leaf(c, mid + Vector2(10, 4) * k, Vector2(-1, -0.7), 8.0 * k, HEAL_GREEN)
+			_leaf(c, mid + Vector2(10, 1) * k, Vector2(1, -0.8), 8.0 * k, HEAL_GREEN)
+		"nature_nectar":   # a Blossom dripping a drop of mana
+			_blossom(c, mid + Vector2(0, -5) * k, 16.0 * k, PINK)
+			_drop(c, mid + Vector2(0, 12) * k, 0.45 * k, MANA, WHITE, k)
+		"nature_patient_hands":   # two cupped hands, dew gathering slowly in them
+			c.draw_arc(mid + Vector2(0, 2) * k, 12.0 * k, PI * 0.1, PI * 0.9, 12, Color(0.95, 0.78, 0.62), 4.0 * k, true)
+			_drop(c, mid + Vector2(0, 2) * k, 0.45 * k, Color(0.6, 0.85, 1.0), WHITE, k)
+			_clock(c, mid + Vector2(0, -12) * k, 5.0 * k, WHITE, k)
+		"nature_wide_grove":   # a ring of trees spread wide
+			for i in 6:
+				var a := TAU * i / 6.0
+				var at := mid + Vector2(cos(a), sin(a)) * 13.0 * k
+				c.draw_colored_polygon(PackedVector2Array([at + Vector2(0, -5) * k, at + Vector2(4, 3) * k, at + Vector2(-4, 3) * k]), light if i % 2 == 0 else col.lightened(0.2))
+			c.draw_arc(mid, 7.0 * k, 0.0, TAU, 16, Color(WHITE, 0.6), 1.4 * k, true)
+		"nature_morning_mist":   # mist lying low over a Blossom, a small drop of mana
+			_blossom(c, mid + Vector2(-4, 2) * k, 12.0 * k, PINK)
+			for y in [8.0, 12.0]:
+				c.draw_line(mid + Vector2(-16, y) * k, mid + Vector2(16, y) * k, Color(WHITE, 0.45), 2.0 * k, true)
+			_drop(c, mid + Vector2(11, -9) * k, 0.38 * k, MANA, WHITE, k)
+		# --- Nature: the newer open talents ---
+		"nature_startle":   # a deer's head turning, alarm marks round it
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-4, 10), Vector2(4, 10), Vector2(6, 0), Vector2(0, -6), Vector2(-6, 0)]), light)
+			for x in [-1.0, 1.0]:
+				c.draw_polyline(_p(mid, k, [Vector2(x * 4, -5), Vector2(x * 8, -12), Vector2(x * 12, -14)]), light, 1.6 * k, true)
+			for i in 3:
+				var a := -0.5 + i * 0.5
+				c.draw_line(mid + Vector2(10, 2) * k + Vector2(cos(a), sin(a)) * 3.0 * k, mid + Vector2(10, 2) * k + Vector2(cos(a), sin(a)) * 7.0 * k, WHITE, 1.6 * k, true)
+		"nature_pack_hunter":   # a wolf's head flanking a beast that faces away
+			c.draw_circle(mid + Vector2(-6, 6) * k, 8.0 * k, Color(WHITE, 0.25))
+			c.draw_line(mid + Vector2(-6, -2) * k, mid + Vector2(-16, -6) * k, Color(WHITE, 0.4), 1.4 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(4, -4), Vector2(9, -14), Vector2(12, -6), Vector2(16, -2), Vector2(12, 4), Vector2(6, 4)]), light)
+			c.draw_circle(mid + Vector2(10, -4) * k, 1.2 * k, Color(0, 0, 0))
+		"nature_tending":   # a watering can over a sprouting heal
+			c.draw_rect(Rect2(mid + Vector2(-14, -12) * k, Vector2(12, 9) * k), WHITE.darkened(0.25), true)
+			c.draw_line(mid + Vector2(-2, -9) * k, mid + Vector2(6, -13) * k, WHITE.darkened(0.25), 2.0 * k, true)
+			for i in 3:
+				c.draw_line(mid + Vector2(6 + i * 2, -10) * k, mid + Vector2(5 + i * 2, -4) * k, Color(0.6, 0.85, 1.0), 1.2 * k, true)
+			_plus(c, mid + Vector2(6, 9) * k, 5.5 * k, HEAL_GREEN, 2.8 * k)
+		"nature_food_chain":   # a fallen shape, a heal rising from it to a figure
+			_ellipse(c, mid + Vector2(-8, 11) * k, Vector2(8, 3) * k, Color(WHITE, 0.3), Color(WHITE, 0.5), 1.0 * k)
+			c.draw_arc(mid + Vector2(0, 8) * k, 10.0 * k, PI * 1.05, PI * 1.6, 8, HEAL_GREEN, 1.8 * k, true)
+			_figure(c, mid + Vector2(9, 0) * k, 6.0 * k, WHITE, 1.6 * k)
+			_plus(c, mid + Vector2(-8, -10) * k, 3.5 * k, HEAL_GREEN, 2.2 * k)
+		"nature_hibernate":   # a bear curled up asleep in a den, z's above
+			c.draw_arc(mid + Vector2(0, 12) * k, 15.0 * k, PI, TAU, 16, WOOD.lightened(0.2), 3.0 * k, true)
+			_ellipse(c, mid + Vector2(0, 8) * k, Vector2(10, 5) * k, WOOD.lightened(0.1), light, 1.2 * k)
+			for i in 2:
+				var o := mid + Vector2(4 + i * 6, -6 - i * 6) * k
+				c.draw_polyline(PackedVector2Array([o, o + Vector2(4, 0) * k, o + Vector2(0, 4) * k, o + Vector2(4, 4) * k]), WHITE, 1.4 * k, true)
+		# --- Nature tank: Colossus (the ribbon tree's newer talents) ---
+		"nature_groundswell":   # the ground swelling up under a fist, Fury rising
+			c.draw_polyline(_p(mid, k, [Vector2(-16, 14), Vector2(-8, 8), Vector2(0, 2), Vector2(8, 8), Vector2(16, 14)]), WOOD.lightened(0.2), 3.0 * k, true)
+			c.draw_circle(mid + Vector2(0, -6) * k, 6.0 * k, WOOD.lightened(0.25))
+			c.draw_colored_polygon(_p(mid, k, [Vector2(10, -16), Vector2(14, -6), Vector2(11, -7), Vector2(13, 2), Vector2(7, -9), Vector2(10, -8)]), Color(1.0, 0.45, 0.2))
+		"nature_heavy_limbs":   # a heavy wooden fist coming down, Fury burning behind
+			c.draw_rect(Rect2(mid + Vector2(-9, -6) * k, Vector2(18, 15) * k), WOOD.lightened(0.15))
+			c.draw_rect(Rect2(mid + Vector2(-4, -16) * k, Vector2(8, 10) * k), WOOD)
+			for i in 3:
+				c.draw_line(mid + Vector2(-12 + i * 12, 12) * k, mid + Vector2(-14 + i * 14, 16) * k, Color(1.0, 0.45, 0.2), 2.0 * k, true)
+		"nature_long_sap":   # a drop of Sap beside an hourglass
+			_drop(c, mid + Vector2(-6, 2) * k, 0.9 * k, SAP, WHITE, k)
+			_hourglass(c, mid + Vector2(10, 0) * k, k, SAP, WHITE)
+		"nature_sap_run":   # Sap running down bark, one drop more than the rest
+			c.draw_rect(Rect2(mid + Vector2(-13, -15) * k, Vector2(26, 30) * k), WOOD.darkened(0.2))
+			for x in [-6.0, 2.0]:
+				c.draw_line(mid + Vector2(x, -15) * k, mid + Vector2(x, 4) * k, SAP, 2.2 * k, true)
+				_drop(c, mid + Vector2(x, 8) * k, 0.3 * k, SAP, WHITE, k)
+			_drop(c, mid + Vector2(10, -2) * k, 0.4 * k, SAP.lightened(0.3), WHITE, k)
+		"nature_taproot":   # a deep root drawing up Sap and turning it into Fury
+			c.draw_line(mid + Vector2(-10, 16) * k, mid + Vector2(-10, -8) * k, WOOD.lightened(0.2), 3.0 * k, true)
+			_drop(c, mid + Vector2(-10, 6) * k, 0.35 * k, SAP, WHITE, k)
+			c.draw_line(mid + Vector2(-6, -8) * k, mid + Vector2(4, -8) * k, WHITE, 1.6 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(10, -16), Vector2(14, -6), Vector2(11, -7), Vector2(13, 2), Vector2(7, -9), Vector2(10, -8)]), Color(1.0, 0.45, 0.2))
+		"nature_long_limbs":   # a foot stamping, its ring reaching wide
+			c.draw_rect(Rect2(mid + Vector2(-5, -12) * k, Vector2(10, 14) * k), WOOD.lightened(0.15))
+			c.draw_rect(Rect2(mid + Vector2(-5, 2) * k, Vector2(14, 5) * k), WOOD.lightened(0.15))
+			c.draw_arc(mid + Vector2(0, 8) * k, 17.0 * k, PI * 1.05, PI * 1.95, 16, light, 2.0 * k, true)
+			c.draw_arc(mid + Vector2(0, 8) * k, 11.0 * k, PI * 1.1, PI * 1.9, 12, Color(light, 0.5), 1.4 * k, true)
+		"nature_called_out":   # three marks on enemies, each sending Fury back
+			for i in 3:
+				var at := mid + Vector2(-11 + i * 11, -8 + absf(i - 1) * 4.0) * k
+				c.draw_circle(at, 3.5 * k, HOUND_RED)
+				c.draw_line(at + Vector2(0, 4) * k, mid + Vector2(0, 12) * k, Color(1.0, 0.45, 0.2), 1.6 * k, true)
+			c.draw_circle(mid + Vector2(0, 13) * k, 3.5 * k, WOOD.lightened(0.3))
+		"nature_creaking_bark":   # bark cracking loudly, sound lines out
+			c.draw_rect(Rect2(mid + Vector2(-10, -15) * k, Vector2(14, 30) * k), WOOD)
+			c.draw_polyline(_p(mid, k, [Vector2(-3, -15), Vector2(-6, -5), Vector2(-1, 2), Vector2(-5, 15)]), WOOD.darkened(0.6), 2.0 * k, true)
+			for i in 3:
+				c.draw_arc(mid + Vector2(4, 0) * k, (5.0 + i * 4.0) * k, -PI * 0.3, PI * 0.3, 8, Color(WHITE, 0.8 - i * 0.2), 1.6 * k, true)
+		"nature_brimming":   # five drops of Sap, the bark brimming over
+			for i in 5:
+				var a := PI * (1.1 + i * 0.2)
+				_drop(c, mid + Vector2(0, 8) * k + Vector2(cos(a), sin(a)) * 12.0 * k, 0.3 * k, SAP, WHITE, k)
+			_drop(c, mid + Vector2(0, 6) * k, 0.6 * k, SAP.lightened(0.2), WHITE, k)
+		"nature_woodgrain":   # a shield of wood, its grain showing
+			_shield(c, mid, k, WOOD.lightened(0.1), light)
+			for x in [-5.0, 0.0, 5.0]:
+				c.draw_polyline(_p(mid, k, [Vector2(x, -10), Vector2(x + 2, -2), Vector2(x - 1, 6), Vector2(x, 11)]), WOOD.darkened(0.4), 1.2 * k, true)
+		"nature_old_oak":   # an oak, a low health bar, Sap glowing at its heart
+			c.draw_rect(Rect2(mid + Vector2(-4, -2) * k, Vector2(8, 14) * k), WOOD)
+			c.draw_circle(mid + Vector2(0, -8) * k, 10.0 * k, col.lightened(0.15))
+			_drop(c, mid + Vector2(0, 3) * k, 0.3 * k, SAP, WHITE, k)
+			c.draw_rect(Rect2(mid + Vector2(-14, 13) * k, Vector2(28, 4) * k), Color(0.2, 0.05, 0.06), true)
+			c.draw_rect(Rect2(mid + Vector2(-14, 13) * k, Vector2(8, 4) * k), HOUND_RED, true)
+		# --- Nature archer: Venomstring (the ribbon tree's newer talents) ---
+		"nature_slow_acting":   # a drop of venom and an hourglass running slow
+			_drop(c, mid + Vector2(-7, 2) * k, 0.75 * k, VENOM, WHITE, k)
+			_hourglass(c, mid + Vector2(9, 0) * k, k, VENOM, WHITE)
+		"nature_virulent":   # a big drop of venom, glowing hot
+			c.draw_circle(mid + Vector2(0, 2) * k, 14.0 * k, Color(VENOM, 0.25))
+			_drop(c, mid + Vector2(0, 0) * k, 1.0 * k, VENOM, WHITE, k)
+		"nature_fresh_host":   # a drop jumping to a new mark, a clock over it
+			c.draw_circle(mid + Vector2(-12, 10) * k, 3.5 * k, Color(WHITE, 0.35))
+			c.draw_arc(mid + Vector2(0, 10) * k, 12.0 * k, PI * 1.05, PI * 1.95, 14, VENOM, 2.0 * k, true)
+			c.draw_circle(mid + Vector2(12, 10) * k, 3.5 * k, light)
+			_clock(c, mid + Vector2(0, -6) * k, 6.0 * k, WHITE, k)
+		"nature_double_dose":   # two drops, green and yellow, running into one
+			_drop(c, mid + Vector2(-8, -6) * k, 0.5 * k, VENOM, WHITE, k)
+			_drop(c, mid + Vector2(8, -6) * k, 0.5 * k, ASP, WHITE, k)
+			c.draw_line(mid + Vector2(-6, 0) * k, mid + Vector2(0, 8) * k, VENOM, 2.0 * k, true)
+			c.draw_line(mid + Vector2(6, 0) * k, mid + Vector2(0, 8) * k, ASP, 2.0 * k, true)
+			c.draw_circle(mid + Vector2(0, 11) * k, 3.5 * k, VENOM.lerp(ASP, 0.5))
+		"nature_quick_venom":   # quick drips falling one after another
+			for i in 4:
+				_drop(c, mid + Vector2(-12 + i * 8, -10 + i * 6) * k, 0.3 * k, VENOM, WHITE, k)
+			for i in 3:
+				c.draw_line(mid + Vector2(-14 + i * 8, -14 + i * 6) * k, mid + Vector2(-17 + i * 8, -18 + i * 6) * k, Color(WHITE, 0.5), 1.2 * k, true)
+		"nature_swollen":   # a swollen bulb of venom splitting into small copies
+			c.draw_circle(mid + Vector2(0, -2) * k, 9.0 * k, VENOM)
+			c.draw_arc(mid + Vector2(0, -2) * k, 9.0 * k, 0.0, TAU, 16, WHITE, 1.4 * k, true)
+			for x in [-12.0, 0.0, 12.0]:
+				c.draw_circle(mid + Vector2(x, 13) * k, 2.8 * k, VENOM.lightened(0.2))
+		"nature_full_brew":   # a cauldron of the three venoms, an arrow striking it
+			c.draw_arc(mid + Vector2(0, 2) * k, 11.0 * k, 0.0, PI, 12, WHITE.darkened(0.3), 3.0 * k, true)
+			c.draw_line(mid + Vector2(-12, 2) * k, mid + Vector2(12, 2) * k, WHITE.darkened(0.3), 2.0 * k, true)
+			var brew := [VENOM, ASP, Color(0.92, 0.95, 1.0)]
+			for i in 3:
+				c.draw_circle(mid + Vector2(-5 + i * 5, 4) * k, 2.6 * k, brew[i])
+			c.draw_line(mid + Vector2(-14, -14) * k, mid + Vector2(-2, -2) * k, WHITE, 1.8 * k, true)
+		"nature_full_glands":   # a snake's head, its glands swollen with venom
+			c.draw_colored_polygon(_p(mid, k, [Vector2(-14, 4), Vector2(-4, -8), Vector2(10, -6), Vector2(14, 2), Vector2(4, 8), Vector2(-10, 8)]), col.lightened(0.2))
+			for x in [-2.0, 6.0]:
+				c.draw_circle(mid + Vector2(x, 2) * k, 3.0 * k, VENOM)
+			c.draw_circle(mid + Vector2(6, -3) * k, 1.4 * k, Color(0, 0, 0))
+			_fang(c, mid + Vector2(10, 6) * k, 6.0, k, VENOM)
+		"nature_spare_venom":   # a vial of venom, half of it pouring back in
+			c.draw_rect(Rect2(mid + Vector2(-7, -10) * k, Vector2(14, 22) * k), Color(WHITE, 0.2), true)
+			c.draw_rect(Rect2(mid + Vector2(-7, 2) * k, Vector2(14, 10) * k), VENOM, true)
+			c.draw_rect(Rect2(mid + Vector2(-7, -10) * k, Vector2(14, 22) * k), WHITE, false, 1.4 * k)
+			c.draw_arc(mid + Vector2(10, -6) * k, 6.0 * k, -PI * 0.5, PI * 0.6, 8, VENOM, 1.8 * k, true)
+		"nature_running_venom":   # an arrow riding a stream of venom
+			c.draw_polyline(_p(mid, k, [Vector2(-16, 10), Vector2(-8, 6), Vector2(0, 8), Vector2(8, 4), Vector2(16, 6)]), VENOM, 3.0 * k, true)
+			_arrow_line(c, mid + Vector2(0, -4) * k, k, WHITE, light)
+		"nature_dragging_feet":   # an arrow at a foot slowed by yellow venom
+			c.draw_rect(Rect2(mid + Vector2(4, -6) * k, Vector2(8, 16) * k), WHITE.darkened(0.3))
+			c.draw_rect(Rect2(mid + Vector2(4, 6) * k, Vector2(12, 5) * k), WHITE.darkened(0.3))
+			for i in 2:
+				c.draw_arc(mid + Vector2(8, -1 + i * 6) * k, 6.0 * k, PI * 0.1, PI * 0.9, 8, ASP, 2.0 * k, true)
+			c.draw_line(mid + Vector2(-16, -12) * k, mid + Vector2(0, 0) * k, light, 2.0 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(2, 2), Vector2(-4, 0), Vector2(0, -4)]), light)
+		"nature_dripping_tips":   # an arrowhead dripping venom
+			c.draw_line(mid + Vector2(-14, -14) * k, mid + Vector2(4, 4) * k, WHITE.darkened(0.2), 2.0 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(10, 10), Vector2(0, 6), Vector2(6, 0)]), light)
+			for i in 2:
+				_drop(c, mid + Vector2(6 + i * 6, 14 + i) * k, 0.25 * k, VENOM, WHITE, k)
+		"nature_final_bite":   # two fangs closing on a low health bar
+			_fang(c, mid + Vector2(-6, -15) * k, 12.0, k, VENOM)
+			_fang(c, mid + Vector2(6, -15) * k, 12.0, k, VENOM)
+			c.draw_rect(Rect2(mid + Vector2(-14, 12) * k, Vector2(28, 4) * k), Color(0.2, 0.05, 0.06), true)
+			c.draw_rect(Rect2(mid + Vector2(-14, 12) * k, Vector2(8, 4) * k), HOUND_RED, true)
+		"nature_first_bite":   # one fang, a clean mark, a spark of the first strike
+			_fang(c, mid + Vector2(-4, -15) * k, 16.0, k, VENOM)
+			_star(c, mid + Vector2(10, -6) * k, 6.0 * k, WHITE, 4)
 		# --- Nature caster: the Weaver ---
 		"nature_rich_soil":   # dark earth heaped up, gold flecks in it
 			c.draw_colored_polygon(_p(mid, k, [Vector2(-16, 14), Vector2(-8, 0), Vector2(0, -6), Vector2(9, 0), Vector2(16, 14)]), WOOD.darkened(0.2))
@@ -1082,6 +1612,117 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			_figure(c, mid + Vector2(2, 11) * k, 6.0 * k, WHITE, 1.6 * k)
 			for i in 2:
 				c.draw_polyline(_p(mid, k, [Vector2(10, 2 - i * 8), Vector2(14, -3 - i * 8), Vector2(18, 2 - i * 8)]), HEAL_GREEN, 2.4 * k, true)
+		"shadow_held_open":   # two hands holding the hole open, and the time they buy
+			_ellipse(c, mid + Vector2(0, 9) * k, Vector2(15, 5.5) * k, PIT, light, 1.8 * k)
+			_claw(c, mid + Vector2(-11, 9) * k, Vector2(-0.35, -1).normalized(), 17.0 * k, col.lightened(0.2), WHITE, 2.0 * k)
+			_claw(c, mid + Vector2(11, 9) * k, Vector2(0.35, -1).normalized(), 17.0 * k, col.lightened(0.2), WHITE, 2.0 * k)
+			_clock(c, mid + Vector2(0, -8) * k, 6.5 * k, WHITE, k)
+			c.draw_line(mid + Vector2(0, -8) * k, mid + Vector2(0, -12) * k, WHITE, 1.6 * k, true)
+			c.draw_line(mid + Vector2(0, -8) * k, mid + Vector2(3, -6.5) * k, WHITE, 1.6 * k, true)
+		"shadow_hungry_dark":   # the open hole, teeth round its rim, a spell falling into it
+			_ellipse(c, mid + Vector2(0, 8) * k, Vector2(15, 7) * k, PIT, light, 1.8 * k)
+			for i in 7:
+				var a := PI * (i + 0.5) / 7.0
+				var at := mid + Vector2(cos(a) * 13.0, 8.0 - sin(a) * 6.0) * k
+				c.draw_colored_polygon(PackedVector2Array([at + Vector2(-1.6, 0) * k, at + Vector2(1.6, 0) * k, at + Vector2(0, 3.5) * k]), WHITE)
+			c.draw_circle(mid + Vector2(4, -10) * k, 5.0 * k, col.lightened(0.3))
+			c.draw_circle(mid + Vector2(4, -10) * k, 2.4 * k, WHITE)
+			for i in 3:
+				c.draw_line(mid + Vector2(6 + i * 3, -17 + i) * k, mid + Vector2(8 + i * 3, -21 + i) * k, Color(light, 0.7), 1.4 * k, true)
+		"shadow_many_mouths":   # one wide sweep, and a hole under each enemy it reaches
+			c.draw_arc(mid + Vector2(0, 6) * k, 16.0 * k, PI * 1.08, PI * 1.92, 18, Color(light, 0.8), 2.2 * k, true)
+			for x in [-11.0, 0.0, 11.0]:
+				_ellipse(c, mid + Vector2(x, 12 - absf(x) * 0.3) * k, Vector2(5, 2.2) * k, PIT, light, 1.3 * k)
+				_claw(c, mid + Vector2(x, 12 - absf(x) * 0.3) * k, Vector2(0, -1), 11.0 * k, col.lightened(0.2), WHITE, 1.4 * k)
+		"shadow_shut_tight":   # the hole shut to a slit, and the claws under it still raking
+			_ellipse(c, mid + Vector2(0, -6) * k, Vector2(15, 2.2) * k, PIT, WHITE, 2.0 * k)
+			for x in [-8.0, 0.0, 8.0]:
+				c.draw_line(mid + Vector2(x - 2, -2) * k, mid + Vector2(x + 2, 14) * k, light, 2.4 * k, true)
+				c.draw_line(mid + Vector2(x + 2, 14) * k, mid + Vector2(x + 5, 11) * k, light, 2.0 * k, true)
+			c.draw_line(mid + Vector2(-17, -6) * k, mid + Vector2(17, -6) * k, Color(WHITE, 0.4), 1.0 * k, true)
+		"shadow_grasping_hands":   # a hand out of the hole, a critical glint at its claws
+			_ellipse(c, mid + Vector2(-2, 14) * k, Vector2(11, 3.5) * k, PIT, light, 1.6 * k)
+			_claw(c, mid + Vector2(-2, 14) * k, Vector2(0.2, -1).normalized(), 26.0 * k, col.lightened(0.2), WHITE, 2.4 * k)
+			_star(c, mid + Vector2(9, -11) * k, 7.5 * k, WHITE, 4)
+		"shadow_paid_in_full":   # the hole closing for good, and mana rising out of it
+			_ellipse(c, mid + Vector2(0, 13) * k, Vector2(13, 2.5) * k, PIT, light, 1.6 * k)
+			_drop(c, mid + Vector2(0, -3) * k, 0.85 * k, Color(0.35, 0.6, 1.0), WHITE, k)
+			for x in [-11.0, 11.0]:
+				c.draw_line(mid + Vector2(x, 8) * k, mid + Vector2(x, -6) * k, Color(light, 0.7), 1.6 * k, true)
+				c.draw_polyline(_p(mid, k, [Vector2(x - 3, -3), Vector2(x, -7), Vector2(x + 3, -3)]), Color(light, 0.7), 1.6 * k, true)
+		"shadow_snarl":   # a Hound's head, jaws wide, its snarl going out
+			_hound(c, mid + Vector2(-3, 2) * k, 1.05 * k, light, 1.0)
+			for i in 3:
+				var a := -0.5 + i * 0.5
+				var d := Vector2(cos(a), sin(a))
+				c.draw_line(mid + Vector2(13, 3) * k + d * 3.0 * k, mid + Vector2(13, 3) * k + d * 7.0 * k, WHITE, 1.6 * k, true)
+		"shadow_blood_up":   # a Roused Hound, and the blood rising with it
+			_hound(c, mid + Vector2(-5, 4) * k, 1.0 * k, light, 0.7)
+			_drop(c, mid + Vector2(12, -6) * k, 0.45 * k, HOUND_RED, WHITE, k)
+			c.draw_line(mid + Vector2(12, 12) * k, mid + Vector2(12, 4) * k, WHITE, 1.8 * k, true)
+			c.draw_polyline(_p(mid, k, [Vector2(9, 7), Vector2(12, 4), Vector2(15, 7)]), WHITE, 1.8 * k, true)
+		"shadow_fetch":   # a Hound going under, and what it brings back for you
+			_ellipse(c, mid + Vector2(-4, 12) * k, Vector2(12, 3.5) * k, PIT, light, 1.6 * k)
+			_hound(c, mid + Vector2(-6, 3) * k, 0.85 * k, light, 0.3)
+			c.draw_rect(Rect2(mid + Vector2(9, -12) * k, Vector2(6, 20) * k), Color(0.2, 0.05, 0.06), true)
+			c.draw_rect(Rect2(mid + Vector2(9, -2) * k, Vector2(6, 10) * k), HOUND_RED, true)
+			c.draw_rect(Rect2(mid + Vector2(9, -12) * k, Vector2(6, 20) * k), WHITE, false, 1.2 * k)
+		"shadow_scent_of_blood":   # a Hound's nose down, on a trail of blood
+			_hound(c, mid + Vector2(-4, 0) * k, 0.95 * k, light, 0.4)
+			for i in 3:
+				_drop(c, mid + Vector2(-8 + i * 9, 13 - i * 2) * k, 0.3 * k, HOUND_RED, Color(WHITE, 0.6), k * 0.6)
+		"shadow_quick_hands":   # the demon's hand, its threads flicking down fast
+			_hand(c, mid + Vector2(-3, -13) * k, 1.0 * k)
+			for i in 3:
+				var x := -9.0 + i * 6.0
+				_thread(c, mid + Vector2(x, -2) * k, mid + Vector2(x * 1.2, 14) * k, STRING_PALE, 1.4 * k)
+			for i in 3:
+				c.draw_line(mid + Vector2(10, -8 + i * 6) * k, mid + Vector2(17, -8 + i * 6) * k, Color(light, 0.5 + i * 0.2), 1.8 * k, true)
+		"shadow_three_ply":   # three threads twisted into one strong one
+			for i in 3:
+				var pts := PackedVector2Array()
+				for j in 13:
+					var y := -17.0 + j * 2.8
+					pts.append(mid + Vector2(sin(y * 0.35 + i * TAU / 3.0) * 4.5, y) * k)
+				c.draw_polyline(pts, STRING_PALE if i == 0 else (light if i == 1 else WHITE), 1.6 * k, true)
+			_plus(c, mid + Vector2(12, 9) * k, 5.0 * k, HEAL_GREEN, 2.6 * k)
+		"shadow_pass_it_on":   # two held up on threads, a heal running along from one to the other
+			_figure(c, mid + Vector2(-10, 6) * k, 11.0 * k, WHITE, 1.6 * k)
+			_figure(c, mid + Vector2(10, 6) * k, 11.0 * k, Color(light, 0.9), 1.6 * k)
+			c.draw_arc(mid + Vector2(0, -2) * k, 10.0 * k, PI * 1.1, PI * 1.9, 14, STRING_PALE, 1.6 * k, true)
+			_plus(c, mid + Vector2(0, -12) * k, 4.5 * k, HEAL_GREEN, 2.4 * k)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(8, -9), Vector2(4, -12), Vector2(5, -6)]), STRING_PALE)
+		"shadow_hold_fast":   # someone on the edge, the thread pulled tight to hold them
+			_thread(c, mid + Vector2(0, -19) * k, mid + Vector2(0, -6) * k, STRING_PALE, 2.0 * k)
+			_figure(c, mid + Vector2(0, 5) * k, 13.0 * k, WHITE, 1.8 * k)
+			c.draw_rect(Rect2(mid + Vector2(-14, 15) * k, Vector2(28, 3) * k), Color(0.2, 0.2, 0.22), true)
+			c.draw_rect(Rect2(mid + Vector2(-14, 15) * k, Vector2(8, 3) * k), Color(1.0, 0.35, 0.3), true)
+			_plus(c, mid + Vector2(11, -5) * k, 4.5 * k, HEAL_GREEN, 2.4 * k)
+		"shadow_fair_trade":   # a crossed thread: the blow sent on to the enemy, a heal sent back
+			_figure(c, mid + Vector2(-11, 4) * k, 11.0 * k, WHITE, 1.6 * k)
+			c.draw_circle(mid + Vector2(11, 2) * k, 5.0 * k, HOUND_RED)
+			c.draw_line(mid + Vector2(-8, -4) * k, mid + Vector2(7, -1) * k, STRING_PALE, 1.6 * k, true)
+			c.draw_colored_polygon(_p(mid, k, [Vector2(7, -5), Vector2(11, -3), Vector2(6, 1)]), STRING_PALE)
+			_plus(c, mid + Vector2(-2, 12) * k, 4.5 * k, HEAL_GREEN, 2.4 * k)
+			c.draw_line(mid + Vector2(8, 10) * k, mid + Vector2(3, 12) * k, HEAL_GREEN, 1.6 * k, true)
+		"shadow_firm_grip":   # a thread knotted round an enemy, and the clock it holds on for
+			_thread(c, mid + Vector2(-15, -15) * k, mid + Vector2(2, 2) * k, STRING_PALE, 2.0 * k)
+			c.draw_circle(mid + Vector2(6, 6) * k, 7.0 * k, HOUND_RED)
+			c.draw_arc(mid + Vector2(6, 6) * k, 7.0 * k, PI * 0.9, PI * 1.6, 10, STRING_PALE, 2.0 * k, true)
+			_clock(c, mid + Vector2(10, -10) * k, 6.0 * k, WHITE, k)
+		"shadow_loose_weave":   # loose threads drifting in loops, and the time they stay
+			for i in 2:
+				var pts := PackedVector2Array()
+				for j in 15:
+					var t := j / 14.0
+					pts.append(mid + Vector2(-16 + t * 22, -8 + i * 12 + sin(t * TAU * 1.5) * 4.0) * k)
+				c.draw_polyline(pts, STRING_PALE if i == 0 else light, 1.6 * k, true)
+			_clock(c, mid + Vector2(11, 5) * k, 6.5 * k, WHITE, k)
+			c.draw_line(mid + Vector2(11, 5) * k, mid + Vector2(11, 1) * k, WHITE, 1.4 * k, true)
+		"shadow_nothing_wasted":   # a thread run to its end, curling back into mana
+			_thread(c, mid + Vector2(-12, -17) * k, mid + Vector2(-12, 6) * k, STRING_PALE, 1.8 * k)
+			c.draw_arc(mid + Vector2(-5, 6) * k, 7.0 * k, 0.0, PI, 10, STRING_PALE, 1.8 * k, true)
+			_drop(c, mid + Vector2(7, -2) * k, 0.7 * k, Color(0.35, 0.6, 1.0), WHITE, k)
 		"shadow_wide_pack":   # the Hound biting one, and the bite carrying on to those beside it
 			_hound(c, mid + Vector2(0, -7) * k, 0.9 * k, light, 0.8)
 			for sx: float in [-1.0, 1.0]:

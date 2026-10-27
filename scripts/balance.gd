@@ -698,6 +698,10 @@ const PINCER_FURY := 10.0                 # Pincer's capstone: Fury back for eac
 const SLIPPED_LEASH_HOUNDS := 1           # Slipped Leash's capstone: Hounds that join for as long as Off the Chain lasts
 const DRAG_KILL_WINDOW := 1.5             # Take It With You's capstone: seconds after Drag Down in which the enemy's death is its kill
 const FEEDING_FRENZY_TIME := 8.0          # Feeding Frenzy: seconds its Haste lasts (another death starts the time over)
+const SCENT_OF_BLOOD_HEALTH_PCT := 35.0   # Scent of Blood: works on enemies below this % of their health
+const PACK_LEADER_EVERY := 10.0           # Pack Leader's capstone: Fury spent for each step
+const PACK_LEADER_TIME := 1.0             # ... seconds each step keeps the Hounds out longer
+const PACK_LEADER_MAX := 10.0             # ... seconds at most for each pair
 
 ## Shadow healer: the Strings. A demon floats behind the healer and holds allies
 ## up on Strings. There are STRING_MAX of them, on allies and enemies together:
@@ -728,6 +732,9 @@ const LOOSE_STRING_TIME := 8.0            # Cat's Cradle: seconds its extra Stri
 const TUG_TIME := 4.0                     # Tug: seconds the ally's Strings heal faster
 const TUG_SPEED_MULT := 2.0               # ... how many times as often
 const KNOT_TIME := 30.0                   # Knot: seconds the ally's Strings do not run out
+## The Strings' newer talents (per-rank numbers in talents.gd).
+const HOLD_FAST_HEALTH_PCT := 35.0        # Hold Fast: works on allies below this % of their health
+const STEADY_HANDS_ALL_OUT_PCT := 10.0    # Steady Hands' capstone: % larger heals while no String is left in hand
 const DOUBLE_THREAD_TIME := 10.0          # Double Thread: seconds you have to place the doubled String
 const CUPPED_HANDS_TIME := 5.0            # Cupped Hands: seconds the shield lasts
 const CUPPED_HANDS_SHIELD := 0.45         # ... its size, as a share of your Heal spell (like every shield; Rime Ward makes it bigger)
@@ -905,6 +912,22 @@ const ZEAL_TIME := 4.0                    # ... makes you faster for this many s
 const SECOND_BREATH_LOW_PCT := 30.0       # Second Breath: a heal of yours that lifts an ally from below this % health ...
 const SECOND_BREATH_HIGH_PCT := 50.0      # ... to above this % gives you mana back
 const WATCHFUL_EYE_WINDOW := 2.0          # Watchful Eye: your heals on an ally hit within this many seconds heal more
+## The Holy ribbon tree's newer talents (per-rank numbers in talents.gd).
+const CANDLELIGHT_TIME := 6.0             # Candlelight: seconds a heal on an ally keeps your next damaging spell or ability stronger
+const CANDLELIGHT_HITS := 0.4             # ... seconds in which every hit of that spell or ability gets it (one that hits several enemies)
+const FIRST_LIGHT_TIME := 6.0             # First Light: seconds after you enter combat that you deal and heal more
+const MERCY_SEAT_HEALTH_PCT := 35.0       # Mercy Seat: Benediction heals more on an ally below this % of their health
+const RADIANCE_MATCH_PCT := 20.0          # Radiance's capstone: % stronger (or longer) a boom whose Verses all suit it is
+const FULL_CENSER_INCENSE := 75           # Full Censer: Incense you need for less damage taken
+const CENSERS_WEIGHT_FULL_PCT := 10.0     # Censer's Weight's capstone: % more on top with a full censer
+const HOLD_THE_LINE_HEALTH_PCT := 35.0    # Hold the Line: works while you are below this % of your health
+const AFTERSHINE_TIME := 6.0              # Aftershine: seconds an ally a shattering prism healed is healed more by you
+const LIFELINE_HEALTH_PCT := 35.0         # Lifeline: works on allies below this % of their health
+const BRILLIANCE_PRISMS := 3              # Brilliance's capstone: prisms a heal's beam has to pass through ...
+const BRILLIANCE_PCT := 20.0              # ... to be this % stronger
+const LINED_UP_PRISMS := 2                # Lined Up: gold prisms a shot has to pass through
+const SUNDOWN_HEALTH_PCT := 35.0          # Sundown: works on enemies below this % of their health
+const SUNSTEEL_START_PCT := 33.0          # Sunsteel's capstone: % of their light cap a new gold prism starts with
 
 ## Rune of the Open Wound (Rare): Blight is instant, with a cooldown, and opens Decay for less time.
 const OPEN_WOUND_COOLDOWN := 15.0         # seconds of cooldown Blight then has
@@ -937,6 +960,8 @@ const FINISH_IT_HEALTH_PCT := 25.0        # Finish It: works on enemies below th
 const SPITE_TIME := 4.0                   # Spite: seconds the boost waits for your next spell or ability
 const SPITE_HITS := 0.4                   # ... seconds in which every hit of the spell or ability that uses it gets it (one that hits several enemies)
 const INEVITABLE_TIME := 8.0              # Inevitable: seconds after your first damage to an enemy before it works on that enemy
+const HOOKED_CLAWS_HOLD := 0.5             # Hooked Claws' capstone: seconds a tick that critically strikes keeps the Breach open
+const HOOKED_CLAWS_MAX := 3.0              # ... seconds at most each time it is opened
 
 ## Rune of the Two-Way Mirror (Rare): Mirror Sigil also repeats Reflection
 ## shatters, at the share it repeats spells at (no number of its own).
@@ -1210,6 +1235,23 @@ const LINGERING_VENOM_KEEP := 40.0        # Lingering Venom (talent) capstone: %
 # Nature open talents (scripts/player/nature_talents_open.gd)
 const CLINGING_VINES_TIME := 3.0          # Clinging Vines: seconds an enemy stays slowed after a root or hold of mine on it ends
 const CLINGING_VINES_SLOW_STEP := 20.0    # ... it moves this % slower per rank of the talent (one stack of the slow per rank)
+## The Nature ribbon tree's newer talents (per-rank numbers in talents.gd).
+const WELL_ROTTED_AGE := 10.0             # Well Rotted: seconds a Mulch patch has to lie before it adds more to a finisher
+const HARVEST_PATCHES := 3                # Harvest: Mulch patches a finisher has to use to give mana back
+const HUNTED_HEALTH_PCT := 35.0           # Hunted: works on enemies below this % of their health
+const QUICKENING_TIME := 6.0              # Quickening: seconds laying a patch keeps the next Nature cast faster
+const OVERGROWN_PATCHES := 5              # Overgrown's capstone: patches a finisher has to use to leave one behind
+const POLLEN_REACH := 12.0                # Pollen: m from the ally to the one that gets the Blossom
+const CANOPY_TIME := 6.0                  # Canopy: seconds an ally takes less damage after I give them a Blossom
+const FAWN_KEEP_PCT := FAWN_FALLOFF * 100.0   # (Close Herd's text: Fawn's falloff as a %)
+const EVERGREEN_FADE_HEAL := 0.3          # Evergreen's capstone: heal (in heals) of each Blossom that runs out unused
+const CALLED_OUT_ENEMIES := 3             # Called Out: enemies of one taunt that give Fury
+const OLD_OAK_HEALTH_PCT := 35.0          # Old Oak: works while you are below this % of your health
+const OLD_GROWTH_HIT_PCT := 15.0          # Old Growth's capstone: a hit of this % of your maximum health gives a Sap ...
+const OLD_GROWTH_EVERY := 3.0             # ... at most once every this many seconds
+const DRIPPING_TIPS_TIME := 1.0           # Dripping Tips: seconds an auto-shot adds to your poisons on the target
+const FINAL_BITE_HEALTH_PCT := 35.0       # Final Bite: works on enemies below this % of their health
+const SOAKED_THROUGH_VENOM := 1.0         # Soaked Through's capstone: Venom more per poison tick on a Steeped enemy
 # Martial warrior: the Wheel (scripts/player/martial_wheel.gd)
 const WHEEL_USES := 4                     # uses each held weapon takes before it breaks (off-GCD abilities and trinkets don't count)
 const CRACKS_QUICK := 1                   # Cracks a Filler adds to the held weapon

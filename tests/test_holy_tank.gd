@@ -143,7 +143,7 @@ func test_spending_drops_motes() -> void:
 func test_picking_up_motes() -> void:
 	var src := _src()
 	# Walking over one picks it up: Incense, a heal with its own meter line, the Bright Burst.
-	assert_contains(src, "_gain_incense(int(m.get(\"value\", Balance.MOTE_VALUE)))")
+	assert_contains(src, "_gain_incense(int(m.get(\"value\", Balance.MOTE_VALUE)) + int(round(_talent(\"holy_heavy_motes\"))))")
 	assert_contains(src, "heal(Balance.MOTE_HEAL_SHARE * Balance.REFERENCE_HEAL * (1.0 + _talent(\"holy_bright_motes\") / 100.0), LIGHT_MOTE_ID)")
 	assert_contains(src, "if _has_rune(BRIGHT_BURST_RUNE):")
 	assert_eq(Details.HIT_NAMES.get("light_mote", ""), "Light Mote")

@@ -312,7 +312,7 @@ func test_decay_is_a_keyword() -> void:
 func test_tainted_steel_for_shadow_weapon_builds() -> void:
 	# [key, name, slot, values]
 	var want := [
-		["shadow_tainted_steel", "Baited Steel", "shadow_r3c1", [10.0, 20.0, 30.0]],
+		["shadow_tainted_steel", "Baited Steel", "shadow_r8c1", [10.0, 20.0, 30.0]],
 	]
 	for row in want:
 		var id := Talents.id_for_key(str(row[0]))
@@ -321,32 +321,25 @@ func test_tainted_steel_for_shadow_weapon_builds() -> void:
 		assert_eq(str(t.get("name", "")), str(row[1]))
 		assert_eq(Talents.max_rank(id), 3)
 		assert_eq(t.get("values", []), row[3])
-		assert_eq(Talents.required_ability(id), "blight", "nothing opens Decay but Blight")
+		assert_eq(Talents.required_ability(id), "", "a Breach talent: it keys off the Breach, not one ability")
+		assert_eq(Talents.group_of(id), "The Breach")
 		assert_true(bool(t.get("implemented", false)))
 		assert_true(TalentIcons.has_icon(id), "%s has an icon" % row[1])
 		var tip := Talents.tooltip(id, 1)
 		assert_eq(TextFill.leftover(tip), "")
 		assert_false(tip.contains("?"), tip)
-		assert_contains(tip, "Requires %s to be learned" % Abilities.ability_name("blight"))
 		assert_eq(_typed_number(str(t.get("desc", ""))), "")
-	# Row 3 stays symmetrical. (The rest of the book: tests/test_shadow_talents.gd.)
-	assert_eq(Talents.layout("shadow")[2], [0, 2, 3, 4, 6], "Baited Steel and Still Wet on the edges, the healer's three in the middle")
 	for id in Talents.in_tree("shadow"):
 		var placeholder := bool(Talents.get_talent(id).get("placeholder", true))
 		assert_eq(TalentIcons.has_icon(id), not placeholder, "%s: designed talents have an icon, empty ones don't" % id)
-	# Everything Rots is no talent any more (it is the Rune of Rot). Its slot went
-	# to Still Wet, one of the Hounds' talents.
+	# Everything Rots is no talent any more (it is the Rune of Rot).
 	assert_eq(Talents.id_for_key("shadow_everything_rots"), "")
-	assert_eq(Talents.id_for_key("shadow_still_wet"), "shadow_r3c7")
 	assert_false(TalentIcons.ICONED.has("shadow_everything_rots"))
-	# Without Blight they do nothing, and take no points.
+	# No ability gates it: it does its part wherever a Breach of mine is open.
 	var pd = PlayerDataScript.new()
 	pd.level = 50
 	pd.learned_abilities.clear()
-	var id := Talents.id_for_key("shadow_tainted_steel")
-	pd.talents = {id: 3}
-	assert_eq(pd.talent_value("shadow_tainted_steel"), 0.0)
-	pd.learned_abilities.append("blight")
+	pd.talents = {Talents.id_for_key("shadow_tainted_steel"): 3}
 	assert_eq(pd.talent_value("shadow_tainted_steel"), 30.0)
 	pd.free()
 
@@ -488,7 +481,6 @@ func test_usher_in_and_gloom_bolt_are_gone() -> void:
 			assert_false(Talents.tooltip(id, 1).contains(name), "%s still speaks of %s" % [id, name])
 	# The talent that was about Usher In went with it.
 	assert_eq(Talents.id_for_key("shadow_loose_grains"), "")
-	assert_eq(Talents.id_for_key("shadow_spare_spool"), "shadow_r4c5", "its slot went to the healer's Spare Spool")
 	assert_false(TalentIcons.ICONED.has("shadow_loose_grains"))
 	var bar := PlayerDataScript.default_action_bar()
 	assert_eq([bar[0], bar[1], bar[2], bar[3], bar[4]], ["frostbolt", "fireball", "lightningbolt", "psalm", ""])

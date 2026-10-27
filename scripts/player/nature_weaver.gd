@@ -13,9 +13,12 @@ class_name WeaverKit
 # target (Thornburst), and every few that land leave a patch. Own only: the
 # party sees my patches faint and nothing of theirs touches mine. Numbers:
 # balance.gd (MULCH_* and the rest). Talents: Hunting Party (Briar Tiger),
-# Compost and Bramble Burst (Thornshot), Rich Soil (both finishers), Second
-# Growth (Mossback), Fertile Ground (Choking Vipers), Circling Hawk (Thornwing)
-# and Overgrown (my Nature spells, per patch: nature_talents_open.gd asks it).
+# Compost (Thornshot), Bramble Burst (Thornburst), Rich Soil, Long Roots, Well
+# Rotted and Harvest (both finishers), Second Growth (Mossback), Fertile Ground
+# (Choking Vipers), Circling Hawk (Thornwing), Thick Mulch and Leaf Litter (the
+# patches' time), Quickening (a patch speeds up the next cast) and Overgrown (my
+# Nature spells, per patch: nature_talents_open.gd asks it; its capstone here).
+# The hit bonuses of the woven and rooted creatures: nature_talents_open.gd.
 
 const MULCH = preload("res://scripts/mulch_patch.gd")
 const NATURE_CREATURE = preload("res://scripts/nature_creature.gd")
@@ -34,8 +37,10 @@ const VIPERS_TAGS := ["Nature", "Spell", "DoT"]
 const CHOKED_FX := preload("res://data/effects/choked.tres")
 ## The Mulch buff on me (one stack per patch).
 const MULCH_FX := "mulch"
+## Quickening's buff: my next Nature spell with a cast time is faster.
+const QUICKENING_FX := "quickening"
 
-var _mulch: Array = []            # my patches, oldest first: {"key", "pos", "until"}
+var _mulch: Array = []            # my patches, oldest first: {"key", "pos", "until", "at" (laid)}
 var _mulch_seq := 0
 var _mulch_told := 0.0
 var _thornshots_landed := 0       # Thornshots that landed (every THORNSHOT_PATCH_EVERY-th leaves a patch)
@@ -120,6 +125,22 @@ static func thornburst_with(pct: float, capstone: bool) -> Array:
 static func rolls(pct: float, roll: float) -> bool:
 	return pct > 0.0 and roll < pct
 
+## Seconds a patch lies on the ground (`thick`: Thick Mulch's).
+static func mulch_life(thick: float) -> float:
+	return Balance.MULCH_TIME + maxf(thick, 0.0)
+
+## Well Rotted: what `aged` old patches add on top to a finisher (`per` each, `pct` % more).
+static func well_rotted_coef(per: float, aged: int, pct: float) -> float:
+	return per * maxi(aged, 0) * maxf(pct, 0.0) / 100.0
+
+## Harvest: mana a finisher that cost `cost` and used `used` patches gives back (`pct` %).
+static func harvest_mana(cost: float, used: int, pct: float) -> float:
+	return maxf(cost, 0.0) * maxf(pct, 0.0) / 100.0 if used >= Balance.HARVEST_PATCHES else 0.0
+
+## Quickening: a cast of `duration` with `pct` % off.
+static func quickening_cast(duration: float, pct: float) -> float:
+	return duration * (1.0 - clampf(pct, 0.0, 100.0) / 100.0)
+
 func _mulch_spots() -> Array:
 	var out := []
 	for p in _mulch:
@@ -133,27 +154,63 @@ func _ground_under(who: Node3D) -> Vector3:
 func _add_mulch(at: Vector3) -> void:
 	_mulch_seq += 1
 	var key := "m%d" % _mulch_seq
-	_mulch.append({"key": key, "pos": at, "until": Time.get_ticks_msec() / 1000.0 + Balance.MULCH_TIME})
+	var now := Time.get_ticks_msec() / 1000.0
+	_mulch.append({"key": key, "pos": at, "until": now + mulch_life(player._talent("nature_thick_mulch")), "at": now})   # + Thick Mulch
 	while _mulch.size() > Balance.MULCH_MAX:
 		var old: Dictionary = _mulch.pop_front()
 		if player.is_inside_tree():
 			MULCH.remove(player.get_tree(), "me:" + str(old["key"]))
 	_sync_mulch()
+	# Quickening: my next Nature spell with a cast time is faster.
+	if player._talent("nature_quickening") > 0.0 and player.status != null:
+		var fx := StatusContainer.make_buff(QUICKENING_FX, "Quickening", QUICKENING_FX, 0.0, Balance.QUICKENING_TIME, 1, MULCH.GLOW)
+		fx.stat_modifiers = {}
+		fx.tags = PackedStringArray(["Nature"])
+		fx.description = "Your next Nature spell with a cast time casts faster."
+		player.status.apply(fx, player)
 
-## Use up every patch within MULCH_REACH of `at`: returns [how many, the middle of where they were].
+## Quickening: my cast of `spell` (`duration` sec so far) with its buff used up.
+func quickening(spell: String, duration: float) -> float:
+	var pct := player._talent("nature_quickening")
+	var tags := Abilities.tags_of(spell)
+	if pct <= 0.0 or player.status == null or not player.status.has(QUICKENING_FX) or not (tags.has("Nature") and tags.has("Spell")):
+		return duration
+	player.status.remove(QUICKENING_FX)
+	return quickening_cast(duration, pct)
+
+## Use up every patch within reach of `at` (MULCH_REACH, + Long Roots): returns
+## [how many, the middle of where they were, how many lay long enough for Well Rotted].
 func _use_mulch(at: Vector3) -> Array:
-	var used := mulch_within(_mulch_spots(), at, Balance.MULCH_REACH)
+	var used := mulch_within(_mulch_spots(), at, Balance.MULCH_REACH + player._talent("nature_long_roots"))   # + Long Roots
 	var mid := Vector3.ZERO
+	var now := Time.get_ticks_msec() / 1000.0
+	var aged := 0
 	for j in range(used.size() - 1, -1, -1):
 		var p: Dictionary = _mulch[int(used[j])]
 		mid += p["pos"]
+		if now - float(p.get("at", now)) >= Balance.WELL_ROTTED_AGE:
+			aged += 1
 		if player.is_inside_tree():
 			MULCH.remove(player.get_tree(), "me:" + str(p["key"]))
 		_mulch.remove_at(int(used[j]))
 	if not used.is_empty():
 		mid /= used.size()
 		_sync_mulch()
-	return [used.size(), mid]
+	return [used.size(), mid, aged]
+
+## A finisher (`id`) used `used` patches, `aged` of them old: its damage with the
+## talents that look at them (Rich Soil, Well Rotted), and Harvest's and
+## Circling Hawk's rewards.
+func _finisher_coef(id: String, base: float, per: float, used: int, aged: int) -> float:
+	var each := rich_soil_per(per, player._talent("nature_rich_soil"))   # + Rich Soil
+	_circling_hawk(used)
+	player._gain("mana", harvest_mana(player.resource_cost(id), used, player._talent("nature_harvest")))   # Harvest
+	return rooted_coef(base, each, used) + well_rotted_coef(each, aged, player._talent("nature_well_rotted"))   # + Well Rotted
+
+## Overgrown's capstone: a finisher that used every patch leaves one behind.
+func _overgrown_leaves(used: int, at: Vector3) -> void:
+	if used >= Balance.OVERGROWN_PATCHES and player.frost_melee._capstone("nature_overgrown"):
+		_add_mulch(at)
 
 func _tick_weaver() -> void:
 	_tick_vipers()
@@ -166,6 +223,10 @@ func _tick_weaver() -> void:
 			MULCH.remove(player.get_tree(), "me:" + str(_mulch[i]["key"]))
 			_mulch.remove_at(i)
 			gone = true
+			# Leaf Litter: a patch that ran out unused gives mana back.
+			var litter := player._talent("nature_leaf_litter")
+			if litter > 0.0 and not player.is_dead():
+				player._gain("mana", player.resource_max("mana") * litter / 100.0)
 	if gone:
 		_sync_mulch()
 	elif now - _mulch_told >= PrismsKit.PRISM_RETELL:
@@ -383,8 +444,7 @@ func _mossback(enemy: Node3D, center: Vector3) -> void:
 	var res := Abilities.get_resource(MOSSBACK_ID)
 	var foot := _ground_under(enemy)
 	var used := _use_mulch(center)
-	var coef := rooted_coef(float(res.damage), rich_soil_per(Balance.MOSSBACK_PER_PATCH, player._talent("nature_rich_soil")), int(used[0]))   # + Rich Soil
-	_circling_hawk(int(used[0]))
+	var coef := _finisher_coef(MOSSBACK_ID, float(res.damage), Balance.MOSSBACK_PER_PATCH, int(used[0]), int(used[2]))
 	var start: Vector3 = used[1] if int(used[0]) > 0 else foot + (player.global_position - foot).normalized() * 1.5
 	_creature("bear", start, foot)
 	_after(Balance.ROOTED_STRIKE_DELAY, func():
@@ -393,7 +453,9 @@ func _mossback(enemy: Node3D, center: Vector3) -> void:
 			player.deal_damage(enemy, coef, MOSSBACK_ID)
 			# Second Growth: the bear may leave a patch where it struck.
 			if rolls(player._talent("nature_second_growth"), randf() * 100.0):
-				_add_mulch(foot))
+				_add_mulch(foot)
+		if not player.is_dead():
+			_overgrown_leaves(int(used[0]), foot))
 
 ## Circling Hawk: a finisher that used enough patches takes time off Thornwing.
 func _circling_hawk(used: int) -> void:
@@ -406,14 +468,15 @@ func _circling_hawk(used: int) -> void:
 func _choking_vipers(center: Vector3) -> void:
 	var res := Abilities.get_resource(VIPERS_ID)
 	var used := _use_mulch(center)
-	var total := rooted_coef(float(res.damage), rich_soil_per(Balance.VIPERS_PER_PATCH, player._talent("nature_rich_soil")), int(used[0]))   # + Rich Soil
-	_circling_hawk(int(used[0]))
+	var total := _finisher_coef(VIPERS_ID, float(res.damage), Balance.VIPERS_PER_PATCH, int(used[0]), int(used[2]))
 	var foes := player._enemies_near(center, float(res.radius))
 	var coef := total * Balance.aoe_share(foes.size())
 	for e in foes:
 		_creature("viper", _ground_under(e), (e as Node3D).global_position)
 		player._combat().apply_effect(player, e, CHOKED_FX, VIPERS_ID, PackedStringArray(VIPERS_TAGS))
+		player.nature_open.firm_hold_fury()   # Firm Hold: a hold of mine went on
 		_start_vipers(e, coef)
+	_overgrown_leaves(int(used[0]), center)
 
 ## The Mulch buff on me: one stack per patch (gone with the last one).
 func _sync_mulch_buff() -> void:

@@ -1,46 +1,20 @@
 @tool
 extends McpTestSuite
 
-# The Holy tree's open talents (Grace, Burnished, Steadfast, Overflowing,
-# Penitent, Zeal), Long Note (Hymns) and the bottom row's 5-rank talents
-# (Censer's Weight, Sunsteel, Radiance). Rules: player.gd, "Holy: the open
-# talents and the bottom row"; Steadfast in PlayerData.
+# The Holy tree's older talents: the open ones (Grace, Steadfast, Overflowing,
+# Penitent, Zeal, Watchful Eye, Second Breath), Burnished, Long Note and the 5-rank
+# Censer's Weight, Sunsteel and Radiance. Rules: holy_talents.gd; Steadfast in
+# PlayerData. The tree itself and the newer talents: tests/test_holy_tree.gd.
 
 const Talents = preload("res://scripts/talents.gd")
 const Abilities = preload("res://scripts/abilities.gd")
 const Balance = preload("res://scripts/balance.gd")
-
-const NEW := {"r1c1": "holy_grace", "r1c7": "holy_burnished", "r2c4": "holy_steadfast", "r3c1": "holy_long_note",
-	"r3c7": "holy_overflowing", "r9c1": "holy_penitent", "r9c7": "holy_zeal",
-	"r10c3": "holy_censers_weight", "r10c4": "holy_sunsteel", "r10c5": "holy_radiance",
-	"r2c2": "holy_clear_mind", "r2c6": "holy_sheltering_light", "r5c4": "holy_long_glass", "r10c6": "holy_second_breath",
-	"r4c1": "holy_heavy_chain", "r5c1": "holy_absolution", "r10c2": "holy_unbroken", "r3c4": "holy_glimmering",
-	"r7c4": "holy_steady_aim", "r4c7": "holy_swelling_chorus", "r5c7": "holy_quick_lance",
-	"r8c4": "holy_full_quiver", "r9c4": "holy_wide_break", "r6c1": "holy_watchful_eye",
-	"r7c3": "holy_bright_motes", "r7c5": "holy_steady_ray"}
 
 func suite_name() -> String:
 	return "holy_talents"
 
 func _p() -> GDScript:
 	return load("res://scripts/player.gd")
-
-func test_placement() -> void:
-	for slot in NEW:
-		var id := "holy_%s" % slot
-		var t := Talents.get_talent(id)
-		assert_false(bool(t.get("placeholder", true)), "%s is a real talent" % id)
-		assert_eq(Talents.id_for_key(str(NEW[slot])), id, "%s sits in %s" % [NEW[slot], slot])
-		var text := Talents.description(id)
-		assert_false(text.contains("{b:"), "%s: its numbers are filled in" % id)
-	# The bottom row: three 5-rank talents.
-	for slot in ["r10c3", "r10c4", "r10c5"]:
-		assert_eq(int(Talents.get_talent("holy_%s" % slot)["max_rank"]), 5, "%s has 5 ranks" % slot)
-	# Every old talent kept its place (no save migration).
-	assert_eq(Talents.id_for_key("holy_key_change"), "holy_r2c1")
-	assert_eq(Talents.id_for_key("holy_mote_magnet"), "holy_r3c3")
-	assert_eq(Talents.id_for_key("holy_clear_glass"), "holy_r3c5")
-	assert_eq(Talents.id_for_key("holy_long_volley"), "holy_r9c5")
 
 func test_overflowing() -> void:
 	var p := _p()
@@ -77,17 +51,16 @@ func test_hooks_are_in_place() -> void:
 
 # --- Shared by several specs -------------------------------------------------------------------
 
-func test_no_empty_slots() -> void:
-	for id in Talents.in_tree("holy"):
-		assert_false(bool(Talents.get_talent(id).get("placeholder", false)) and not Talents.FOLDED_INTO_ABILITIES.has(id), "%s is filled (or was folded into its ability)" % id)
-	# Single-ability talents need their ability.
+func test_single_ability_talents_need_it() -> void:
 	var req := {"holy_heavy_chain": "censerswing", "holy_absolution": "absolve", "holy_unbroken": "unfallen",
-		"holy_glimmering": "glimmershot", "holy_steady_aim": "refractingshot", "holy_swelling_chorus": "singchorus",
-		"holy_quick_lance": "brightlance"}
+		"holy_steady_aim": "refractingshot", "holy_swelling_chorus": "singchorus", "holy_quick_lance": "brightlance",
+		"holy_full_quiver": "prismarrow", "holy_wide_break": "prismbreaker", "holy_steady_ray": "mendingray"}
 	for key in req:
 		assert_eq(str(Talents.get_talent(Talents.id_for_key(key)).get("requires", "")), str(req[key]), "%s requires its ability" % key)
 	# The casts get shorter in the tooltip too.
 	assert_contains(FileAccess.get_file_as_string("res://scripts/abilities.gd"), "t = maxf(t - talent(\"holy_steady_aim\"), 0.2)")
+	assert_eq(Abilities.COOLDOWN_TALENTS.get("prismarrow", ""), "holy_full_quiver")
+	assert_false(Abilities.COOLDOWN_TALENTS.has("lastverse"), "Last Rites was folded into Last Verse")
 
 func test_second_breath() -> void:
 	var p := _p()
@@ -112,17 +85,6 @@ func test_fourth_facet_rune() -> void:
 	assert_eq(Runes.rarity_name("fourth_facet"), "Epic")
 	assert_contains(PlayerSource.text(),
 		"return Balance.PRISM_MAX + (1 if _has_rune(FOURTH_FACET_RUNE) else 0)")
-
-# --- The tree is full ------------------------------------------------------------------------
-
-func test_the_tree_is_full() -> void:
-	assert_eq(Talents.in_tree("holy").size(), Talents.ROWS * 5, "every slot of a full tree")
-	var req := {"holy_full_quiver": "prismarrow", "holy_wide_break": "prismbreaker",
-		"holy_bright_motes": "censerswing", "holy_steady_ray": "mendingray"}
-	for key in req:
-		assert_eq(str(Talents.get_talent(Talents.id_for_key(key)).get("requires", "")), str(req[key]), "%s requires its ability" % key)
-	assert_eq(Abilities.COOLDOWN_TALENTS.get("prismarrow", ""), "holy_full_quiver")
-	assert_false(Abilities.COOLDOWN_TALENTS.has("lastverse"), "Last Rites was folded into Last Verse")
 
 func test_watchful_eye() -> void:
 	var src := PlayerSource.text()
