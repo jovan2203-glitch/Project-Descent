@@ -10,7 +10,7 @@ No magic, only technique. Physical damage; everything scales like an ability (mo
 - Rogue - dual wield, Energy: Flow and the Kill window (below). BUILT 2026-10-20.
 - Brawler - the tank, Fury: pugilist / mixed martial artist (below). DRAFT 2026-10-20. Takes the old Tank and Brawler slots.
 - Sharpshooter - the archer, bow, no resource: the Reset Engine (below). BUILT 2026-10-21.
-- Utility divider: Pin the Shadow (root), Over the Shoulder, Play Dead (below). Still needs an interrupt.
+- Utility divider: Pin the Shadow (root), Over the Shoulder, Play Dead, Stone Throw (interrupt) (below).
 
 ## Rogue (dual wield, Energy) - spec "Rogue" - BUILT 2026-10-20 (scripts/player/martial_rogue.gd)
 Numbers are drafts (balance.gd); balance sim ~2200 geared DPS (like the Wheel). Every ability needs a one-handed melee weapon in each hand. Energy 100/100. Physical, scales like an ability.
@@ -101,10 +101,11 @@ Cooldowns only, no cost (the Warrior and the Brawler spend Fury, the Rogue Energ
 - **Pin the Shadow** (Martial's root): 20 s, 30 m. A thrown knife pins the enemy's shadow to the floor: rooted until it has been hit 3 times, by anyone (damage over time doesn't count), or 8 s pass. Card level 14.
 - **Over the Shoulder**: 20 s, 10 m. Vault over the target and land behind it; your next hit within 5 s always crits. Card level 18.
 - **Play Dead**: 90 s, off the GCD. You drop and every enemy forgets you for 3 s (threat dropped; they turn to someone else, or stand over you if there is nobody). Using anything or attacking ends it. Card level 22.
+- **Stone Throw** (Martial's interrupt, 2026-10-28): 15 s (the shared interrupt cooldown), off the GCD, 25 m. A cast is interrupted (3 s lockout). With no cast, the stone knocks aside the melee hit the enemy is winding up (its tell): that hit never lands. The only interrupt that works on melee tells. Card level 16. Code: martial_rogue.gd `_stone_throw`, enemy.gd `interrupt(..., tells)`.
 
 
 ## Brawler (tank) - BUILT 2026-10-20 (scripts/player/martial_brawler.gd)
-Numbers are drafts (balance.gd). Built with: strikes 0.3 FB and +10 Fury each (the Fury scale's minimum gain), Rapid Fists 0.45, Haymaker 1.1, Sweep 0.4, Roundhouse 0.5, Throw 0.6, Reversal 1.0, Come On 8 s cooldown / 3 s taunt; balance sim ~2200 geared DPS (tank range). Fighting Style changes the strike visuals only for now (no unarmed animation set on the placeholder body yet). A pugilist / mixed martial artist: wraps, footwork, clinches, takedowns, haymakers. Not a monk and not a copy of WoW's Brewmaster (legal reasons): no chi, robes, meditation, palms, brews, drunken or animal stances, and the delayed-damage pool has its own name and its own way of clearing it.
+Numbers are drafts (balance.gd). Built with: strikes 0.27 FB and +10 Fury each (the Fury scale's minimum gain), Rapid Fists 0.45, Haymaker 1.1, Sweep 0.4, Roundhouse 0.5, Throw 0.6, Reversal 1.0, Come On 8 s cooldown / 3 s taunt; balance sim ~2200 geared DPS (tank range). Fighting Style changes the strike visuals only for now (no unarmed animation set on the placeholder body yet). A pugilist / mixed martial artist: wraps, footwork, clinches, takedowns, haymakers. Not a monk and not a copy of WoW's Brewmaster (legal reasons): no chi, robes, meditation, palms, brews, drunken or animal stances, and the delayed-damage pool has its own name and its own way of clearing it.
 
 ### Bruise (takes the hit, pays it later)
 - 40% of every hit you take is not dealt now: it goes into **Bruise**, dealt to you evenly over 6 s. New damage adds to it and restarts the 6 s with the total left.

@@ -112,7 +112,7 @@ static func constants(text: String, wrap: Callable = Callable()) -> String:
 	if not text.contains("{"):
 		return text
 	if _re == null:
-		_re = RegEx.create_from_string("\\{(b|b%|b2|bth|bev|e|a|n|ne|h|ds|d):([A-Za-z0-9_.]+)\\}")
+		_re = RegEx.create_from_string("\\{(b|b%|b2|bth|bev|e|a|n|ne|h|dt|ds|d):([A-Za-z0-9_.]+)\\}")
 	var out := ""
 	var at := 0
 	for m in _re.search_all(text):
@@ -136,14 +136,16 @@ static func constants(text: String, wrap: Callable = Callable()) -> String:
 				var heal_coef: float = Balance.REFERENCE_HEAL * float(share)
 				value = str(int(round(abilities.coef_damage(heal_coef, PackedStringArray(["Spell"]), true) \
 					* (1.0 + abilities.talent("frost_absorb") / 100.0))))
-		elif kind == "d" or kind == "ds":
+		elif kind == "d" or kind == "ds" or kind == "dt":
 			# A hit that is not an ability's own (a Reflection shattering): the real
 			# damage of its coefficient, scaled the way abilities are ({ds:..}: the
-			# way spells are, like Decay's last drop).
+			# way spells are, like Decay's last drop; {dt:..}: a tank kit's hit, with
+			# the tank rule: Abilities.hit_damage_mult).
 			var coef: Variant = balance_value(key)
 			if coef is float or coef is int:
 				var book: GDScript = load("res://scripts/abilities.gd")
-				value = str(book.fmt_amount(book.coef_damage(float(coef), PackedStringArray(["Spell" if kind == "ds" else "Ability"]))))
+				value = str(book.fmt_amount(book.coef_damage(float(coef), PackedStringArray(["Spell" if kind == "ds" else "Ability"]))
+					* (Balance.TANK_DAMAGE_PCT / 100.0 if kind == "dt" else 1.0)))
 		elif kind == "e" or kind == "a":
 			var dot := key.find(".")
 			if dot > 0:

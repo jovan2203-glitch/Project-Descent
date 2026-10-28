@@ -56,7 +56,7 @@ func test_the_abilities_are_registered() -> void:
 
 func test_shatter_shot() -> void:
 	var r := Abilities.get_resource("shattershot")
-	assert_eq(float(r.weapon_damage_multiplier), 2.8)
+	assert_eq(float(r.weapon_damage_multiplier), 3.78)
 	assert_eq(int(r.resource_cost), 30)
 	assert_eq(float(r.cooldown), 10.0)
 	assert_eq(float(r.radius), 4.0, "the burst reaches 4 m")
@@ -75,7 +75,7 @@ func test_shatter_shot() -> void:
 
 func test_glacial_draw() -> void:
 	var r := Abilities.get_resource("glacialdraw")
-	assert_eq(float(r.weapon_damage_multiplier), 2.2)
+	assert_eq(float(r.weapon_damage_multiplier), 2.97)
 	assert_eq(int(r.resource_cost), 40)
 	assert_eq(float(r.cooldown), 12.0)
 	assert_eq(int(r.cast_type), 1, "a cast")

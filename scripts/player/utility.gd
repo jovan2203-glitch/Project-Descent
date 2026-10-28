@@ -17,7 +17,8 @@ class_name UtilityKit
 #   each enemy thrown: Forge Heat), Storm Front (Lightning: party speed; Energy for
 #   each ally), Climb the String (Shadow: hauls you to your target; a loose String
 #   on an ally: Strings Attached), Circle of Silence (Holy: an interrupt that keeps
-#   enemies inside it from casting).
+#   enemies inside it from casting), Holy Ground (Holy: a circle on the ground no
+#   enemy can step into).
 # Other books' utility (interrupts, blinks, defensives) is coded with its book;
 # the "Utility" divider only shows it there (Abilities.SPECS).
 # Enemies live on the host: effects go through CombatSystem, knockbacks through
@@ -36,6 +37,7 @@ const FIXED_POINT_ID := "fixedpoint"
 const BINDING_RING_ID := "bindingring"
 const CIRCLE_OF_SILENCE_ID := "circleofsilence"
 const CLIMB_STRING_ID := "climbthestring"
+const HOLY_GROUND_ID := "holyground"   # (placed: Player._unhandled_input -> start_holy_ground)
 ## Instants (_use_drafted -> use).
 const INSTANTS := [ROOTSNARE_ID, DEEP_ROOTS_ID, LEAF_CLOAK_ID, BELLOWS_ID, STORM_FRONT_ID,
 	STATIC_SNARE_ID, FIXED_POINT_ID, BINDING_RING_ID, CIRCLE_OF_SILENCE_ID, CLIMB_STRING_ID]
@@ -77,6 +79,7 @@ var _snares: Array = []     # {"e", "until"}: Static Snares that will leap on wh
 var _pools: Array = []      # {"pos", "r", "harden", "next"}: Cooling Slag pools
 var _rings: Array = []      # {"who", "until", "left", "hit", "next"}: Binding Rings
 var _silences: Array = []   # {"pos", "r", "until", "next"}: Circles of Silence
+var _grounds: Array = []    # {"pos", "r", "until", "next", "ring"}: Holy Grounds
 
 # Rules as static functions (tests/test_utility.gd).
 
@@ -359,7 +362,7 @@ func _silence_inside(at: Vector3, radius: float, lockout: float, show: bool) -> 
 
 func _tick_utility() -> void:
 	if not _deep_roots_on and _sleepers.is_empty() and _snares.is_empty() and _pools.is_empty() and _rings.is_empty() \
-			and _silences.is_empty():
+			and _silences.is_empty() and _grounds.is_empty():
 		return
 	var now := _now()
 	_tick_deep_roots(now)
@@ -368,6 +371,7 @@ func _tick_utility() -> void:
 	_tick_pools(now)
 	_tick_rings(now)
 	_tick_silences(now)
+	_tick_grounds(now)
 
 ## A Circle of Silence cuts off any cast started inside it (checked every
 ## SILENCE_CHECK seconds; enemy.interrupt only acts on an enemy that is casting).
@@ -383,6 +387,62 @@ func _tick_silences(now: float) -> void:
 			_silence_inside(s["pos"], float(s["r"]), lockout, now >= float(s.get("ring", 0.0)))
 			if now >= float(s.get("ring", 0.0)):
 				s["ring"] = now + PULSE_EVERY
+
+## Holy Ground (Holy): why it can't go down now ("" if it can), at `point` if given.
+func holy_ground_error(point: Variant = null) -> String:
+	if player.cooldown_left(HOLY_GROUND_ID) > 0.0:
+		return "%s is not ready yet" % Abilities.ability_name(HOLY_GROUND_ID)
+	if point is Vector3:
+		var reach := float(Abilities.get_resource(HOLY_GROUND_ID).cast_range)
+		if reach > 0.0 and Vector2(point.x - player.global_position.x, point.z - player.global_position.z).length() > reach:
+			return "Out of range"
+	return ""
+
+## Holy Ground lands at `point` (paid here: it is placed, like Cinder Rain).
+func start_holy_ground(point: Vector3) -> void:
+	var err := holy_ground_error(point)
+	if err != "":
+		player._error(err)
+		return
+	if not player._pay(HOLY_GROUND_ID):
+		return
+	var res := Abilities.get_resource(HOLY_GROUND_ID)
+	player.cooldowns[HOLY_GROUND_ID] = float(res.cooldown)
+	_grounds.append({"pos": point, "r": float(res.radius), "until": _now() + Balance.HOLY_GROUND_TIME, "next": 0.0, "ring": 0.0})
+	if Player.on_gcd(HOLY_GROUND_ID):
+		player._start_gcd()
+	player._bus().cast_finished.emit(HOLY_GROUND_ID)
+
+## Where an enemy at `at` inside a Holy Ground at `mid` (radius `r`) is pushed: just past its edge.
+static func out_of_ground(at: Vector3, mid: Vector3, r: float) -> Vector3:
+	var away := Vector3(at.x - mid.x, 0.0, at.z - mid.z)
+	if away.length() < 0.01:
+		away = Vector3(0, 0, -1)
+	return Vector3(mid.x, at.y, mid.z) + away.normalized() * (r + 0.3)
+
+## Every enemy that got inside a Holy Ground is pushed back out (bosses are too strong).
+func _tick_grounds(now: float) -> void:
+	var net := player._net()
+	for i in range(_grounds.size() - 1, -1, -1):
+		var g: Dictionary = _grounds[i]
+		if now >= float(g["until"]):
+			_grounds.remove_at(i)
+			continue
+		if now >= float(g["ring"]):
+			g["ring"] = now + PULSE_EVERY
+			player._ring_effect(float(g["r"]), HOLY_GOLD, g["pos"])
+		if now < float(g["next"]):
+			continue
+		g["next"] = now + Balance.HOLY_GROUND_CHECK
+		var mid: Vector3 = g["pos"]
+		for e in player._enemies_near(mid, float(g["r"])):
+			if not is_instance_valid(e) or not e.is_alive() or str(e.get("rank")) == "boss":
+				continue
+			var to := out_of_ground(e.global_position, mid, float(g["r"]))
+			if net:
+				net.drag(e, to, Balance.HOLY_GROUND_PUSH_TIME)   # the host owns enemies in a party
+			elif e.has_method("drag_to"):
+				e.drag_to(to, Balance.HOLY_GROUND_PUSH_TIME)
 
 func _tick_deep_roots(now: float) -> void:
 	if not _deep_roots_on:

@@ -107,8 +107,9 @@ const MANA_OF_BASE_HEALTH := 0.8
 const MANA_REGEN := 0.5        # points per second (= 5% of base mana)
 const ENERGY_REGEN := 10.0     # Energy per second
 const FURY_DECAY := 5.0        # Fury per second lost
-## Tanks: while your bars make you a tank (Abilities.role_of_bar), all your damage is
-## TANK_DAMAGE_PCT of what it would be and makes TANK_THREAT_MULT times the threat.
+## Tanks: every hit of a tank spec's kit (Abilities.hit_damage_mult: its abilities and
+## Abilities.TANK_HITS) is TANK_DAMAGE_PCT of what it would be and makes TANK_THREAT_MULT
+## times the threat. Auto attacks and everything else deal their full damage for anyone.
 ## Targets: a tank at optimal play does 30-40% of a top DPS, and makes about 1.3-1.7x
 ## that DPS's threat: steady damage stays under it, but a big burst, a crit spike or
 ## an early opener can take aggro, and the tank has to taunt or work to win it back.
@@ -121,7 +122,7 @@ const CAPSTONE_GATE := 25
 const AUTO_ATTACK_FURY := 10.0 # Fury per auto-attack (with a fury spender on the bar)
 ## Auto-attacks and auto-shots deal this share of the weapon's damage (weapon
 ## abilities still use all of it).
-const AUTO_ATTACK_MULT := 0.5
+const AUTO_ATTACK_MULT := 0.2
 
 ## Natural health regeneration, % of max health per second (like WoW:
 ## a trickle in combat, fast once the fight is over).
@@ -131,7 +132,7 @@ const HP_REGEN_OUT_OF_COMBAT_PCT := 5.0
 const HP_REGEN_OOC_DELAY := 1.5
 
 ## Interrupts: seconds the target can't cast afterwards.
-const INTERRUPT_LOCKOUT := {"counterspell": 4.0, "furnacebreath": 3.0, "rimelock": 3.0, "jolt": 3.0, "hush": 3.0, "circleofsilence": 3.0}
+const INTERRUPT_LOCKOUT := {"counterspell": 4.0, "furnacebreath": 3.0, "rimelock": 3.0, "jolt": 3.0, "hush": 3.0, "circleofsilence": 3.0, "stonethrow": 3.0}
 ## Interrupts share a cooldown: using one puts every other interrupt (of any
 ## book) on at least this many seconds of cooldown, and no interrupt's own
 ## cooldown may be shorter than this (a test checks it; longer is fine).
@@ -191,7 +192,7 @@ const SNOW_WARD_TIME := 10.0             # ... seconds the shields last
 const WINTER_HIDE_TIME := 8.0            # Winter Hide: seconds
 const WINTER_HIDE_PCT := 30.0            # ... % less damage taken
 const RIME_EDGE_TIME := 12.0             # Rime Edge: seconds your melee hits Chill and deal extra Frost damage
-const ICEBREAKER_FROZEN_MULT := 2.5      # Icebreaker: weapon damage x this on a target YOU have Frozen (it ends the Freeze)
+const ICEBREAKER_FROZEN_MULT := 3.35     # Icebreaker: weapon damage x this on a target YOU have Frozen (it ends the Freeze)
 
 ## Frost tank: Glacier Wall (one-handed melee weapon and a shield, Fury). Ice Layers
 ## are one absorb shield on you, cut into layers.
@@ -433,7 +434,7 @@ const STATIC_STEP_PCT := 30.0            # ... % more damage that ability deals
 const BACK_CURRENT_TIME := 5.0           # Back-Current: seconds it lasts
 const BACK_CURRENT_ENERGY := 10.0        # ... Energy each melee hit you take gives
 const CADENCE_WINDOW := 3.0              # Cadence: seconds you have for the next press
-const CADENCE_MULTS := [0.6, 0.9, 1.5]   # ... weapon damage multiplier of each press (the last one also hits around you)
+const CADENCE_MULTS := [0.8, 1.2, 2.0]   # ... weapon damage multiplier of each press (the last one also hits around you)
 const SPLIT_SECOND_TIME := 8.0           # Split Second: seconds it lasts
 const SPLIT_SECOND_GCD := 0.5            # ... seconds shorter your global cooldown is
 const SPLIT_SECOND_MIN_GCD := 0.5        # ... but never shorter than this
@@ -1248,10 +1249,10 @@ const VENOM_PER_TICK := 2.5               # Venom each tick of my poisons gives 
 const VENOM_DRAIN := 5.0                  # Venom lost per second out of combat
 const POISON_TIME := 12.0                 # seconds each poison lasts
 const POISON_TICK := 1.0                  # ... a tick this often (faster with Haste)
-const ADDER_DAMAGE := 1.3                 # Adder Venom: damage (coefficient) over its time
-const ASP_DAMAGE := 0.65                   # Asp Venom: damage over its time ...
+const ADDER_DAMAGE := 1.46                # Adder Venom: damage (coefficient) over its time
+const ASP_DAMAGE := 0.73                   # Asp Venom: damage over its time ...
 const ASP_SLOW := 20.0                    # ... and the enemy moves this % slower
-const KRAIT_DAMAGE := 0.45                 # Krait Venom: damage over its time ...
+const KRAIT_DAMAGE := 0.5                  # Krait Venom: damage over its time ...
 const KRAIT_HASTE := 25.0                 # ... and my other poisons on that enemy tick this % faster
 const TWO_POISONS_PCT := 15.0             # two different poisons of mine on an enemy: all of them deal this % more
 const STEEPED_PCT := 30.0                 # all three (Steeped): this % more instead
@@ -1471,6 +1472,9 @@ const STORM_FRONT_TIME := 6.0             # ... for this long
 const STORM_FRONT_ENERGY := 5.0           # ... Energy you gain for each ally it reaches
 const CLIMB_STRING_STOP := 1.5            # Climb the String (Shadow): metres short of the target it sets you down
 const CIRCLE_OF_SILENCE_TIME := 4.0       # Circle of Silence (Holy): seconds the circle stays (lockout: INTERRUPT_LOCKOUT)
+const HOLY_GROUND_TIME := 6.0            # Holy Ground (Holy): seconds no enemy can step inside it (radius: ABILITIES)
+const HOLY_GROUND_CHECK := 0.15          # ... how often it pushes out enemies that got in (seconds)
+const HOLY_GROUND_PUSH_TIME := 0.12      # ... how long each push takes
 const COOLING_SLAG_SLOW := 30.0          # Cooling Slag (Fire): % slower while standing in the molten pool
 const COOLING_SLAG_HARDEN := 2.0          # ... seconds until it hardens
 const COOLING_SLAG_ROOT := 3.0            # ... then enemies still inside are rooted this long
@@ -1491,8 +1495,8 @@ const ABILITIES := {
 	"blizzard": {"damage": 0.3, "cost": 4, "cast_time": 2.2, "radius": 2.5},
 	"frostnova": {"damage": 0.8, "cooldown": 10.0, "cost": 3, "radius": 3.5},
 	"icebarrier": {"cooldown": 20.0, "cost": 3},
-	"froststrike": {"weapon_mult": 1.8, "cooldown": 6.0, "generates": 20},
-	"frostarrow": {"weapon_mult": 1.3, "cooldown": 0.0, "cost": 10},   # the filler
+	"froststrike": {"weapon_mult": 2.41, "cooldown": 6.0, "generates": 20},
+	"frostarrow": {"weapon_mult": 1.76, "cooldown": 0.0, "cost": 10},   # the filler
 	"rimeshell": {"damage": 1.0, "cost": 2, "cast_time": 2.2, "radius": 5.0, "range": 40.0},
 	"shatteringwave": {"damage": 1.0, "cooldown": 8.0, "cost": 2, "radius": 20.0},
 	"flashfreeze": {"cooldown": 12.0, "cost": 2, "cast_time": 1.2, "radius": 12.0},
@@ -1507,10 +1511,10 @@ const ABILITIES := {
 	"snowward": {"cooldown": 60.0, "radius": 20.0},       # radius = allies within this many metres
 	"winterhide": {"cooldown": 40.0},                     # lasts WINTER_HIDE_TIME
 	"rimeedge": {"damage": 0.15, "cooldown": 20.0},       # damage = the extra Frost hit on each melee hit
-	"icebreaker": {"weapon_mult": 2.0, "cooldown": 8.0, "cost": 30},                  # ICEBREAKER_FROZEN_MULT on a target you have Frozen
+	"icebreaker": {"weapon_mult": 2.68, "cooldown": 8.0, "cost": 30},                  # ICEBREAKER_FROZEN_MULT on a target you have Frozen
 	"icepin": {"weapon_mult": 1.0, "cooldown": 15.0, "cost": 30},
-	"shattershot": {"weapon_mult": 2.8, "cooldown": 10.0, "cost": 30, "radius": 4.0},   # SHATTER_SHOT_FROZEN_PCT more on a target you have Frozen; radius = the burst
-	"glacialdraw": {"weapon_mult": 2.2, "cooldown": 12.0, "cost": 40, "cast_time": 2.0},   # instant on a target your Icepin roots or you have Frozen
+	"shattershot": {"weapon_mult": 3.78, "cooldown": 10.0, "cost": 30, "radius": 4.0},   # SHATTER_SHOT_FROZEN_PCT more on a target you have Frozen; radius = the burst
+	"glacialdraw": {"weapon_mult": 2.97, "cooldown": 12.0, "cost": 40, "cast_time": 2.0},   # instant on a target your Icepin roots or you have Frozen
 	"rimefletch": {"cooldown": 30.0, "cost": 20},                                       # RIMEFLETCH_SHOTS / _TIME / _PCT
 	"coldmark": {"cooldown": 20.0, "cost": 0},                                          # lasts as long as its effect (EFFECTS)
 	"icyretreat": {"cooldown": 15.0, "cost": 15, "radius": 4.0},                        # radius = the ice it leaves; ICY_RETREAT_DISTANCE / _TIME
@@ -1529,15 +1533,15 @@ const ABILITIES := {
 	"hardrime": {"cooldown": 20.0, "cost": 30},
 	"glacialbulwark": {"cooldown": 90.0},
 	# Frost DPS: Frostbitten Steel (Fury; GLAZE_* and the rest above)
-	"hoarcleave": {"weapon_mult": 1.2, "cooldown": 6.0, "generates": 15},
-	"bitteredge": {"weapon_mult": 0.8, "cooldown": 6.0, "cost": 15},
-	"calving": {"weapon_mult": 1.0, "cooldown": 10.0, "cost": 30},
+	"hoarcleave": {"weapon_mult": 1.61, "cooldown": 6.0, "generates": 15},
+	"bitteredge": {"weapon_mult": 1.07, "cooldown": 6.0, "cost": 15},
+	"calving": {"weapon_mult": 1.34, "cooldown": 10.0, "cost": 30},
 	"blackfrost": {"cooldown": 120.0},
 	# Fire
 	# Steady Flame's spells build Fury for free or spend it (FireFuryKit).
 	"fireball": {"damage": 0.75, "cost": 0, "cast_time": 2.2, "range": 20.0},
-	"searingstrike": {"weapon_mult": 1.5, "cooldown": 6.0, "cost": 30},
-	"flamingarrow": {"weapon_mult": 1.8, "cooldown": 6.0, "cost": 30},
+	"searingstrike": {"weapon_mult": 1.92, "cooldown": 6.0, "cost": 30},
+	"flamingarrow": {"weapon_mult": 2.34, "cooldown": 6.0, "cost": 30},
 	"flamenova": {"damage": 1.5, "cooldown": 10.0, "cost": 30, "radius": 3.0},
 	"ventflames": {"damage": 1.8, "cooldown": 10.0, "cost": 0, "range": 30.0},          # spends all your Fury: VENT_FURY_*
 	"coolhead": {"cooldown": 120.0},
@@ -1546,7 +1550,7 @@ const ABILITIES := {
 	"crucible": {"cost": 20, "cast_time": 1.5, "radius": 5.65, "range": 30.0},         # moving it is free and instant (radius was 5, Deep Crucible folded in)
 	"cinderstep": {"damage": 0.15, "cooldown": 15.0, "cost": 2},                       # damage = per tick of the line
 	"heatsink": {"damage": 1.0, "cooldown": 60.0, "cost": 0, "radius": 6.0},           # damage = the burst with nothing stored
-	"brand": {"damage": 1.0, "weapon_mult": 1.0, "cooldown": 6.0, "generates": 20, "threat": 5.0},
+	"brand": {"damage": 0.85, "weapon_mult": 0.85, "cooldown": 6.0, "generates": 20, "threat": 5.0},
 	"cinderguard": {"damage": 0.3, "cooldown": 12.0, "cost": 20, "threat": 3.0},        # damage = the burn on an attacker you block
 	"anvil": {"damage": 0.65, "weapon_mult": 0.5, "cooldown": 8.0, "generates": 10, "radius": 4.0, "threat": 6.0},
 	"redhotrivet": {"damage": 0.3, "cooldown": 8.0, "range": 25.0, "threat": 3.0},
@@ -1557,14 +1561,14 @@ const ABILITIES := {
 	"walloffire": {"damage": 0.25, "cooldown": 20.0, "cost": 30, "cast_time": 1.5, "radius": 4.0, "range": 30.0},   # damage = per tick, radius = half its length
 	"kilnblast": {"damage": 3.0, "cooldown": 3.0, "cost": 40, "cast_time": 3.5, "range": 30.0},   # never crits
 	"embervolley": {"damage": 0.35, "cooldown": 12.0, "cost": 0, "cast_time": 3.0, "range": 30.0},   # damage = per ember
-	"quench": {"weapon_mult": 1.0},                    # before Heat: + QUENCH_PCT_PER_HEAT % per Heat removed
-	"flare": {"weapon_mult": 1.0, "radius": 4.0},      # radius = the sweep's reach
-	"foldsteel": {"weapon_mult": 0.5, "cooldown": 8.0, "cost": 25},   # per hit (FOLD_STEEL_HITS)
-	"rededge": {"weapon_mult": 0.25, "cooldown": 15.0, "cost": 20},    # weapon_mult = its extra Fire damage per auto-swing (Orange and up)
+	"quench": {"weapon_mult": 1.28},                    # before Heat: + QUENCH_PCT_PER_HEAT % per Heat removed
+	"flare": {"weapon_mult": 1.28, "radius": 4.0},      # radius = the sweep's reach
+	"foldsteel": {"weapon_mult": 0.64, "cooldown": 8.0, "cost": 25},   # per hit (FOLD_STEEL_HITS)
+	"rededge": {"weapon_mult": 0.32, "cooldown": 15.0, "cost": 20},    # weapon_mult = its extra Fire damage per auto-swing (Orange and up)
 	"blastfurnace": {"cooldown": 120.0},
-	"pitcharrow": {"weapon_mult": 0.8, "cooldown": 12.0, "cost": 20},
-	"cinderrain": {"weapon_mult": 0.25, "cooldown": 15.0, "cost": 40, "radius": 4.0, "range": 30.0},   # weapon_mult = per tick (8 ticks)
-	"coalshot": {"weapon_mult": 1.3, "cost": 15},
+	"pitcharrow": {"weapon_mult": 1.04, "cooldown": 12.0, "cost": 20},
+	"cinderrain": {"weapon_mult": 0.33, "cooldown": 15.0, "cost": 40, "radius": 4.0, "range": 30.0},   # weapon_mult = per tick (8 ticks)
+	"coalshot": {"weapon_mult": 1.69, "cost": 15},
 	"touchoff": {"cooldown": 10.0, "cost": 30, "range": 30.0},   # Ignites your Pitch: PITCH_IGNITE_* + TOUCH_OFF_PCT
 	"brushfire": {"cooldown": 120.0},
 	"cinderwing": {"cooldown": 60.0},                   # the phoenix: see PHOENIX_* and HEALS
@@ -1584,24 +1588,24 @@ const ABILITIES := {
 	"capacitor": {"cooldown": 30.0},
 	"thunderstrike": {"weapon_mult": 1.0, "cooldown": 10.0, "cost": 30},                                   # cost = Energy
 	# Lightning melee (Energy)
-	"chargededge": {"weapon_mult": 2.7, "cooldown": 4.0, "generates": 30},
-	"arccleave": {"weapon_mult": 0.8, "cooldown": 6.0, "cost": 35, "radius": 4.0},
+	"chargededge": {"weapon_mult": 3.59, "cooldown": 4.0, "generates": 30},
+	"arccleave": {"weapon_mult": 1.06, "cooldown": 6.0, "cost": 35, "radius": 4.0},
 	"overdrive": {"damage": 0.1, "cooldown": 45.0},                                                        # damage = the zap on each auto-attack
 	"twincurrent": {"cooldown": 20.0, "cost": 20},
 	"staticstep": {"cooldown": 12.0, "cost": 20, "range": 15.0},                                           # range = how far away the target may be
 	"backcurrent": {"damage": 0.3, "cooldown": 30.0},                                                      # damage = the zap back at an attacker
-	"cadence": {"weapon_mult": 0.6, "cost": 15, "radius": 4.0},                                            # weapon_mult = the first press (keep it the same as CADENCE_MULTS[0]); radius = the third strike's reach
+	"cadence": {"weapon_mult": 0.8, "cost": 15, "radius": 4.0},                                            # weapon_mult = the first press (keep it the same as CADENCE_MULTS[0]); radius = the third strike's reach
 	"splitsecond": {"cooldown": 60.0},
-	"whiplash": {"weapon_mult": 0.7, "cooldown": 6.0, "generates": 15, "range": 20.0},
+	"whiplash": {"weapon_mult": 0.93, "cooldown": 6.0, "generates": 15, "range": 20.0},
 	"faradayguard": {"cooldown": 45.0},
 	"reflexarc": {"weapon_mult": 1.5, "cooldown": 20.0, "cost": 20},                                       # weapon_mult = the strike back
 	"polarstrike": {"weapon_mult": 1.0, "cooldown": 3.0, "cost": 20},                                      # taught by the Rune of Polarity
 	"stormarrow": {"weapon_mult": 1.0, "cooldown": 7.0, "cost": 30, "radius": 2.0},
 	# Lightning tank (Energy, a two-handed weapon). "stormshield" is Stormbreak and
 	# "thunderaegis" is Humming Blade: they keep the ids they had as shield abilities.
-	"stormshield": {"damage": 0.0, "weapon_mult": 1.0, "cooldown": 0.0, "cost": 0, "generates": 15, "radius": 4.0, "threat": 4.0},   # radius = how far the charge arcs
+	"stormshield": {"damage": 0.0, "weapon_mult": 0.88, "cooldown": 0.0, "cost": 0, "generates": 15, "radius": 4.0, "threat": 5.0},   # radius = how far the charge arcs
 	"thunderaegis": {"damage": 0.0, "weapon_mult": 0.0, "cooldown": 12.0, "cost": 0, "radius": 0.0, "threat": 1.0},
-	"returnstroke": {"weapon_mult": 1.0, "cost": 15, "threat": 4.0},
+	"returnstroke": {"weapon_mult": 0.88, "cost": 15, "threat": 5.0},
 	"shockring": {"damage": 0.5, "cooldown": 8.0, "cost": 30, "radius": 6.0, "threat": 4.0},
 	"crossguard": {"cooldown": 25.0, "cost": 40},
 	"drawthestorm": {"cooldown": 90.0, "radius": 8.0},                                                     # radius = how far it pulls enemies onto you
@@ -1611,16 +1615,16 @@ const ABILITIES := {
 	"blink": {"cooldown": 12.0, "cost": 2},
 	"arcanemissiles": {"damage": 0.2, "cost": 1, "cast_time": 2.0, "range": 30.0},                        # Sigil Darts: damage = per dart (ARCANE_MISSILES_COUNT of them), cast_time = the channel
 	"unravel": {"damage": 1.3, "cost": 1, "cast_time": 2.0, "range": 30.0},
-	"glint": {"damage": 0.7, "cooldown": 6.0, "cost": 1, "range": 30.0},
+	"glint": {"damage": 1.1, "cooldown": 6.0, "cost": 1, "range": 30.0},
 	"countdown": {"damage": 1.0, "cooldown": 12.0, "cost": 2, "cast_time": 1.5, "range": 30.0},           # damage = the detonation before what you dealt meanwhile is added
 	"convergence": {"damage": 2.0, "cooldown": 20.0, "cost": 3, "cast_time": 2.5, "range": 30.0},
 	"rewind": {"cooldown": 45.0},
 	"lapse": {"cooldown": 90.0},
 	"mirrorsigil": {"cooldown": 30.0, "cost": 3, "cast_time": 1.5},
-	"collapse": {"damage": 1.4, "cooldown": 10.0, "cost": 3, "cast_time": 2.0, "radius": 6.0, "range": 30.0},
+	"collapse": {"damage": 1.8, "cooldown": 10.0, "cost": 3, "cast_time": 2.0, "radius": 6.0, "range": 30.0},
 	"scatter": {"cooldown": 8.0},
 	"intervalward": {"cooldown": 20.0, "cost": 2},                                                       # shield = HEALS
-	"arcanestrike": {"damage": 0.8, "weapon_mult": 0.8, "cooldown": 6.0, "generates": 20},
+	"arcanestrike": {"damage": 0.84, "weapon_mult": 0.84, "cooldown": 6.0, "generates": 20},
 	"arcaneshot": {"damage": 1.0, "weapon_mult": 1.0, "cooldown": 4.0, "cost": 20},
 	"arcaneexplosion": {"damage": 1.2, "cooldown": 5.0, "cost": 3, "radius": 2.5},
 	"counterspell": {"cooldown": 24.0, "cost": 2, "range": 25.0},
@@ -1634,15 +1638,15 @@ const ABILITIES := {
 	"crowdofone": {"cooldown": 90.0},
 	"decoy": {"damage": 0.5, "cooldown": 90.0, "radius": 8.0, "range": 20.0, "threat": 4.0},            # damage = its burst, radius = how far it draws enemies in, range = how far away it may be sent
 	# Arcane melee (a melee weapon in each hand; no resource: cooldowns alone). weapon_mult counts both weapons.
-	"swiftcut": {"damage": 0.0, "weapon_mult": 0.8, "cooldown": 0.0},
-	"deepcut": {"damage": 0.0, "weapon_mult": 1.8, "cooldown": 6.0},
-	"latecut": {"damage": 0.0, "weapon_mult": 0.8, "cooldown": 10.0},                                   # hits again for the same damage after LATE_CUT_DELAY
+	"swiftcut": {"damage": 0.0, "weapon_mult": 0.84, "cooldown": 0.0},
+	"deepcut": {"damage": 0.0, "weapon_mult": 1.89, "cooldown": 6.0},
+	"latecut": {"damage": 0.0, "weapon_mult": 0.84, "cooldown": 10.0},                                   # hits again for the same damage after LATE_CUT_DELAY
 	"encore": {"cooldown": 0.0},                                                                        # damage = ENCORE_PCT of each Trace
-	"widecut": {"damage": 0.0, "weapon_mult": 0.7, "cooldown": 8.0, "radius": 5.0},
+	"widecut": {"damage": 0.0, "weapon_mult": 0.74, "cooldown": 8.0, "radius": 5.0},
 	"doubletime": {"cooldown": 90.0},
 	# Shadow
 	"corruption": {"damage": 0.4, "cooldown": 8.0, "cost": 2, "range": 30.0},
-	"shadowstrike": {"weapon_mult": 1.2, "cooldown": 6.0, "cost": 30},
+	"shadowstrike": {"weapon_mult": 1.34, "cooldown": 6.0, "cost": 30},
 	"shadowarrow": {"weapon_mult": 1.0, "cooldown": 8.0, "cost": 30},
 	# Shadow caster: Decay (see DECAY_* above). Blight opens it, the rest feed or use it.
 	"blight": {"damage": 0.5, "cost": 2, "cast_time": 1.5, "range": 30.0},
@@ -1655,10 +1659,10 @@ const ABILITIES := {
 	"takeitback": {"cooldown": 45.0, "cost": 2, "range": 30.0},                                           # shield = TAKE_IT_BACK_PCT % of the Decay on the target
 	"bottomless": {"cooldown": 90.0},
 	# Shadow melee: the Hounds (see HOUND_* above). Sic and Open Up build Fury, the rest spend it.
-	"sic": {"damage": 0.0, "weapon_mult": 1.4, "cooldown": 0.0, "generates": 15},
-	"openup": {"damage": 0.0, "weapon_mult": 1.4, "cooldown": 6.0, "generates": 25},                       # its mark: LAID_OPEN_*
-	"bothatonce": {"damage": 0.0, "weapon_mult": 1.2, "cooldown": 4.0, "cost": 40},                       # each Hound's lunge = HOUND_LUNGE
-	"runthemdown": {"damage": 0.0, "weapon_mult": 0.6, "cooldown": 8.0, "cost": 30, "radius": 5.0},       # then RUN_DOWN_*
+	"sic": {"damage": 0.0, "weapon_mult": 1.56, "cooldown": 0.0, "generates": 15},
+	"openup": {"damage": 0.0, "weapon_mult": 1.56, "cooldown": 6.0, "generates": 25},                       # its mark: LAID_OPEN_*
+	"bothatonce": {"damage": 0.0, "weapon_mult": 1.34, "cooldown": 4.0, "cost": 40},                       # each Hound's lunge = HOUND_LUNGE
+	"runthemdown": {"damage": 0.0, "weapon_mult": 0.67, "cooldown": 8.0, "cost": 30, "radius": 5.0},       # then RUN_DOWN_*
 	"guarddogs": {"cooldown": 30.0, "cost": 20},                                                          # GUARD_DOGS_*
 	"offthechain": {"cooldown": 90.0},                                                                    # OFF_THE_CHAIN_*
 	"bringitdown": {"cooldown": 10.0},                                                                    # each Hound's Drag Down = HOUND_DRAG
@@ -1690,7 +1694,7 @@ const ABILITIES := {
 	"lastverse": {"cooldown": 120.0, "range": 30.0},
 	"singmercy": {}, "singchorus": {}, "singvigil": {},
 	# Holy tank: the Censer (Mana in points; INCENSE_* and the rest above)
-	"censerswing": {"damage": 0.5, "cost": 0.4, "threat": 3.0},
+	"censerswing": {"damage": 0.45, "cost": 0.4, "threat": 3.0},
 	"hallowedarc": {"damage": 0.5, "cooldown": 8.0, "cost": 1, "radius": 8.0, "threat": 4.0},
 	"beckon": {"damage": 0.4, "cooldown": 10.0, "cost": 1, "range": 25.0, "threat": 6.0},
 	"pourout": {"cooldown": 12.0, "cost": 2, "radius": 8.0, "threat": 4.0},                              # damage = POUR_OUT_PER_STACK per stack
@@ -1714,9 +1718,9 @@ const ABILITIES := {
 	"kaleidoscope": {"cooldown": 120.0},
 	# Holy archer: Lightstring (Energy, a bow; REFRACT_* and the rest above)
 	"prismarrow": {"cooldown": 12.0, "cost": 15, "range": 30.0},                                         # cooldown = one charge's recharge
-	"glimmershot": {"weapon_mult": 1.8, "cost": 20},
-	"refractingshot": {"weapon_mult": 2.0, "cooldown": 8.0, "cost": 30, "cast_time": 2.0},
-	"sunlitarrow": {"weapon_mult": 1.2, "cooldown": 12.0, "cost": 30},
+	"glimmershot": {"weapon_mult": 2.5, "cost": 20},
+	"refractingshot": {"weapon_mult": 3.6, "cooldown": 8.0, "cost": 30, "cast_time": 2.0},
+	"sunlitarrow": {"weapon_mult": 1.67, "cooldown": 12.0, "cost": 30},
 	"prismbreaker": {"cooldown": 15.0, "cost": 25, "range": 40.0},
 	"stepoflight": {"cooldown": 10.0, "range": 40.0},
 	"spectrumvolley": {"cooldown": 120.0},
@@ -1763,28 +1767,28 @@ const ABILITIES := {
 	# Martial warrior: the Wheel (Fury; WHEEL_* and the rest above). Fillers
 	# give Fury, Heavy Fillers cost it, Weapon Arts are free, Finishers deal BREAK_BASE
 	# + BREAK_PER_CRACK per Crack.
-	"hack": {"damage": 0.6, "generates": 20},
-	"chop": {"damage": 0.8, "cost": 30},
+	"hack": {"damage": 0.74, "generates": 20},
+	"chop": {"damage": 0.99, "cost": 30},
 	"rush": {"cooldown": 15.0},
 	"shrapnel": {"damage": BREAK_BASE, "radius": SHRAPNEL_RADIUS},
-	"slash": {"damage": 0.7, "generates": 20},
-	"lunge": {"damage": 0.95, "cost": 30},
+	"slash": {"damage": 0.87, "generates": 20},
+	"lunge": {"damage": 1.18, "cost": 30},
 	"bladeguard": {"cooldown": 45.0},
 	"shardlance": {"damage": BREAK_BASE * SHARD_LANCE_MULT},
-	"jab": {"damage": 0.6, "generates": 30},
-	"hook": {"damage": 0.8, "cost": 20},
+	"jab": {"damage": 0.74, "generates": 30},
+	"hook": {"damage": 0.99, "cost": 20},
 	"dragin": {"cooldown": 20.0, "range": 12.0},
 	"flyinghead": {"damage": BREAK_BASE},
-	"thud": {"damage": 0.6, "generates": 20},
-	"crush": {"damage": 0.8, "cost": 30},
+	"thud": {"damage": 0.74, "generates": 20},
+	"crush": {"damage": 0.99, "cost": 30},
 	"earthshake": {"cooldown": 30.0, "radius": 6.0},
 	"faultline": {"damage": BREAK_BASE, "radius": FAULT_LINE_REACH},
 	# Martial tank: the Brawler (BRUISE_*, the chain and the rest above). Strikes give Fury;
 	# the chain's moves go off with the third strike and are paid for by it (Haymaker:
 	# HAYMAKER_FURY).
-	"punch": {"damage": 0.3, "generates": 10, "threat": 4.0},
-	"brawlkick": {"damage": 0.3, "generates": 10, "threat": 4.0},
-	"elbow": {"damage": 0.3, "generates": 10, "threat": 4.0},
+	"punch": {"damage": 0.27, "generates": 10, "threat": 4.0},
+	"brawlkick": {"damage": 0.27, "generates": 10, "threat": 4.0},
+	"elbow": {"damage": 0.27, "generates": 10, "threat": 4.0},
 	"rapidfists": {"damage": 0.45, "threat": 5.0},
 	"haymaker": {"damage": 1.1, "threat": 4.0},
 	"sweep": {"damage": 0.4, "radius": 5.0, "threat": 5.0},
@@ -1796,11 +1800,11 @@ const ABILITIES := {
 	"comeon": {"cooldown": 8.0, "range": 25.0, "threat": 6.0},
 	# Martial DPS: the Rogue (FLOW_*, KILL_*, DAGGER_* and the rest above). Kill forms
 	# (gut ... drivethrough) are what the builders become in a Kill window.
-	"cut": {"damage": 0.55, "cost": 20, "range": THROW_RANGE},
-	"whirl": {"damage": 0.35, "cost": 35, "radius": 5.0, "range": THROW_RANGE},
-	"dartin": {"damage": 0.5, "cost": 15, "cooldown": 10.0, "range": 15.0},
-	"kickoff": {"damage": 0.4, "cost": 15, "cooldown": 10.0},
-	"twinstab": {"damage": 0.5, "cost": 30, "cooldown": 8.0},
+	"cut": {"damage": 0.62, "cost": 20, "range": THROW_RANGE},
+	"whirl": {"damage": 0.39, "cost": 35, "radius": 5.0, "range": THROW_RANGE},
+	"dartin": {"damage": 0.56, "cost": 15, "cooldown": 10.0, "range": 15.0},
+	"kickoff": {"damage": 0.45, "cost": 15, "cooldown": 10.0},
+	"twinstab": {"damage": 0.56, "cost": 30, "cooldown": 8.0},
 	"goin": {},
 	"closeitout": {"cost": 20},
 	"hityourstride": {"cooldown": 120.0},
@@ -1815,13 +1819,14 @@ const ABILITIES := {
 	"pintheshadow": {"cooldown": 20.0, "range": 30.0},
 	"overtheshoulder": {"cooldown": 20.0, "range": 10.0},
 	"playdead": {"cooldown": 90.0},
+	"stonethrow": {"cooldown": 15.0, "range": 25.0},   # interrupt: see INTERRUPT_LOCKOUT
 	# Martial archer: Sharpshooter (SHARP_*, OVERCUT_*, STREAK_* above). No costs.
-	"quickshot": {"damage": 0.45, "cooldown": 8.0},
-	"pierce": {"damage": 0.5, "cooldown": 12.0},
-	"spread": {"damage": 0.3, "cooldown": 15.0},
-	"heavydraw": {"damage": 1.3, "cooldown": 20.0, "cast_time": 1.5},
-	"followup": {"damage": 0.22, "cooldown": 10.0},
-	"loose": {"damage": 0.25},
+	"quickshot": {"damage": 0.56, "cooldown": 8.0},
+	"pierce": {"damage": 0.62, "cooldown": 12.0},
+	"spread": {"damage": 0.38, "cooldown": 15.0},
+	"heavydraw": {"damage": 1.62, "cooldown": 20.0, "cast_time": 1.5},
+	"followup": {"damage": 0.28, "cooldown": 10.0},
+	"loose": {"damage": 0.31},
 	"breathe": {"cooldown": 30.0},
 	"fasthands": {"cooldown": 120.0},
 	# Utility (each book's "Utility" divider; the numbers above)
@@ -1835,6 +1840,7 @@ const ABILITIES := {
 	"bellows": {"cooldown": 25.0, "cost": 2, "radius": 6.0},
 	"climbthestring": {"cooldown": 20.0, "cost": 1, "range": 30.0},
 	"circleofsilence": {"cooldown": 25.0, "cost": 2, "radius": 5.0, "range": 30.0},   # interrupt: see INTERRUPT_LOCKOUT
+	"holyground": {"cooldown": 45.0, "cost": 2, "radius": 5.0, "range": 30.0},
 	"fixedpoint": {"cooldown": 20.0, "cost": 2, "range": 30.0},
 	"bindingring": {"cooldown": 30.0, "cost": 2, "radius": 3.0, "range": 40.0},
 	# Healers' out-of-combat rez (RAISE_*; RezKit)

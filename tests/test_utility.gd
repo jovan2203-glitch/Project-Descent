@@ -132,3 +132,36 @@ func test_the_hooks_are_in_place() -> void:
 	assert_contains(enemy, "func drop_threat(source: Node)")
 	var net := FileAccess.get_file_as_string("res://scripts/net/net.gd")
 	assert_contains(net, "func _sup_drop_threat(", "a party member's Leaf Cloak reaches the host")
+
+## Holy Ground (Holy): placed, like Cinder Rain; it keeps enemies out by pushing
+## any that got in just past its edge.
+func test_holy_ground_keeps_enemies_out() -> void:
+	var id := UtilityKit.HOLY_GROUND_ID
+	var r := Abilities.get_resource(id)
+	assert_true(r != null and r.tags.has("Utility") and r.tags.has("Holy"))
+	assert_true(_utility_spec("holy").has(id), "in Holy's Utility divider")
+	assert_true(Abilities.ALL.has(id) and Abilities.DRAFT_POOL.has(id) and SkillCards.ALL.has(id), "drafted, with a Skill Card")
+	assert_false(UtilityKit.INSTANTS.has(id) or UtilityKit.CASTS.has(id), "placed: Player._unhandled_input starts it")
+	assert_eq(float(r.radius), 5.0)
+	var to := UtilityKit.out_of_ground(Vector3(1, 0, 0), Vector3.ZERO, 5.0)
+	assert_true(absf(to.length() - 5.3) < 0.001, "just past the edge")
+	assert_true(to.x > 0.0, "out the side it was on")
+	var tip := Abilities.tooltip(id)
+	assert_false(tip.contains("{") or tip.contains("}") or tip.contains("?"), tip)
+	var player := PlayerSource.text()
+	assert_contains(player, "utility.start_holy_ground(cast_point)")
+
+## Stone Throw (Martial's interrupt): a cast is interrupted; with no cast, the melee
+## hit being wound up is knocked aside (enemy.interrupt with tells).
+func test_stone_throw_interrupts_or_knocks_a_hit_aside() -> void:
+	assert_true(Abilities.is_interrupt("stonethrow"))
+	var r := Abilities.get_resource("stonethrow")
+	assert_true(r.tags.has("Interrupt") and r.tags.has("Ability") and r.tags.has("Utility"))
+	assert_true(float(r.cooldown) >= Balance.INTERRUPT_SHARED_COOLDOWN, "shares the interrupt cooldown")
+	assert_true(_utility_spec("martial").has("stonethrow"))
+	assert_true(SkillCards.ALL.has("stonethrow"))
+	var enemy: String = (load("res://scripts/enemy.gd") as GDScript).source_code
+	assert_contains(enemy, "func interrupt(_source: Node, lockout: float, tells := false) -> bool:")
+	assert_contains(enemy, "\"knocked_aside\":")
+	var net: String = (load("res://scripts/net/net.gd") as GDScript).source_code
+	assert_contains(net, "e.interrupt(body_of(member), lockout, tells)", "a party member's throw reaches the host")

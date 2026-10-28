@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"awaken"
 display_name = "Awaken"
-description = "The whole giant rises behind you for {awaken_time} sec. You take {b:AWAKEN_DR_PCT}% less damage and gain {b:AWAKEN_SAP_MULT} times as much Sap. {n:vinefist} hits twice and slams the ground for {d:AWAKEN_SLAM} Nature damage to every enemy within {b:AWAKEN_SLAM_RADIUS} m, {n:stomp} reaches {b:AWAKEN_STOMP_RADIUS} m and {n:giantshands} absorbs {b:AWAKEN_HANDS_PCT}% more."
+description = "The whole giant rises behind you for {awaken_time} sec. You take {b:AWAKEN_DR_PCT}% less damage and gain {b:AWAKEN_SAP_MULT} times as much Sap. {n:vinefist} hits twice and slams the ground for {dt:AWAKEN_SLAM} Nature damage to every enemy within {b:AWAKEN_SLAM_RADIUS} m, {n:stomp} reaches {b:AWAKEN_STOMP_RADIUS} m and {n:giantshands} absorbs {b:AWAKEN_HANDS_PCT}% more."
 tags = PackedStringArray("Ability", "Nature", "Defensive")
 cast_type = 0
 cast_time = 0.0

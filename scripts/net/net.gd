@@ -1839,22 +1839,23 @@ func _efx(t: int, id: String, kind: String, target_member: int, extra: Dictionar
 
 ## Interrupt an enemy's cast (Counterspell, Kick, Pummel). Casting lives on
 ## the host, so a party member's interrupt is sent there.
-func interrupt(enemy: Node, source: Node, lockout: float) -> void:
+## `tells`: with no cast, knock aside the melee hit it is winding up (Stone Throw).
+func interrupt(enemy: Node, source: Node, lockout: float, tells := false) -> void:
 	if enemy == null or not is_instance_valid(enemy):
 		return
 	if is_client() and _connected():
-		_out_to(1, "_sup_interrupt", token, member_of(source), enemy_id(enemy), lockout)
+		_out_to(1, "_sup_interrupt", token, member_of(source), enemy_id(enemy), lockout, tells)
 	elif enemy.has_method("interrupt"):
-		enemy.interrupt(source, lockout)
+		enemy.interrupt(source, lockout, tells)
 
 @rpc("any_peer", "call_remote", "reliable")
-func _sup_interrupt(t: int, member: int, id: String, lockout: float) -> void:
+func _sup_interrupt(t: int, member: int, id: String, lockout: float, tells: bool) -> void:
 	var w := _world()
 	if t != token or not is_host() or w == null:
 		return
 	var e := _enemy(w, id)
 	if e and e.has_method("interrupt"):
-		e.interrupt(body_of(member), lockout)
+		e.interrupt(body_of(member), lockout, tells)
 
 ## Remove `source`'s copy of a status effect from an enemy (Stoke eating its
 ## Burning). Enemy effects live on the host, so a party member's is sent there too.

@@ -43,6 +43,8 @@ const TARGET_TANK_SHARE := [0.3, 0.4]   # a tank at optimal play: this share of 
 ## A spec with this many abilities or fewer is incomplete: marked in the report and
 ## left out of every average and calculation (spec_averages).
 const INCOMPLETE_MAX_ABILITIES := 1
+## A spec's own damage / heal button that makes less than this share of its output is flagged "weak".
+const WEAK_SHARE := 0.05
 const TARGET_TANK_THREAT := [1.3, 1.7]  # ... and this many times its threat (a big spike can still take aggro)
 
 func _ready() -> void:
@@ -74,10 +76,13 @@ static func simulate(ids: Array, role: String, profile: String, spec_name := "",
 	var max_hp := Stats.player_base_health(LEVEL) + float(stat_of.call(Stats.MAX_HEALTH))
 	var buttons := []
 	var unsimulated := PackedStringArray()
+	var own := PackedStringArray()   # this spec's own buttons the sim can value (not its book's Utility)
 	for id in ids + extra:
 		var b := button(str(id), w, stat_of, haste, max_hp)
 		if not b.is_empty():
 			buttons.append(b)
+			if ids.has(id) and not Abilities.tags_of(str(id)).has("AoE"):   # (the fight is single-target)
+				own.append(Abilities.ability_name(str(id)))
 		elif Abilities.get_resource(str(id)) != null:
 			unsimulated.append(Abilities.ability_name(str(id)))
 	var sources := {}
@@ -151,17 +156,9 @@ static func simulate(ids: Array, role: String, profile: String, spec_name := "",
 		if venom_spec and _all_poisons_up(dot_until, t):
 			res["venom"] = minf(float(res["venom"]) + Balance.VENOM_PER_TICK * 3.0 * haste * step, Balance.VENOM_MAX)
 		t += step
-	# The tank rule (Abilities.role_damage_mult): a tank's damage, all of it.
-	var dm := Abilities.role_damage_mult(role)
-	dmg_total *= dm
-	threat_total *= dm * (Balance.TANK_THREAT_MULT if role == "tank" else 1.0)
-	dmg_uses_total *= dm
-	if role != "healer":
-		for k in sources:
-			sources[k] = float(sources[k]) * dm
 	return {"dps": dmg_total / FIGHT, "tps": threat_total / FIGHT, "hps": heal_total / FIGHT, "self_hps": self_heal / FIGHT,
 		"avg_hit": dmg_uses_total / maxf(uses, 1), "sources": sources, "idle": idle / FIGHT, "starved": starved / FIGHT,
-		"unsimulated": unsimulated}
+		"unsimulated": unsimulated, "own": own}
 
 ## Steady Flame: one press of Fire spell `id` (damage `d` at the usual crit odds) with
 ## `fury` held before it; updates res["fury"] by the expected gain and Venting and
@@ -202,6 +199,7 @@ static func button(id: String, w: Dictionary, stat_of: Callable, haste: float, m
 		coef = Abilities.hit_base(id, w)
 	if coef < 0.0:
 		return {}   # needs a weapon this spec doesn't use
+	coef = coef * float(o.get("mult", 1.0)) + float(o.get("plus", 0.0))   # (PAYOFF: hits it repeats, damage it adds)
 	var dot := float(o.get("dot", 0.0))
 	var dot_time := float(o.get("dot_time", 0.0))
 	var fx := Abilities.dot_effect(id)
@@ -210,7 +208,7 @@ static func button(id: String, w: Dictionary, stat_of: Callable, haste: float, m
 		dot = float(fx.tick_damage) * dot_time / maxf(float(fx.tick_interval), 0.05)
 	var heal := float(o.get("heal", Balance.HEALS.get(id, 0.0)))
 	var heal_power := Stats.power_bonus(PackedStringArray(["Spell"]), stat_of)
-	var dmg := (coef + dot * haste) * (unit + power) * crit
+	var dmg := (coef + dot * haste) * (unit + power) * crit * Abilities.hit_damage_mult(id)   # (the tank rule: a tank ability's hits)
 	var healed := heal * (unit + heal_power)
 	var self_heal := max_hp * float(o.get("self_heal_pct", 0.0)) / 100.0
 	if dmg <= 0.0 and healed <= 0.0 and self_heal <= 0.0:
@@ -226,7 +224,7 @@ static func button(id: String, w: Dictionary, stat_of: Callable, haste: float, m
 		cost = float(SPECS_INFO.VENOM_COSTS[id])
 	return {"id": id, "dmg": dmg, "heal": healed, "self_heal": self_heal, "exec": maxf(maxf(cast, gcd), 0.1),
 		"cooldown": maxf(Abilities.cooldown_of(r), float(o.get("every", 0.0))), "res": res_name, "cost": cost,
-		"gen": float(Abilities.generated_of(id)), "threat": float(r.threat_multiplier) if r.get("threat_multiplier") != null else 1.0, "dot_time": dot_time if dot > 0.0 and coef <= 0.0 else 0.0, "last": float(o.get("last", 1.0))}
+		"gen": float(Abilities.generated_of(id)), "threat": (float(r.threat_multiplier) if r.get("threat_multiplier") != null else 1.0) * Abilities.hit_threat_mult(id), "dot_time": dot_time if dot > 0.0 and coef <= 0.0 else 0.0, "last": float(o.get("last", 1.0))}
 
 ## The ready, affordable button that does the most per second of casting (a pure DoT only when it's down).
 static func _best(buttons: Array, role: String, t: float, res: Dictionary, ready_at: Dictionary, dot_until: Dictionary) -> Dictionary:
@@ -248,10 +246,35 @@ static func _best(buttons: Array, role: String, t: float, res: Dictionary, ready
 		if role == "tank":
 			worth += float(b["self_heal"]) * 0.5
 		var v := worth / float(b["exec"])
-		if v > best_v:
+		if v > best_v and not _starves_better(b, v, buttons, role, t, res, ready_at):
 			best_v = v
 			best = b
 	return best
+
+## Resources worth pooling for a bigger button, and how fast they come back (per second).
+const REGEN := {"energy": Balance.ENERGY_REGEN}   # (not mana: it lasts minutes, nobody pools it)
+
+## Pooling, like a player would: true if paying for `b` (worth `v` a second) now
+## leaves too little of its resource for a better button that comes off cooldown
+## within the time `b` takes (energy fillers cost about a GCD's regen, so a bigger
+## button would otherwise never be affordable).
+static func _starves_better(b: Dictionary, v: float, buttons: Array, role: String, t: float, res: Dictionary, ready_at: Dictionary) -> bool:
+	var r: String = b["res"]
+	if r == "" or float(b["cost"]) <= 0.0 or not REGEN.has(r):
+		return false
+	for c in buttons:
+		if c == b or c["res"] != r or float(c["cost"]) <= float(b["cost"]):
+			continue
+		var wait := maxf(float(ready_at.get(c["id"], 0.0)) - t, 0.0)
+		if wait > float(b["exec"]):
+			continue
+		var cv := (float(c["heal"]) if role == "healer" else float(c["dmg"])) / float(c["exec"])
+		if cv <= v:
+			continue
+		var left := float(res.get(r, 0.0)) - float(b["cost"]) + float(REGEN[r]) * float(b["exec"])
+		if left < float(c["cost"]):
+			return true
+	return false
 
 ## A button that is off cooldown (and usable now) but costs more than you have.
 static func _any_unaffordable(buttons: Array, t: float, res: Dictionary, ready_at: Dictionary, dot_until: Dictionary) -> bool:
@@ -309,7 +332,7 @@ static func report() -> String:
 	var lines := PackedStringArray()
 	lines.append("# Balance report (approximate)")
 	lines.append("")
-	lines.append("Level %d, a %d-second single-target fight. Generated by tools/balance_sim.gd. Not counted: talents, runes, items' equip effects, procs, AoE, movement. Geared = a full level 50 epic set. Targets (CLAUDE.md): about %d per ability use with no gear, about %d DPS geared; tanks (who deal %d%% of their damage) %d-%d DPS geared, with %d-%d threat per second (TPS: damage x threat; a DPS makes 1x)." \
+	lines.append("Level %d, a %d-second single-target fight. Generated by tools/balance_sim.gd. Not counted: talents, runes, items' equip effects, procs, AoE, movement. Geared = a full level 50 epic set. Targets (CLAUDE.md): about %d per ability use with no gear, about %d DPS geared; tanks (whose own abilities deal %d%% of their damage; auto attacks deal all of it) %d-%d DPS geared, with %d-%d threat per second (TPS: damage x threat; a DPS makes 1x)." \
 		% [LEVEL, int(FIGHT), int(TARGET_HIT), int(TARGET_DPS_GEARED), int(Balance.TANK_DAMAGE_PCT),
 		int(TARGET_DPS_GEARED * float(TARGET_TANK_SHARE[0])), int(TARGET_DPS_GEARED * float(TARGET_TANK_SHARE[1])),
 		int(TARGET_DPS_GEARED * float(TARGET_TANK_THREAT[0])), int(TARGET_DPS_GEARED * float(TARGET_TANK_THREAT[1]))])
@@ -329,7 +352,7 @@ static func report() -> String:
 			var ids: Array = spec[1]
 			var bare := simulate(ids, role, "no gear", name, utility)
 			var full := simulate(ids, role, "geared", name, utility)
-			var flags := _flags(bare, full, role)
+			var flags := _flags(bare, full, role, name)
 			if is_incomplete(ids):
 				flags = PackedStringArray(["INCOMPLETE (%d ability, not in averages)" % ids.size()]) + flags
 			rows.append([role, full, not is_incomplete(ids)])
@@ -406,7 +429,7 @@ static func _top(sources: Dictionary) -> String:
 		out.append("%s %d%%" % [k, int(round(float(sources[k]) / maxf(total, 1.0) * 100.0))])
 	return ", ".join(out)
 
-static func _flags(bare: Dictionary, full: Dictionary, role: String) -> PackedStringArray:
+static func _flags(bare: Dictionary, full: Dictionary, role: String, spec := "") -> PackedStringArray:
 	var out := PackedStringArray()
 	if role == "dps":
 		if float(full["dps"]) > TARGET_DPS_GEARED * 1.25:
@@ -432,4 +455,16 @@ static func _flags(bare: Dictionary, full: Dictionary, role: String) -> PackedSt
 		var starved := float(full["starved"])
 		var why := "resource-starved" if starved >= idle * 0.5 else "waiting on cooldowns"
 		out.append("idle %d%% (%s)" % [int(idle * 100.0), why])
+	# Weak buttons: this spec's own damage / heal buttons the sim values that make
+	# under WEAK_SHARE of its output (a button nobody would press).
+	var total := 0.0
+	for k in full["sources"]:
+		total += float(full["sources"][k])
+	var weak := PackedStringArray()
+	for n in ([] if role == "healer" or SPECS_INFO.NO_WEAK_CHECK.has(spec) else full.get("own", PackedStringArray())):
+		var share := float(full["sources"].get(n, 0.0)) / maxf(total, 0.001)
+		if share < WEAK_SHARE:
+			weak.append("%s %d%%" % [n, int(round(share * 100.0))])
+	if not weak.is_empty():
+		out.append("weak: " + ", ".join(weak))
 	return out

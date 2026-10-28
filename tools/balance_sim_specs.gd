@@ -15,8 +15,14 @@ const B = preload("res://scripts/balance.gd")
 ##   "kind": "caster" / "physical" (which gear profile), "weapon": "melee" / "ranged" / "" (auto-attacks).
 const FIGHTS := {}
 
+## Line of Light: prisms an average beam heal passes at optimal play, and what that
+## makes of the heal (stronger for each, plus the light each stores, healed back on a shatter).
+const PRISMS_ON_A_BEAM := 1.5
+const PRISM_BEAM := (1.0 + B.PRISM_AMPLIFY_PCT / 100.0 * PRISMS_ON_A_BEAM) * (1.0 + B.PRISM_CHARGE_PCT / 100.0 * PRISMS_ON_A_BEAM)
+
 ## Ability id -> what one use is really worth, where its data doesn't say it:
-##   "coef": direct damage (coefficient), "dot": damage over time in all, "dot_time": its seconds,
+##   "coef": direct damage (coefficient), "mult" / "plus": its own hit times this / plus this,
+##   "dot": damage over time in all, "dot_time": its seconds,
 ##   "heal": heal (old Heal x REFERENCE_HEAL units, like Balance.HEALS),
 ##   "self_heal_pct": % of max health healed on yourself, "skip": not a damage / heal button.
 ##   "last": usable only in this last share of the fight (an execute below 20% health).
@@ -25,17 +31,17 @@ const PAYOFF := {
 	# Frost DPS: Frostbitten Steel (the sim's sword, 0.45). ~3 Glaze on each finisher; about
 	# 2 Icebreakers in 5 land on a target Frozen by the 3rd Winter's Bite; Bitter Edge only
 	# has a Frozen target about 40% of the time.
-	"icebreaker": {"coef": 0.45 * (0.6 * 2.0 + 0.4 * 2.5) * (1.0 + 0.05 * 3.0)},
-	"calving": {"coef": 0.45 * 1.0 * (1.0 + 0.15 * 3.0)},
-	"bitteredge": {"coef": 0.45 * 0.8 * 0.4},
+	"icebreaker": {"coef": 0.45 * (0.6 * 2.68 + 0.4 * 3.35) * (1.0 + 0.05 * 3.0)},
+	"calving": {"coef": 0.45 * 1.34 * (1.0 + 0.15 * 3.0)},
+	"bitteredge": {"coef": 0.45 * 1.07 * 0.4},
 	"blackfrost": {"skip": true},
 	# Frost tank: Glacier Wall. ~3 Ice Layers held for Rimequake and spent by Shattering Slam.
 	"shatteringslam": {"coef": 0.45 * 1.9 + 0.2 * 3.0},
 	"rimequake": {"coef": 0.65 * (1.0 + 0.1 * 3.0)},
 	"coldshoulder": {"skip": true}, "hailcoat": {"skip": true}, "hardrime": {"skip": true}, "glacialbulwark": {"skip": true},
 	# Fire DPS: Forge Heat. Fold Steel ~3.5 hits (Orange half the time); Red Edge ~4 swings in Orange; Blast Furnace is a cooldown.
-	"foldsteel": {"coef": 0.5 * 3.5},
-	"rededge": {"coef": 0.25 * 4.0 * 0.5},
+	"foldsteel": {"coef": 0.64 * 3.5},
+	"rededge": {"coef": 0.32 * 4.0 * 0.5},
 	"blastfurnace": {"skip": true},
 	# Fire archer: Pitch and Cinder. Touch Off Ignites ~3 layers at +50%; Brushfire is a cooldown.
 	"touchoff": {"coef": 0.15 * 3.0 * 1.5},
@@ -78,9 +84,9 @@ const PAYOFF := {
 	# Martial tank: the Brawler. A strike every 1.0 s (the sim's GCD is 1.5 s: x1.5), each
 	# with a third of an average chain move (~0.65); the moves have no buttons. One More
 	# repeats an average move.
-	"punch": {"coef": (0.3 + 0.65 / 3.0) * 1.5},
-	"brawlkick": {"coef": (0.3 + 0.65 / 3.0) * 1.5},
-	"elbow": {"coef": (0.3 + 0.65 / 3.0) * 1.5},
+	"punch": {"coef": (0.27 + 0.65 / 3.0) * 1.5},
+	"brawlkick": {"coef": (0.27 + 0.65 / 3.0) * 1.5},
+	"elbow": {"coef": (0.27 + 0.65 / 3.0) * 1.5},
 	"onemore": {"coef": 0.65},
 	"catch": {"skip": true}, "toughitout": {"skip": true}, "comeon": {"skip": true}, "fightingstyle": {"skip": true},
 	"rapidfists": {"skip": true}, "haymaker": {"skip": true}, "sweep": {"skip": true}, "roundhouse": {"skip": true},
@@ -90,11 +96,11 @@ const PAYOFF := {
 	# builder) and Flow averages ~3%: each builder is worth ~1.45x itself, plus the stuck
 	# daggers it throws or rips out. The Kill forms have no buttons; Go In and the rest
 	# only move damage around.
-	"cut": {"coef": 0.55 * 1.45 + 0.1},
-	"twinstab": {"coef": 1.0 * 1.45 + 0.5},
-	"dartin": {"coef": 0.5 * 1.45 + 0.25},
-	"kickoff": {"coef": 0.4 * 1.45 + 0.45},
-	"whirl": {"coef": 0.35 * 1.45},
+	"cut": {"coef": 0.62 * 1.45 + 0.1},
+	"twinstab": {"coef": 1.12 * 1.45 + 0.5},
+	"dartin": {"coef": 0.56 * 1.45 + 0.25},
+	"kickoff": {"coef": 0.45 * 1.45 + 0.45},
+	"whirl": {"coef": 0.39 * 1.45},
 	"snatch": {"coef": 0.6},
 	"goin": {"skip": true}, "hityourstride": {"skip": true}, "rollwithit": {"skip": true}, "closeitout": {"skip": true},
 	"gut": {"skip": true}, "throughandthrough": {"skip": true}, "redwhirl": {"skip": true}, "backflip": {"skip": true},
@@ -102,12 +108,12 @@ const PAYOFF := {
 	# Martial archer: Sharpshooter. Base cooldowns fill ~64% of GCDs; the cuts fill ~90%, so
 	# each engine shot fires ~1.4x as often (folded in here), with ~20% Overcut and Streak ~6 (+12%).
 	# Spread: 3 arrows; Follow Up: 2. Loose fills the gaps.
-	"quickshot": {"coef": 0.45 * 1.85},
-	"pierce": {"coef": 0.5 * 1.85},
-	"spread": {"coef": 0.3 * 3.0 * 1.85},
-	"heavydraw": {"coef": 1.3 * 1.85},
-	"followup": {"coef": 0.22 * 2.0 * 1.85},
-	"loose": {"coef": 0.25 * 1.12},
+	"quickshot": {"coef": 0.56 * 1.85},
+	"pierce": {"coef": 0.62 * 1.85},
+	"spread": {"coef": 0.38 * 3.0 * 1.85},
+	"heavydraw": {"coef": 1.62 * 1.85},
+	"followup": {"coef": 0.28 * 2.0 * 1.85},
+	"loose": {"coef": 0.31 * 1.12},
 	"breathe": {"skip": true}, "fasthands": {"skip": true},
 	# Holy healer (Choir of One): one Refrain running per ally, 5 allies.
 	"refrain": {"every": B.REFRAIN_TIME / 5.0},
@@ -120,7 +126,29 @@ const PAYOFF := {
 	# Holy tank: Pour Out at 100 Incense; Absolve at 40.
 	"pourout": {"coef": 0.03 * 100.0},
 	"absolve": {"heal": 0.05 * 40.0 * 2.2},
+	# Arcane DPS (Clockwork): Sigil Darts is ARCANE_MISSILES_COUNT darts; Countdown adds a
+	# share of what you deal meanwhile (Unravel back to back).
+	"arcanemissiles": {"mult": B.ARCANE_MISSILES_COUNT},
+	"countdown": {"plus": B.COUNTDOWN_SHARE_PCT / 100.0 * B.COUNTDOWN_TIME * B.ABILITIES["unravel"]["damage"] / B.ABILITIES["unravel"]["cast_time"]},
+	# Arcane melee (Second Act): Late Cut hits twice.
+	"latecut": {"mult": 2.0},
+	# Shadow melee (Pack of Two): Both At Once adds each Hound's lunge.
+	"bothatonce": {"plus": B.HOUND_LUNGE * B.HOUND_COUNT},
+	# Holy healer (Line of Light): a beam heal at optimal play passes PRISMS_ON_A_BEAM
+	# prisms, each making it stronger and storing a share as light that a shatter heals
+	# back later (Shatter Prism / Shatter All themselves are counted here). Infuse fills one.
+	"brightlance": {"heal": B.HEALS["brightlance"] * PRISM_BEAM},
+	"gleam": {"heal": B.HEALS["gleam"] * PRISM_BEAM},
+	"mendingray": {"heal": B.HEALS["mendingray"] * PRISM_BEAM},
+	"prismward": {"heal": B.HEALS["prismward"] * PRISM_BEAM},
+	"infuse": {"heal": B.PRISM_CAP_HEALS * B.REFERENCE_HEAL},
 }
 
 ## Abilities paid with something the data doesn't price (Venom): id -> its cost.
 const VENOM_COSTS := {"venomburst": 50.0, "spittingvolley": 30.0, "bloatarrow": 40.0}
+
+## Specs the "weak" flag (balance_sim.gd WEAK_SHARE) skips: their buttons are
+## alternatives the sim presses side by side but a player never would (The Wheel:
+## each weapon's own moves; the Brawler: strikes that only differ in the chain).
+## Healers too: their heals answer damage the sim doesn't make.
+const NO_WEAK_CHECK := ["The Wheel", "Brawler"]

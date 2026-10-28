@@ -112,15 +112,15 @@ func deal(info: RefCounted) -> RefCounted:
 	if info.add_power and src_ok and src.has_method("get_stat"):
 		power = Stats.power_bonus(info.tags, func(s): return _stat(src, s)) * info.power_share
 	var unit: float = info.unit if info.unit > 0.0 else unit_of(src)
-	# The attacker's role: a tank deals less and makes more threat for it
-	# (outgoing_damage_mult / outgoing_threat_mult; Balance.TANK_*). Exact hits are
-	# shares of hits that already had it.
-	if src_ok and src.has_method("outgoing_damage_mult"):
+	# The tank rule, per hit: a tank spec's hits deal less and make more threat for
+	# it (Abilities.hit_damage_mult / hit_threat_mult; Balance.TANK_*). Exact hits
+	# are shares of hits that already had it.
+	if src_ok and not src.is_in_group("enemies"):   # (players and their puppets)
 		if not info.exact:
-			var om := float(src.outgoing_damage_mult())
+			var om := Abilities.hit_damage_mult(info.ability_id)
 			unit *= om
 			power *= om
-		info.threat_multiplier *= float(src.outgoing_threat_mult())
+		info.threat_multiplier *= Abilities.hit_threat_mult(info.ability_id)
 	# 3. Percent modifiers: attacker's buffs (outgoing), target's debuffs
 	#    (incoming), then anything listening on SignalBus.damage_modify.
 	if not info.exact:

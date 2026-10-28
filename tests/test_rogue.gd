@@ -16,7 +16,7 @@ const StatusContainer = preload("res://scripts/core/status_container.gd")
 
 const BUTTONS := ["cut", "whirl", "dartin", "kickoff", "twinstab", "goin", "closeitout", "hityourstride", "rollwithit", "snatch"]
 const FORMS := ["gut", "throughandthrough", "redwhirl", "backflip", "drivethrough"]
-const UTILITY := ["pintheshadow", "overtheshoulder", "playdead"]
+const UTILITY := ["pintheshadow", "overtheshoulder", "playdead", "stonethrow"]
 const LEVELS := {"cut": 2, "whirl": 4, "dartin": 6, "kickoff": 8, "twinstab": 10, "closeitout": 12,
 	"rollwithit": 14, "hityourstride": 16, "snatch": 18, "pintheshadow": 14, "overtheshoulder": 18, "playdead": 22}
 

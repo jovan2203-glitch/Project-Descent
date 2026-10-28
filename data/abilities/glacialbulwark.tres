@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"glacialbulwark"
 display_name = "Glacial Bulwark"
-description = "You gain {b:GLACIAL_BULWARK_LAYERS} Ice Layers. For {glacial_time} sec, each Ice Layer that breaks shatters, dealing {d:GLACIAL_BULWARK_SHATTER} Frost damage to every enemy within {b:GLACIAL_BULWARK_RADIUS} m with {b:GLACIAL_BULWARK_THREAT}x threat. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, it is split evenly between all of them."
+description = "You gain {b:GLACIAL_BULWARK_LAYERS} Ice Layers. For {glacial_time} sec, each Ice Layer that breaks shatters, dealing {dt:GLACIAL_BULWARK_SHATTER} Frost damage to every enemy within {b:GLACIAL_BULWARK_RADIUS} m with {b:GLACIAL_BULWARK_THREAT}x threat. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, it is split evenly between all of them."
 tags = PackedStringArray("Ability", "Frost", "Shield")
 cast_type = 0
 cast_time = 0.0

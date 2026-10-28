@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"throw"
 display_name = "Throw"
-description = "Made by a Chain that starts with {n:catch} and ends with Kick. Throws the enemy you caught {b:THROW_DISTANCE} m away from you for {hit} Physical damage; it and every enemy within {b:THROW_SPLASH} m of where it lands are knocked down for {b:KICKED_DOWN_TIME} sec. A boss can't be thrown: it takes a Reversal instead, {d:REVERSAL_COEF} Physical damage."
+description = "Made by a Chain that starts with {n:catch} and ends with Kick. Throws the enemy you caught {b:THROW_DISTANCE} m away from you for {hit} Physical damage; it and every enemy within {b:THROW_SPLASH} m of where it lands are knocked down for {b:KICKED_DOWN_TIME} sec. A boss can't be thrown: it takes a Reversal instead, {dt:REVERSAL_COEF} Physical damage."
 tags = PackedStringArray("Ability", "Physical", "Melee", "AoE")
 cast_type = 0
 cast_time = 0.0

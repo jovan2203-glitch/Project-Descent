@@ -51,7 +51,7 @@ func test_spenders_are_registered() -> void:
 		assert_eq(str(r.damage_type), "fire")
 		assert_eq(int(r.cast_type), 0, "instant")
 		assert_eq(int(r.resource_cost), 0, "%s runs on Heat, not on a resource bar" % id)
-		assert_eq(float(r.weapon_damage_multiplier), 1.0)
+		assert_eq(float(r.weapon_damage_multiplier), 1.28)
 	assert_true(Abilities.get_resource("flare").tags.has("AoE"))
 	assert_true(float(Abilities.get_resource("flare").radius) > 0.0)
 	for id in ["quench", "flare", "searingstrike", "immolate"]:

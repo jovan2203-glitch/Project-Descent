@@ -233,6 +233,7 @@ const PATHS := {
 	"bellows": "res://data/abilities/bellows.tres",
 	"stormfront": "res://data/abilities/stormfront.tres",
 	"circleofsilence": "res://data/abilities/circleofsilence.tres",
+	"holyground": "res://data/abilities/holyground.tres",
 	"climbthestring": "res://data/abilities/climbthestring.tres",
 	# Lightning tank: a parry tank with a two-handed weapon (draftable). Stormbreak
 	# ("stormshield") and Humming Blade ("thunderaegis") keep the ids they had as
@@ -382,6 +383,7 @@ const PATHS := {
 	"pintheshadow": "res://data/abilities/pintheshadow.tres",
 	"overtheshoulder": "res://data/abilities/overtheshoulder.tres",
 	"playdead": "res://data/abilities/playdead.tres",
+	"stonethrow": "res://data/abilities/stonethrow.tres",
 	# Martial archer: Sharpshooter (the shots that cut each other's cooldowns)
 	"quickshot": "res://data/abilities/quickshot.tres",
 	"pierce": "res://data/abilities/pierce.tres",
@@ -438,7 +440,7 @@ const DRAFT_POOL := ["frostnova", "icebarrier", "blink",
 	"prismarrow", "glimmershot", "refractingshot", "sunlitarrow", "prismbreaker", "stepoflight", "spectrumvolley",
 	"thornshot", "briartiger", "mossback", "thornwing", "chokingvipers", "greenwoodstag",
 	"dewfall", "fawn", "rootguard", "owl", "heartwoodelk", "wildherd", "returntobloom",
-	"rootsnare", "deeproots", "sporesleep", "leafcloak", "coolingslag", "bellows", "staticsnare", "stormfront", "fixedpoint", "bindingring", "circleofsilence", "climbthestring",
+	"rootsnare", "deeproots", "sporesleep", "leafcloak", "coolingslag", "bellows", "staticsnare", "stormfront", "fixedpoint", "bindingring", "circleofsilence", "holyground", "climbthestring",
 	"vinefist", "grasp", "stomp", "giantshands", "heartsap", "awaken",
 	"fangarrow", "adderarrow", "asparrow", "kraitarrow", "venomburst", "spittingvolley", "bloatarrow", "coilback", "venomsurge",
 	"stormshield", "thunderaegis",
@@ -446,7 +448,7 @@ const DRAFT_POOL := ["frostnova", "icebarrier", "blink",
 	"wheelgreataxe", "wheelgreatsword", "wheelhalberd", "wheelmaul",
 	"punch", "catch", "comeon", "toughitout", "onemore",
 	"cut", "whirl", "dartin", "kickoff", "twinstab", "closeitout", "rollwithit", "hityourstride", "snatch",
-	"pintheshadow", "overtheshoulder", "playdead",
+	"pintheshadow", "overtheshoulder", "playdead", "stonethrow",
 	"quickshot", "pierce", "spread", "heavydraw", "followup", "breathe", "fasthands",
 	"counterspell"]
 # Every ability that can go on the action bar (order = list order).
@@ -480,7 +482,7 @@ const ALL := ["frostbolt", "blizzard", "frostnova", "icebarrier",
 	"knot", "tangle", "yank", "doublethread", "behinditsback", "slack", "stillstanding", "cutthestrings", "notfinished", "backonyourfeet",
 	"thornshot", "briartiger", "mossback", "thornwing", "chokingvipers", "greenwoodstag",
 	"dewfall", "fawn", "rootguard", "owl", "heartwoodelk", "wildherd", "returntobloom",
-	"rootsnare", "deeproots", "sporesleep", "leafcloak", "coolingslag", "bellows", "staticsnare", "stormfront", "fixedpoint", "bindingring", "circleofsilence", "climbthestring",
+	"rootsnare", "deeproots", "sporesleep", "leafcloak", "coolingslag", "bellows", "staticsnare", "stormfront", "fixedpoint", "bindingring", "circleofsilence", "holyground", "climbthestring",
 	"vinefist", "grasp", "stomp", "giantshands", "heartsap", "awaken",
 	"fangarrow", "adderarrow", "asparrow", "kraitarrow", "venomburst", "spittingvolley", "bloatarrow", "coilback", "venomsurge",
 	"psalm", "outpour", "lift", "refrain", "canticle", "exultation", "antiphon", "shelter", "steadyvoice", "highnote",
@@ -496,7 +498,7 @@ const ALL := ["frostbolt", "blizzard", "frostnova", "icebarrier",
 	"rapidfists", "haymaker", "sweep", "roundhouse", "clinch", "shakeoff", "turnitaround", "throw", "takedown",
 	"cut", "whirl", "dartin", "kickoff", "twinstab", "goin", "closeitout", "hityourstride", "rollwithit", "snatch",
 	"gut", "throughandthrough", "redwhirl", "backflip", "drivethrough",
-	"pintheshadow", "overtheshoulder", "playdead",
+	"pintheshadow", "overtheshoulder", "playdead", "stonethrow",
 	"quickshot", "pierce", "spread", "heavydraw", "followup", "loose", "breathe", "fasthands",
 	"trinket_1", "trinket_2"]
 ## Category (book) each ability belongs to — see categories.gd.
@@ -562,7 +564,7 @@ const CATEGORY_OF := {
 	"stepoflight": "holy", "spectrumvolley": "holy",
 	"rootsnare": "nature", "deeproots": "nature", "sporesleep": "nature", "leafcloak": "nature",
 	"coolingslag": "fire", "bellows": "fire", "staticsnare": "lightning", "stormfront": "lightning", "fixedpoint": "arcane",
-	"bindingring": "holy", "circleofsilence": "holy", "climbthestring": "shadow",
+	"bindingring": "holy", "circleofsilence": "holy", "holyground": "holy", "climbthestring": "shadow",
 	"frostfirebolt": "rune", "polarstrike": "rune",
 	"wheelgreataxe": "martial", "wheelgreatsword": "martial", "wheelhalberd": "martial", "wheelmaul": "martial",
 	"quickswing": "martial", "fullswing": "martial", "weaponart": "martial", "wheelbreak": "martial",
@@ -577,7 +579,7 @@ const CATEGORY_OF := {
 	"cut": "martial", "whirl": "martial", "dartin": "martial", "kickoff": "martial", "twinstab": "martial",
 	"goin": "martial", "closeitout": "martial", "hityourstride": "martial", "rollwithit": "martial", "snatch": "martial",
 	"gut": "martial", "throughandthrough": "martial", "redwhirl": "martial", "backflip": "martial", "drivethrough": "martial",
-	"pintheshadow": "martial", "overtheshoulder": "martial", "playdead": "martial",
+	"pintheshadow": "martial", "overtheshoulder": "martial", "playdead": "martial", "stonethrow": "martial",
 	"quickshot": "martial", "pierce": "martial", "spread": "martial", "heavydraw": "martial", "followup": "martial", "loose": "martial",
 	"breathe": "martial", "fasthands": "martial",
 }
@@ -647,8 +649,37 @@ static func spec_of(id: String) -> String:
 			return str(spec[0])
 	return ""
 
+## Hits of a tank spec's kit that aren't abilities themselves (procs, patches,
+## its talents' hits). DoT and burst ticks ("dot_" / "burst_" + id) count too.
+const TANK_HITS := ["slag_shatter", "smoldering_debris", "coldretort", "earth_return", "sparkguard",
+	"reflection_shatter", "head_count", "silvered", "turned_aside", "incense_aura", "light_mote",
+	"bright_burst", "stomproots", "giantsslam", "reversal"]
+static var _tank_hit_cache := {}
+
+## True if hit `id` comes from a tank spec: a tank ability, or one of TANK_HITS.
+static func is_tank_hit(id: String) -> bool:
+	if _tank_hit_cache.has(id):
+		return bool(_tank_hit_cache[id])
+	var base := id
+	for prefix in ["dot_", "burst_"]:
+		if base.begins_with(prefix):
+			base = base.substr(prefix.length())
+	var tank := TANK_HITS.has(base) or str(SPEC_ROLES.get(spec_of(base), "")) == "tank"
+	_tank_hit_cache[id] = tank
+	return tank
+
+## The tank rule, per hit: a tank spec's hits deal Balance.TANK_DAMAGE_PCT of their
+## damage for TANK_THREAT_MULT the threat. Everything else (auto attacks, other
+## specs, runes, Utility) is 1x. Nothing about the player decides it.
+static func hit_damage_mult(id: String) -> float:
+	return Balance.TANK_DAMAGE_PCT / 100.0 if is_tank_hit(id) else 1.0
+
+static func hit_threat_mult(id: String) -> float:
+	return Balance.TANK_THREAT_MULT if is_tank_hit(id) else 1.0
+
 ## A player's role from the abilities on their bars: the role with the most of
-## them ("Utility" ones don't count; ties: healer, then tank, then dps).
+## them ("Utility" ones don't count; ties: healer, then tank, then dps). Only for
+## show (the party frames' role icon, tracker layouts): never damage or threat.
 static func role_of_bar(ids: Array) -> String:
 	var count := {"healer": 0, "tank": 0, "dps": 0}
 	for id in ids:
@@ -752,7 +783,7 @@ const SPECS := {
 		["Line of Light", ["setprism", "moveprism", "mendingray", "brightlance", "gleam", "prismward", "piercinglight",
 			"realign", "shatterprism", "shatterall", "infuse", "kaleidoscope", "relight"]],
 		["Lightstring", ["glimmershot", "prismarrow", "refractingshot", "sunlitarrow", "prismbreaker", "stepoflight", "spectrumvolley"]],
-		["Utility", ["bindingring", "circleofsilence", "steadyvoice", "rest", "unfallen"]],
+		["Utility", ["bindingring", "circleofsilence", "holyground", "steadyvoice", "rest", "unfallen"]],
 	],
 	"martial": [
 		["The Wheel", ["quickswing", "fullswing", "weaponart", "wheelbreak", "wheelgreataxe", "wheelgreatsword", "wheelhalberd", "wheelmaul",
@@ -763,7 +794,7 @@ const SPECS := {
 		["Rogue", ["cut", "whirl", "dartin", "kickoff", "twinstab", "goin", "closeitout", "hityourstride", "rollwithit", "snatch",
 			"gut", "throughandthrough", "redwhirl", "backflip", "drivethrough"]],
 		["Sharpshooter", ["quickshot", "pierce", "spread", "heavydraw", "followup", "loose", "breathe", "fasthands"]],
-		["Utility", ["pintheshadow", "overtheshoulder", "playdead"]],
+		["Utility", ["pintheshadow", "overtheshoulder", "playdead", "stonethrow"]],
 	],
 }
 
@@ -854,7 +885,7 @@ const ROGUE_KILL_FORMS := {"cut": "gut", "twinstab": "throughandthrough", "whirl
 const ROGUE_IDS := ["cut", "whirl", "dartin", "kickoff", "twinstab", "goin", "closeitout", "hityourstride",
 	"rollwithit", "snatch", "gut", "throughandthrough", "redwhirl", "backflip", "drivethrough"]
 ## Martial Utility (any Martial spec; scripts/player/martial_rogue.gd codes them too).
-const MARTIAL_UTILITY := ["pintheshadow", "overtheshoulder", "playdead"]
+const MARTIAL_UTILITY := ["pintheshadow", "overtheshoulder", "playdead", "stonethrow"]
 
 ## Is `id` one of the Rogue's Kill forms (made by a Kill window, no button)?
 static func is_kill_form(id: String) -> bool:
@@ -918,7 +949,7 @@ const OFF_GCD := ["groundingsurge", "capacitor", "returnstroke", "rimefletch", "
 ## Melee-weapon abilities used from their own range (cast_range) instead of the
 ## weapon's reach: Static Step dashes in, Whiplash lashes from afar.
 const LONG_REACH := ["staticstep", "whiplash", "reelin", "beckon", "raisethecenser", "dragin", "comeon",
-	"cut", "gut", "whirl", "redwhirl", "dartin", "drivethrough", "pintheshadow", "overtheshoulder", "coldshoulder", "redhotrivet"]
+	"cut", "gut", "whirl", "redwhirl", "dartin", "drivethrough", "pintheshadow", "overtheshoulder", "stonethrow", "coldshoulder", "redhotrivet"]
 
 ## Does ability `id` have to be within the equipped weapon's reach of its target?
 static func uses_weapon_reach(id: String) -> bool:
@@ -1341,34 +1372,10 @@ static func base_cast_time(r: Resource) -> float:
 
 ## Real damage of a hit of coefficient `coef` carrying `tags` (before crits,
 ## modifiers and resistances), with your current stats. Talent texts use it.
-## `heal`: a heal or shield, which your role doesn't change.
-static func coef_damage(coef: float, tags: PackedStringArray, heal := false) -> float:
-	return coef * (unit() + Stats.power_bonus(tags, stat_source())) * (1.0 if heal else damage_mult())
-
-## How much of its damage a player in `role` deals: a tank TANK_DAMAGE_PCT (for
-## TANK_THREAT_MULT the threat). The game (Player.outgoing_damage_mult) and the
-## tooltips (damage_mult) share it.
-static func role_damage_mult(role: String) -> float:
-	return Balance.TANK_DAMAGE_PCT / 100.0 if role == "tank" else 1.0
-
-## A player in `role`'s threat multiplier on top of each hit's own (a tank's TANK_THREAT_MULT).
-static func role_threat_mult(role: String) -> float:
-	return Balance.TANK_THREAT_MULT if role == "tank" else 1.0
-
-## Your role from your own bars (tooltips; "dps" with no character).
-static func my_bar_role() -> String:
-	var tree := _tree()
-	var pd: Node = tree.root.get_node_or_null("PlayerData") if tree and tree.root else null
-	if pd == null or pd.get("action_bar") == null:
-		return "dps"
-	return role_of_bar(pd.action_bar)
-
-## role_damage_mult / role_threat_mult for your own bars (tooltips).
-static func damage_mult() -> float:
-	return role_damage_mult(my_bar_role())
-
-static func threat_mult() -> float:
-	return role_threat_mult(my_bar_role())
+## `heal`: a heal or shield (the tank rule doesn't change those). `id`: the hit
+## it is, for the tank rule (hit_damage_mult; "" = not a tank hit).
+static func coef_damage(coef: float, tags: PackedStringArray, heal := false, id := "") -> float:
+	return coef * (unit() + Stats.power_bonus(tags, stat_source())) * (1.0 if heal else hit_damage_mult(id))
 
 ## Burst coefficient when the ability's effect runs out (Hoarfrost).
 static func _expire_coef(id: String) -> float:
@@ -1462,7 +1469,7 @@ static func dot_tick(id: String, stat_of: Callable) -> float:
 	var fx := dot_effect(id)
 	if fx == null:
 		return 0.0
-	return float(fx.tick_damage) * (unit() + Stats.power_bonus(dot_tags(id), stat_of) * dot_share(fx)) * damage_mult()
+	return float(fx.tick_damage) * (unit() + Stats.power_bonus(dot_tags(id), stat_of) * dot_share(fx)) * hit_damage_mult(id)
 
 ## Damage rolls round a fraction up or down at random (2.4 -> 2 or 3),
 ## so show "2-3" for those and a single number otherwise.
@@ -1483,7 +1490,7 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		stat_of = stat_source()
 		w = equipped_weapon()
 	var per := unit() + Stats.power_bonus(tags_of(id), stat_of)   # real amount of a 1.0 coefficient (heals, shields)
-	var dper := per * damage_mult()                                  # ... and of a hit (a tank deals less: role_damage_mult)
+	var dper := per * hit_damage_mult(id)                            # ... and of a hit (a tank ability deals less: hit_damage_mult)
 	var base := hit_base(id, w)
 	if base < 0:
 		base = hit_base(id, basic_weapon(id))   # no fitting weapon equipped: show it with a basic one
@@ -1520,7 +1527,7 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 	hit_coef *= 1.0 + martial_hit_pct(id, talent_of) / 100.0  # Martial: Hard Break, Clean Kill, Knockout, Full Draw
 	var dot_mult := 1.0 + talent("frost_hoarfrost") / 100.0 if id == "hoarfrost" else 1.0    # Deep Hoarfrost
 	var slow_mult := 1.0   # (no talent strengthens slows right now)
-	var shatter := (SHATTER_COEF * unit() + SHATTER_COEF * Stats.power_bonus(PackedStringArray(["Frost", "Spell"]), stat_of)) * shatter_mult * damage_mult()
+	var shatter := (SHATTER_COEF * unit() + SHATTER_COEF * Stats.power_bonus(PackedStringArray(["Frost", "Spell"]), stat_of)) * shatter_mult * hit_damage_mult(id)
 	# Cadence: one press's weapon damage (with a basic weapon if none is equipped).
 	var cad_weapon: Dictionary = w if w.has("weapon") else basic_weapon(id)
 	var cad := float(cad_weapon.get("damage", 0.0)) * dper
@@ -1575,7 +1582,7 @@ static func fill(id: String, text: String, stat_of: Callable, w: Dictionary, bb:
 		"width": TextFill.num(radius * 2.0),
 		"range": TextFill.num(float(fr.cast_range)) if fr else "?",
 		"cast": TextFill.num(float(fr.cast_time)) if fr else "?",
-		"threat": TextFill.num(float(fr.get("threat_multiplier")) * threat_mult()) if fr and fr.get("threat_multiplier") != null else TextFill.num(threat_mult()),
+		"threat": TextFill.num(float(fr.get("threat_multiplier")) * hit_threat_mult(id)) if fr and fr.get("threat_multiplier") != null else TextFill.num(hit_threat_mult(id)),
 		"lockout": TextFill.num(float(Balance.INTERRUPT_LOCKOUT.get(id, 0.0))),
 		# Its on-hit effect.
 		"fx_time": TextFill.num(float(fx_res.duration) + effect_time_bonus(fx_res, talent_of)) if fx_res else "?",
@@ -3750,6 +3757,14 @@ static func _draw_unique(c: Control, id: String, col: Color, mid: Vector2, k: fl
 			for i in 3:
 				c.draw_arc(mid + Vector2(-4, 2) * k, (3.0 + i * 3.0) * k, -PI * 0.3, PI * 0.3, 6, white, 1.4 * k, true)
 			c.draw_line(mid + Vector2(-8, 10) * k, mid + Vector2(8, -6) * k, light, 2.4 * k, true)
+		"holyground":
+			# A glowing circle on the ground; an enemy's arrow-mark turned away at its rim.
+			c.draw_circle(mid + Vector2(0, 4) * k, 12.0 * k, Color(light, 0.35))
+			c.draw_arc(mid + Vector2(0, 4) * k, 12.0 * k, 0, TAU, 28, col, 2.6 * k, true)
+			c.draw_line(mid + Vector2(0, -4) * k, mid + Vector2(0, 10) * k, white, 2.2 * k, true)
+			c.draw_line(mid + Vector2(-5, 1) * k, mid + Vector2(5, 1) * k, white, 2.2 * k, true)
+			c.draw_line(mid + Vector2(-16, -12) * k, mid + Vector2(-11, -6) * k, Color(0.85, 0.3, 0.25), 2.0 * k, true)
+			c.draw_line(mid + Vector2(-11, -6) * k, mid + Vector2(-16, -2) * k, Color(0.85, 0.3, 0.25), 2.0 * k, true)
 		"climbthestring":
 			# A figure hauled up along a taut thread toward a far point.
 			c.draw_line(mid + Vector2(-14, 14) * k, mid + Vector2(14, -14) * k, col, 1.6 * k, true)
@@ -4260,7 +4275,7 @@ static func _draw_unique(c: Control, id: String, col: Color, mid: Vector2, k: fl
 		# --- Martial DPS: the Rogue and Martial Utility (drawn in scripts/ui/rogue_icons.gd) ---
 		"cut", "whirl", "dartin", "kickoff", "twinstab", "goin", "closeitout", "hityourstride", "rollwithit", "snatch":
 			RogueIcons.draw(c, id, mid, k)
-		"gut", "throughandthrough", "redwhirl", "backflip", "drivethrough", "pintheshadow", "overtheshoulder", "playdead":
+		"gut", "throughandthrough", "redwhirl", "backflip", "drivethrough", "pintheshadow", "overtheshoulder", "playdead", "stonethrow":
 			RogueIcons.draw(c, id, mid, k)
 		# --- Martial archer: Sharpshooter (drawn in scripts/ui/sharpshooter_icons.gd) ---
 		"quickshot", "pierce", "spread", "heavydraw", "followup", "loose", "breathe", "fasthands":

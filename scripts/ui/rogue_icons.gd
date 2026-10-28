@@ -116,6 +116,17 @@ static func draw(c: Control, id: String, mid: Vector2, k: float) -> void:
 			for i in 3:
 				c.draw_line(mid + Vector2(4 + i * 4, -6 - i * 3) * k, mid + Vector2(7 + i * 4, -6 - i * 3) * k, Color(STEEL, 0.9), 1.6 * k, true)
 			c.draw_line(mid + Vector2(-14, 10) * k, mid + Vector2(16, 10) * k, Color(STEEL, 0.4), 1.2 * k, true)
+		"stonethrow":
+			# A stone flying in on an arc, striking a raised fist aside.
+			c.draw_arc(mid + Vector2(-4, 10) * k, 14.0 * k, -PI * 0.95, -PI * 0.35, 12, Color(STEEL, 0.5), 1.4 * k, true)
+			c.draw_circle(mid + Vector2(5, -3) * k, 4.6 * k, Color(0.55, 0.52, 0.5))
+			c.draw_circle(mid + Vector2(4, -4) * k, 2.0 * k, Color(0.72, 0.7, 0.68))
+			c.draw_circle(mid + Vector2(12, 4) * k, 4.0 * k, SKIN)
+			c.draw_line(mid + Vector2(12, 8) * k, mid + Vector2(14, 15) * k, SKIN, 3.0 * k, true)
+			for i in 3:
+				var a := -PI * 0.15 + i * 0.35
+				c.draw_line(mid + Vector2(8, 0) * k + Vector2(cos(a), sin(a)) * 3.0 * k,
+					mid + Vector2(8, 0) * k + Vector2(cos(a), sin(a)) * 7.0 * k, GOLD, 1.4 * k, true)
 
 static func _glow(c: Control, mid: Vector2, k: float, col: Color) -> void:
 	c.draw_circle(mid, 15.0 * k, Color(col, 0.14))

@@ -23,8 +23,8 @@ const NAMES := {"sic": "Sic", "openup": "Open Up", "bothatonce": "Both At Once",
 	"guarddogs": "Guard Dogs", "offthechain": "Off the Chain"}
 const LEVELS := {"sic": 6, "openup": 10, "bothatonce": 14, "runthemdown": 18, "guarddogs": 24, "offthechain": 40}
 # id: [cooldown, weapon damage, Fury cost, Fury gained]
-const NUMBERS := {"sic": [0.0, 1.4, 0, 15], "openup": [6.0, 1.4, 0, 25], "bothatonce": [4.0, 1.2, 40, 0],
-	"runthemdown": [8.0, 0.6, 30, 0], "guarddogs": [30.0, 0.0, 20, 0], "offthechain": [90.0, 0.0, 0, 0]}
+const NUMBERS := {"sic": [0.0, 1.56, 0, 15], "openup": [6.0, 1.56, 0, 25], "bothatonce": [4.0, 1.34, 40, 0],
+	"runthemdown": [8.0, 0.67, 30, 0], "guarddogs": [30.0, 0.0, 20, 0], "offthechain": [90.0, 0.0, 0, 0]}
 const SPENDERS := ["bothatonce", "runthemdown", "guarddogs", "shadowstrike"]
 
 func suite_name() -> String:
@@ -171,7 +171,7 @@ func test_leeching_strike_is_unchanged() -> void:
 	var r := Abilities.get_resource("shadowstrike")
 	assert_eq(str(r.display_name), "Leeching Strike")
 	assert_eq(float(r.cooldown), 6.0)
-	assert_eq(float(r.weapon_damage_multiplier), 1.2)
+	assert_eq(float(r.weapon_damage_multiplier), 1.34)
 	assert_eq(int(r.resource_cost), 30)
 	assert_true(Balance.HEALS.has("shadowstrike"), "it still heals")
 	assert_eq(_typed_number(str(_file("shadowstrike").description)), "")

@@ -866,7 +866,7 @@ const TALENTS := {
 			{"key": "arcane_two_minds", "values": [4.0, 8.0, 12.0]}],
 		"r3c7": ["Echo", 3, "Your spells and abilities have a {v}% chance to be repeated for {b:ECHO_PCT}% of the damage they dealt. For an Arcane spell or ability the chance is {b:ECHO_ARCANE_CHANCE_MULT} times as high, and the repeat deals {b:ECHO_ARCANE_PCT}% of the damage.",
 			{"key": "arcane_echo", "values": [2.0, 4.0, 6.0]}],
-		"r4c7": ["Mirror Finish", 3, "When you dodge, parry or block an attack, the attacker takes {vdmg:ripple} Arcane damage.",
+		"r4c7": ["Mirror Finish", 3, "When you dodge, parry or block an attack, the attacker takes {vdmg:arcanestrike} Arcane damage.",
 			{"key": "arcane_mirror_finish", "values": [0.1, 0.2, 0.3]}],
 		"r5c7": ["Overtime", 3, "Buffs you put on yourself last {v}% longer.",
 			{"key": "arcane_overtime", "values": [5.0, 10.0, 15.0]}],
@@ -2207,18 +2207,18 @@ static func fill(text: String, t: Dictionary) -> String:
 			# A coefficient of balance.gd as a hit of the ability the talent works with.
 			var coef_b: Variant = TextFill.balance_value(key)
 			out += str(abilities.fmt_amount(abilities.coef_damage(float(coef_b) if (coef_b is float or coef_b is int) else 0.0,
-				abilities.tags_of(str(t.get("requires", ""))))))
+				abilities.tags_of(str(t.get("requires", ""))), false, str(t.get("requires", "")))))
 			continue
 		var r: Resource = abilities.get_resource(key)
 		var base := float(r.damage) if r else 0.0
 		var tags: PackedStringArray = abilities.tags_of(key)
 		if kind == "dmg":
-			out += str(abilities.fmt_amount(abilities.coef_damage(base, tags)))
+			out += str(abilities.fmt_amount(abilities.coef_damage(base, tags, false, key)))
 			continue
 		var parts: Array[String] = []
 		for v in vals:
 			var coef := float(v) + (base if kind == "v+dmg" else 0.0)
-			parts.append(str(abilities.fmt_amount(abilities.coef_damage(coef, tags))))
+			parts.append(str(abilities.fmt_amount(abilities.coef_damage(coef, tags, false, key))))
 		out += " / ".join(parts)
 	return TextFill.constants(out + text.substr(at))
 

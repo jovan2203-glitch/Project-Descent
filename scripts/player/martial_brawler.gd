@@ -298,7 +298,7 @@ func _do_move(move: String, again: bool) -> void:
 		"turnitaround":
 			if foe and caught > 0:
 				var info = player._combat().ability_hit_info(player, foe, 1.0, move)
-				info.unit = float(caught) * Balance.TURN_IT_AROUND_PCT / 100.0 * player.outgoing_damage_mult() \
+				info.unit = float(caught) * Balance.TURN_IT_AROUND_PCT / 100.0 * Abilities.hit_damage_mult(move) \
 					* (1.0 + player._talent("martial_counter_puncher") / 100.0)   # (exact: the tank rule and Counter Puncher by hand)
 				info.exact = true
 				info.add_power = false

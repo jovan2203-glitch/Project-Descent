@@ -145,12 +145,12 @@ func test_rime_edge() -> void:
 func test_icebreaker() -> void:
 	var r := Abilities.get_resource("icebreaker")
 	assert_eq(float(r.cooldown), 8.0)
-	assert_eq(float(r.weapon_damage_multiplier), 2.0)
-	assert_eq(Balance.ICEBREAKER_FROZEN_MULT, 2.5)
+	assert_eq(float(r.weapon_damage_multiplier), 2.68)
+	assert_eq(Balance.ICEBREAKER_FROZEN_MULT, 3.35)
 	assert_eq(int(r.weapon_requirement), 1)
 	var p := _player()
 	assert_eq(FrostMoreKit.icebreaker_coef(10.0, 2.0, 0.0, false), 20.0, "2x weapon damage")
-	assert_eq(FrostMoreKit.icebreaker_coef(10.0, 2.0, 0.0, true), 25.0, "2.5x on a target I have Frozen")
+	assert_eq(FrostMoreKit.icebreaker_coef(10.0, 2.0, 0.0, true), 33.5, "3.35x on a target I have Frozen")
 
 func test_icepin() -> void:
 	var r := Abilities.get_resource("icepin")

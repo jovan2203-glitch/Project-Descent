@@ -171,6 +171,7 @@ Code: player.gd, "Holy tank: the Censer". Numbers: balance.gd (INCENSE_*, MOTE_*
 ## Utility (the book's "Utility" divider) - BUILT 2026-10-17
 - Binding Ring (Holy's root) - instant, 30 s cooldown, 2 mana, 40 m, your friendly target (you with none). A ring of light around them for 8 s; the first 3 enemies to come within 3 m are rooted 3 s. Code: scripts/player/utility.gd.
 - Circle of Silence (Holy's interrupt) - instant, off the GCD, 25 s cooldown (shared interrupt cooldown), 2 mana, 30 m, card level 18. A circle within 5 m of the target for 4 s: every enemy casting inside is interrupted, and any enemy that starts a cast inside it is interrupted too (3 s lockout each). Checked every 0.1 s; a client only sends interrupts for enemies whose cast bar shows. Code: scripts/player/utility.gd.
+- Holy Ground (2026-10-28) - placed, 45 s cooldown, 2 mana, 30 m. A 5 m circle on the ground for 6 s that no enemy can step into: any that get in (or stand there when it lands) are pushed just past its edge (checked every 0.15 s; bosses are too strong). Area denial, unlike Binding Ring (which roots the first enemies near an ally). Card level 26. Code: scripts/player/utility.gd.
 - Also in Utility (coded with their specs): Steady Voice, Rest, Unfallen.
 
 ## Healers: out-of-combat rez

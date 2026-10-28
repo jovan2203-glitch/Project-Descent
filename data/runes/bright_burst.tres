@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"bright_burst"
 display_name = "Rune of the Bright Burst"
-description = "Picking up a mote of light releases a burst of light, dealing {d:BRIGHT_BURST_DAMAGE} Holy damage with {b:BRIGHT_BURST_THREAT}x threat to enemies within {b:BRIGHT_BURST_RADIUS} m. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, that damage is split evenly between all of them."
+description = "Picking up a mote of light releases a burst of light, dealing {dt:BRIGHT_BURST_DAMAGE} Holy damage with {b:BRIGHT_BURST_THREAT}x threat to enemies within {b:BRIGHT_BURST_RADIUS} m. Full damage to up to {b:AOE_TARGET_CAP} enemies; with more, that damage is split evenly between all of them."
 color = Color(1, 0.95, 0.7, 1)
 rarity = 2
 unlock_level = 20

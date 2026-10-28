@@ -818,6 +818,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				pass   # still on the global cooldown: keep aiming, click again
 			elif (placing_id == PrismsKit.SET_PRISM_ID or placing_id == PrismsKit.REALIGN_ID or placing_id == LightstringKit.PRISM_ARROW_ID) and prism_kit._prism_place_error(placing_id, cast_point) != "":
 				_error(prism_kit._prism_place_error(placing_id, cast_point))   # (out of range: keep aiming)
+			elif placing_id == UtilityKit.HOLY_GROUND_ID and utility.holy_ground_error(cast_point) != "":
+				_error(utility.holy_ground_error(cast_point))   # (out of range: keep aiming)
 			elif placing_id == FireBowKit.CINDER_RAIN_ID and fire_bow._cinder_rain_error(cast_point) != "":
 				_error(fire_bow._cinder_rain_error(cast_point))   # out of range: keep aiming
 			elif placing_id == ArcaneTankKit.DECOY_ID and arcane_tank._decoy_error(cast_point) != "":
@@ -832,6 +834,8 @@ func _unhandled_input(event: InputEvent) -> void:
 					arcane_tank._start_decoy(cast_point)
 				elif placing_id == PrismsKit.SET_PRISM_ID or placing_id == PrismsKit.REALIGN_ID or placing_id == LightstringKit.PRISM_ARROW_ID:
 					prism_kit._start_prism_place(placing_id, cast_point)
+				elif placing_id == UtilityKit.HOLY_GROUND_ID:
+					utility.start_holy_ground(cast_point)
 				elif placing_id == FireBowKit.CINDER_RAIN_ID:
 					fire_bow._start_cinder_rain(cast_point)
 				elif placing_id == LightningCasterKit.THUNDERHEAD_ID:
@@ -1003,6 +1007,17 @@ func _use_ability_now(id: String) -> void:
 			else:
 				cancel_placement()
 				_begin_placement(id)
+		UtilityKit.HOLY_GROUND_ID:
+			# Ground-targeted and instant, like Cinder Rain: it lands where you click.
+			if placing and placing_id == id:
+				cancel_placement()
+			else:
+				cancel_placement()
+				var ground_err := utility.holy_ground_error()
+				if ground_err != "":
+					_error(ground_err)
+				else:
+					_begin_placement(id)
 		"cinderrain":
 			# Ground-targeted too, but instant: it lands the moment you click.
 			if placing and placing_id == id:
@@ -1225,27 +1240,6 @@ func heal(amount: float, ability_id: String = "") -> void:
 		return
 	amount *= holy_talents._holy_heal_mult(ability_id)   # Radiance
 	_combat().heal(self, self, amount * pacts_kit._pact_heal_mult(), ability_id)   # (my Pact: Shepherd)
-
-var _bar_role := "dps"      # my role from my bars (Abilities.role_of_bar), worked out again when they change
-var _bar_role_hash := 0
-
-func _my_role() -> String:
-	var pd := get_node_or_null("/root/PlayerData")
-	if pd == null:
-		return "dps"
-	var h: int = pd.action_bar.hash()
-	if h != _bar_role_hash:
-		_bar_role_hash = h
-		_bar_role = Abilities.role_of_bar(pd.action_bar)
-	return _bar_role
-
-## The share of their damage my hits deal, and the threat it makes (CombatSystem):
-## a tank deals Balance.TANK_DAMAGE_PCT of it for TANK_THREAT_MULT the threat.
-func outgoing_damage_mult() -> float:
-	return Abilities.role_damage_mult(_my_role())
-
-func outgoing_threat_mult() -> float:
-	return Abilities.role_threat_mult(_my_role())
 
 ## Real damage of a 1.0 coefficient for me: my level's standard hit (CombatSystem).
 func damage_unit() -> float:
@@ -2940,7 +2934,7 @@ func _use_drafted_now(id: String, res: Resource, w: Dictionary) -> void:
 		"punch", "brawlkick", "elbow", "catch", "onemore", "toughitout", "comeon", "fightingstyle":
 			brawler._brawler_use(id, res)   # Martial tank: the Brawler
 		"cut", "whirl", "dartin", "kickoff", "twinstab", "goin", "closeitout", "hityourstride", "rollwithit", "snatch", \
-				"gut", "throughandthrough", "redwhirl", "backflip", "drivethrough", "pintheshadow", "overtheshoulder", "playdead":
+				"gut", "throughandthrough", "redwhirl", "backflip", "drivethrough", "pintheshadow", "overtheshoulder", "playdead", "stonethrow":
 			rogue._rogue_use(id, res)   # Martial DPS: the Rogue, and Martial Utility
 		"quickshot", "pierce", "spread", "heavydraw", "followup", "loose", "breathe", "fasthands":
 			sharp._sharp_use(id, res)   # Martial archer: Sharpshooter

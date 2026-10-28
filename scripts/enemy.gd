@@ -947,9 +947,18 @@ func _ranged_attack(tgt: Node3D) -> void:
 		_shoot(tgt))
 
 ## Interrupt the current cast (host / solo). Casting is locked out for
-## `lockout` seconds. Returns true if a cast was actually stopped.
-func interrupt(_source: Node, lockout: float) -> bool:
-	if _replica() or state == State.DEAD or not is_casting():
+## `lockout` seconds. Returns true if a cast was actually stopped. `tells`: with
+## no cast, knock aside the melee hit it is winding up instead (Stone Throw).
+func interrupt(_source: Node, lockout: float, tells := false) -> bool:
+	if _replica() or state == State.DEAD:
+		return false
+	if not is_casting():
+		if tells and _swing_at > 0.0:
+			_cancel_swing()
+			show_knocked_aside()
+			if _net and _net.is_host():
+				_net.enemy_fx(self, "knocked_aside", null, {})
+			return true
 		return false
 	_cast_tween.kill()
 	_cast_tween = null
@@ -965,6 +974,14 @@ func interrupt(_source: Node, lockout: float) -> bool:
 func show_interrupted() -> void:
 	_show_cast(false)
 	_cs().float_text(self, "Interrupted!", Color(0.7, 0.85, 1.0), true)
+
+## A melee hit knocked aside before it landed (also on party members' machines).
+func show_knocked_aside() -> void:
+	_tell_until = 0.0
+	var fx := get_node_or_null(MELEE_TELL_FX.NODE_NAME)
+	if fx:
+		fx.stop()
+	_cs().float_text(self, "Knocked aside!", Color(0.7, 0.85, 1.0), true)
 
 ## Cast bar: when the current cast started and how long it takes.
 var _cast_start := 0.0
@@ -1150,6 +1167,8 @@ func net_fx(kind: String, tgt: Node3D, extra: Dictionary) -> void:
 					_show_cast(false))
 		"interrupted":
 			show_interrupted()
+		"knocked_aside":
+			show_knocked_aside()
 		"shield":
 			var guard := get_node_or_null("ShieldGuard")
 			if guard:

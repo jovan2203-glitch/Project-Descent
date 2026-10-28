@@ -284,7 +284,22 @@ func _rogue_use(id: String, res: Resource) -> void:
 					"Your next hit is a sure critical strike.")
 		"playdead":
 			_play_dead()
+		"stonethrow":
+			if foe:
+				_stone_throw(foe)
 	_sync()
+
+## Stone Throw (Martial's interrupt): a cast is interrupted; with no cast, the melee
+## hit the enemy is winding up (its tell) is knocked aside. Enemies live on the host.
+func _stone_throw(foe: Node3D) -> void:
+	_throw_fx(foe)
+	var lockout := float(Balance.INTERRUPT_LOCKOUT["stonethrow"])
+	var net := player._net()
+	if net:
+		net.interrupt(foe, player, lockout, true)
+	elif foe.has_method("interrupt"):
+		foe.interrupt(player, lockout, true)
+	player._ring_effect(0.9, RogueIcons.STEEL, foe.global_position)
 
 func _in_melee(foe: Node3D) -> bool:
 	var w: Dictionary = player._weapon()
