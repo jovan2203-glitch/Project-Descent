@@ -7,8 +7,8 @@ class_name VenomstringKit
 # Three poison arrows (Adder, Asp, Krait), each a poison of my own on the enemy
 # (my tick list here, like Choking Vipers: own only, hasted, crits). While all
 # three are on enemies somewhere I have Venom Flow and every tick gives Venom
-# (a bar of my own, not a resource of the action bar: hud.gd shows it above the
-# action bar while the three arrows are on it). Two different poisons on one
+# (a bar of my own, not a resource of the action bar: the HUD's Venom bar (scripts/ui/hud/venom_bar.gd) shows it
+# while the three arrows are on the bars). Two different poisons on one
 # enemy make all of mine on it stronger; all three (Steeped) more. Venom pays for
 # Venom Burst (the target explodes with what its poisons have left), Spitting
 # Volley (Adder Venom all around the target) and Bloat Arrow (copies its poisons
@@ -479,3 +479,6 @@ func _tick_coil_traps(now: float) -> void:
 			player._combat().apply_effect(player, e, COILED_FX, COIL_BACK_ID, PackedStringArray(POISON_TAGS))
 			player.nature_open.firm_hold_fury()   # Firm Hold: a hold of mine went on
 			_apply_poison(e, "asp")
+
+func tracker_values() -> Dictionary:
+	return {"venom": {"value": _venom, "max": Balance.VENOM_MAX}}

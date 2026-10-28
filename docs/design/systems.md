@@ -98,6 +98,7 @@ Open gaps: Arcane has no party tool; Holy's only crowd control is Binding Ring a
 - Queue solo or as a party into one random self-contained dungeon (beginning and end, no checkpoints). Play screen also lets you pick a dungeon for testing.
 - Enemy level = party average weighted toward the highest; a max-level player can't carry a level 1 friend. Scale enemies, not players.
 - Each dungeon has 3-4 unique bosses. Modifiers shown clearly on load (screen 60% shorter than originally).
+- Modifiers are gameplay affixes (Mythic+ style): each changes how fights play (enemy behaviour, damage, healing). Never purely visual (no darkness or fog modifiers).
 - Old crypt out of the random pool; cave removed. Walls look natural with lots of decoration.
 - Training Room: daytime castle courtyard, dummy stations (single target, AoE, healing, tank, pack) in a circle around spawn.
 - Enemies: zombies, goblins (melee, wizard, archer). Enemies overlap ~85% but never stack exactly, and spread out a little around the player. Leash range doubled, measured from the enemy's current position; an evading enemy first switches to someone else on its threat table.

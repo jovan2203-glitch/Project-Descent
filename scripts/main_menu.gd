@@ -19,6 +19,10 @@ var lobby_page: LobbyPage = _part(LobbyPage) as LobbyPage
 var esc: EscMenuPart = _part(EscMenuPart) as EscMenuPart
 var bank_page: BankPage = _part(BankPage) as BankPage
 var queue_page: QueuePage = _part(QueuePage) as QueuePage
+var ready_check: ReadyCheckPart = _part(ReadyCheckPart) as ReadyCheckPart
+var loadouts: LoadoutsPart = _part(LoadoutsPart) as LoadoutsPart
+var whats_new: WhatsNewPart = _part(WhatsNewPart) as WhatsNewPart
+var last_run: LastRunPart = _part(LastRunPart) as LastRunPart
 
 func _part(script: Script) -> Node:
 	var p: Node = script.new()
@@ -102,6 +106,7 @@ func _ready() -> void:
 	_show_page("Lobby")
 	character_page._refresh_gear()
 	get_node("/root/PlayerData").changed_late.connect(character_page._refresh_gear)
+	get_node("/root/PlayerData").changed_late.connect(lobby_page._my_info_changed)
 	bank_page._wire_bank()
 	character_page._wire_gear()
 	# Party / online
@@ -137,9 +142,12 @@ func _input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	lobby_page._update_queue_banner()
 	lobby_page._layout_party_3d()
+	lobby_page._tick_my_info(delta)
+	ready_check.update()
 	cards_page._check_bar_drag_end()
 	character_page._update_gear_highlights()
 	character_page._update_alt_popup(delta)
+	_update_spin(delta)
 
 func _toast_if(msg: String) -> void:
 	if msg != "":
@@ -152,6 +160,31 @@ func _play_idle() -> void:
 	if anim and anim.has_animation("mixamo_com"):
 		anim.get_animation("mixamo_com").loop_mode = Animation.LOOP_LINEAR
 		anim.play("mixamo_com")
+
+# Drag on empty space (Lobby, Character) to turn your character; it turns back to
+# face the camera SPIN_RETURN_DELAY s after you let go.
+const SPIN_PER_PIXEL := 0.012
+const SPIN_RETURN_DELAY := 2.0
+const SPIN_RETURN_SPEED := 4.0
+var _spin := 0.0
+var _spinning := false
+var _spin_idle := 0.0
+
+func _spin_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		_spinning = event.pressed and model.visible
+		if not event.pressed:
+			_spin_idle = SPIN_RETURN_DELAY
+	elif event is InputEventMouseMotion and _spinning:
+		_spin += event.relative.x * SPIN_PER_PIXEL
+
+func _update_spin(delta: float) -> void:
+	if not _spinning and _spin != 0.0:
+		_spin_idle -= delta
+		if _spin_idle <= 0.0:
+			_spin = wrapf(_spin, -PI, PI)
+			_spin = move_toward(_spin, 0.0, absf(_spin) * SPIN_RETURN_SPEED * delta + 0.002)
+	model.rotation.y = _spin
 
 # --- UI construction ---------------------------------------------------------
 
@@ -184,12 +217,25 @@ func _build_ui() -> void:
 	play_button.add_theme_color_override("font_color", Color(0.1, 0.07, 0.03))
 	play_button.add_theme_color_override("font_hover_color", Color(0.1, 0.07, 0.03))
 	play_button.add_theme_color_override("font_pressed_color", Color(0.1, 0.07, 0.03))
-	play_button.add_theme_stylebox_override("normal", _box(C_ACCENT, Color(1, 0.9, 0.6), 2, 8))
-	play_button.add_theme_stylebox_override("hover", _box(C_ACCENT.lightened(0.15), Color(1, 0.95, 0.75), 2, 8))
-	play_button.add_theme_stylebox_override("pressed", _box(C_ACCENT.darkened(0.15), Color(1, 0.9, 0.6), 2, 8))
+	for state in [["normal", C_ACCENT, Color(1, 0.9, 0.6)], ["hover", C_ACCENT.lightened(0.15), Color(1, 0.95, 0.75)],
+			["pressed", C_ACCENT.darkened(0.15), Color(1, 0.9, 0.6)]]:
+		var sb := _box(state[1], state[2], 2, 8)
+		sb.content_margin_bottom = 18   # room for the line below PLAY
+		play_button.add_theme_stylebox_override(state[0], sb)
 	play_button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	play_button.pressed.connect(_on_play)
 	ui.add_child(play_button)
+	# Where PLAY goes: the Play screen's last choice and difficulty.
+	_play_where = _label("", 13, Color(0.25, 0.17, 0.06))
+	_play_where.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_play_where.offset_top = -24
+	_play_where.offset_bottom = -6
+	_play_where.offset_left = 6
+	_play_where.offset_right = -6
+	_play_where.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_play_where.clip_text = true
+	_play_where.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	play_button.add_child(_play_where)
 
 	# Build version under Play (party members must match).
 	var ver := _label("Version %s" % BuildInfo.version(), 13, C_TEXT_DIM)
@@ -218,6 +264,9 @@ func _build_ui() -> void:
 	friends_button.offset_bottom = -30
 	friends_button.tooltip_text = "Friends & party"
 	ui.add_child(friends_button)
+	ready_check.build()
+	whats_new.build()
+	last_run.build()
 
 	lobby_page.social = SOCIAL_PANEL.new()
 	lobby_page.social.visible = false
@@ -297,6 +346,7 @@ func _update_xp_bar() -> void:
 # --- Esc key, nav bar and page frames ------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
+	_spin_input(event)
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		get_viewport().set_input_as_handled()
 		if InspectWindow.is_open(ui):
@@ -461,12 +511,15 @@ func _show_page(page_name: String) -> void:
 	friends_button.visible = (page_name == "Lobby")
 	if is_instance_valid(_chat_layer):
 		_chat_layer.visible = page_name == "Lobby"   # the chat only shows in the Lobby
+	ready_check.refresh()
+	whats_new.show_for(page_name)
 	if lobby_page.social and page_name != "Lobby" and page_name != "Queue":
 		lobby_page.social.visible = false
 	# Hide the 3D character behind full-panel pages.
 	var shows_player := page_name in ["Lobby", "Character"]
 	model.visible = shows_player
 	$Pedestal.visible = shows_player
+	$Backdrop.visible = shows_player
 
 ## A party member's snapshot arrived (their card was clicked): show it.
 func _on_inspect(member: int, data: Dictionary) -> void:
@@ -475,6 +528,19 @@ func _on_inspect(member: int, data: Dictionary) -> void:
 ## PLAY opens the dungeon / queue screen.
 func _on_play() -> void:
 	_show_page("Queue")
+
+var _play_where: Label
+
+## PLAY's second line and tooltip: where you're going, party size, enemy level.
+func refresh_play_button() -> void:
+	if play_button == null or _play_where == null:
+		return
+	_play_where.text = queue_page.play_summary()
+	var gm := get_node("/root/GameManager")
+	var online := get_node("/root/Online")
+	var lead := "Choose a dungeon" if online.is_leader() else "See where your party is going (only the leader can queue or start)"
+	play_button.tooltip_text = "%s.\nParty: %d / %d   •   Enemy level: %d" % [lead, online.party_size(), online.max_party(),
+		DB.party_level(gm.party_levels())]
 
 # --- Helpers -----------------------------------------------------------------
 

@@ -128,6 +128,49 @@ static func _chain(rng: RandomNumberGenerator, bosses: int, per: int, opt: Dicti
 				break
 	return out
 
+# --- Hand-made (a DungeonLayout scene) ------------------------------------------------------
+# Same output as the styles above, plus per room: name, roster, centerpiece,
+# big_props, no_random, packs [{roles, elites, keybearer, at}] and pieces
+# [{kind, at, yaw, params}] (positions in world space).
+
+static func from_scene(scene: PackedScene) -> Dictionary:
+	var out := {"cell": 22.0, "corridor": 3.6, "roam": false, "rooms": [], "links": [], "authored": true}
+	if scene == null:
+		return out
+	var root := scene.instantiate()
+	out["cell"] = float(root.get("cell_size")) if root.get("cell_size") != null else 22.0
+	out["corridor"] = float(root.get("corridor")) if root.get("corridor") != null else 3.6
+	out["final_needs_wings"] = bool(root.get("final_needs_wings")) if root.get("final_needs_wings") != null else false
+	for child in root.get_children():
+		if child is DungeonRoom:
+			_read_room(out, child, -1)
+	root.free()
+	return out
+
+static func _read_room(out: Dictionary, n: DungeonRoom, parent: int) -> void:
+	var idx := _room(out, n.cell, n.floor_y, n.size, n.kind, n.section, n.boss)
+	var room: Dictionary = out["rooms"][idx]
+	var center: Vector3 = room["center"]
+	room["name"] = n.room_name
+	room["roster"] = n.roster
+	room["centerpiece"] = n.centerpiece
+	room["big_props"] = Array(n.big_props)
+	room["no_random"] = n.no_random_packs
+	room["packs"] = []
+	room["pieces"] = []
+	if parent >= 0:
+		out["links"].append([parent, idx])
+	for child in n.get_children():
+		if child is PackMarker:
+			room["packs"].append({"roles": Array(child.roles), "elites": child.elites,
+				"keybearer": child.keybearer, "at": center + child.position})
+		elif child is SetPieceMarker:
+			room["pieces"].append({"kind": child.kind, "at": center + child.position,
+				"yaw": child.rotation.y, "params": child.params.duplicate()})
+	for child in n.get_children():
+		if child is DungeonRoom:
+			_read_room(out, child, idx)
+
 # --- Hub and spokes ---------------------------------------------------------------------
 
 static func _hub(rng: RandomNumberGenerator, bosses: int, per: int) -> Dictionary:

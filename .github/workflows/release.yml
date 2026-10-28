@@ -55,6 +55,14 @@ jobs:
           sed -i "s/^\[application\]\r\?$/&\nconfig\/version=\"$v\"/" project.godot
           grep -q "config/version=\"$v\"" project.godot
 
+      # The main menu's "What's new" panel reads res://data/whats_new.md.
+      - name: Bundle the patch notes
+        shell: bash
+        run: |
+          notes=$(git log -1 --format= --name-only --diff-filter=AM -- 'docs/PATCH_NOTES_*.md' | head -1)
+          cp "$notes" data/whats_new.md
+          echo "What's new: $notes"
+
       - name: Export the Windows build
         shell: bash
         run: |

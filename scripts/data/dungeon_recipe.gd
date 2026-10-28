@@ -18,6 +18,12 @@ extends Resource
 @export var layout := "linear"
 ## Combat rooms before each boss (linear / descent / cavern / maze).
 @export var rooms_per_section := 3
+## A hand-made map (a DungeonLayout scene). When set, `layout` and
+## `rooms_per_section` are ignored and the map is the same every run.
+@export var layout_scene: PackedScene
+## Optional finished art for a hand-made map. Replaces the generated greybox:
+## it must carry the collision and the walkable floors (see docs/DUNGEONS.md).
+@export var art_scene: PackedScene
 
 ## Enemy roster: role -> skin. A skin is
 ##   {"scene": "res://scenes/zombie.tscn", "name": "<names key>", "weight": 3,
@@ -25,6 +31,9 @@ extends Resource
 ##    "summons": "swarmer"}
 ## Roles: brute, swarmer, caster, archer, defender, support, summoner.
 @export var roster := {}
+## Extra rosters by key, for rooms whose DungeonRoom.roster names one
+## (a wing with its own enemies). Same format as `roster`.
+@export var rosters := {}
 @export var pack_min := 2
 @export var pack_max := 4
 ## Chance a combat room also has an elite (0..1).

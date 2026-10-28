@@ -32,6 +32,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_bus().enemy_died.connect(_on_enemy_died)
 	_bus().player_died.connect(_on_player_died)
+	_bus().xp_gained.connect(_on_run_xp)
+	_bus().dungeon_cleared.connect(_on_run_cleared)
 	# Figure out where we started (running a dungeon scene directly skips the menu).
 	await get_tree().process_frame
 	var cur := get_tree().current_scene
@@ -198,6 +200,7 @@ func start_game(scene_key: String = DB.RANDOM_KEY) -> void:
 	dungeon_depth = 1
 	dungeon_seed = randi()
 	_apply_run_extra(run["extra"], dungeon_seed)
+	_begin_run_record()
 	change_scene(current_instance, State.PLAYING)
 
 ## Training Room (solo): dummies to test damage, healing and tanking. No XP,
@@ -283,6 +286,7 @@ func net_load(path: String, depth: int, seed_value: int, diff: String = "", extr
 		deaths = 0
 		play_time = 0.0
 		get_node("/root/PlayerData").start_pact_run()   # a new dungeon (not the next floor of this one)
+		_begin_run_record()
 	current_instance = path
 	dungeon_depth = depth
 	dungeon_seed = seed_value
@@ -290,12 +294,59 @@ func net_load(path: String, depth: int, seed_value: int, diff: String = "", extr
 
 ## Net: back to the main menu.
 func net_to_menu() -> void:
-	get_node("/root/PlayerData").move_inventory_to_bank()
+	var pd := get_node("/root/PlayerData")
+	var bag: Array = pd.inventory.filter(func(id): return str(id) != "")
+	pd.move_inventory_to_bank()
+	_finish_run_record(bag)
 	# Level / XP / everything is saved right away when leaving a dungeon.
 	var save := get_node_or_null("/root/SaveSystem")
 	if save:
 		save.save_profile()
 	change_scene(MAIN_MENU, State.MENU)
+
+# --- Last run (the menu's summary card) ------------------------------------------------
+# A dungeon run is recorded from its start until you're back in the menu; the
+# Training Room isn't one. last_run is shown once in the lobby, then cleared.
+
+var _run_record := {}
+## {"title", "cleared", "time", "bosses", "kills", "xp", "levels", "loot": item ids,
+##  "party": [{"name", "damage", "healing"}], "best", "diff"}; {} = nothing to show.
+var last_run := {}
+
+func _begin_run_record() -> void:
+	var pd := get_node("/root/PlayerData")
+	_run_record = {"t0": Time.get_ticks_msec() / 1000.0, "level": int(pd.level), "xp": 0,
+		"title": DB.title(dungeon_id) if dungeon_id != "" else current_instance.get_file().get_basename().capitalize()}
+	last_run = {}
+	var details := get_node_or_null("/root/Details")
+	if details:
+		details.reset_run()
+
+func _on_run_xp(amount: int) -> void:
+	if not _run_record.is_empty():
+		_run_record["xp"] += amount
+
+func _on_run_cleared(summary: Dictionary) -> void:
+	if not _run_record.is_empty():
+		_run_record["clear"] = summary
+
+func _finish_run_record(loot: Array) -> void:
+	if _run_record.is_empty():
+		return
+	var r := _run_record
+	_run_record = {}
+	var clear: Dictionary = r.get("clear", {})
+	var party: Array = []
+	var details := get_node_or_null("/root/Details")
+	if details:
+		for m in details.run_totals:
+			party.append(details.run_totals[m].duplicate())
+		party.sort_custom(func(a, b): return int(a["damage"]) > int(b["damage"]))
+	last_run = {"title": str(clear.get("dungeon", r["title"])), "cleared": not clear.is_empty(),
+		"time": float(clear.get("time", Time.get_ticks_msec() / 1000.0 - float(r["t0"]))),
+		"bosses": int(clear.get("bosses", 0)), "kills": int(clear.get("kills", kills)), "xp": int(r["xp"]),
+		"levels": int(get_node("/root/PlayerData").level) - int(r["level"]), "loot": loot, "party": party,
+		"best": bool(clear.get("best", false)), "diff": difficulty}
 
 func quit_game() -> void:
 	var online := get_node_or_null("/root/Online")

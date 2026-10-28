@@ -110,7 +110,7 @@ func _process_ability(c: Control, delta: float) -> void:
 		for ch in _root.get_children():
 			_root.remove_child(ch)
 			ch.queue_free()
-		var p := _panel(Abilities.tooltip_bbcode(id, detailed))
+		var p := _panel(Abilities.tooltip_bbcode(id, detailed) + id_line(id))
 		(p.get_child(0) as Control).custom_minimum_size.x = ABILITY_WIDTH if detailed else WIDTH
 		_root.add_child(p)
 		_root.reset_size()
@@ -238,9 +238,9 @@ func _rebuild(item: String, compare: bool, slot: String, replaced: Array) -> voi
 		else:
 			for old in replaced:
 				_root.add_child(_panel("[color=#%s]Currently equipped[/color]\n%s" % [UI.ACCENT.to_html(false), item_bbcode(old)]))
-		_root.add_child(_panel(item_bbcode(item) + "\n" + changes_bbcode(item, replaced)))
+		_root.add_child(_panel(item_bbcode(item) + id_line(Items.base_id(item)) + "\n" + changes_bbcode(item, replaced)))
 	else:
-		var text := item_bbcode(item)
+		var text := item_bbcode(item) + id_line(Items.base_id(item))
 		if slot != "" and _hover and not _hover.get_meta("tip_equipped", false):
 			text += "\n[color=#%s][font_size=11]Hold Shift to compare[/font_size][/color]" % DIM.to_html(false)
 		_root.add_child(_panel(text))
@@ -286,6 +286,14 @@ func _panel(bbcode: String) -> PanelContainer:
 	return p
 
 # --- Text -----------------------------------------------------------------------
+
+## "ID: frostbolt" under a tooltip (UI Options > General > Show IDs in tooltips),
+## the name Trackers know it by.
+static func id_line(id: String) -> String:
+	if id == "" or not bool(UIConfig.value("general", "show_ids")):
+		return ""
+	return "
+[font_size=11]%s[/font_size]" % _c(DIM, "ID: " + id)
 
 static func _c(col: Color, text: String) -> String:
 	return "[color=#%s]%s[/color]" % [col.to_html(false), text]

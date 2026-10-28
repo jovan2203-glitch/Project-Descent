@@ -72,3 +72,6 @@ func _fire_ice_shards(dmg: float) -> void:
 				Player.FROST_BOLT.spawn(player.get_tree().current_scene, player._muzzle(), aim, player, false, "iceshards", dmg)
 				player.frost_runes._on_shard_fired(aim))
 
+
+func tracker_values() -> Dictionary:
+	return {"ice_shards": {"value": ice_shard_charges, "max": Balance.ICE_SHARDS_MAX_CHARGES}}

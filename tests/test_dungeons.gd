@@ -93,3 +93,100 @@ func test_prestige_keeps_only_starter_abilities() -> void:
 	assert_false(pd.has_ability("frostnova"), "learned abilities forgotten")
 	assert_false(pd.action_bar.has("frostnova"))
 	assert_true(pd.has_ability("frostbolt"), "starter kit stays")
+
+# --- Downgate Fort (hand-made map) -------------------------------------------------------
+
+const BossKit = preload("res://scripts/dungeon/boss_kit.gd")
+const Look = preload("res://scripts/dungeon/mechanic_look.gd")
+const Stairs = preload("res://scripts/dungeon/pieces/stairs.gd")
+
+func _fort() -> Dictionary:
+	return Layouts.from_scene(DB.find("fort").layout_scene)
+
+func test_fort_map_is_a_tree_of_neighbouring_rooms() -> void:
+	var l := _fort()
+	var rooms: Array = l["rooms"]
+	assert_eq(rooms[0]["kind"], "start", "the first room is the start")
+	assert_eq(l["links"].size(), rooms.size() - 1, "a tree: every room reachable once")
+	assert_true(l.get("final_needs_wings", false), "the Keep needs the three wing bosses")
+	var cells := {}
+	for r in rooms:
+		assert_false(cells.has(r["cell"]), "no two rooms on one cell")
+		cells[r["cell"]] = true
+		assert_true(r["size"].x <= float(l["cell"]) - 2.0 and r["size"].y <= float(l["cell"]) - 2.0, "%s fits its cell" % r["name"])
+		assert_true(Names.has(str(r["name"])), "room name %s" % r["name"])
+	for link in l["links"]:
+		var d: Vector2i = rooms[link[1]]["cell"] - rooms[link[0]]["cell"]
+		assert_eq(absi(d.x) + absi(d.y), 1, "linked rooms are neighbours (%s -> %s)" % [rooms[link[0]]["name"], rooms[link[1]]["name"]])
+	var bosses := {}
+	for r in rooms:
+		if int(r["boss"]) >= 0:
+			bosses[int(r["boss"])] = true
+			assert_eq(r["kind"], "boss")
+			assert_eq(int(r["section"]), int(r["boss"]), "a boss room ends its own section")
+	assert_eq(bosses.size(), 4, "four boss rooms")
+
+func test_fort_map_is_the_same_every_load() -> void:
+	assert_eq(str(_fort()["links"]), str(_fort()["links"]))
+
+func test_fort_packs_and_pieces_are_valid() -> void:
+	var r := DB.find("fort")
+	var l := _fort()
+	var bells := 0
+	for room in l["rooms"]:
+		var key := str(room["roster"])
+		var roster: Dictionary = r.rosters.get(key, r.roster)
+		assert_true(key == "" or r.rosters.has(key), "roster %s exists" % key)
+		for pack in room["packs"]:
+			for role in pack["roles"]:
+				assert_true(roster.has(str(role)), "%s: role %s is in its roster" % [room["name"], role])
+		for pc in room["pieces"]:
+			if pc["kind"] == "alarm_bell":
+				bells += 1
+			if pc["kind"] in ["ballista", "seal_light"]:
+				var b := int(pc["params"].get("boss", -1))
+				assert_true(b >= 0 and b < r.bosses.size(), "%s points at a real boss" % pc["kind"])
+	assert_eq(bells, 2, "a bell in the Gatehouse and one in the Courtyard")
+	for key in r.rosters:
+		for role in r.rosters[key]:
+			assert_true(Roles.ROLES.has(str(role)), "%s: %s is a real role" % [key, role])
+			assert_true(Names.has(str(r.rosters[key][role]["name"])), "%s: skin name" % key)
+
+func test_fort_has_stairs_down_from_the_bindery() -> void:
+	var rooms: Array = _fort()["rooms"]
+	assert_gt(float(rooms[0]["center"].y), float(rooms[1]["center"].y), "the Long Stair goes down into the fort")
+
+func test_every_boss_ability_is_known_and_named() -> void:
+	for r in DB.recipes():
+		for b in r.bosses:
+			var phases := {1: true}
+			for a in b["abilities"]:
+				if str(a.get("type", "")) == "phase" and a.has("to"):
+					phases[int(a["to"])] = true
+			for a in b["abilities"]:
+				var t := str(a.get("type", ""))
+				assert_true(Look.FAMILY.has(t), "%s: ability type %s has a mechanic family" % [r.id, t])
+				if a.has("name"):
+					assert_true(Names.has(str(a["name"])), "%s: ability name %s" % [r.id, a["name"]])
+				if a.has("phase"):
+					assert_true(phases.has(int(a["phase"])), "%s: phase %d is reached by a phase entry" % [r.id, int(a["phase"])])
+
+func test_stack_damage_is_shared_evenly_and_never_zero() -> void:
+	assert_eq(BossKit.soak_share(100.0, 1, 1), 100.0, "solo: you take the hit")
+	assert_eq(BossKit.soak_share(100.0, 5, 3), 100.0, "3 of 5 stack: 300 split three ways")
+	assert_eq(BossKit.soak_share(100.0, 5, 5), 60.0, "everyone stacks: 300 split five ways")
+	assert_eq(BossKit.soak_share(100.0, 5, 1), 300.0, "alone in it: you take all of it")
+	assert_eq(BossKit.soak_share(100.0, 5, 0), 300.0, "nobody in it: everyone takes all of it")
+	assert_gt(BossKit.soak_share(0.1, 5, 5), 0.0, "never 0")
+
+func test_stairs_steps_follow_the_slope() -> void:
+	for h: float in [2.0, 3.0, 4.0]:
+		var run := h * 3.0
+		var n := Stairs.step_count(h)
+		assert_true(h / n <= Stairs.STEP_RISE + 0.001, "risers stay under the navmesh climb")
+		for i in n:
+			var s: Array = Stairs.step_box(i, run, h)
+			var mid_z := (float(s[1]) + float(s[2])) * 0.5
+			var slope := h * (-mid_z) / run
+			assert_true(absf(float(s[0]) - slope) <= h / n + 0.001, "step %d sits on the slope" % i)
+		assert_eq(float(Stairs.step_box(n - 1, run, h)[0]), h, "the top step is flush with the upper floor")

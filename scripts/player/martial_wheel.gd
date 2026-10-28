@@ -527,3 +527,6 @@ func _add_stagger(e: Node, amount: float) -> void:
 func stagger_on(e: Node) -> float:
 	var key := e.get_instance_id() if e != null and is_instance_valid(e) else 0
 	return float(_stagger[key][0]) if _stagger.has(key) else 0.0
+
+func tracker_values() -> Dictionary:
+	return {"wheel_uses": {"value": uses_left(), "max": Balance.WHEEL_USES}, "wheel_cracks": _cracks}

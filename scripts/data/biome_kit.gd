@@ -74,3 +74,8 @@ extends Resource
 @export_group("Audio")
 ## Tag for the music system (no music is shipped yet).
 @export var music_tag := ""
+
+@export_group("Mechanics")
+## How boss mechanics look in this dungeon (shapes never change; see
+## scripts/dungeon/mechanic_look.gd). Empty = the default look.
+@export var mechanic_theme: MechanicTheme

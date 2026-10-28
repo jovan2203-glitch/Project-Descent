@@ -1086,6 +1086,21 @@ const DUNGEON_LEVEL_TOP_WEIGHT := 0.5
 ## you revive (at the dungeon entrance / last boss room) or go to the main menu.
 const ROGUELIKE_DEATH := false
 
+# --- Dungeon set pieces (scripts/dungeon/set_pieces.gd) ----------------------------
+## Alarm bell: when a fight starts near it, its Bell Ringer casts this long
+## (interrupt it, stun it or kill it); finished = a reinforcement pack arrives.
+const ALARM_RING_TIME := 4.0
+const ALARM_RADIUS := 16.0         # metres: a fight this close to the bell starts the ringing
+const ALARM_REINFORCEMENTS := 4    # enemies that come when it rings
+## Ballista: stand on its plate to load it, then it fires at the boss of its room.
+const BALLISTA_LOAD_TIME := 2.0    # seconds on the plate
+const BALLISTA_PLATE_RADIUS := 1.6
+const BALLISTA_COOLDOWN := 30.0
+const BALLISTA_STUN := 3.0         # the boss is pinned (stunned) this long
+const BALLISTA_EXPOSED_PCT := 25.0 # ...then takes this % more damage...
+const BALLISTA_EXPOSED_TIME := 8.0 # ...for this long
+const BALLISTA_DAMAGE_PCT := 3.0   # the bolt itself: % of the boss's max health
+
 # --- Co-op: downed & revive ------------------------------------------------------
 ## In a party, reaching 0 health knocks you DOWN instead of killing you (while
 ## someone else is still standing). Only a healer's revive brings you back; otherwise you bleed out.

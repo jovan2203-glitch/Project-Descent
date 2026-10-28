@@ -47,7 +47,6 @@ func test_build_every_dungeon() -> void:
 		var l := Layouts.build(str(r.layout), rng, r.bosses.size(), int(r.rooms_per_section))
 		var root := Node3D.new()
 		var b = Builder.new(r.biome, l, 5)
-		b.darkness = true
 		var rock: CSGCombiner3D = b.build_rock(root)
 		b.dress(root)
 		var env := Environment.new()
@@ -83,3 +82,18 @@ func _make_every_enemy_and_boss() -> void:
 			e.add_child(kit)
 			assert_true(kit.abilities.size() >= 2, "%s has a moveset" % bd["name"])
 			e.free()
+
+func test_ui_scripts_parse() -> void:
+	# The in-game UI: HUD elements, Trackers, options, setup (scripts/ui/hud/, scripts/ui/trackers/).
+	var files: Array = ["res://scripts/ui/skin.gd", "res://scripts/ui/hud_bar.gd", "res://scripts/ui/ui_config.gd",
+		"res://scripts/ui/ui_window.gd", "res://scripts/ui/ui_options.gd", "res://scripts/ui/ui_installer.gd",
+		"res://scripts/ui/ui_layout.gd", "res://scripts/ui/party_frames.gd", "res://scripts/ui/status_icons.gd",
+		"res://scripts/ui/chat_box.gd", "res://scripts/ui/item_tooltip.gd", "res://scripts/core/details.gd",
+		"res://scripts/settings.gd"]
+	for dir in ["res://scripts/ui/hud/", "res://scripts/ui/trackers/"]:
+		for f in DirAccess.get_files_at(dir):
+			if f.ends_with(".gd"):
+				files.append(dir + f)
+	for f in files:
+		var s: GDScript = ResourceLoader.load(f, "", ResourceLoader.CACHE_MODE_REPLACE)
+		assert_true(s != null and s.reload(true) == OK, "parses: " + f)

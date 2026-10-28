@@ -531,6 +531,24 @@ func clear_floor(scene_path: String, floor_n: int) -> bool:
 	changed.emit()
 	return true
 
+# --- Best clear times (the Play screen shows them) ------------------------------------
+var best_clears := {}   # dungeon recipe id -> {difficulty ("solo" / "party"): seconds}
+
+## A dungeon was cleared in `secs`. Returns true if it beat the best time.
+func record_clear(dungeon_id: String, difficulty: String, secs: float) -> bool:
+	if dungeon_id == "" or secs <= 0.0:
+		return false
+	var times: Dictionary = best_clears.get(dungeon_id, {})
+	if times.has(difficulty) and float(times[difficulty]) <= secs:
+		return false
+	times[difficulty] = secs
+	best_clears[dungeon_id] = times
+	return true
+
+## Best time for a dungeon on a difficulty (0 = never cleared).
+func best_clear(dungeon_id: String, difficulty: String) -> float:
+	return float(best_clears.get(dungeon_id, {}).get(difficulty, 0.0))
+
 # --- Roguelike death + level lock -----------------------------------------------
 # Dying: level drops to 1 (or to the level lock), equipped gear and the bag are
 # lost (runes on lost items are learned first), drafted abilities and draft boons
@@ -1062,6 +1080,85 @@ func refund_talent(id: String) -> String:
 func reset_talents() -> void:
 	talents.clear()
 	changed.emit()
+
+# --- Loadouts (talents, bars, attributes, Pact; swapped in the main menu) ------------
+# Saved with Talents.TREE_VERSION: after a tree change a loadout's talents are
+# dropped (the refund rule in CLAUDE.md), the rest still applies.
+const MAX_LOADOUTS := 6
+var loadouts: Array = []   # [{name, tree_version, talents, action_bar, attribute_points, pact, pact_book, bare_hands}]
+
+## Save the current setup as a new loadout, or over `index`. Returns "" or why not.
+func save_loadout(loadout_name: String, index: int = -1) -> String:
+	if index < 0 and loadouts.size() >= MAX_LOADOUTS:
+		return "You can keep %d loadouts" % MAX_LOADOUTS
+	var l := {"name": loadout_name.strip_edges().left(24), "tree_version": Talents.TREE_VERSION,
+		"talents": talents.duplicate(), "action_bar": Array(action_bar).duplicate(),
+		"attribute_points": attribute_points.duplicate(), "pact": pact, "pact_book": pact_book, "bare_hands": bare_hands}
+	if l["name"] == "":
+		l["name"] = "Loadout %d" % (loadouts.size() + 1 if index < 0 else index + 1)
+	if index >= 0 and index < loadouts.size():
+		loadouts[index] = l
+	else:
+		loadouts.append(l)
+	changed.emit()
+	return ""
+
+func delete_loadout(index: int) -> void:
+	if index >= 0 and index < loadouts.size():
+		loadouts.remove_at(index)
+		changed.emit()
+
+func rename_loadout(index: int, loadout_name: String) -> void:
+	if index >= 0 and index < loadouts.size() and loadout_name.strip_edges() != "":
+		loadouts[index]["name"] = loadout_name.strip_edges().left(24)
+		changed.emit()
+
+## Switch to loadout `index`. Returns {"error": why not} or {"notes": [what was left out]}.
+## Talents that no longer fit (tree changed, too few points) and abilities you
+## no longer know are left out; the rest applies.
+func apply_loadout(index: int) -> Dictionary:
+	if index < 0 or index >= loadouts.size():
+		return {"error": "Unknown loadout"}
+	if pact_locked():
+		return {"error": "Loadouts can only be changed in the main menu"}
+	var l: Dictionary = loadouts[index]
+	var notes: Array[String] = []
+	var ranks: Dictionary = l.get("talents", {}).duplicate()
+	var spent := 0
+	for id in ranks:
+		spent += int(ranks[id])
+	if int(l.get("tree_version", -1)) != Talents.TREE_VERSION:
+		ranks = {}
+		notes.append("talents (the talent trees changed since it was saved)")
+	elif spent > talent_points_total() or not talents_valid(ranks):
+		ranks = {}
+		notes.append("talents (not enough talent points)")
+	talents = ranks
+	var attrs: Dictionary = l.get("attribute_points", {}).duplicate()
+	var attr_spent := 0
+	for s in attrs:
+		attr_spent += int(attrs[s])
+	if attr_spent > attribute_points_total():
+		attrs = {}
+		notes.append("attribute points (not enough points)")
+	attribute_points = attrs
+	var bar: Array = l.get("action_bar", [])
+	var missing := 0
+	for i in ACTION_SLOTS_TOTAL:
+		var id := str(bar[i]) if i < bar.size() and bar[i] != null else ""
+		var known := id == "" or has_ability(id) \
+			or (Macros.is_macro(id) and not macro_by_uid(Macros.uid_of(id)).is_empty())
+		if not known:
+			missing += 1
+		action_bar[i] = id if known else ""
+	if missing > 0:
+		notes.append("%d abilities you don't know" % missing)
+	bare_hands = bool(l.get("bare_hands", bare_hands))
+	if set_pact(str(l.get("pact", "")), str(l.get("pact_book", ""))) != "":
+		notes.append("its Pact")
+	_stats_dirty = true
+	changed.emit()
+	return {"notes": notes}
 
 # --- Stats (gear + talents; buffs are added by the player at runtime) -------------
 

@@ -1,6 +1,7 @@
 extends RefCounted
 
-# Dungeon modifiers (Mythic+ style affixes). A run gets a few, rolled from the
+# Dungeon modifiers (Mythic+ style affixes): each changes how fights play,
+# never just the look. A run gets a few, rolled from the
 # dungeon recipe's `modifier_pool` with the run's seed, so every machine in a
 # party gets the same ones. GameManager.has_modifier(id) answers "is it on?".
 # Names and descriptions live in names.gd ("mod_<id>", "mod_<id>_desc").
@@ -9,18 +10,16 @@ extends RefCounted
 #   frost_touched  CombatSystem.deal -> GameManager.dungeon_damage_pct
 #   volatile       dungeon_run.gd: elites get enemy.death_explode
 #   bloodthirst    CombatSystem.heal -> GameManager.heal_mult, lifesteal.gd
-#   darkness       dungeon_run.gd: environment, lights and lantern
 #   frenzy         enemy.gd _check_frenzy
 
 const Names = preload("res://scripts/dungeon/names.gd")
 
-const ALL := ["frost_touched", "volatile", "bloodthirst", "darkness", "frenzy"]
+const ALL := ["frost_touched", "volatile", "bloodthirst", "frenzy"]
 
 const COLORS := {
 	"frost_touched": Color(0.55, 0.85, 1.0),
 	"volatile": Color(1.0, 0.55, 0.15),
 	"bloodthirst": Color(0.95, 0.3, 0.35),
-	"darkness": Color(0.6, 0.55, 0.85),
 	"frenzy": Color(1.0, 0.35, 0.25),
 }
 

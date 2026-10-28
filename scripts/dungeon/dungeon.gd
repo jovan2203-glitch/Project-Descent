@@ -605,6 +605,8 @@ func _build_ui() -> void:
 	_ui.layer = 3
 	_ui.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_ui)
+	# Banners and panels shown later get the in-game UI's look once built.
+	_ui.child_entered_tree.connect(func(c: Node): UISkin.restyle.call_deferred(c))
 	_header = UI.label("", 16, UI.ACCENT)
 	_header.anchor_left = 0.5
 	_header.anchor_right = 0.5

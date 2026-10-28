@@ -1783,7 +1783,11 @@ static func _draw_key(c: Control, key: String, mid: Vector2, k: float, col: Colo
 			c.draw_polyline(_p(mid, k, [Vector2(2, -6), Vector2(5, 1), Vector2(8, -2), Vector2(12, 6)]), WHITE, 2.2 * k, true)
 			c.draw_arc(mid + Vector2(0, 6) * k, 15.0 * k, PI * 1.1, PI * 1.9, 14, Color(light, 0.5), 1.6 * k, true)
 		"lightning_charged_air":   # a spell let go: motes rising off the hand into a cell
-			_hand(c, mid + Vector2(-6, 8) * k, 10.0 * k)
+			var palm := mid + Vector2(-6, 11) * k
+			c.draw_colored_polygon(_p(palm, k, [Vector2(-5.5, -1), Vector2(5.5, -1), Vector2(4, 5), Vector2(-4, 5)]), light)
+			for i in 4:
+				var x := -4.5 + i * 3.0
+				c.draw_line(palm + Vector2(x, -0.5) * k, palm + Vector2(x * 1.2, -6.5) * k, light, 2.0 * k, true)
 			for i in 3:
 				c.draw_circle(mid + Vector2(-8 + i * 4, -2 - i * 5) * k, (1.6 + i * 0.4) * k, Color(light, 0.5 + i * 0.2))
 			_cell(c, mid + Vector2(10, -4) * k, k, col, light, 0.7)

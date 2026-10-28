@@ -27,6 +27,7 @@ func _ready() -> void:
 	layer = 55
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build()
+	UISkin.restyle(self)   # (shown in game only: the in-game UI's look)
 	var bus := get_node_or_null("/root/SignalBus")
 	if bus:
 		# Never pops open mid-fight: it opens once the fight is over.

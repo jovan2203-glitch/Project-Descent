@@ -1,7 +1,8 @@
 extends CanvasLayer
 
-# In-game UI: bottom-left menu bar (Character / Talents / Bank / Inventory)
-# with small, movable windows, and an Esc menu (Resume / Settings / Quit).
+# In-game UI: the chat and meter panels (with the micro menu: Character /
+# Spellbook / Bank / Bags), small movable windows, the minimap and map, and an
+# Esc menu (Resume / Settings / Quit).
 # Nothing here pauses the game.
 
 const UI = preload("res://scripts/ui_kit.gd")
@@ -15,17 +16,21 @@ var _positioned := {}      # name -> true once given an initial position
 
 var esc_menu: PanelContainer
 var settings_panel: PanelContainer
+## Windows, the map and the Esc menu sit on a layer of their own, above the HUD,
+## the damage meter and the training panel (under Move UI and UI Options).
+const WINDOW_LAYER := 20
+var win_layer: CanvasLayer
 
-const CHAT_BOX = preload("res://scripts/ui/chat_box.gd")
 const DEBUG_OVERLAY = preload("res://scripts/ui/debug_overlay.gd")
 const COMBAT_VIGNETTE = preload("res://scripts/ui/combat_vignette.gd")
 var chat_box: PanelContainer
 
 func _ready() -> void:
-	_build_bar()
-	# Local chat (Chat / Logs tabs) above the bottom-left bar.
-	chat_box = CHAT_BOX.new()
-	add_child(chat_box)
+	win_layer = CanvasLayer.new()
+	win_layer.name = "Windows"
+	win_layer.layer = WINDOW_LAYER
+	add_child(win_layer)
+	_build_panels()
 	add_child(DEBUG_OVERLAY.new())
 	add_child(COMBAT_VIGNETTE.new())   # red screen edges while in combat
 	_build_maps()
@@ -40,14 +45,15 @@ func _ready() -> void:
 	var fade := func(c: Node):
 		if c is CanvasItem and c != esc_menu and c != settings_panel and c != map_panel and not (c is Node and c.get_script() == MAP_DATA):
 			settings.register_hud(c)
-	for c in get_children():
+	for c in get_children() + win_layer.get_children():
 		fade.call(c)
 	child_entered_tree.connect(fade)
+	win_layer.child_entered_tree.connect(fade)
 	# Settings > Interface > Move UI: these can be dragged too.
 	settings.move_ui_requested.connect(_start_move_ui)
-	for m in [[chat_box, "chat", "Chat"], [minimap, "minimap", "Minimap"], [_menu_bar, "menu_bar", "Menu Bar"]]:
-		if m[0] != null:
-			UILayout.register.call_deferred(get_tree(), m[0], m[1], m[2])
+	minimap.set_meta("ui_options", "minimap")
+	UIInstaller.open_if_new.call_deferred(get_tree())   # first time in a dungeon: pick a layout
+	UILayout.register.call_deferred(get_tree(), minimap, "minimap", "Minimap")
 
 # --- Items: inventory <-> equipment ---------------------------------------------
 
@@ -192,7 +198,8 @@ func _update_runes_panel() -> void:
 	var cw: PanelContainer = windows["Character"]
 	if _runes_panel == null:
 		_runes_panel = UI.runes_panel(190, 220, _pd().known_runes)
-		add_child(_runes_panel)
+		UISkin.skin_window(_runes_panel)
+		win_layer.add_child(_runes_panel)
 	_runes_panel.visible = cw.visible
 	if not cw.visible:
 		return
@@ -205,9 +212,7 @@ func _update_runes_panel() -> void:
 # Detect an inventory drag that was released over nothing (the game world):
 # that drops the item on the floor in front of the player.
 func _process(_delta: float) -> void:
-	if _map_hint and minimap:   # (the hint stays under the minimap when Move UI moves it)
-		_map_hint.global_position = minimap.global_position + Vector2(0, MINIMAP_SIZE + 2)
-	_fit_menu_bar()
+	_follow_minimap()
 	_update_runes_panel()
 	if _book_dirty and windows.has("Talents") and windows["Talents"].visible:
 		_refresh_spellbook()
@@ -235,8 +240,9 @@ func _mouse_over_ui() -> bool:
 	for p in panels:
 		if p.visible and p.get_global_rect().has_point(mouse):
 			return true
-	if _menu_bar and (_menu_bar.get_global_transform() * Rect2(Vector2.ZERO, _menu_bar.size)).has_point(mouse):
-		return true   # (uses the transform: the bar may be scaled down to fit)
+	for p in [chat_panel, meter_panel]:
+		if p and p.visible and p.get_global_rect().has_point(mouse):
+			return true
 	return false
 
 func _drop_on_floor(idx: int) -> void:
@@ -291,73 +297,42 @@ func _on_gear_clicked(slot: String) -> void:
 func _report(msg: String) -> void:
 	get_node("/root/SignalBus").action_error.emit(msg)
 
-# --- Bottom-left bar ---------------------------------------------------------
+# --- Panels and micro menu -------------------------------------------------------
+# Bottom-left: the chat panel (chat + an info strip whose left end is the micro
+# menu: Character / Spellbook / Bank / Bags / Meter). Bottom-right: the meter
+# panel (the damage meter docked in it). Both are HUD elements (scripts/ui/hud/).
 
-func _build_bar() -> void:
-	var bar := PanelContainer.new()
-	bar.anchor_top = 1.0
-	bar.anchor_bottom = 1.0
-	bar.offset_left = 16
-	bar.offset_top = -62
-	bar.offset_bottom = -14
-	bar.add_theme_stylebox_override("panel", UI.box(Color(0, 0, 0, 0.55), UI.BORDER, 1, 8))
-	add_child(bar)
-	_menu_bar = bar
+const CHAT_PANEL = preload("res://scripts/ui/hud/chat_panel.gd")
+const METER_PANEL = preload("res://scripts/ui/hud/meter_panel.gd")
+var chat_panel: HudElement
+var meter_panel: HudElement
 
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 6)
-	bar.add_child(row)
-
+func _build_panels() -> void:
+	chat_panel = CHAT_PANEL.new()
+	add_child(chat_panel)
+	chat_box = chat_panel.chat_box
+	meter_panel = METER_PANEL.new()
+	add_child(meter_panel)
 	# [window, button text, hotkey action]
 	var entries := [
-		["Character", "Character", "open_character"],
-		["Talents", "Spellbook", "open_talents"],
+		["Character", "Char", "open_character"],
+		["Talents", "Book", "open_talents"],
 		["Bank", "Bank", "open_bank"],
-		["Inventory", "Inventory", "open_inventory"],
+		["Inventory", "Bags", "open_inventory"],
 	]
 	var settings := get_node("/root/Settings")
+	var names := {"Character": "Character", "Talents": "Spellbook", "Bank": "Bank", "Inventory": "Inventory"}
 	for e in entries:
-		# Two lines for the long name so the bar stays clear of the action bar.
-		var two_lines: bool = str(e[1]).length() > 12
-		var b := UI.button(str(e[1]).replace(" & ", " &\n") if two_lines else e[1], 11 if two_lines else 13, Vector2(70, 32))
-		if two_lines:
-			for s in ["normal", "hover", "pressed", "hover_pressed"]:
-				var sb: StyleBoxFlat = b.get_theme_stylebox(s).duplicate()
-				sb.content_margin_top = 0
-				sb.content_margin_bottom = 0
-				b.add_theme_stylebox_override(s, sb)
-			b.add_theme_constant_override("line_spacing", -3)
+		var b: Button = chat_panel.add_button(e[1], "%s (%s)" % [names[e[0]], settings.key_text(e[2])])
 		b.toggle_mode = true
-		b.tooltip_text = "%s (%s)" % [e[1], settings.key_text(e[2])]
 		b.pressed.connect(_toggle_window.bind(e[0]))
-		row.add_child(b)
 		bar_buttons[e[0]] = b
 	# Details meter (damage / healing / buff uptime) - lives in the Details autoload.
-	var details := UI.button("Details", 13, Vector2(70, 32))
-	details.tooltip_text = "Details: damage / healing meter (%s)" % settings.key_text("open_details")
+	var details: Button = chat_panel.add_button("Meter", "Details: damage / healing meter (%s)" % settings.key_text("open_details"))
 	details.pressed.connect(func():
 		var d := get_node_or_null("/root/Details")
 		if d:
 			d.toggle_meter())
-	row.add_child(details)
-
-# The bar must never run into the action bar (hud.gd: 8 slots of 52 px, centered).
-# When it doesn't fit next to it, it shrinks (anchored at its bottom-left corner).
-const ACTION_BAR_HALF_W := (8 * 52.0 + 7 * 6.0 + 16.0) / 2.0
-const MENU_BAR_GAP := 10.0
-var _menu_bar: PanelContainer
-
-func _fit_menu_bar() -> void:
-	if _menu_bar == null:
-		return
-	var vp := get_viewport().get_visible_rect().size
-	var avail := vp.x * 0.5 - ACTION_BAR_HALF_W - MENU_BAR_GAP - _menu_bar.offset_left
-	var w := _menu_bar.get_combined_minimum_size().x
-	var s := clampf(avail / maxf(w, 1.0), 0.55, 1.0)
-	if _menu_bar.pivot_offset.y != _menu_bar.size.y:
-		_menu_bar.pivot_offset = Vector2(0, _menu_bar.size.y)
-	if not is_equal_approx(_menu_bar.scale.x, s):
-		_menu_bar.scale = Vector2(s, s)
 
 # --- Windows -----------------------------------------------------------------
 
@@ -392,7 +367,8 @@ func _build_windows() -> void:
 
 	for n in windows:
 		windows[n].visible = false
-		add_child(windows[n])
+		UISkin.skin_window(windows[n])
+		win_layer.add_child(windows[n])
 
 func _toggle_window(name: String) -> void:
 	if windows[name].visible:
@@ -433,7 +409,7 @@ const InspectWindow = preload("res://scripts/ui/inspect_window.gd")
 
 ## A party member's snapshot arrived (right-clicked their frame): show it.
 func _on_inspect(member: int, data: Dictionary) -> void:
-	InspectWindow.open(self, member, data)
+	UISkin.skin_window(InspectWindow.open(win_layer, member, data))
 
 ## `width` = the abilities column; the talents column is added to its right.
 func _build_spellbook(width: float, list_height: float) -> PanelContainer:
@@ -497,7 +473,7 @@ func _refresh_spellbook() -> void:
 	var locked := _in_combat()
 	_book_status.text = "In combat: abilities can't be changed until the fight ends." if locked \
 		else "Drag an ability onto your action bar. Drag a bar button here to take it off."
-	_book_status.add_theme_color_override("font_color", Color(1.0, 0.5, 0.4) if locked else UI.TEXT_DIM)
+	_book_status.add_theme_color_override("font_color", Color(1.0, 0.5, 0.4) if locked else UISkin.DIM)
 	var cats: Array = Categories.ORDER.duplicate()
 	cats.append(Categories.RUNE)   # spells taught by runes on your gear
 	cats.append("")   # abilities without a book
@@ -551,6 +527,7 @@ func _refresh_spellbook() -> void:
 					_book_list.add_child(krow)
 					for form in part[1]:
 						krow.add_child(_spellbook_slot(str(form), locked, false))
+	UISkin.restyle(_book_list)
 
 ## Weapon id -> its dropdown is open (the Wheel, Martial warrior).
 var _wheel_open := {}
@@ -610,7 +587,9 @@ var minimap: Control
 var map_panel: PanelContainer
 var _map_title: Label
 
-var _map_hint: Label
+var _map_hint: Label           # the clock under the minimap
+var _map_name: Label           # the dungeon's name above it
+var _clock_t := 0.0
 
 func _build_maps() -> void:
 	map_data = MAP_DATA.new()
@@ -626,19 +605,26 @@ func _build_maps() -> void:
 	minimap.offset_top = 16
 	minimap.offset_bottom = 16 + MINIMAP_SIZE
 	add_child(minimap)
-	var hint := UI.label("", 11, UI.TEXT_DIM)
-	hint.anchor_left = 1.0
-	hint.anchor_right = 1.0
-	hint.offset_left = -MINIMAP_SIZE - 16
-	hint.offset_right = -16
-	hint.offset_top = 16 + MINIMAP_SIZE + 2
-	hint.offset_bottom = 16 + MINIMAP_SIZE + 18
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	# A 1 px frame, the dungeon's name above it and a clock under it (UI Options > Minimap).
+	var frame := Panel.new()
+	frame.set_anchors_preset(Control.PRESET_FULL_RECT)
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_theme_stylebox_override("panel", UISkin.backdrop(0.0))
+	minimap.add_child(frame)
+	_map_name = UISkin.label("", 12, Color(1.0, 0.85, 0.5))
+	_map_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	add_child(_map_name)
+	var hint := UISkin.label("", 11, UISkin.DIM)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(hint)
 	_map_hint = hint
-	var set_hint := func(): hint.text = "Map (%s)" % get_node("/root/Settings").key_text("open_map")
+	var set_hint := func(): minimap.tooltip_text = "Map (%s)" % get_node("/root/Settings").key_text("open_map")
 	set_hint.call()
 	get_node("/root/Settings").keybinds_changed.connect(set_hint)
+	get_node("/root/Settings").ui_config_changed.connect(func(elem: String):
+		if elem == "minimap" or elem == "" or elem == "general":
+			_apply_minimap())
+	_apply_minimap()
 
 	map_panel = PanelContainer.new()
 	map_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -670,7 +656,38 @@ func _build_maps() -> void:
 	v.add_child(full)
 	v.add_child(UI.label("You · enemies · elites · chests · exit.  Dark areas are unexplored.", 12, UI.TEXT_DIM))
 	map_panel.visible = false
-	add_child(map_panel)
+	UISkin.skin_window(map_panel)
+	win_layer.add_child(map_panel)
+
+## Size from UI Options > Minimap.
+func _apply_minimap() -> void:
+	var s := float(UIConfig.value("minimap", "size"))
+	minimap.custom_minimum_size = Vector2(s, s)
+	minimap.size = Vector2(s, s)
+	minimap.visible = bool(UIConfig.value("minimap", "enabled"))
+	_map_name.visible = minimap.visible and bool(UIConfig.value("minimap", "show_name"))
+	_map_hint.visible = minimap.visible and bool(UIConfig.value("minimap", "show_clock"))
+	_clock_t = 0.0
+
+## The name and clock stay with the minimap when Move UI moves it.
+func _follow_minimap() -> void:
+	if minimap == null or _map_hint == null:
+		return
+	var r := minimap.get_global_rect()
+	_map_name.size = Vector2(r.size.x, 16)
+	_map_name.global_position = r.position - Vector2(0, 17) if r.position.y > 20.0 else r.position + Vector2(0, 2)
+	_map_hint.size = Vector2(r.size.x, 16)
+	_map_hint.global_position = Vector2(r.position.x, r.end.y + 1)
+	_clock_t -= get_process_delta_time()
+	if _clock_t > 0.0:
+		return
+	_clock_t = 1.0
+	var t := Time.get_time_dict_from_system()
+	_map_hint.text = "%02d:%02d" % [int(t["hour"]), int(t["minute"])]
+	var scene := get_tree().current_scene
+	var title: Variant = scene.get("map_title") if scene else null
+	var depth: Variant = scene.get("depth") if scene else null
+	_map_name.text = str(title) if title != null and str(title) != "" else ("Floor %d" % int(depth) if depth != null else "")
 
 func toggle_map() -> void:
 	map_panel.visible = not map_panel.visible
@@ -687,13 +704,13 @@ func toggle_map() -> void:
 		map_panel.move_to_front()
 
 # --- Window placement ----------------------------------------------------------
-# Windows open in the free area between the HUD (health/resources top-left,
-# chat bottom-left, action bar bottom-center): from the right edge leftwards,
+# Windows open in the free area between the HUD (chat bottom-left, meter
+# bottom-right, frames and action bars bottom-center): from the right edge leftwards,
 # next to windows that are already open, instead of piling on each other.
 
 const SCREEN_MARGIN := 12.0
 const TOP_RESERVED := 44.0       # dungeon header
-const BOTTOM_RESERVED := 112.0   # action bar + XP bar
+const BOTTOM_RESERVED := 150.0   # action bars, unit frames and cast bars
 
 func _usable_rect() -> Rect2:
 	var vp := get_viewport().get_visible_rect().size
@@ -719,8 +736,10 @@ func _free_spot(win: Control) -> Vector2:
 			taken.append(Rect2(o.position, o.size).grow(4.0))
 	if _runes_panel and _runes_panel.visible:
 		taken.append(Rect2(_runes_panel.position, _runes_panel.size).grow(4.0))
-	# HUD you should never have covered: health / resources / buffs, the chat.
-	var hud: Array[Rect2] = [Rect2(0, 0, 350, 170)]
+	# HUD you should never have covered: the minimap, the chat and meter panels.
+	var hud: Array[Rect2] = []
+	if meter_panel and meter_panel.visible:
+		hud.append(meter_panel.get_global_rect().grow(4.0))
 	if minimap:
 		hud.append(minimap.get_global_rect().grow_individual(4, 4, 4, 20))
 	var attr := get_node_or_null("/root/AttributeScreen")
@@ -765,22 +784,16 @@ func _close_window(name: String) -> void:
 
 func _build_esc_menu() -> void:
 	esc_menu = _small_panel("Menu")
-	esc_menu.offset_top = -150
-	esc_menu.offset_bottom = 130
+	esc_menu.offset_left = -110
+	esc_menu.offset_right = 110
+	esc_menu.offset_top = -105
+	esc_menu.offset_bottom = 105
 	var content: VBoxContainer = esc_menu.get_meta("content")
-	var resume := UI.button("Resume", 18, Vector2(0, 42))
-	resume.pressed.connect(_hide_esc)
-	content.add_child(resume)
-	var settings := UI.button("Settings", 18, Vector2(0, 42))
-	settings.pressed.connect(_open_settings)
-	content.add_child(settings)
-	var macros := UI.button("Macros", 18, Vector2(0, 42))
-	macros.pressed.connect(_open_macros)
-	content.add_child(macros)
-	var quit := UI.button("Quit", 18, Vector2(0, 42))
-	quit.pressed.connect(_quit_to_menu)
-	content.add_child(quit)
-	add_child(esc_menu)
+	for e in [["Resume", _hide_esc], ["Settings", _open_settings], ["Macros", _open_macros], ["Quit", _quit_to_menu]]:
+		var b := UIWindow.button(e[0], Vector2(0, 32))
+		b.pressed.connect(e[1])
+		content.add_child(b)
+	win_layer.add_child(esc_menu)
 	esc_menu.visible = false
 
 func _build_settings() -> void:
@@ -791,10 +804,11 @@ func _build_settings() -> void:
 	settings_panel.offset_bottom = 250
 	var content: VBoxContainer = settings_panel.get_meta("content")
 	content.add_child(get_node("/root/Settings").build_settings_ui())
-	var back := UI.button("Back", 18, Vector2(0, 42))
+	var back := UIWindow.button("Back", Vector2(0, 32))
 	back.pressed.connect(_back_from_settings)
 	content.add_child(back)
-	add_child(settings_panel)
+	UISkin.skin_window(settings_panel)
+	win_layer.add_child(settings_panel)
 	settings_panel.visible = false
 
 func _small_panel(title: String) -> PanelContainer:
@@ -807,18 +821,19 @@ func _small_panel(title: String) -> PanelContainer:
 	p.offset_right = 130
 	p.offset_top = -130
 	p.offset_bottom = 110
-	var sb := UI.box(UI.PANEL_BG, UI.BORDER, 2, 10)
-	sb.content_margin_left = 18
-	sb.content_margin_right = 18
-	sb.content_margin_top = 14
-	sb.content_margin_bottom = 18
-	p.add_theme_stylebox_override("panel", sb)
+	p.add_theme_stylebox_override("panel", UISkin.backdrop(0.97, 12))
+	p.theme = UISkin.theme()
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 10)
+	v.add_theme_constant_override("separation", 6)
 	p.add_child(v)
-	var t := UI.label(title, 22, UI.ACCENT)
+	var t := UISkin.label(title, 16, UISkin.accent())
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(t)
+	var line := ColorRect.new()
+	line.color = UISkin.INNER
+	line.custom_minimum_size = Vector2(0, 1)
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(line)
 	p.set_meta("content", v)
 	return p
 
@@ -846,8 +861,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		var player := get_tree().get_first_node_in_group("player")
 		if player and player.has_method("cancel_placement") and player.cancel_placement():
 			return   # Esc cancels spell placement first
-		if InspectWindow.is_open(self):
-			InspectWindow.close(self)
+		if InspectWindow.is_open(win_layer):
+			InspectWindow.close(win_layer)
 		elif settings_panel.visible:
 			_back_from_settings()
 		elif esc_menu.visible:
@@ -882,7 +897,7 @@ const MacroWindow = preload("res://scripts/ui/macro_window.gd")
 ## Macros: write them here, then drag one onto an action-bar slot.
 func _open_macros() -> void:
 	_hide_esc()
-	MacroWindow.open(self, true)
+	UISkin.skin_window(MacroWindow.open(self, true))
 
 func _back_from_settings() -> void:
 	settings_panel.visible = false

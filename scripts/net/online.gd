@@ -336,6 +336,7 @@ func get_friends() -> Array:
 			"status": "In game" if playing else PERSONA_STATES[clampi(st, 0, PERSONA_STATES.size() - 1)],
 			"playing": playing,
 			"in_party": _net().members.has(fid),
+			"lobby": int(game.get("lobby", 0)) if playing else 0,   # their party's lobby (0 = none)
 		})
 	out.sort_custom(func(a, b):
 		var ra := 2 if a["playing"] else (1 if a["online"] else 0)

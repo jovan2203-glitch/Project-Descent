@@ -19,6 +19,13 @@ var bottom := -40.0:
 
 var _label: Label
 var _tween: Tween
+## No box: outlined text only (the in-game HUD's messages).
+var plain := false
+var font_size := 18:
+	set(v):
+		font_size = v
+		if _label:
+			_label.add_theme_font_size_override("font_size", v)
 
 func _init() -> void:
 	anchor_left = 0.5
@@ -41,6 +48,9 @@ func _init() -> void:
 	_style(ERROR)
 
 func _style(col: Color) -> void:
+	if plain:
+		add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+		return
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.05, 0.045, 0.06, 0.94)
 	sb.border_color = col.darkened(0.15)

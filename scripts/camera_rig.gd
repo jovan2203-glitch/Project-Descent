@@ -25,6 +25,12 @@ func _ready() -> void:
 	camera = get_node_or_null("Camera3D")
 	if camera:
 		base_offset = camera.position
+	# Take the height offset from the scene as authored, before the level moves the
+	# player to its spawn. Taken later, a spawn on a raised or lowered floor got
+	# baked into the offset and the view stayed off-centre for the whole run.
+	if target:
+		_has_height = true
+		_height_offset = follow_offset(global_position.y, target.global_position.y)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:

@@ -176,7 +176,15 @@ func _friend_row(f: Dictionary) -> Control:
 	row.add_child(info)
 	if f["in_party"]:
 		row.add_child(UI.label("In party", 12, UI.ACCENT))
-	elif f["online"]:
+		return row
+	# In this game with a party of their own: join it (version / full checks still apply).
+	var lobby := int(f.get("lobby", 0))
+	if lobby != 0 and lobby != int(_online().lobby_id) and _net().run.is_empty():
+		var j := UI.button("Join", 13, Vector2(52, 28))
+		j.tooltip_text = "Join %s's party" % str(f["name"])
+		j.pressed.connect(_online().join_party.bind(lobby))
+		row.add_child(j)
+	if f["online"]:
 		var b := UI.button("Invite", 13, Vector2(64, 28))
 		b.disabled = not _online().is_leader()
 		if b.disabled:

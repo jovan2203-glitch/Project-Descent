@@ -11,7 +11,8 @@ class_name UILayout
 # A moved element is saved as the nearest of 9 screen anchors (corners, edge
 # middles, centre) plus an offset from it (Settings.ui_layout), so it stays put
 # when the window size or the interface size changes. Elements that were never
-# moved keep the HUD's own layout. HUD code registers each element once:
+# moved go where the role layout (UIConfig.preset_spot) puts them, else keep
+# the HUD's own layout. HUD code registers each element once:
 #   UILayout.register(get_tree(), node, "target_frame", "Target Frame", true)
 
 const OVERLAY_LAYER := 100
@@ -81,12 +82,15 @@ func _screen() -> Vector2:
 func _settings() -> Node:
 	return get_node_or_null("/root/Settings")
 
+## Where the player put it, else where the role layout puts it ({} = the code's own spot).
 func _saved(key: String) -> Dictionary:
 	var s := _settings()
 	if s == null:
 		return {}
 	var d: Variant = (s.get("ui_layout") as Dictionary).get(key, {}) if s.get("ui_layout") is Dictionary else {}
-	return d if d is Dictionary else {}
+	if d is Dictionary and not d.is_empty():
+		return d
+	return UIConfig.preset_spot(key)
 
 func _store(key: String, d: Dictionary) -> void:
 	var s := _settings()
@@ -99,7 +103,7 @@ func _store(key: String, d: Dictionary) -> void:
 	s.save()
 
 static func _size_of(c: Control) -> Vector2:
-	var s := c.size
+	var s := c.size * c.scale
 	return Vector2(maxf(s.x, 1.0), maxf(s.y, 1.0))
 
 # --- Anchor + offset math (static: tests/test_ui_layout.gd) -----------------------------------
@@ -240,6 +244,10 @@ func _top_bar() -> Control:
 		_close_nudge()
 		_restore_defaults())
 	row.add_child(reset_all)
+	var opts := Button.new()
+	opts.text = "UI Options"
+	opts.pressed.connect(func(): UIOptions.open(get_tree()))
+	row.add_child(opts)
 	var lock := Button.new()
 	lock.text = "Lock"
 	lock.pressed.connect(stop_edit)
@@ -381,16 +389,43 @@ func _open_nudge(key: String, m: Control) -> void:
 		var dir: Vector2 = a[1]
 		b.pressed.connect(func(): _move_by(key, dir * (NUDGE_BIG if Input.is_key_pressed(KEY_CTRL) else NUDGE)))
 		arrows.add_child(b)
+	var row := HBoxContainer.new()
+	v.add_child(row)
 	var reset := Button.new()
 	reset.text = "Reset"
+	reset.tooltip_text = "Back to where the layout you picked puts it."
 	reset.pressed.connect(func():
 		_store(key, {})
 		_restore_defaults()
 		_close_nudge())
-	v.add_child(reset)
+	row.add_child(reset)
+	var opts_key := options_key(key)
+	if opts_key != "":
+		var opts := Button.new()
+		opts.text = "Options"
+		opts.pressed.connect(func():
+			_close_nudge()
+			if opts_key.begins_with("tracker:"):
+				TrackerEditor.open(get_tree(), opts_key.trim_prefix("tracker:"))
+			else:
+				UIOptions.open(get_tree(), opts_key))
+		row.add_child(opts)
 	_overlay.add_child(_nudge)
 	_nudge.global_position = (m.get_global_rect().end + Vector2(6, 0)).min(_screen() - Vector2(220, 140))
 	_refresh_nudge()
+
+## The UI Options page of a mover's element: a HUD element's key, an element's
+## "ui_options" meta (the chat, the minimap), a tracker's "tracker:<id>".
+func options_key(key: String) -> String:
+	if key.begins_with("tracker:"):
+		return key
+	var c: Variant = entries.get(key, {}).get("node")
+	if c == null or not is_instance_valid(c):
+		return ""
+	if (c as Node).has_meta("ui_options"):
+		return str((c as Node).get_meta("ui_options"))
+	var k: Variant = (c as Object).get("key")
+	return str(k) if k is String and UIConfig.schema().has(str(k)) else ""
 
 func _spin(parent: Control, label: String) -> SpinBox:
 	var l := Label.new()

@@ -27,6 +27,8 @@ const Builder = preload("res://scripts/dungeon/biome_builder.gd")
 const DB = preload("res://scripts/dungeon/dungeon_db.gd")
 const BOSS_KIT = preload("res://scripts/dungeon/boss_kit.gd")
 const FX = preload("res://scripts/dungeon/boss_abilities.gd")
+const Look = preload("res://scripts/dungeon/mechanic_look.gd")
+const SET_PIECES = preload("res://scripts/dungeon/set_pieces.gd")
 const ELITE_TRAITS = preload("res://scripts/core/elite_traits.gd")
 const CHEST = preload("res://scripts/dungeon/chest.gd")
 const UI = preload("res://scripts/ui_kit.gd")
@@ -63,6 +65,7 @@ var _complete := false
 var _safe_room := 0
 var _add_serial := 0
 var _builder: RefCounted
+var _set_pieces: Node
 var map_title := ""
 
 # Run stats for the clear screen.
@@ -89,7 +92,10 @@ func _ready() -> void:
 	modifiers = Array(gm.dungeon_modifiers) if gm else []
 	map_title = Names.t(str(recipe.name_key))
 	var boss_count := clampi(recipe.bosses.size(), 1, 4)
-	layout = Layouts.build(str(recipe.layout), rng, boss_count, int(recipe.rooms_per_section))
+	if recipe.layout_scene:
+		layout = Layouts.from_scene(recipe.layout_scene)
+	else:
+		layout = Layouts.build(str(recipe.layout), rng, boss_count, int(recipe.rooms_per_section))
 	rooms = layout["rooms"]
 	links = layout["links"]
 	for k in boss_count:
@@ -104,23 +110,29 @@ func _ready() -> void:
 	# Geometry + look.
 	var kit: Resource = recipe.biome
 	_builder = Builder.new(kit, layout, seed_used)
-	_builder.darkness = modifiers.has("darkness")
-	var rock: CSGCombiner3D = _builder.build_rock(level_root)
-	_builder.dress(level_root)
+	Look.theme = kit.mechanic_theme if kit else null
+	# Finished art (a hand-made map's art_scene) replaces the generated greybox.
+	var art: Node3D = recipe.art_scene.instantiate() if recipe.art_scene else null
+	var rock: CSGCombiner3D = null
+	if art:
+		level_root.add_child(art)
+	else:
+		rock = _builder.build_rock(level_root)
+		_builder.dress(level_root)
 	var we := get_node_or_null("WorldEnvironment") as WorldEnvironment
 	if we and we.environment:
 		we.environment = we.environment.duplicate()
 		_builder.apply_environment(we.environment)
-	if modifiers.has("darkness"):
-		var lantern := player.get_node_or_null("Lantern") as OmniLight3D
-		if lantern:
-			lantern.omni_range = 6.5
-			lantern.light_energy = 1.6
 	_build_gates()
 	_build_boss_triggers()
 	_build_exit()
 	_build_objective_markers()
 	_populate()
+	_set_pieces = SET_PIECES.new()
+	_set_pieces.name = "SetPieces"
+	_set_pieces.dungeon = self
+	add_child(_set_pieces)
+	_set_pieces.build()
 	# Player start.
 	var offset: Vector3 = _net().spawn_offset() if _net() else Vector3.ZERO
 	player.global_position = rooms[0]["center"] + Vector3(0, 1.0, 0) + offset
@@ -138,8 +150,8 @@ func _ready() -> void:
 	nav.bake_max_y = hi + 1.5
 	# On a descent the tops of the lower levels' walls are inside that height
 	# band: without this they were baked as floor and drawn on the map as rooms.
-	nav.floor_filter = _builder.is_floor
-	nav.bake_from(rock)
+	nav.floor_filter = func(p: Vector3) -> bool: return _builder.is_floor(p) or _set_pieces.is_floor(p)   # + platform tops and stairs
+	nav.bake_from(rock if rock else art)
 	# Performance: once the navmesh is baked, split the rock into per-cell meshes.
 	var start_chunker := func():
 		var ch := Node.new()
@@ -147,7 +159,8 @@ func _ready() -> void:
 		ch.rock = rock
 		ch.cell = float(layout.get("cell", 22.0))
 		add_child(ch)
-	nav.bake_finished.connect(start_chunker, CONNECT_ONE_SHOT)
+	if rock:
+		nav.bake_finished.connect(start_chunker, CONNECT_ONE_SHOT)
 	_build_ui()
 	var bus := get_node("/root/SignalBus")
 	bus.enemy_died.connect(_on_enemy_died)
@@ -190,7 +203,15 @@ func _setup_sections(boss_count: int) -> void:
 		var sec: Dictionary = sections[k]
 		if sec["objective"] == "survive_waves" or sec["objective"] == "defend":
 			var best := -1
+			# A hand-made map can mark the spot (SetPieceMarker defend_spot).
 			for i in sec["rooms"]:
+				for pc in rooms[i].get("pieces", []):
+					if str(pc["kind"]) == "defend_spot" and best < 0:
+						best = i
+						sec["spot"] = pc["at"]
+			for i in sec["rooms"]:
+				if sec.has("spot"):
+					break
 				if rooms[i]["kind"] == "combat" and (best < 0 or rooms[i]["size"].x * rooms[i]["size"].y > rooms[best]["size"].x * rooms[best]["size"].y):
 					best = i
 			if best < 0:
@@ -203,18 +224,28 @@ func _setup_sections(boss_count: int) -> void:
 
 # --- Enemies ---------------------------------------------------------------------------------
 
-func _roster_skin(role: String) -> Dictionary:
-	var roster: Dictionary = recipe.roster
+## Room ri's roster: its own (recipe.rosters[room.roster]) or the main one.
+func _roster(ri: int) -> Dictionary:
+	if ri >= 0 and ri < rooms.size():
+		var key := str(rooms[ri].get("roster", ""))
+		if key != "" and recipe.rosters.has(key):
+			return recipe.rosters[key]
+	return recipe.roster
+
+func _roster_skin(role: String, ri := -1) -> Dictionary:
+	var roster := _roster(ri)
 	if roster.has(role):
 		return roster[role]
+	if recipe.roster.has(role):
+		return recipe.roster[role]
 	# A role the roster doesn't have: dress it as the first skin.
 	for k in roster:
 		return roster[k]
 	return {"scene": "res://scenes/zombie.tscn"}
 
-func _pick_role(r: RandomNumberGenerator, allow_swarm := true) -> String:
+func _pick_role(r: RandomNumberGenerator, allow_swarm := true, ri := -1) -> String:
 	var total := 0.0
-	var roster: Dictionary = recipe.roster
+	var roster := _roster(ri)
 	for k in roster:
 		if allow_swarm or k != "swarmer":
 			total += float(roster[k].get("weight", 1.0))
@@ -228,8 +259,8 @@ func _pick_role(r: RandomNumberGenerator, allow_swarm := true) -> String:
 	return str(roster.keys()[0]) if not roster.is_empty() else "brute"
 
 ## Build one enemy (not yet in the tree).
-func _make_enemy(role: String, rank: String, enemy_name: String, r: RandomNumberGenerator) -> Node3D:
-	var skin := _roster_skin(role)
+func _make_enemy(role: String, rank: String, enemy_name: String, r: RandomNumberGenerator, ri := -1) -> Node3D:
+	var skin := _roster_skin(role, ri)
 	var scene: PackedScene = load(str(skin.get("scene", "res://scenes/zombie.tscn")))
 	var e: Node3D = scene.instantiate()
 	e.name = enemy_name
@@ -245,22 +276,47 @@ func _make_enemy(role: String, rank: String, enemy_name: String, r: RandomNumber
 
 ## A pack of `slots` (swarmers count triple) + `elites` in room `ri`.
 func _spawn_pack(ri: int, slots: int, elites: int, prefix: String, r: RandomNumberGenerator, section: int) -> Array:
-	var room: Dictionary = rooms[ri]
 	var plan: Array = []   # [role, rank]
 	for n in elites:
-		plan.append([_pick_role(r, false), "elite"])
+		plan.append([_pick_role(r, false, ri), "elite"])
 	for n in slots:
-		var role := _pick_role(r)
+		var role := _pick_role(r, true, ri)
 		for k in Roles.pack_count(role):
 			if plan.size() < MAX_PACK:
 				plan.append([role, "normal"])
-	var pts := _points(room, plan.size(), r)
+	return _spawn_plan(ri, plan, _points(rooms[ri], plan.size(), r), prefix, r, section)
+
+## A hand-placed pack (a PackMarker): exactly its roles, around its spot.
+func _spawn_marker_pack(ri: int, pack: Dictionary, prefix: String, r: RandomNumberGenerator, section: int) -> Array:
+	var plan: Array = []
+	for n in int(pack.get("elites", 0)):
+		plan.append([_pick_role(r, false, ri), "elite"])
+	for role in pack.get("roles", []):
+		if plan.size() < MAX_PACK:
+			plan.append([str(role), "normal"])
+	var at: Vector3 = pack["at"]
+	var pts: Array = []
+	for i in plan.size():
+		var a := TAU * float(i) / float(maxi(plan.size(), 1)) + r.randf_range(-0.3, 0.3)
+		var rad := 0.0 if plan.size() == 1 else 1.4 + 0.25 * plan.size()
+		pts.append(at + Vector3(cos(a), 0, sin(a)) * rad)
+	var out := _spawn_plan(ri, plan, pts, prefix, r, section)
+	if pack.get("keybearer", false):
+		for e in out:
+			if e.rank == "elite":
+				_make_keybearer(e)
+	return out
+
+func _spawn_plan(ri: int, plan: Array, pts: Array, prefix: String, r: RandomNumberGenerator, section: int) -> Array:
+	var room: Dictionary = rooms[ri]
 	var out: Array = []
 	for i in plan.size():
-		var e := _make_enemy(plan[i][0], plan[i][1], "%s_E%d" % [prefix, i], r)
+		var e := _make_enemy(plan[i][0], plan[i][1], "%s_E%d" % [prefix, i], r, ri)
 		e.set_meta("section", section)
-		var p: Vector2 = pts[i]
-		e.position = enemies_root.to_local(Vector3(p.x, room["center"].y + e.ground_offset(), p.y))
+		# A point is (x, z) on the room's floor, or a Vector3 (on a platform).
+		var p: Variant = pts[i]
+		var at: Vector3 = p if p is Vector3 else Vector3(p.x, room["center"].y, p.y)
+		e.position = enemies_root.to_local(at + Vector3(0, e.ground_offset(), 0))
 		e.rotation.y = r.randf() * TAU
 		enemies_root.add_child(e)
 		out.append(e)
@@ -291,8 +347,19 @@ func _populate() -> void:
 	r.seed = seed_used + 1234
 	# Keybearer sections: make sure two rooms have an elite.
 	var key_rooms := {}
+	# Hand-placed packs first (hand-made maps).
+	var marker_keys := {}   # section -> true when a PackMarker carries its keys
+	for i in rooms.size():
+		var packs: Array = rooms[i].get("packs", [])
+		var s := int(rooms[i]["section"])
+		for n in packs.size():
+			var pack := _spawn_marker_pack(i, packs[n], "R%dP%d" % [i, n], r, s)
+			if packs[n].get("keybearer", false):
+				marker_keys[s] = true
+			if s >= 0 and s < sections.size():
+				sections[s]["total"] = int(sections[s]["total"]) + pack.size()
 	for k in sections.size():
-		if sections[k]["objective"] != "key_elites":
+		if sections[k]["objective"] != "key_elites" or marker_keys.has(k):
 			continue
 		var cands: Array = sections[k]["rooms"].filter(func(i): return rooms[i]["kind"] in ["combat", "side"])
 		cands.sort()
@@ -300,7 +367,7 @@ func _populate() -> void:
 			key_rooms[cands[n]] = true
 	for i in rooms.size():
 		var room: Dictionary = rooms[i]
-		if not (room["kind"] in ["combat", "side", "channel"]):
+		if not (room["kind"] in ["combat", "side", "channel"]) or room.get("no_random", false):
 			continue
 		var s := int(room["section"])
 		var slots := r.randi_range(int(recipe.pack_min), int(recipe.pack_max))
@@ -505,7 +572,7 @@ func _build_objective_markers() -> void:
 		var sec: Dictionary = sections[k]
 		if str(sec["objective"]) != "defend":
 			continue
-		var c: Vector3 = rooms[int(sec["special"])]["center"]
+		var c := _defend_center(k)
 		var root := Node3D.new()
 		level_root.add_child(root)
 		root.position = c + Vector3(0, 0.04, 0)
@@ -551,6 +618,11 @@ func _build_objective_markers() -> void:
 		root.add_child(label)
 		_circles[k] = {"root": root, "fill": fill}
 
+## Middle of section k's defend circle (its marked spot, else the room's middle).
+func _defend_center(k: int) -> Vector3:
+	var sec: Dictionary = sections[k]
+	return sec["spot"] if sec.has("spot") else rooms[int(sec["special"])]["center"]
+
 func _update_circle(k: int) -> void:
 	if not _circles.has(k):
 		return
@@ -574,9 +646,10 @@ func _defend_spawn(k: int, n: int) -> void:
 ## Host / solo: `count` enemies of `role` appear around `at` (or around the
 ## room's edge when a room is given) and go for the nearest player.
 func summon_adds(at: Vector3, count: int, role: String, owner: Node = null,
-		room_center := Vector3.INF, room_half := Vector2.ZERO) -> void:
+		room_center := Vector3.INF, room_half := Vector2.ZERO) -> Array:
+	var made: Array = []
 	if _net_client():
-		return
+		return made
 	var names: Array = []
 	var pts: Array = []
 	var start := randf() * TAU
@@ -592,16 +665,18 @@ func summon_adds(at: Vector3, count: int, role: String, owner: Node = null,
 	var owner_name := str(owner.name) if owner and is_instance_valid(owner) else ""
 	for i in names.size():
 		var e := _spawn_add(str(names[i]), pts[i], role, owner_name)
+		made.append(e)
 		var tgt := _nearest_body(e.global_position)
 		if tgt:
 			e.add_threat(tgt, 1.0)
 	if _net() and _net().is_host():
 		_net().dungeon_event("adds", {"names": names, "pts": pts, "role": role, "owner": owner_name})
+	return made
 
 func _spawn_add(add_name: String, at: Vector3, role: String, owner_name: String) -> Node3D:
 	var r := RandomNumberGenerator.new()
 	r.seed = hash(add_name) + seed_used
-	var e := _make_enemy(role, "normal", add_name, r)
+	var e := _make_enemy(role, "normal", add_name, r, _room_at(at))
 	e.set_meta("summoned_by", owner_name)
 	e.position = enemies_root.to_local(at + Vector3(0, e.ground_offset(), 0))
 	e.rotation.y = randf() * TAU
@@ -916,7 +991,11 @@ func _complete_dungeon() -> void:
 		"xp": _xp,
 		"bosses": boss_dead.count(true),
 		"level": enemy_level,
+		"id": str(recipe.id),
+		"diff": str(get_node("/root/GameManager").difficulty),
 	}
+	# Best clear times per difficulty (the Play screen shows them).
+	summary["best"] = get_node("/root/PlayerData").record_clear(summary["id"], summary["diff"], summary["time"])
 	get_node("/root/SignalBus").dungeon_cleared.emit(summary)
 	var gl := get_node_or_null("/root/GameLog")
 	if gl:
@@ -989,6 +1068,9 @@ func net_event(ev: String, data: Dictionary) -> void:
 				_spawn_add(str(names[i]), pts[i], str(data.get("role", "swarmer")), str(data.get("owner", "")))
 		"complete":
 			_complete_dungeon()
+		"bell", "ballista", "ballista_load":
+			if _set_pieces:
+				_set_pieces.net_event(ev, data)
 
 # --- Per-frame (host / solo runs the dungeon) ------------------------------------------------------
 
@@ -1046,7 +1128,7 @@ func _process(delta: float) -> void:
 						else:
 							_host_wave(k, int(sec["wave"]) + 1)
 			"defend":
-				var c: Vector3 = rooms[int(sec["special"])]["center"]
+				var c := _defend_center(k)
 				var inside := false
 				for b in bodies:
 					if is_instance_valid(b) and b.is_alive() and Vector2(b.global_position.x - c.x, b.global_position.z - c.z).length() <= DEFEND_RADIUS:
@@ -1099,6 +1181,8 @@ func _build_ui() -> void:
 	_ui.layer = 3
 	_ui.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_ui)
+	# Banners and panels shown later get the in-game UI's look once built.
+	_ui.child_entered_tree.connect(func(c: Node): UISkin.restyle.call_deferred(c))
 	_header = UI.label("", 16, UI.ACCENT)
 	_header.anchor_left = 0.5
 	_header.anchor_right = 0.5
@@ -1284,7 +1368,7 @@ func _show_clear_screen(s: Dictionary) -> void:
 	var v: VBoxContainer = panel.get_meta("content")
 	var secs := int(s["time"])
 	for line in [
-		"Time: %d:%02d" % [secs / 60, secs % 60],
+		"Time: %d:%02d%s" % [secs / 60, secs % 60, "  (new best!)" if s.get("best", false) else ""],
 		"Bosses defeated: %d" % int(s["bosses"]),
 		"Enemies slain: %d" % int(s["kills"]),
 		"Items looted: %d" % int(s["loot"]),

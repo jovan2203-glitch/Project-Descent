@@ -522,3 +522,6 @@ func _sync() -> void:
 func _tell() -> void:
 	_told = _now()
 	player._net_fx("brawler", player.global_position, null, {"i": _chain if _shown != "" else [], "b": bare_hands(), "o": _shown != ""})
+
+func tracker_values() -> Dictionary:
+	return {"chain": {"value": _chain.size(), "max": Balance.CHAIN_LENGTH}, "bruise": _bruise}

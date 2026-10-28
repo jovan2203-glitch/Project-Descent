@@ -40,12 +40,12 @@ func test_snapping() -> void:
 	assert_eq(Layout.snapped_pos(Vector2(613, 0), Vector2(50, 20), 0, [640.0], []).x, 615.0)
 
 func test_the_hud_registers_its_pieces() -> void:
-	var hud := FileAccess.get_file_as_string("res://scripts/hud.gd")
-	for key in ["health", "resources", "cast_bar", "target_frame", "party_frames", "buffs", "action_bar", "xp_bar", "messages"]:
+	var hud := HudSource.text()
+	for key in ["player_frame", "cast_bar", "target_frame", "target_cast", "party_frames", "buffs", "debuffs",
+			"action_bar", "extra_bar_%d", "xp_bar", "messages", "chat", "meter", "venom", "wheel", "chain", "sharpshooter"]:
 		assert_true(hud.contains("\"%s\"" % key), "%s can be moved" % key)
 	var ui := FileAccess.get_file_as_string("res://scripts/game_ui.gd")
-	for key in ["chat", "minimap", "menu_bar"]:
-		assert_true(ui.contains("\"%s\"" % key), "%s can be moved" % key)
+	assert_true(ui.contains("\"minimap\""), "the minimap can be moved")
 	assert_true(ui.contains("Can't move the interface in combat"), "only out of combat")
 
 func test_edit_mode_opens_moves_and_locks() -> void:

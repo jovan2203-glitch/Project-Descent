@@ -12,6 +12,7 @@ const PARTY_MODEL = preload("res://assets/player/Idle.fbx")
 var social: PanelContainer
 var _party_slots: Array[Button] = []
 var _you_label: Label
+var _you_sub: Label   # "Lv 12  •  Spec" under your name
 var _queue_banner: Label
 var _party_row: HBoxContainer
 
@@ -128,8 +129,9 @@ func _refresh_party() -> void:
 			var info: Dictionary = net.members.get(others[i], {})
 			var lead := "★ " if int(others[i]) == int(net.host_member) else ""
 			slot.text = ""
-			who.text = "%s%s\nLv %d" % [lead, str(info.get("name", "?")), int(info.get("level", 1))]
+			who.text = "%s%s\n%s" % [lead, str(info.get("name", "?")), _level_spec_line(info)]
 			who.visible = true
+			_show_spec(slot, info)
 			slot.tooltip_text = str(info.get("name", "?")) + (" (party leader)" if lead != "" else "") + ": click to inspect"
 			slot.set_meta("member", int(others[i]))
 			_style_party_slot(slot, true)
@@ -138,6 +140,7 @@ func _refresh_party() -> void:
 			slot.text = "+\nInvite"
 			slot.add_theme_color_override("font_color", MainMenu.C_TEXT_DIM)
 			who.visible = false
+			_show_spec(slot, {})
 			slot.tooltip_text = "Invite a friend"
 			slot.remove_meta("member")
 			_style_party_slot(slot, false)
@@ -145,12 +148,46 @@ func _refresh_party() -> void:
 	if _you_label:
 		var lead := "★ " if net.online and int(net.host_member) == me else ""
 		_you_label.text = lead + str(online.my_name)
-	if menu.play_button:
-		# Everyone can open the Play screen; only the leader can queue / start there.
-		menu.play_button.tooltip_text = "Choose a dungeon" if not (net.online and not net.is_host()) \
-			else "See where your party is going (only the leader can queue or start)."
+		_you_sub.text = _level_spec_line(net._my_info())
+	menu.ready_check.refresh()
+	# Everyone can open the Play screen; only the leader can queue / start there.
+	menu.refresh_play_button()
 	if menu.queue_page._queue_cards.size() > 0:
 		menu.queue_page._refresh_queue()
+
+## "Lv 12  •  Hard Winter" (no spec yet: just the level).
+func _level_spec_line(info: Dictionary) -> String:
+	var spec := str(info.get("spec", ""))
+	return "Lv %d" % int(info.get("level", 1)) + ("  •  " + spec if spec != "" else "")
+
+## A card's role icon and book-coloured bottom edge ({} = empty card: hidden).
+func _show_spec(slot: Button, info: Dictionary) -> void:
+	var role = slot.get_node("Role")   # PartyFrames.RoleIcon
+	var strip: ColorRect = slot.get_node("Strip")
+	role.visible = info.has("role")
+	strip.visible = str(info.get("book", "")) != ""
+	if role.visible:
+		role.role = str(info["role"])
+		role.queue_redraw()
+	if strip.visible:
+		strip.color = Categories.color(str(info["book"]))
+
+# Your level / role / spec changed: tell the party, at most once a second.
+var _info_wait := -1.0
+
+func _my_info_changed() -> void:
+	if _info_wait < 0.0:
+		_info_wait = 1.0
+
+func _tick_my_info(delta: float) -> void:
+	if _info_wait < 0.0:
+		return
+	_info_wait -= delta
+	if _info_wait < 0.0:
+		var net := menu.get_node("/root/Net")
+		net.update_my_info()
+		if _you_sub:
+			_you_sub.text = _level_spec_line(net._my_info())
 
 func _instance_name(key: String) -> String:
 	return DB.title(key) if DB.is_dungeon_key(key) else key.get_file().get_basename().capitalize()
@@ -206,6 +243,29 @@ func _build_lobby() -> Control:
 	name_label.offset_bottom = -50
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	page.add_child(name_label)
+	_you_sub = menu._label("", 14, MainMenu.C_TEXT_DIM)
+	_you_sub.anchor_left = 0.5
+	_you_sub.anchor_right = 0.5
+	_you_sub.anchor_top = 1.0
+	_you_sub.anchor_bottom = 1.0
+	_you_sub.offset_left = -150
+	_you_sub.offset_right = 150
+	_you_sub.offset_top = -52
+	_you_sub.offset_bottom = -32
+	_you_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	page.add_child(_you_sub)
+	menu.ready_check.set_you_badge(menu.ready_check.make_badge(name_label))
+	# Loadout quick swap, to the right of your name.
+	var picker := menu.loadouts.lobby_picker()
+	picker.anchor_left = 0.5
+	picker.anchor_right = 0.5
+	picker.anchor_top = 1.0
+	picker.anchor_bottom = 1.0
+	picker.offset_left = 120
+	picker.offset_right = 290
+	picker.offset_top = -80
+	picker.offset_bottom = -50
+	page.add_child(picker)
 	return page
 
 func _party_slot() -> Control:
@@ -222,10 +282,31 @@ func _party_slot() -> Control:
 	who.name = "Who"
 	who.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	who.offset_top = 8
-	who.offset_bottom = 50
+	who.offset_bottom = 70
+	who.offset_left = 22   # clear of the role icon
+	who.offset_right = -22   # and the ready badge
+	who.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	who.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	who.visible = false
 	slot.add_child(who)
+	var role := PartyFrames.RoleIcon.new()
+	role.name = "Role"
+	role.position = Vector2(8, 8)
+	role.size = Vector2(16, 16)
+	role.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	role.visible = false
+	slot.add_child(role)
+	var strip := ColorRect.new()
+	strip.name = "Strip"
+	strip.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	strip.offset_left = 6
+	strip.offset_right = -6
+	strip.offset_top = -6
+	strip.offset_bottom = -2
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	strip.visible = false
+	slot.add_child(strip)
+	menu.ready_check.make_badge(slot)
 	slot.tooltip_text = "Invite a friend"
 	# A member's card inspects them (gear, stats, abilities, talents); an empty one invites.
 	slot.pressed.connect(func():

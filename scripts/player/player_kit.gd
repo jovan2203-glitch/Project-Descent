@@ -25,3 +25,9 @@ const SHIELDS = preload("res://scripts/core/shields.gd")
 
 ## The player this component works for.
 var player: Player
+
+## Values Trackers can show or test (scripts/ui/trackers/): name -> number, or
+## {"value", "max"} for something with a cap. Player.tracker_values() merges every
+## component's, so a new spec's values reach Trackers without tracker code.
+func tracker_values() -> Dictionary:
+	return {}

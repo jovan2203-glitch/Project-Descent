@@ -43,6 +43,10 @@ var meter_enabled := true       # K toggles; remembered while the game runs
 var _view: Dictionary = {}      # the segment being shown ({} = latest)
 var _sel_member := -1           # breakdown: whose spells (-1 = you)
 
+## The breakdown window's layer: above the HUD, with the in-game windows (game_ui.gd).
+const WINDOW_LAYER := 20
+var _win_layer: CanvasLayer
+
 func _now() -> float:
 	return Time.get_ticks_msec() / 1000.0
 
@@ -53,8 +57,13 @@ func _ready() -> void:
 	bus.damage_dealt.connect(_on_damage)
 	bus.heal_done.connect(_on_heal)
 	bus.combat_state_changed.connect(_on_combat_changed)
+	_win_layer = CanvasLayer.new()
+	_win_layer.layer = WINDOW_LAYER
+	add_child(_win_layer)
 	_build_meter()
 	_build_window()
+	UISkin.skin_window(_meter)
+	UISkin.skin_window(_window)
 
 # --- Players --------------------------------------------------------------------------
 
@@ -236,8 +245,18 @@ func _on_heal(source: Node, _target: Node, amount: int, effective: int, ability_
 	_outbox.append([1, id, amount, crit, over])
 
 ## One hit (kind 0) or heal (kind 1) by `member` into the running fight.
+## The whole run's totals per player (the menu's last-run summary): member ->
+## {"name", "damage", "healing"}. Cleared when a run starts (GameManager).
+var run_totals := {}
+
+func reset_run() -> void:
+	run_totals = {}
+
 func _record(member: int, kind: int, id: String, amount: int, crit: bool, over: int) -> void:
 	_touch()
+	if not run_totals.has(member):
+		run_totals[member] = {"name": player_name(member), "damage": 0, "healing": 0}
+	run_totals[member]["damage" if kind == 0 else "healing"] += amount if kind == 0 else amount - over
 	var pd := _pdata(current, member)
 	if kind == 0:
 		_add(pd["damage"], id, amount, crit, 0)
@@ -391,6 +410,7 @@ func _process(delta: float) -> void:
 	var p := _player()
 	var has_player := p != null
 	_meter.visible = has_player and meter_enabled
+	_follow_dock()
 	if not has_player:
 		_window.visible = false
 		if not current.is_empty():
@@ -791,6 +811,57 @@ func _build_meter() -> void:
 	v.add_child(_meter_summary)
 	get_node("/root/Settings").register_hud(_meter)
 
+## The in-game UI's meter panel holds the meter (scripts/ui/hud/meter_panel.gd):
+## the meter stays mine (it outlives every scene) but covers `holder` exactly,
+## flat, and can't be dragged. undock() lets it float again.
+var _dock: Control
+
+func dock_into(holder: Control) -> void:
+	if _dock == holder:
+		return
+	_dock = holder
+	_meter.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_meter.add_theme_stylebox_override("panel", UISkin.backdrop(-1.0, 4))
+	_meter.set_meta("docked", true)
+	_follow_dock()
+
+func undock() -> void:
+	if _dock == null:
+		return
+	_dock = null
+	_meter.set_meta("docked", false)
+	_meter.add_theme_stylebox_override("panel", UISkin.backdrop(0.82, 6))
+	_meter.anchor_left = 1.0
+	_meter.anchor_right = 1.0
+	_meter.offset_left = -METER_WIDTH - 16.0
+	_meter.offset_right = -16.0
+	_meter.offset_top = 226.0
+	_meter.offset_bottom = 226.0
+	_meter.custom_minimum_size = Vector2(METER_WIDTH, 0)
+	_meter.modulate.a = get_node("/root/Settings").hud_alpha_of(_meter)
+
+## Docked: on the panel's spot, its size, its opacity.
+func _follow_dock() -> void:
+	if _dock == null:
+		return
+	if not is_instance_valid(_dock) or not _dock.is_inside_tree():
+		undock()   # (the scene with the panel is gone)
+		return
+	var r := _dock.get_global_rect()
+	if _meter.global_position != r.position:
+		_meter.global_position = r.position
+	var want := Vector2(r.size.x, maxf(r.size.y, _meter.get_combined_minimum_size().y))
+	if _meter.size != want:
+		_meter.custom_minimum_size = Vector2(r.size.x, 0)
+		_meter.size = want
+	var a := _dock.modulate.a * (_dock.get_parent() as CanvasItem).modulate.a if _dock.get_parent() is CanvasItem else _dock.modulate.a
+	_meter.modulate.a = a
+	_meter.visible = _meter.visible and _dock.is_visible_in_tree()
+
+## The meter's smallest height (a docking panel is never shorter).
+func meter_min_height() -> float:
+	return _meter.get_combined_minimum_size().y
+
 func _draw_bar(row: Control) -> void:
 	if not row.has_meta("row"):
 		return
@@ -844,7 +915,10 @@ func _refresh_meter() -> void:
 			row.visible = false
 			row.remove_meta("row")
 		row.queue_redraw()
-	_meter.reset_size()
+	# Docked, the panel sets its size: shrinking it here would make it jump
+	# for a frame every refresh (_follow_dock puts it back the next one).
+	if _dock == null:
+		_meter.reset_size()
 
 # --- Segment pickers (meter + window) --------------------------------------------------
 
@@ -921,7 +995,7 @@ func _build_window() -> void:
 	_window.add_theme_stylebox_override("panel", sb)
 	_window.custom_minimum_size = Vector2(900, 440)
 	_window.position = Vector2(120, 90)
-	add_child(_window)
+	_win_layer.add_child(_window)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 8)
 	_window.add_child(v)
@@ -1034,7 +1108,7 @@ func _header(grid: GridContainer) -> void:
 		grid.remove_child(c)
 		c.queue_free()
 	for h in grid.get_meta("cols"):
-		_cell(grid, str(h), UI.ACCENT, 13)
+		_cell(grid, str(h), UISkin.accent(), 13)
 
 func _fill_spells(grid: GridContainer, seg: Dictionary, kind: String, dur: float, member: int) -> void:
 	_header(grid)
@@ -1107,6 +1181,8 @@ func _refresh() -> void:
 ## Drag `panel` around by `handle` (kept on screen).
 func _drag_by(handle: Control, panel: Control) -> void:
 	handle.gui_input.connect(func(ev: InputEvent):
+		if panel.get_meta("docked", false):
+			return   # (docked in the meter panel: Move UI moves it)
 		if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT:
 			panel.set_meta("dragging", ev.pressed)
 			if ev.pressed:

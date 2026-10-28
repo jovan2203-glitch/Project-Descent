@@ -106,6 +106,8 @@ func _build_config() -> ConfigFile:
 	cfg.set_value("talents", "tree_version", Talents.TREE_VERSION)
 	cfg.set_value("progress", "attribute_points", pd.attribute_points)
 	cfg.set_value("progress", "checkpoints", pd.checkpoints)
+	cfg.set_value("progress", "best_clears", pd.best_clears)
+	cfg.set_value("talents", "loadouts", pd.loadouts)
 	cfg.set_value("progress", "starter_weapons", pd.starter_weapons_given)
 	cfg.set_value("progress", "starter_weapons_have", pd.starter_weapons_have)
 
@@ -262,6 +264,19 @@ func load_profile() -> bool:
 		for path in cps:
 			if pd.is_checkpoint_floor(int(cps[path])):
 				pd.checkpoints[str(path)] = int(cps[path])
+	pd.loadouts = []
+	var louts: Variant = cfg.get_value("talents", "loadouts", [])
+	if louts is Array:
+		for l in louts:
+			if l is Dictionary and pd.loadouts.size() < pd.MAX_LOADOUTS:
+				pd.loadouts.append(l)
+	pd.best_clears = {}
+	var bests: Variant = cfg.get_value("progress", "best_clears", {})
+	if bests is Dictionary:
+		for id in bests:
+			if bests[id] is Dictionary:
+				for diff in bests[id]:
+					pd.record_clear(str(id), str(diff), float(bests[id][diff]))
 	if not pd.validate_attributes():
 		_log(1, "Attribute points exceeded level %d budget: they were refunded" % pd.level)
 

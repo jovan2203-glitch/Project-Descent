@@ -29,6 +29,8 @@ signal system_message(text: String)
 signal migration_state(active: bool)
 ## A party member's inspect snapshot arrived (request_inspect): open the Inspect window.
 signal inspect_received(member: int, data: Dictionary)
+## A ready check started, got an answer or ended (ready_check / ready_result).
+signal ready_check_changed
 
 const REMOTE_PLAYER = preload("res://scripts/net/remote_player.gd")
 const DamageInfo = preload("res://scripts/core/damage_info.gd")
@@ -226,7 +228,13 @@ func _say(text: String) -> void:
 
 func _my_info() -> Dictionary:
 	var pd := get_node_or_null("/root/PlayerData")
-	return {"name": str(_online().my_name), "level": int(pd.level) if pd else 1, "addr": "", "ver": BuildInfo.version()}
+	var info := {"name": str(_online().my_name), "level": int(pd.level) if pd else 1, "addr": "", "ver": BuildInfo.version()}
+	if pd:
+		var main: Array = Abilities.main_spec_of_bar(pd.action_bar)
+		info["role"] = Abilities.role_of_bar(pd.action_bar)
+		info["spec"] = main[0]
+		info["book"] = main[1]
+	return info
 
 func host_session(peer: MultiplayerPeer) -> void:
 	_reset()
@@ -272,6 +280,9 @@ func _reset() -> void:
 	_peer_member.clear()
 	ping.clear()
 	_joining = false
+	ready_check = {}
+	ready_result = {}
+	_rc_then = Callable()
 
 func _close_peer() -> void:
 	var p := multiplayer.multiplayer_peer
@@ -398,6 +409,153 @@ func set_queue(path: String) -> void:
 	if is_host():
 		queue_path = path
 		_send_meta()
+
+## Your level, role or spec changed (in the menu): tell the party. The host keeps
+## everyone's info and re-sends it with the party info.
+func update_my_info() -> void:
+	if not online or migrating:
+		return
+	var info := _my_info()
+	if members.has(my_id()):
+		info["addr"] = str(members[my_id()].get("addr", ""))
+		if members[my_id()].hash() == info.hash():
+			return
+	if is_host():
+		members[my_id()] = info
+		_send_meta()
+		members_changed.emit()
+	elif _connected():
+		_out_to(1, "_info", my_id(), info)
+
+@rpc("any_peer", "call_remote", "reliable")
+func _info(member: int, info: Dictionary) -> void:
+	if not is_host() or not members.has(member) or _peer_member.get(multiplayer.get_remote_sender_id(), -1) != member:
+		return
+	info["addr"] = str(members[member].get("addr", ""))
+	info["ver"] = str(members[member].get("ver", ""))
+	members[member] = info
+	_send_meta()
+	members_changed.emit()
+
+# --- Ready check (lobby; the host runs it) -----------------------------------------------
+# The leader asks, everyone answers Ready / Not ready within READY_CHECK_TIME.
+# Entering or queueing with others always goes through one; it fails on the first
+# "Not ready" or a timeout (someone who leaves just drops out of it). The leader
+# is ready by asking.
+
+const READY_CHECK_TIME := 20.0
+const READY_RESULT_TIME := 8.0    # the ticks / crosses stay on the party cards this long
+var ready_check := {}             # running: {"t", "left", "answers": {member: bool}}; {} = none
+var ready_result := {}            # last finished: {"ok", "answers", "left"}; {} = none
+var _rc_then := Callable()        # host: what to do when everyone is ready
+var _rc_t := 0
+
+## Whether a check is decided: 1 = everyone ready, 0 = failed, -1 = still waiting.
+static func ready_outcome(member_ids: Array, answers: Dictionary, timed_out: bool) -> int:
+	for id in member_ids:
+		if answers.has(id) and not bool(answers[id]):
+			return 0
+	for id in member_ids:
+		if not answers.has(id):
+			return 0 if timed_out else -1
+	return 1
+
+## Leader: ask everyone; `then` runs on the host once all are ready. Alone, it runs now.
+func start_ready_check(then: Callable = Callable()) -> void:
+	if not with_others():
+		if then.is_valid():
+			then.call()
+		return
+	if not is_host():
+		_local_error("Only the party leader can start a ready check.")
+		return
+	if not ready_check.is_empty():
+		return
+	_rc_t += 1
+	_rc_then = then
+	ready_check = {"t": _rc_t, "left": READY_CHECK_TIME, "answers": {my_id(): true}}
+	ready_result = {}
+	_out("_rc_start", _rc_t, READY_CHECK_TIME)
+	ready_check_changed.emit()
+
+@rpc("authority", "call_remote", "reliable")
+func _rc_start(t: int, secs: float) -> void:
+	ready_check = {"t": t, "left": secs, "answers": {int(host_member): true}}
+	ready_result = {}
+	ready_check_changed.emit()
+
+## Your answer to the running check.
+func answer_ready_check(ok: bool) -> void:
+	if ready_check.is_empty():
+		return
+	if is_host():
+		_rc_take(my_id(), int(ready_check["t"]), ok)
+	elif _connected():
+		ready_check["answers"][my_id()] = ok
+		_out_to(1, "_rc_answer", my_id(), int(ready_check["t"]), ok)
+		ready_check_changed.emit()
+
+@rpc("any_peer", "call_remote", "reliable")
+func _rc_answer(member: int, t: int, ok: bool) -> void:
+	if is_host() and _peer_member.get(multiplayer.get_remote_sender_id(), -1) == member:
+		_rc_take(member, t, ok)
+
+func _rc_take(member: int, t: int, ok: bool) -> void:
+	if ready_check.is_empty() or int(ready_check["t"]) != t or not members.has(member):
+		return
+	ready_check["answers"][member] = ok
+	_out("_rc_progress", t, ready_check["answers"])
+	ready_check_changed.emit()
+	_rc_resolve(false)
+
+@rpc("authority", "call_remote", "reliable")
+func _rc_progress(t: int, answers: Dictionary) -> void:
+	if not ready_check.is_empty() and int(ready_check["t"]) == t:
+		ready_check["answers"] = answers
+		ready_check_changed.emit()
+
+## Host: end the check once it is decided (or `timed_out`).
+func _rc_resolve(timed_out: bool) -> void:
+	if ready_check.is_empty():
+		return
+	var outcome := ready_outcome(order, ready_check["answers"], timed_out)
+	if outcome == -1:
+		return
+	var ok := outcome == 1
+	_out("_rc_done", int(ready_check["t"]), ok, ready_check["answers"])
+	_rc_done(int(ready_check["t"]), ok, ready_check["answers"])
+	var then := _rc_then
+	_rc_then = Callable()
+	if ok and then.is_valid():
+		then.call()
+	elif not ok:
+		var missing: Array[String] = []
+		for id in order:
+			if not bool(ready_result["answers"].get(id, false)):
+				missing.append(member_name(int(id)))
+		_say("Not everyone is ready: %s." % ", ".join(missing))
+
+@rpc("authority", "call_remote", "reliable")
+func _rc_done(t: int, ok: bool, answers: Dictionary) -> void:
+	ready_check = {}
+	ready_result = {"t": t, "ok": ok, "answers": answers, "left": READY_RESULT_TIME}
+	ready_check_changed.emit()
+
+func _tick_ready_check(delta: float) -> void:
+	if not ready_check.is_empty():
+		ready_check["left"] = float(ready_check["left"]) - delta
+		if is_host():
+			for id in ready_check["answers"].keys():   # someone left mid-check: the rest decide
+				if not members.has(id):
+					ready_check["answers"].erase(id)
+			_rc_resolve(false)
+			if not ready_check.is_empty() and float(ready_check["left"]) <= 0.0:
+				_rc_resolve(true)
+	if not ready_result.is_empty():
+		ready_result["left"] = float(ready_result["left"]) - delta
+		if float(ready_result["left"]) <= 0.0:
+			ready_result = {}
+			ready_check_changed.emit()
 
 ## Leader found another queued group: the whole party moves into it.
 func merge_into(lobby: int) -> void:
@@ -559,6 +717,7 @@ func _process(delta: float) -> void:
 		return
 	if not _connected():
 		return
+	_tick_ready_check(delta)
 	if is_host():
 		_meta_t -= delta
 		if _meta_t <= 0.0:

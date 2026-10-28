@@ -49,7 +49,6 @@ var links: Array
 var cell := 22.0
 var corridor := 3.6
 var rng := RandomNumberGenerator.new()
-var darkness := false
 
 ## Per room: {"torches": [slot], "big": [[kind, slot]], "decor": [[kind, slot]],
 ## "chunks": [slot], "niches": [slot]}. A slot is {at (on the wall line), inward, along, side}.
@@ -238,6 +237,20 @@ func door_sides(i: int) -> Array:
 		out.append(Vector2i(int(signf(d.x)), 0) if absf(d.x) > absf(d.z) else Vector2i(0, int(signf(d.z))))
 	return out
 
+## Is `p` (with `radius`) in the walking lane of one of room i's doorways: the
+## strip from the room's middle out to that door, as wide as the passage plus room
+## to step around? Pillars, centerpieces and other blockers stay out of it.
+func in_door_lane(i: int, p: Vector3, radius: float) -> bool:
+	if i < 0:
+		return false
+	var c: Vector3 = rooms[i]["center"]
+	for s: Vector2i in door_sides(i):
+		var d := Vector2(s.x, s.y)
+		var rel := Vector2(p.x - c.x, p.z - c.z)
+		if rel.dot(d) > -radius and absf(rel.dot(Vector2(-d.y, d.x))) < corridor * 0.5 + radius + 0.6:
+			return true
+	return false
+
 ## Evenly spaced spots along room i's walls (jittered), away from corners and doorways.
 func _wall_slots(i: int) -> Array:
 	var r: Dictionary = rooms[i]
@@ -273,6 +286,9 @@ func _plan() -> void:
 	for i in rooms.size():
 		var r: Dictionary = rooms[i]
 		var slots := _wall_slots(i)
+		var kinds: Array = big_kinds
+		if not r.get("big_props", []).is_empty():
+			kinds = Array(r["big_props"]).filter(func(k): return BIG.has(str(k)))
 		# Shuffle with our own RNG (deterministic for the party).
 		for k in range(slots.size() - 1, 0, -1):
 			var j := rng.randi_range(0, k)
@@ -284,7 +300,7 @@ func _plan() -> void:
 		var n_torch := 4 if r["kind"] == "boss" else (1 if r["kind"] == "junction" else 2)
 		if perimeter > 60.0 and r["kind"] != "boss":
 			n_torch += 1
-		var n_big := int(round(perimeter / 16.0 * density)) if not big_kinds.is_empty() else 0
+		var n_big := int(round(perimeter / 16.0 * density)) if not kinds.is_empty() else 0
 		if r["kind"] == "boss":
 			n_big = mini(n_big, 2)
 		var n_decor := int(round(perimeter / 11.0 * density)) if not decor_kinds.is_empty() else 0
@@ -295,7 +311,7 @@ func _plan() -> void:
 				used += 1
 		for n in n_big:
 			if used < slots.size():
-				plan["big"].append([str(_pick(big_kinds)), slots[used]])
+				plan["big"].append([str(_pick(kinds)), slots[used]])
 				used += 1
 		for n in n_decor:
 			if used < slots.size():
@@ -361,9 +377,9 @@ func build_rock(level_root: Node3D) -> CSGCombiner3D:
 	for i in rooms.size():
 		for slot in _plans[i]["niches"]:
 			_niche(rock, slot, wall)
-	# 3. Add back: ramp floors, corners, pillars, wall chunks, corridor chunks, prop collision.
+	# 3. Add back: stairs, corners, pillars, wall chunks, corridor chunks, prop collision.
 	for rp in ramps:
-		_ramp_slab(rock, rp[0], rp[1])
+		_stairs(rock, rp[0], rp[1])
 	_corner_pieces(rock)
 	_pillars(rock)
 	for i in rooms.size():
@@ -570,24 +586,13 @@ func _ramp_ends(a: Dictionary, b: Dictionary) -> Array:
 	var p1 := Vector3(bc.x, bc.y, bc.z) - dir * (hb - 1.0)
 	return [p0, p1]
 
-func _ramp_basis(p0: Vector3, p1: Vector3) -> Basis:
-	var fwd := (p1 - p0).normalized()
-	var side := fwd.cross(Vector3.UP).normalized()
-	var up := side.cross(fwd).normalized()
-	return Basis(side, up, -fwd)
-
-# Ramps. A ramp runs from p0 (on the floor of one room) to p1 (on the floor of
-# the other): a straight slope whose two ends are EXACTLY at floor height, with
-# vertical end faces, so it sits flush with both floors. (It used to be a tilted
-# board that stuck out past its upper end and made a lip nobody could walk over.)
-# Both pieces are a box with upright ends, cut along the slope by a tilted box:
-#   carve  everything from RAMP_CUT below the slope up to the ceiling
-#   slab   the walkable wedge (floor material), RAMP_THICK deep, whose top is the
-#          slope itself; it reaches RAMP_TUCK under each floor so no seam is left
-const RAMP_CUT := 0.15
-const RAMP_THICK := 0.7
-const RAMP_TUCK := 0.3
-const RAMP_CUTTER := 12.0   # thickness of the tilted cutting boxes
+# Ramps (every height change between two linked rooms). A ramp runs from p0 (on
+# the floor of one room, 1 m inside its wall) to p1 (the same in the other room).
+#   carve   the passage, from the lower floor up to the ceiling (CSG)
+#   stairs  scenes/dungeon/pieces/stairs.tscn on the lower floor: one clean slope
+#           collider to walk on + stepped visuals. (It used to be a CSG wedge cut
+#           out of the rock.)
+const STAIRS = preload("res://scenes/dungeon/pieces/stairs.tscn")
 
 ## Unit vector along the ramp on the ground (p0 -> p1).
 func _ramp_dir(p0: Vector3, p1: Vector3) -> Vector3:
@@ -607,48 +612,29 @@ func _ramp_box(p0: Vector3, p1: Vector3, from: float, to: float, width: float, y
 	box.position = Vector3(mid.x, (y_lo + y_hi) * 0.5, mid.z)
 	return box
 
-## A big tilted box lying against the slope plane (moved `offset` along the
-## slope's normal): above it (side = 1) or below it (side = -1).
-func _ramp_cutter(p0: Vector3, p1: Vector3, side: float, offset: float, width: float) -> CSGBox3D:
-	var basis := _ramp_basis(p0, p1)
-	var box := CSGBox3D.new()
-	box.operation = CSGShape3D.OPERATION_SUBTRACTION
-	box.size = Vector3(width, RAMP_CUTTER, p0.distance_to(p1) + 8.0)
-	box.transform = Transform3D(basis, (p0 + p1) * 0.5 + basis.y * (offset + side * RAMP_CUTTER * 0.5))
-	return box
-
 ## Horizontal length of the ramp.
 func _ramp_run(p0: Vector3, p1: Vector3) -> float:
 	return Vector2(p1.x - p0.x, p1.z - p0.z).length()
 
 func _carve_ramp(rock: CSGCombiner3D, p0: Vector3, p1: Vector3, mat: Material) -> void:
-	var run := _ramp_run(p0, p1)
-	var y_lo := minf(p0.y, p1.y)
-	var y_hi := maxf(p0.y, p1.y)
-	var cut := CSGCombiner3D.new()
-	cut.operation = CSGShape3D.OPERATION_SUBTRACTION
-	var body := _ramp_box(p0, p1, 0.0, run, corridor, y_lo - RAMP_CUT - 0.5, y_hi + WALL_H)
+	var body := _ramp_box(p0, p1, 0.0, _ramp_run(p0, p1), corridor, minf(p0.y, p1.y), maxf(p0.y, p1.y) + WALL_H)
+	body.operation = CSGShape3D.OPERATION_SUBTRACTION
 	body.material = mat
-	cut.add_child(body)
-	# Keep the rock under the slope.
-	var keep := _ramp_cutter(p0, p1, -1.0, -RAMP_CUT, corridor + 2.0)
-	keep.material = mat
-	cut.add_child(keep)
-	rock.add_child(cut)
+	rock.add_child(body)
 
-func _ramp_slab(rock: CSGCombiner3D, p0: Vector3, p1: Vector3) -> void:
-	var run := _ramp_run(p0, p1)
-	var y_lo := minf(p0.y, p1.y)
-	var y_hi := maxf(p0.y, p1.y)
-	var slab := CSGCombiner3D.new()
-	var body := _ramp_box(p0, p1, -RAMP_TUCK, run + RAMP_TUCK, corridor + 0.4, y_lo - RAMP_THICK, y_hi)
-	body.material = floor_mat()
-	slab.add_child(body)
-	# Slice everything above the slope off: what is left is the wedge.
-	var top := _ramp_cutter(p0, p1, 1.0, 0.0, corridor + 2.4)
-	top.material = floor_mat()
-	slab.add_child(top)
-	rock.add_child(slab)
+## The stairs piece for a ramp: a child of the rock, so the navmesh bakes it.
+func _stairs(rock: CSGCombiner3D, p0: Vector3, p1: Vector3) -> Node3D:
+	var low := p0 if p0.y <= p1.y else p1
+	var high := p1 if p0.y <= p1.y else p0
+	var s: Node3D = STAIRS.instantiate()
+	s.name = "Stairs"
+	s.run = _ramp_run(low, high)
+	s.rise = high.y - low.y
+	s.width = corridor
+	s.step_material = floor_mat()
+	s.transform = Transform3D(Basis.looking_at(_ramp_dir(low, high), Vector3.UP), low)
+	rock.add_child(s)
+	return s
 
 ## Height of the ramp's surface `s` metres past p0 (on the ground), floors included:
 ## the floor of the p0 room before the ramp, the slope on it, the other floor after.
@@ -744,6 +730,19 @@ func _pillars(rock: CSGCombiner3D) -> void:
 		var s: Vector2 = r["size"]
 		if (r["kind"] == "combat" or r["kind"] == "hub") and minf(s.x, s.y) >= 12 and rng.randf() < 0.6:
 			var along_x := rng.randf() < 0.5
+			# Never in a doorway's lane (a pillar at the foot of the stairs blocked them).
+			var spots := func(ax: bool) -> Array:
+				return [Vector3(-s.x * 0.25, 0, 0), Vector3(s.x * 0.25, 0, 0)] if ax \
+					else [Vector3(0, 0, -s.y * 0.25), Vector3(0, 0, s.y * 0.25)]
+			var clear := func(ax: bool) -> bool:
+				for o in spots.call(ax):
+					if in_door_lane(rooms.find(r), r["center"] + o, 0.9):
+						return false
+				return true
+			if not clear.call(along_x):
+				along_x = not along_x
+				if not clear.call(along_x):
+					continue
 			for side: float in [-1.0, 1.0]:
 				var off := Vector3(side * s.x * 0.25, 0, 0) if along_x else Vector3(0, 0, side * s.y * 0.25)
 				if _style() == "rough":
@@ -784,15 +783,26 @@ func _ring_points(r: Dictionary, count: int, frac: float, start := PI / 4.0) -> 
 		out.append(r["center"] + Vector3(cos(a), 0, sin(a)) * rad)
 	return out
 
+## Room i's centerpiece: its own (hand-made maps), else the kit's in boss rooms.
+func _room_cp(i: int) -> String:
+	var own := str(rooms[i].get("centerpiece", ""))
+	if own != "":
+		return own
+	if rooms[i]["kind"] != "boss" or kit.get("centerpiece") == null:
+		return ""
+	return str(kit.get("centerpiece"))
+
 func _centerpiece_blockers(rock: CSGCombiner3D) -> void:
-	var cp := str(kit.get("centerpiece")) if kit.get("centerpiece") != null else ""
 	for i in rooms.size():
 		var r: Dictionary = rooms[i]
-		if r["kind"] != "boss":
+		var cp := _room_cp(i)
+		if cp == "":
 			continue
 		match cp:
 			"crystal_cluster", "ice_statues":
 				for p in _ring_points(r, 4, 0.62):
+					if in_door_lane(i, p, 0.6):
+						continue
 					var cyl := CSGCylinder3D.new()
 					cyl.radius = 0.55
 					cyl.height = 0.6
@@ -803,7 +813,9 @@ func _centerpiece_blockers(rock: CSGCombiner3D) -> void:
 			"throne":
 				var back := -_entry_dir(i)
 				var half: float = (r["size"].x if absf(back.x) > 0.5 else r["size"].y) * 0.5
-				_box(rock, Vector3(1.4, 0.55, 1.4), r["center"] + back * (half - 1.2) + Vector3(0, 0.27, 0), top_mat())
+				var at: Vector3 = r["center"] + back * (half - 1.2)
+				if not in_door_lane(i, at, 0.8):
+					_box(rock, Vector3(1.4, 0.55, 1.4), at + Vector3(0, 0.27, 0), top_mat())
 
 # --- Look (no collision) -------------------------------------------------------------------
 
@@ -814,7 +826,7 @@ func dress(root: Node3D, _unused: Callable = Callable()) -> void:
 	for i in rooms.size():
 		var r: Dictionary = rooms[i]
 		var plan: Dictionary = _plans[i] if i < _plans.size() else {"torches": [], "big": [], "decor": [], "chunks": [], "niches": []}
-		if kit.torches and not darkness:
+		if kit.torches:
 			for slot in plan["torches"]:
 				_torch(root, slot["at"] + slot["inward"] * 0.12 + Vector3(0, TORCH_Y, 0), slot["inward"], r["kind"] == "boss")
 		_fill_light(root, r)
@@ -829,7 +841,7 @@ func dress(root: Node3D, _unused: Callable = Callable()) -> void:
 				_beam(root, slot)
 		_cobwebs(root, i)
 		_clutter(root, i)
-		if r["kind"] == "boss":
+		if _room_cp(i) != "":
 			_centerpiece(root, i)
 	_corridor_dressing(root)
 	_optimize(root)
@@ -1078,7 +1090,7 @@ func _fill_light(root: Node3D, r: Dictionary) -> void:
 	var light := OmniLight3D.new()
 	var is_boss: bool = r["kind"] == "boss"
 	light.light_color = kit.boss_fill_color if is_boss else kit.fill_color
-	light.light_energy = (0.8 if is_boss else float(kit.fill_energy)) * (0.15 if darkness else 1.0)
+	light.light_energy = (0.8 if is_boss else float(kit.fill_energy))
 	light.omni_range = maxf(r["size"].x, r["size"].y) * 0.85
 	light.position = r["center"] + Vector3(0, 4.2, 0)
 	root.add_child(light)
@@ -1086,8 +1098,6 @@ func _fill_light(root: Node3D, r: Dictionary) -> void:
 func _candle(root: Node3D, at: Vector3, lit_light := false) -> void:
 	var h := rng.randf_range(0.12, 0.3)
 	_mesh_cyl(root, 0.04, 0.045, h, at + Vector3(0, h * 0.5, 0), _flat("wax", Color(0.92, 0.88, 0.75)), 6)
-	if darkness:
-		return
 	var col: Color = kit.torch_color
 	var f := _mesh_sphere(root, 0.035, at + Vector3(0, h + 0.04, 0), _flat("flame_%s" % col.to_html(false), col.lightened(0.4), 1.0, col, 6.0), 1.6)
 	f.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -1388,16 +1398,15 @@ func _small_prop(root: Node3D, kind: String, at: Vector3) -> void:
 		"brazier":
 			_mesh_cyl(n, 0.3, 0.18, 0.25, Vector3(0, 0.75, 0), iron_mat(), 10)
 			_mesh_cyl(n, 0.05, 0.05, 0.65, Vector3(0, 0.33, 0), iron_mat(), 6)
-			if not darkness:
-				var col: Color = kit.torch_color
-				_mesh_sphere(n, 0.2, Vector3(0, 0.95, 0), _flat("flame_%s" % col.to_html(false), col.lightened(0.4), 1.0, col, 6.0), 1.4)
-				if rng.randf() < 0.3:   # only some braziers light the room (performance)
-					var l := OmniLight3D.new()
-					l.light_color = col
-					l.light_energy = 1.3
-					l.omni_range = 6.0
-					l.position = Vector3(0, 1.2, 0)
-					n.add_child(l)
+			var col: Color = kit.torch_color
+			_mesh_sphere(n, 0.2, Vector3(0, 0.95, 0), _flat("flame_%s" % col.to_html(false), col.lightened(0.4), 1.0, col, 6.0), 1.4)
+			if rng.randf() < 0.3:   # only some braziers light the room (performance)
+				var l := OmniLight3D.new()
+				l.light_color = col
+				l.light_energy = 1.3
+				l.omni_range = 6.0
+				l.position = Vector3(0, 1.2, 0)
+				n.add_child(l)
 
 # --- Passages ------------------------------------------------------------------------------------
 
@@ -1412,7 +1421,7 @@ func _corridor_dressing(root: Node3D) -> void:
 		var side: Vector3 = seg["side"]
 		var length := a.distance_to(b)
 		# A torch every ~9 m, alternating sides.
-		if kit.torches and not darkness and length > 6.0:
+		if kit.torches and length > 6.0:
 			var t := 4.0
 			var s := 1.0
 			while t < length - 2.0:
@@ -1448,7 +1457,7 @@ func _corridor_dressing(root: Node3D) -> void:
 
 func _centerpiece(root: Node3D, i: int) -> void:
 	var r: Dictionary = rooms[i]
-	var cp := str(kit.get("centerpiece")) if kit.get("centerpiece") != null else ""
+	var cp := _room_cp(i)
 	var c: Vector3 = r["center"]
 	match cp:
 		"summoning_circle":
@@ -1477,6 +1486,8 @@ func _centerpiece(root: Node3D, i: int) -> void:
 		"crystal_cluster":
 			var glow: Color = kit.glow_color
 			for p in _ring_points(r, 4, 0.62):
+				if in_door_lane(i, p, 0.6):
+					continue
 				for k in rng.randi_range(4, 6):
 					var cr := MeshInstance3D.new()
 					var pm := PrismMesh.new()
@@ -1495,6 +1506,8 @@ func _centerpiece(root: Node3D, i: int) -> void:
 				root.add_child(l)
 		"ice_statues":
 			for p in _ring_points(r, 4, 0.62):
+				if in_door_lane(i, p, 0.6):
+					continue
 				var n := Node3D.new()
 				root.add_child(n)
 				n.position = p
@@ -1507,6 +1520,8 @@ func _centerpiece(root: Node3D, i: int) -> void:
 		"throne":
 			var back := -_entry_dir(i)
 			var half: float = (r["size"].x if absf(back.x) > 0.5 else r["size"].y) * 0.5
+			if in_door_lane(i, c + back * (half - 1.2), 0.8):
+				return
 			var n := Node3D.new()
 			root.add_child(n)
 			n.position = c + back * (half - 1.2)
@@ -1537,7 +1552,7 @@ func apply_environment(env: Environment) -> void:
 	env.background_color = kit.background
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = kit.ambient
-	env.ambient_light_energy = float(kit.ambient_energy) * (0.08 if darkness else 1.0)
-	env.fog_enabled = bool(kit.fog) or darkness
-	env.fog_light_color = Color(0.0, 0.0, 0.0) if darkness else kit.fog_color
-	env.fog_density = 0.09 if darkness else float(kit.fog_density)
+	env.ambient_light_energy = float(kit.ambient_energy)
+	env.fog_enabled = bool(kit.fog)
+	env.fog_light_color = kit.fog_color
+	env.fog_density = float(kit.fog_density)

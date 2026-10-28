@@ -88,11 +88,12 @@ static func actions() -> Array:
 				_all_actions.append(["%s_%d" % [bar[0], n], "%s %d" % [bar[1], n], []])
 	return _all_actions
 
+## Bar 0 is the main bar; 1-3 the extra ones (UI Options > Action Bars).
 func is_bar_on(bar: int) -> bool:
-	return bar == 0 or (bar - 1 < extra_bars.size() and bool(extra_bars[bar - 1]))
+	return bar == 0 or bool(UIConfig.value("action_bar_%d" % (bar + 1), "enabled"))
 
-func bar_opacity(bar: int) -> float:
-	return 1.0 if bar == 0 or bar - 1 >= extra_bar_opacity.size() else float(extra_bar_opacity[bar - 1])
+func set_bar_on(bar: int, on: bool) -> void:
+	UIConfig.set_value("action_bar_%d" % (bar + 1), "enabled", on)
 
 var window_mode := 0
 var resolution := 0
@@ -119,6 +120,18 @@ var party_frames_solo := false
 ## Moved HUD elements (Move UI): key -> {"ax", "ay", "x", "y"} (scripts/ui/ui_layout.gd).
 var ui_layout := {}
 signal interface_changed
+## The in-game UI's options (scripts/ui/ui_config.gd): the player's own values
+## (element -> {option -> value}), the role layout, and whether setup has run.
+var ui_profile := {}
+var ui_role := ""
+var play_choice := ""          # the Play screen's last chosen queue key ("" = Random Dungeon)
+var play_difficulty := "solo"  # and its difficulty
+var last_seen_notes := ""    # What's new: a hash of the patch notes last opened
+var ui_installed := false
+## Trackers (scripts/ui/trackers/): id -> tracker or group dictionary.
+var trackers := {}
+## One element's options changed ("" = all of them, e.g. a new role layout).
+signal ui_config_changed(elem: String)
 ## The Move UI button (the game's UI opens edit mode; there is none in the main menu).
 signal move_ui_requested
 
@@ -126,14 +139,18 @@ func apply_interface() -> void:
 	get_tree().root.content_scale_factor = ui_scale
 	for n in get_tree().get_nodes_in_group(HUD_GROUP):
 		if n is CanvasItem:
-			n.modulate.a = ui_opacity
+			n.modulate.a = hud_alpha_of(n)
 	interface_changed.emit()
 
 ## HUD pieces call this so the Opacity slider fades them.
 func register_hud(item: CanvasItem) -> void:
 	if not item.is_in_group(HUD_GROUP):
 		item.add_to_group(HUD_GROUP)
-	item.modulate.a = ui_opacity
+	item.modulate.a = hud_alpha_of(item)
+
+## The HUD opacity times an element's own (its Opacity option and fading).
+func hud_alpha_of(item: CanvasItem) -> float:
+	return ui_opacity * (float(item.hud_alpha()) if item.has_method("hud_alpha") else 1.0)
 
 func build_interface_ui() -> Control:
 	var v := VBoxContainer.new()
@@ -171,60 +188,27 @@ func build_interface_ui() -> Control:
 		save())
 	_row(grid, "Mouseover casting", mo)
 	grid.add_child(Control.new())
-	var pf := CheckButton.new()
-	pf.focus_mode = Control.FOCUS_NONE
-	pf.button_pressed = party_frames_solo
-	pf.tooltip_text = "Show the party frames (right side) when you play alone too. In a party they always show."
-	pf.toggled.connect(func(pressed: bool):
-		party_frames_solo = pressed
-		save())
-	_row(grid, "Party frames when solo", pf)
-	grid.add_child(Control.new())
+	var buttons := HBoxContainer.new()
+	buttons.add_theme_constant_override("separation", 8)
+	var opts := UI.button("UI Options", 14, Vector2(0, 30))
+	opts.tooltip_text = "Every part of the in-game UI: unit frames, action bars, auras, cast bars, panels, info texts. Also /ui in chat."
+	opts.pressed.connect(func(): UIOptions.open(get_tree()))
+	buttons.add_child(opts)
 	var move := UI.button("Move UI", 14, Vector2(0, 30))
 	move.tooltip_text = "Drag any part of the in-game interface to a new place (in a dungeon, out of combat)."
 	move.pressed.connect(func(): move_ui_requested.emit())
-	_row(grid, "Layout", move)
+	buttons.add_child(move)
+	var setup := UI.button("Run UI setup", 14, Vector2(0, 30))
+	setup.tooltip_text = "Pick a layout again: Tank, Healer, Physical DPS or Caster DPS."
+	setup.pressed.connect(func(): UIInstaller.open(get_tree()))
+	buttons.add_child(setup)
+	var trk := UI.button("Trackers", 14, Vector2(0, 30))
+	trk.tooltip_text = "Build your own aura bars, cooldown icons and alerts from ability, item and effect IDs. Also /trackers in chat."
+	trk.pressed.connect(func(): TrackerEditor.open(get_tree()))
+	buttons.add_child(trk)
+	_row(grid, "Layout", buttons)
 	grid.add_child(Control.new())
-	# Extra action bars: on / off and how see-through each one is.
-	v.add_child(UI.label("Extra action bars", 15, UI.ACCENT))
-	var bars := GridContainer.new()
-	bars.columns = 4
-	bars.add_theme_constant_override("h_separation", 10)
-	bars.add_theme_constant_override("v_separation", 6)
-	v.add_child(bars)
-	var bar_checks: Array = []
-	var bar_sliders: Array = []
-	var bar_labels: Array = []
-	for i in EXTRA_BARS.size():
-		var idx: int = i
-		var name_l := UI.label(str(EXTRA_BARS[i][1]), 14, Color.WHITE)
-		name_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		name_l.set_meta("tip_text", "%s: %d more slots, %s. Bind its keys in the Controls tab." % [EXTRA_BARS[i][1], BAR_SLOTS, EXTRA_BARS[i][2]])
-		name_l.mouse_filter = Control.MOUSE_FILTER_PASS
-		bars.add_child(name_l)
-		var on := CheckButton.new()
-		on.focus_mode = Control.FOCUS_NONE
-		on.button_pressed = bool(extra_bars[i])
-		bars.add_child(on)
-		var o_s := _slider(BAR_OPACITY_MIN, 1.0, 0.05, float(extra_bar_opacity[i]))
-		o_s.custom_minimum_size = Vector2(150, 24)
-		o_s.tooltip_text = "Opacity of the %s" % str(EXTRA_BARS[i][1]).to_lower()
-		bars.add_child(o_s)
-		var o_l := UI.label("%d%%" % int(round(float(extra_bar_opacity[i]) * 100)), 14, Color.WHITE)
-		bars.add_child(o_l)
-		on.toggled.connect(func(pressed: bool):
-			extra_bars[idx] = pressed
-			apply_interface()
-			save())
-		o_s.value_changed.connect(func(val: float):
-			extra_bar_opacity[idx] = val
-			o_l.text = "%d%%" % int(round(val * 100))
-			apply_interface())
-		o_s.drag_ended.connect(func(_value_changed): save())
-		bar_checks.append(on)
-		bar_sliders.append(o_s)
-		bar_labels.append(o_l)
-	var reset := UI.button("Reset interface", 14, Vector2(0, 30))
+	var reset := UI.button("Reset interface size", 14, Vector2(0, 30))
 	reset.pressed.connect(func():
 		ui_scale = 1.0
 		ui_opacity = 1.0
@@ -232,16 +216,10 @@ func build_interface_ui() -> Control:
 		size_l.text = "100%"
 		op_s.set_value_no_signal(1.0)
 		op_l.text = "100%"
-		for i in EXTRA_BARS.size():
-			extra_bars[i] = false
-			extra_bar_opacity[i] = 1.0
-			bar_checks[i].set_pressed_no_signal(false)
-			bar_sliders[i].set_value_no_signal(1.0)
-			bar_labels[i].text = "100%"
 		apply_interface()
 		save())
 	v.add_child(reset)
-	var note := UI.label("Size scales every menu and the HUD. Opacity fades the in-game HUD: bars, action bar, chat, minimap and windows. Extra action bars show in game; their keys are set in the Controls tab.", 12, UI.TEXT_DIM)
+	var note := UI.label("Size scales every menu and the HUD. Opacity fades the in-game HUD. Extra action bars are switched on in UI Options > Action Bars; their keys are set in the Controls tab.", 12, UI.TEXT_DIM)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(note)
 	return v
@@ -305,6 +283,32 @@ func _load() -> void:
 			var d: Variant = cfg.get_value("ui_layout", key)
 			if d is Dictionary:
 				ui_layout[key] = d
+	ui_role = str(cfg.get_value("ui", "role", ui_role))
+	play_choice = str(cfg.get_value("menu", "play_choice", play_choice))
+	play_difficulty = str(cfg.get_value("menu", "play_difficulty", play_difficulty))
+	last_seen_notes = str(cfg.get_value("menu", "last_seen_notes", last_seen_notes))
+	ui_installed = bool(cfg.get_value("ui", "installed", ui_installed))
+	if cfg.has_section("ui_profile") or cfg.has_section_key("ui", "role"):
+		var raw := {}
+		for elem in cfg.get_section_keys("ui_profile"):
+			raw[elem] = cfg.get_value("ui_profile", elem)
+		ui_profile = UIConfig.clean_profile(raw)
+	else:
+		# From before UI Options: the extra bars and party frames setting move in.
+		for i in EXTRA_BARS.size():
+			var elem := "action_bar_%d" % (i + 2)
+			if extra_bars[i]:
+				ui_profile[elem] = {"enabled": true}
+			if extra_bar_opacity[i] < 1.0:
+				ui_profile[elem] = ui_profile.get(elem, {})
+				ui_profile[elem]["alpha"] = extra_bar_opacity[i]
+		if party_frames_solo:
+			ui_profile["party_frames"] = {"show_solo": true}
+	if cfg.has_section("trackers"):
+		for id in cfg.get_section_keys("trackers"):
+			var t: Variant = cfg.get_value("trackers", id)
+			if t is Dictionary:
+				trackers[id] = t
 	if cfg.has_section("keybinds"):
 		for action in cfg.get_section_keys("keybinds"):
 			if InputMap.has_action(action):
@@ -326,11 +330,18 @@ func save() -> void:
 	cfg.set_value("ui", "scale", ui_scale)
 	cfg.set_value("ui", "opacity", ui_opacity)
 	cfg.set_value("ui", "mouseover_casting", mouseover_casting)
-	cfg.set_value("ui", "party_frames_solo", party_frames_solo)
-	cfg.set_value("ui", "extra_bars", extra_bars)
-	cfg.set_value("ui", "extra_bar_opacity", extra_bar_opacity)
+
+	cfg.set_value("ui", "role", ui_role)
+	cfg.set_value("ui", "installed", ui_installed)
+	cfg.set_value("menu", "play_choice", play_choice)
+	cfg.set_value("menu", "play_difficulty", play_difficulty)
+	cfg.set_value("menu", "last_seen_notes", last_seen_notes)
 	for key in ui_layout:
 		cfg.set_value("ui_layout", key, ui_layout[key])
+	for elem in ui_profile:
+		cfg.set_value("ui_profile", elem, ui_profile[elem])
+	for id in trackers:
+		cfg.set_value("trackers", id, trackers[id])
 	cfg.save(PATH)
 
 func apply() -> void:

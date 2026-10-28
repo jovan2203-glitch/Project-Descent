@@ -26,14 +26,17 @@ var _unread := false
 const COLLAPSED_HEIGHT := 30.0
 
 func _ready() -> void:
-	anchor_top = 1.0
-	anchor_bottom = 1.0
-	offset_left = 16
-	_fit_width()
-	get_viewport().size_changed.connect(_fit_width)
-	if is_instance_valid(avoid_above):
-		avoid_above.item_rect_changed.connect(_fit_width)
 	var sb := UI.box(Color(0, 0, 0, 0.45), Color(0.3, 0.3, 0.32, 0.6), 1, 6)
+	if docked:
+		sb = UISkin.backdrop()
+	else:
+		anchor_top = 1.0
+		anchor_bottom = 1.0
+		offset_left = 16
+		_fit_width()
+		get_viewport().size_changed.connect(_fit_width)
+		if is_instance_valid(avoid_above):
+			avoid_above.item_rect_changed.connect(_fit_width)
 	sb.content_margin_left = 6
 	sb.content_margin_right = 6
 	sb.content_margin_top = 4
@@ -90,6 +93,8 @@ func _ready() -> void:
 	_entry.add_theme_stylebox_override("focus", UI.box(Color(0, 0, 0, 0.6), UI.ACCENT.darkened(0.2), 1, 4))
 	_entry.text_submitted.connect(_on_submit)
 	v.add_child(_entry)
+	if docked:
+		UISkin.restyle(self)   # (in game: the in-game UI's look; the main menu keeps its own)
 
 	_current = "Chat"
 	_tabs["Chat"].set_pressed_no_signal(true)
@@ -132,6 +137,9 @@ var max_height := -1.0
 ## and always use all the height between it and the bottom gap.
 var avoid_above: Control
 var fill_height := false
+## In the game's chat panel (scripts/ui/hud/chat_panel.gd): the panel sizes and
+## places it (UI Options > Panels), no resize grip.
+var docked := false
 
 func _max_size() -> Vector2:
 	var vp := get_viewport().get_visible_rect().size
@@ -143,6 +151,8 @@ func _max_size() -> Vector2:
 	return Vector2(maxf(vp.x * 0.5 - ACTION_BAR_HALF - 16.0, MIN_SIZE.x), h)
 
 func _fit_width() -> void:
+	if docked:
+		return
 	var s: Vector2 = get_node("/root/Settings").chat_size
 	s = s.clamp(MIN_SIZE, _max_size())
 	if fill_height:
@@ -193,7 +203,7 @@ func _set_collapsed(c: bool) -> void:
 	for t in _views:
 		_views[t].visible = t == _current and not c
 	_entry.visible = not c
-	_grip.visible = not c
+	_grip.visible = not c and not docked
 	_collapse_btn.text = "+" if c else "–"
 	if not c:
 		_unread = false

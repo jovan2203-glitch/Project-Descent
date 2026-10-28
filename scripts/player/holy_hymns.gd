@@ -572,3 +572,6 @@ func verses_text(id: String) -> String:
 		return str(verses.size())
 	return ""
 
+
+func tracker_values() -> Dictionary:
+	return {"verses": {"value": verses.size(), "max": Balance.VERSE_MAX}}

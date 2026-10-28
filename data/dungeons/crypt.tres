@@ -36,5 +36,5 @@ bosses = [{
 }]
 objectives = Array[String](["clear_pct", "key_elites", "timed_escape", "clear_pct"])
 clear_pct = 75
-modifier_pool = Array[String](["frost_touched", "volatile", "bloodthirst", "darkness", "frenzy"])
+modifier_pool = Array[String](["frost_touched", "volatile", "bloodthirst", "frenzy"])
 modifier_count = 1

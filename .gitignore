@@ -10,3 +10,6 @@ addons/godotsteam/**/~*.TMP
 
 # Research notes: local only, never pushed
 docs/research/
+
+# What's new in the menu: the release workflow copies the newest patch notes here
+data/whats_new.md

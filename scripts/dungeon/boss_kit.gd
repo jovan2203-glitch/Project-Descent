@@ -19,9 +19,21 @@ extends Node
 #   big_cast  long cast that hits EVERY player hard unless interrupted (time).
 #   heal      interruptible self-heal for `pct` of max health (time).
 #   enrage    passive: below `below` health, attacks faster and hits harder.
+#   soak      stack: a circle on a player; its damage (hit x up to `share_max`
+#             players) is split between everyone inside (radius, time, share_max).
+#   spread    `count` players get a circle that follows them, then bursts on
+#             everyone inside it (radius, time, count).
+#   hazard    stay out: pools under players + `extra` spots that hurt every
+#             `tick` s for `duration` s (radius, time = warning, duration, tick).
+#   phase     passive: below `below` health, switch to phase `to` and/or call
+#             `guards` {role, count} (immune until they die) or `summon` {role, count}.
+#
+# Any ability may carry "phase": n - it is only used in that phase (phase 1 first).
+# How each one LOOKS comes from mechanic_look.gd (one shape per family).
 
 const Names = preload("res://scripts/dungeon/names.gd")
 const FX = preload("res://scripts/dungeon/boss_abilities.gd")
+const Look = preload("res://scripts/dungeon/mechanic_look.gd")
 
 var boss: Node3D
 var dungeon: Node
@@ -32,6 +44,12 @@ var room_half := Vector2(9, 9)
 var _cd: Array = []
 var _next_think := 3.0
 var _enraged := false
+var _phase := 1
+var _phase_done := {}       # index of a phase entry -> true once it happened
+var _guards: Array = []     # alive guards keeping the boss immune
+var _pools := 0             # stay_out pools on the floor right now
+
+const MAX_POOLS := 12
 
 func _net() -> Node:
 	return get_node_or_null("/root/Net")
@@ -54,7 +72,10 @@ func _process(delta: float) -> void:
 	for i in _cd.size():
 		_cd[i] = maxf(float(_cd[i]) - delta, 0.0)
 	_check_enrage()
+	_check_guards()
 	if not boss.is_in_combat():
+		return
+	if _check_phases():
 		return
 	_next_think -= delta
 	if _next_think > 0.0 or _busy():
@@ -69,7 +90,9 @@ func _process(delta: float) -> void:
 	for i in order:
 		var a: Dictionary = abilities[i]
 		var type := str(a.get("type", ""))
-		if type == "enrage" or float(_cd[i]) > 0.0:
+		if type == "enrage" or type == "phase" or float(_cd[i]) > 0.0:
+			continue
+		if a.has("phase") and int(a["phase"]) != _phase:
 			continue
 		if a.has("below") and hp > float(a["below"]):
 			continue
@@ -89,9 +112,12 @@ func _hold(seconds: float) -> void:
 func _title(a: Dictionary) -> String:
 	return Names.t(str(a.get("name", "")))
 
+## The ability's color, kept inside its family's color (mechanic_look.gd) so the
+## shape and rim still read the same in every dungeon.
 func _col(a: Dictionary, fallback: Color) -> Color:
 	var c: Variant = a.get("color", fallback)
-	return c if c is Color else fallback
+	var own: Color = c if c is Color else fallback
+	return Look.color(Look.family(str(a.get("type", "")))).lerp(own, 0.35)
 
 func _hit(a: Dictionary) -> float:
 	return float(boss.contact_damage) * float(a.get("coef", 1.2))
@@ -129,6 +155,14 @@ func _use(a: Dictionary, type: String, tgt: Node3D) -> bool:
 			if boss.is_silenced() or float(boss.health) > float(boss.max_health) * 0.8:
 				return false
 			_heal(a)
+		"soak":
+			_soak(a, float(a.get("radius", 3.0)), float(a.get("time", 4.0)))
+		"spread":
+			_spread(a, float(a.get("radius", 3.0)), float(a.get("time", 4.0)), int(a.get("count", 2)))
+		"hazard":
+			if _pools >= MAX_POOLS:
+				return false
+			_hazard(a, float(a.get("radius", 2.5)), float(a.get("time", 1.2)), int(a.get("extra", 1)))
 		_:
 			return false
 	return true
@@ -174,7 +208,7 @@ func _donut(a: Dictionary, inner: float, time: float) -> void:
 	_hold(time + 0.3)
 	_announce("%s: %s - get close!" % [boss.display_name, _title(a)], col)
 	_circle_all(at, outer, time, col)
-	_circle_all(at, inner, time, Color(0.35, 1.0, 0.45))   # the safe spot
+	_circle_all(at, inner, time, Look.color("safe"), "safe")   # the safe spot
 	_after(time, func():
 		boss.play_once("attack")
 		var outside := func(p: Vector3) -> bool: return _flat(p, at) > inner
@@ -259,6 +293,161 @@ func _charge(a: Dictionary, width: float, time: float) -> void:
 		t.tween_property(boss, "global_position", Vector3(to.x, boss.global_position.y, to.z), 0.35)
 		var on_line := func(p: Vector3) -> bool: return _seg_dist(p, from, to) <= width * 0.5 + 0.4
 		_hit_where(on_line, _hit(a), "boss_" + str(a.get("name", ""))))
+
+# --- Phases --------------------------------------------------------------------------------
+
+## A phase entry whose `below` was just crossed: change phase, and maybe call
+## guards (immune until they die) or a wave. True if one happened this frame.
+func _check_phases() -> bool:
+	var hp := float(boss.health) / maxf(float(boss.max_health), 1.0)
+	for i in abilities.size():
+		var a: Dictionary = abilities[i]
+		if str(a.get("type", "")) != "phase" or _phase_done.has(i) or hp > float(a.get("below", 0.5)):
+			continue
+		_phase_done[i] = true
+		_phase_change(a)
+		return true
+	return false
+
+func _phase_change(a: Dictionary) -> void:
+	if a.has("to"):
+		_phase = int(a["to"])
+	if boss.is_casting() and boss._cast_tween:   # a phase change cuts any cast short
+		boss._cast_tween.kill()
+		boss._cast_tween = null
+		boss._show_cast(false)
+	var col := Look.color("guards")
+	_announce("%s: %s!" % [boss.display_name, _title(a)], col)
+	_burst_all(_floor(boss.global_position), 4.0, col)
+	_hold(1.2)
+	_next_think = 1.5
+	if a.has("guards") and dungeon and dungeon.has_method("summon_adds"):
+		var g: Dictionary = a["guards"]
+		var made: Array = dungeon.summon_adds(boss.global_position, int(g.get("count", 2)),
+			str(g.get("role", "defender")), boss)
+		if not made.is_empty():
+			_guards = made
+			boss.mechanic_immune = true
+			Look.guards(boss, made)
+			var n := _net()
+			if n and n.is_host():
+				var ids: Array = []
+				for e in made:
+					ids.append(n.enemy_id(e))
+				n.enemy_fx(boss, "guards", null, {"ids": ids})
+			_announce("%s is shielded - kill the guards!" % boss.display_name, col)
+	if a.has("summon") and dungeon and dungeon.has_method("summon_adds"):
+		var s: Dictionary = a["summon"]
+		dungeon.summon_adds(boss.global_position, int(s.get("count", 3)), str(s.get("role", "swarmer")), boss,
+			room_center, room_half)
+
+## Immune while any guard lives.
+func _check_guards() -> void:
+	if not boss.mechanic_immune:
+		return
+	for g in _guards:
+		if is_instance_valid(g) and g.is_inside_tree() and g.is_alive():
+			return
+	_guards.clear()
+	boss.mechanic_immune = false
+	Look.guards_end(boss)
+	var n := _net()
+	if n and n.is_host():
+		n.enemy_fx(boss, "guards_end", null, {})
+	_announce("%s's guards are down!" % boss.display_name, Look.color("safe"))
+
+# --- Stack, spread, stay out ------------------------------------------------------------------
+
+## What each player standing in a stack circle takes: the total (the hit x up to
+## `share_max` players) split evenly between everyone in it. Nobody in it = every
+## player takes the whole total. Never 0.
+static func soak_share(hit: float, alive: int, inside: int, share_max := 3) -> float:
+	var total := hit * float(clampi(alive, 1, maxi(share_max, 1)))
+	return maxf(total / float(inside), 1.0) if inside > 0 else maxf(total, 1.0)
+
+## Stack: a circle on a player (it moves with them); stand in it together.
+func _soak(a: Dictionary, r: float, time: float) -> void:
+	var alive := _alive()
+	if alive.is_empty():
+		return
+	var who: Node3D = alive.pick_random()
+	_announce("%s: %s - stack together!" % [boss.display_name, _title(a)], Look.color("stack"))
+	Look.stack(get_tree().current_scene, _floor(who.global_position), r, time, who)
+	var n := _net()
+	if n and n.is_host():
+		n.enemy_fx(boss, "stack", who, {"at": _floor(who.global_position), "r": r, "d": time})
+	_after(time, func():
+		var at := _floor(who.global_position) if is_instance_valid(who) else _floor(boss.global_position)
+		var bodies := _alive()
+		var inside: Array = bodies.filter(func(b): return _flat(b.global_position, at) <= r)
+		var share := soak_share(_hit(a), bodies.size(), inside.size(), int(a.get("share_max", 3)))
+		var id := "boss_" + str(a.get("name", ""))
+		for b in (inside if not inside.is_empty() else bodies):
+			boss.deal_melee_hit(b, share, id)
+		_burst_all(at, r, Look.color("stack")))
+
+## Spread: up to `count` players get a circle that follows them, then bursts on
+## everyone inside it (overlapping circles hit twice).
+func _spread(a: Dictionary, r: float, time: float, count: int) -> void:
+	var alive := _alive()
+	alive.shuffle()
+	var marked: Array = alive.slice(0, maxi(mini(count, alive.size()), 1))
+	if marked.is_empty():
+		return
+	var col := Look.color("spread")
+	_announce("%s: %s - spread out!" % [boss.display_name, _title(a)], col)
+	var n := _net()
+	for who in marked:
+		Look.spread(get_tree().current_scene, who, r, time)
+		if n and n.is_host():
+			n.enemy_fx(boss, "spread", who, {"r": r, "d": time})
+	_after(time, func():
+		var id := "boss_" + str(a.get("name", ""))
+		for who in marked:
+			if not is_instance_valid(who):
+				continue
+			var at := _floor(who.global_position)
+			var inside := func(p: Vector3) -> bool: return _flat(p, at) <= r
+			_hit_where(inside, _hit(a), id)
+			_burst_all(at, r, col))
+
+## Stay out: pools land under players (+ `extra` random spots) after a short
+## warning, then hurt anyone standing in them every `tick` s for `duration` s.
+func _hazard(a: Dictionary, r: float, time: float, extra: int) -> void:
+	var spots: Array = []
+	for b in _alive():
+		spots.append(_floor(b.global_position))
+	for i in extra:
+		spots.append(_random_spot())
+	var duration := float(a.get("duration", 10.0))
+	var tick := maxf(float(a.get("tick", 1.0)), 0.25)
+	var tint := _col(a, Look.color("stay_out"))
+	_announce("%s: %s!" % [boss.display_name, _title(a)], Look.color("stay_out"))
+	var placed := 0
+	for p in spots:
+		if _pools >= MAX_POOLS:
+			break
+		_pools += 1
+		placed += 1
+		_circle_all(p, r, time, tint)
+		_after(time, func():
+			Look.pool(get_tree().current_scene, p, r, duration, tint)
+			var n := _net()
+			if n and n.is_host():
+				n.enemy_fx(boss, "pool", null, {"at": p, "r": r, "d": duration, "c": tint})
+			_pool_tick(a, p, r, tick, duration))
+	# A pool always frees its slot, even if the boss dies first.
+	get_tree().create_timer(time + duration).timeout.connect(func(): _pools = maxi(_pools - placed, 0))
+
+func _pool_tick(a: Dictionary, at: Vector3, r: float, tick: float, left: float) -> void:
+	if left <= 0.0:
+		return
+	var inside := func(p: Vector3) -> bool: return _flat(p, at) <= r
+	_hit_where(inside, _hit(a), "boss_" + str(a.get("name", "")))
+	_after(tick, func(): _pool_tick(a, at, r, tick, left - tick))
+
+func _alive() -> Array:
+	return _party().filter(func(b): return is_instance_valid(b) and b.is_alive())
 
 # --- Casts (interruptible) --------------------------------------------------------------
 
@@ -348,11 +537,11 @@ func _hit_where(test: Callable, amount: float, id: String) -> void:
 		if test.call(b.global_position):
 			boss.deal_melee_hit(b, amount, id)
 
-func _circle_all(at: Vector3, r: float, time: float, col: Color) -> void:
-	FX.telegraph(get_tree().current_scene, at, r, time, col)
+func _circle_all(at: Vector3, r: float, time: float, col: Color, fam := "avoid") -> void:
+	Look.area(get_tree().current_scene, at, r, time, fam, col)
 	var n := _net()
 	if n and n.is_host():
-		n.enemy_fx(boss, "telegraph", null, {"at": at, "r": r, "d": time, "c": col})
+		n.enemy_fx(boss, "telegraph", null, {"at": at, "r": r, "d": time, "c": col, "f": fam})
 
 func _burst_all(at: Vector3, r: float, col: Color) -> void:
 	FX.burst(get_tree().current_scene, at, r, col)

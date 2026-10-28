@@ -12,6 +12,8 @@ const HELP := [
 	"/help — this list",
 	"/testkit <spec> — ready to play a spec: level 50, its abilities on your bars, Epic gear for it, talents picked (e.g. /testkit venomstring)",
 	"/bug <what happened> — note a bug in your log, with where you were",
+	"/ui — UI Options (every part of the interface)",
+	"/trackers — build your own aura bars, cooldown icons and alerts",
 	"/give <item> [rarity] [item level] — e.g. /give storm idol epic 30  (type /give alone for the item list)",
 	"/level <n> — set your level",
 	"/xp <n> — gain experience",
@@ -73,7 +75,7 @@ static func run(tree: SceneTree, line: String) -> Array:
 						if str(pd.action_bar[i]) != "":
 							on = true
 					if on and not settings.is_bar_on(bar):
-						settings.extra_bars[bar - 1] = true
+						settings.set_bar_on(bar, true)
 						turned = true
 				if turned:
 					settings.apply_interface()
@@ -91,6 +93,12 @@ static func run(tree: SceneTree, line: String) -> Array:
 			if gl:
 				gl.warn("bug", "BUG REPORT from %s | %s%s | party of %d | %s" % [who, where, pos, int(net.members.size()) if net and net.online else 1, text])
 			return ["Bug noted in your log — thanks! Send game.log after the session (Esc > Open Logs Folder)."]
+		"ui":
+			UIOptions.open(tree)
+			return ["UI Options opened."]
+		"trackers":
+			TrackerEditor.open(tree)
+			return ["Trackers opened."]
 		"help", "?":
 			return HELP
 		"give":

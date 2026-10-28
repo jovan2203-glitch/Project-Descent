@@ -465,6 +465,8 @@ func apply_elite_trait(t: String) -> void:
 
 ## StatusContainer asks before applying an effect (Unstoppable ignores CC).
 var _immune_text_at := 0.0
+## Boss mechanics (host / solo): immune while its guards live.
+var mechanic_immune := false
 
 func resists_effect(res: Resource) -> bool:
 	if elite_trait == "" or not ELITE_TRAITS.resists(elite_trait, res):
@@ -709,7 +711,14 @@ func _kiting(tgt: Node3D, stunned: bool, rooted: bool) -> bool:
 
 ## CombatSystem: % damage change for a hit on this enemy (Defender's shield
 ## blocks most of a hit that comes from the front; flank it).
+## Boss mechanics: immune while its guards live (no damage at all, whatever else
+## boosts the hit).
 func incoming_damage_pct(info: RefCounted) -> float:
+	if mechanic_immune:
+		if _now_s() >= _immune_text_at:
+			_immune_text_at = _now_s() + 1.0
+			_cs().float_text(self, "Immune", Color(0.95, 0.95, 1.0), false)
+		return -100000.0
 	if frontal_block <= 0.0 or info.is_dot or info.source == null or not is_instance_valid(info.source) \
 			or not (info.source is Node3D):
 		return 0.0
@@ -1078,7 +1087,8 @@ func net_fx(kind: String, tgt: Node3D, extra: Dictionary) -> void:
 	var scene := get_tree().current_scene
 	match kind:
 		"telegraph":
-			BOSS_ABILITIES.telegraph(scene, extra.get("at", global_position), float(extra.get("r", 3.0)), float(extra.get("d", 1.5)), extra.get("c", Color.RED))
+			MECHANIC_LOOK.area(scene, extra.get("at", global_position), float(extra.get("r", 3.0)), float(extra.get("d", 1.5)),
+				str(extra.get("f", "avoid")), extra.get("c", Color.RED))
 		"burst":
 			BOSS_ABILITIES.burst(scene, extra.get("at", global_position), float(extra.get("r", 3.0)), extra.get("c", Color.RED))
 		"cone":
@@ -1087,6 +1097,22 @@ func net_fx(kind: String, tgt: Node3D, extra: Dictionary) -> void:
 		"line":
 			BOSS_KIT.line_telegraph(scene, extra.get("at", global_position), extra.get("to", global_position),
 				float(extra.get("w", 2.0)), float(extra.get("d", 1.4)), extra.get("c", Color.RED))
+		"stack":
+			MECHANIC_LOOK.stack(scene, extra.get("at", global_position), float(extra.get("r", 3.0)), float(extra.get("d", 3.0)), tgt)
+		"spread":
+			MECHANIC_LOOK.spread(scene, tgt, float(extra.get("r", 3.0)), float(extra.get("d", 3.0)))
+		"pool":
+			MECHANIC_LOOK.pool(scene, extra.get("at", global_position), float(extra.get("r", 2.5)), float(extra.get("d", 8.0)), extra.get("c"))
+		"guards":
+			var n := get_node_or_null("/root/Net")
+			var guard_nodes: Array = []
+			for id in extra.get("ids", []):
+				var g: Node = n._enemy(scene, str(id)) if n else null
+				if g:
+					guard_nodes.append(g)
+			MECHANIC_LOOK.guards(self, guard_nodes)
+		"guards_end":
+			MECHANIC_LOOK.guards_end(self)
 		"announce":
 			if scene and scene.has_method("_announce"):
 				scene._announce(str(extra.get("t", "")), extra.get("c", Color(1.0, 0.45, 0.35)))
@@ -1163,6 +1189,7 @@ func _tint_bolt(b: Node3D) -> void:
 
 const BOSS_ABILITIES = preload("res://scripts/dungeon/boss_abilities.gd")
 const BOSS_KIT = preload("res://scripts/dungeon/boss_kit.gd")
+const MECHANIC_LOOK = preload("res://scripts/dungeon/mechanic_look.gd")
 
 ## Physical area hit (boss slams / eruptions). `amount` is the raw damage.
 func deal_melee_hit(tgt: Node, amount: float, ability_id: String) -> void:

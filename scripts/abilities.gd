@@ -663,6 +663,27 @@ static func role_of_bar(ids: Array) -> String:
 			best = role
 	return best
 
+## [spec, book] with the most abilities on the bars ("Utility" ones don't count;
+## ties: the first one on the bars). ["", ""] if none.
+static func main_spec_of_bar(ids: Array) -> Array:
+	var count := {}
+	var book_of := {}
+	var first: Array[String] = []
+	for id in ids:
+		var spec := spec_of(str(id))
+		if spec == "" or spec == "Utility":
+			continue
+		if not count.has(spec):
+			count[spec] = 0
+			book_of[spec] = category_of(str(id))
+			first.append(spec)
+		count[spec] += 1
+	var best := ""
+	for spec in first:
+		if best == "" or int(count[spec]) > int(count[best]):
+			best = spec
+	return [best, str(book_of.get(best, ""))]
+
 ## Each book's abilities split by playstyle (visual only): book -> [[spec name, [ids]], ...].
 ## Books show their specs in this order, each under a divider. Every ability of a
 ## book sits in exactly one spec (tests/test_books.gd).

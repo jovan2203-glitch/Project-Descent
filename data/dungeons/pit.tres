@@ -39,5 +39,5 @@ bosses = [{
 objectives = Array[String](["survive_waves", "survive_waves", "defend", "survive_waves"])
 waves = 3
 defend_time = 25.0
-modifier_pool = Array[String](["frost_touched", "volatile", "bloodthirst", "darkness", "frenzy"])
+modifier_pool = Array[String](["frost_touched", "volatile", "bloodthirst", "frenzy"])
 modifier_count = 1

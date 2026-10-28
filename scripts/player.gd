@@ -85,6 +85,14 @@ func _kit(script: Script) -> Node:
 	add_child(k)
 	return k
 
+## Every component's values for Trackers (PlayerKit.tracker_values), in one dictionary.
+func tracker_values() -> Dictionary:
+	var out := {}
+	for c in get_children():
+		if c is PlayerKit:
+			out.merge(c.tracker_values(), true)
+	return out
+
 # Forwards to VenomstringKit (called from other scripts).
 func venom() -> float:
 	return venomstring.venom()

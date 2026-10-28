@@ -15,7 +15,6 @@ extends Node3D
 
 const DUMMY = preload("res://scripts/training/dummy.gd")
 const ALLY_DUMMY = preload("res://scripts/training/ally_dummy.gd")
-const UI = preload("res://scripts/ui_kit.gd")
 
 @onready var player: Node3D = $Player
 @onready var level_root: Node3D = $Level
@@ -399,31 +398,26 @@ func _build_panel() -> void:
 	panel.anchor_bottom = 0.5
 	panel.offset_left = 16
 	panel.offset_top = -40
-	panel.add_theme_stylebox_override("panel", UI.box(Color(0, 0, 0, 0.6), UI.BORDER, 1, 6))
+	panel.add_theme_stylebox_override("panel", UISkin.backdrop(-1.0, 6))
 	layer.add_child(panel)
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 6)
+	v.add_theme_constant_override("separation", 4)
 	panel.add_child(v)
-	v.add_child(UI.label("Training Room", 15, UI.ACCENT))
+	v.add_child(UISkin.label("Training Room", 13, UISkin.accent()))
 	var key: String = get_node("/root/Settings").key_text("open_details")
-	v.add_child(UI.label("Meter: top right (%s)" % key, 12, UI.TEXT_DIM))
+	v.add_child(UISkin.label("Damage meter: %s" % key, 11, UISkin.DIM))
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 6)
+	row.add_theme_constant_override("separation", 4)
 	v.add_child(row)
-	var reset := UI.button("Reset", 14, Vector2(80, 30))
+	var reset := UIWindow.button("Reset", Vector2(64, 24))
 	reset.tooltip_text = "Clear the recorded fights"
 	reset.pressed.connect(func():
 		if details:
 			details.reset())
 	row.add_child(reset)
-	var breakdown := UI.button("Breakdown", 14, Vector2(96, 30))
-	breakdown.tooltip_text = "Per-spell numbers and buff uptime"
-	breakdown.pressed.connect(func():
-		if details:
-			details.meter_enabled = true
-			details.open_breakdown())
-	row.add_child(breakdown)
-	var leave := UI.button("Leave", 14, Vector2(80, 30))
+	var leave := UIWindow.button("Leave", Vector2(64, 24))
 	leave.tooltip_text = "Back to the lobby"
 	leave.pressed.connect(func(): get_node("/root/GameManager").go_to_menu())
 	row.add_child(leave)
+	get_node("/root/Settings").register_hud(panel)
+	UILayout.register(get_tree(), panel, "training", "Training Room")

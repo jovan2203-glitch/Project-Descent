@@ -92,6 +92,7 @@ func _build_abilities_page() -> Control:
 			else "Search abilities and talents  (name or keyword, e.g. chill)"
 	menu.open_book._book_tabs.visibility_changed.connect(fit_search)
 	right_grp.resized.connect(fit_search)
+	right_grp.add_child(menu.loadouts.header_button())
 	menu._talent_points_label = UI.label("", 12, Color.WHITE)
 	menu._talent_points_label.custom_minimum_size = Vector2(250, 0)   # fixed width: the icons never shift
 	menu._talent_points_label.clip_text = true                         # (a Label grows with its text otherwise, and they would)

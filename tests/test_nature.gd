@@ -307,7 +307,7 @@ func test_venomstring_hooks_and_talent() -> void:
 	assert_contains(src, "_fang_landed(enemy)")
 	assert_contains(src, "\t_tick_venom(_delta)\n")
 	assert_contains(src, "_start_adder_arrow()")
-	assert_contains(FileAccess.get_file_as_string("res://scripts/hud.gd"), "_refresh_venom_bar()")
+	assert_contains(FileAccess.get_file_as_string("res://scripts/ui/hud/venom_bar.gd"), "VENOM_ARROWS.all(")
 	assert_contains(FileAccess.get_file_as_string("res://scripts/arrow.gd"), "_snake_tint(id)")
 	var id := Talents.id_for_key("nature_lingering_venom")
 	assert_true(id != "", "Lingering Venom exists")
