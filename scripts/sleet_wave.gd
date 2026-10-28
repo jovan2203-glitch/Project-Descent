@@ -14,6 +14,8 @@ var speed := 24.0      # metres per second
 var damage := 0.0
 var ability_id := "sleetwave"
 var source: Node = null
+## Made by my free cast (Rune of the Wild Page): its hits are echoes too.
+var echo := false
 var dir := Vector3.FORWARD
 
 const SLEET := Color(0.72, 0.9, 1.0)
@@ -127,4 +129,7 @@ func _strike() -> void:
 		_hit[e.get_instance_id()] = true
 		if source.has_method("can_see") and not source.can_see(e):
 			continue   # behind a wall
-		source.deal_damage(e, damage, ability_id)
+		Combat.run_as(source, echo, func(): source.deal_damage(e, damage, ability_id))
+
+func _enter_tree() -> void:
+	echo = Combat.echoing(source)   # (asked each time it is made: pooled ones come back)

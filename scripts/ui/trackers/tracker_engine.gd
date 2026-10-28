@@ -6,8 +6,11 @@ class_name TrackerEngine
 # UI element ("tracker:<id>"). Ten times a second it works out what every loaded
 # tracker shows; events (SignalBus) are remembered with when they happened, for
 # Event triggers. Trackers whose load rules don't match are hidden and cost nothing.
+# Gives the role's starting groups and the spec displays (Trackers.spec_sets())
+# once each (Settings.tracker_builtins); after that they are the player's.
 
 const GROUP := "tracker_engine"
+const Macros = preload("res://scripts/core/macros.gd")
 const SWEEP := 0.1
 
 var hud: Node
@@ -54,9 +57,7 @@ func _ready() -> void:
 		bus.level_up.connect(func(_l): _event("level_up", ""))
 		bus.boss_engaged.connect(func(_b): _boss = true)
 		bus.boss_defeated.connect(func(_b): _boss = false)
-	var s := get_node_or_null("/root/Settings")
-	if s and s.trackers.is_empty() and bool(s.ui_installed):
-		ensure_defaults()
+	ensure_defaults()
 	rebuild.call_deferred()
 
 ## Remember an event (and its id-filtered form) with when it happened.
@@ -73,15 +74,11 @@ func _event(event: String, id: String, label := "") -> void:
 		_event_names[Trackers.event_key(event, id)] = nm
 	_t = 0.0   # show it now, not at the next sweep
 
-## The role layout's starting groups, when there are no trackers yet.
+## Give what hasn't been given yet (Trackers.give_builtins) and show it.
 func ensure_defaults() -> void:
 	var s := get_node_or_null("/root/Settings")
-	if s == null or not s.trackers.is_empty():
-		return
-	for t in Trackers.default_groups(UIConfig.role()):
-		s.trackers[t["id"]] = t
-	s.save()
-	rebuild()
+	if s != null and Trackers.give_builtins(s):
+		rebuild()
 
 ## Make the displays again from Settings.trackers (after the editor changes them).
 func rebuild() -> void:
@@ -101,6 +98,7 @@ func rebuild() -> void:
 			var g := TrackerDisplay.new()
 			g.setup(t)
 			_layer.add_child(g)
+			_start_spot(g)
 			_displays[id] = g
 			UILayout.register(get_tree(), g, "tracker:" + str(id), str(t["name"]), true)
 	for id in s.trackers:
@@ -115,9 +113,16 @@ func rebuild() -> void:
 			parent.add_child(d)
 		else:
 			_layer.add_child(d)
+			_start_spot(d)
 			UILayout.register(get_tree(), d, "tracker:" + str(id), str(t["name"]), true)
 		_displays[id] = d
 	_t = 0.0
+
+## Where a tracker nobody placed yet starts (Move UI keeps it where it's put): a
+## little above the screen's centre, not the top-left corner.
+func _start_spot(d: Control) -> void:
+	var screen := get_viewport().get_visible_rect().size if is_inside_tree() else Vector2(1152, 648)
+	d.position = Vector2(screen.x * 0.5 - d.size.x * 0.5, screen.y * 0.4)
 
 func _process(delta: float) -> void:
 	_t -= delta
@@ -151,7 +156,19 @@ func context() -> Dictionary:
 			if spec == "" or int(specs[sp]) > int(specs[spec]):
 				spec = sp
 	var scene := get_tree().current_scene
+	# Every ability on the bars (each in a macro counts), for "On my bars" load rules.
+	var bars: Array = []
+	if pd:
+		for slot_id in pd.action_bar:
+			var ids: Array = [str(slot_id)]
+			if Macros.is_macro(str(slot_id)):
+				ids = Macros.abilities_of(str(slot_id))
+			for a in ids:
+				if a != "" and not bars.has(a):
+					bars.append(a)
+	var values: Dictionary = player.tracker_values() if player != null and player.has_method("tracker_values") else {}
 	return {"player": player, "target": target, "party": party, "events": _events, "event_names": _event_names,
+		"bars": bars, "values": values,
 		"now": Time.get_ticks_msec() / 1000.0, "player_data": pd, "spec": spec, "role": role,
 		"combat": player != null and player.has_method("is_in_combat") and player.is_in_combat(),
 		"in_party": net != null and net.with_others(), "boss": _boss,
@@ -170,8 +187,8 @@ func sweep() -> void:
 		if t.is_empty() or d.preview:
 			continue
 		if not Trackers.loaded(t, ctx):
-			if d.visible:
-				d.show_state({"active": false}, {})
+			if d.visible or not bool(d.st.get("unloaded", false)):
+				d.show_state({"active": false, "unloaded": true}, {})
 			continue
 		var st := Trackers.eval_tracker(t, ctx)
 		# A bar's fill by time needs the full time: the longest left seen this time it's up.

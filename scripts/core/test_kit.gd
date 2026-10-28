@@ -271,6 +271,8 @@ static func apply(pd: Node, spec_typed: String) -> Array:
 	# Abilities: the spec's and its book's Utility, the spec's first on the bars.
 	var own := abilities_of(spec)
 	var util := utility_of(spec)
+	var borrowed := borrowed_for(own + util)
+	util = borrowed + util   # on the bars right after the spec's own, so they always fit
 	pd.learn_abilities(own + util)
 	var buttons := bar_buttons(own)
 	var util_buttons := bar_buttons(util)
@@ -326,4 +328,38 @@ static func apply(pd: Node, spec_typed: String) -> Array:
 		buttons.size() + util_buttons.size(), pd.equipment.size(), pd.talent_points_spent(), in_spec, spec, extra]]
 	if own.size() <= 1:
 		lines.append("Note: %s is unfinished (only %d ability)." % [spec, own.size()])
+	if not borrowed.is_empty():
+		var names: Array[String] = []
+		for id in borrowed:
+			names.append(Abilities.ability_name(id))
+		lines.append("Borrowed from another book for the test: %s." % ", ".join(names))
 	return lines
+
+# --- Interrupts and stuns --------------------------------------------------------------
+# Every kit can stop a cast and stun (casters, alarm bells, Defenders' Shield Up).
+# A kit without one borrows it from another book's Utility.
+
+const FALLBACK_INTERRUPT := "jolt"       # Lightning Utility: free, ranged, no weapon
+const FALLBACK_STUN := "stringup"        # Shadow Utility: ranged, a little mana
+## Stuns applied in code rather than by the ability's on-hit effect.
+const CODE_STUNS := ["sporesleep", "snatch", "earthshake", "roundhouse", "throw", "takedown"]
+
+static func is_interrupt(id: String) -> bool:
+	var r := Abilities.get_resource(id)
+	return r != null and (r.tags as PackedStringArray).has("Interrupt")
+
+static func is_stun(id: String) -> bool:
+	if CODE_STUNS.has(id):
+		return true
+	var r := Abilities.get_resource(id)
+	var fx: Variant = r.get("on_hit_effect") if r != null else null
+	return fx != null and bool(fx.get("stun"))
+
+## What a kit of `ids` borrows: an interrupt and / or a stun it lacks.
+static func borrowed_for(ids: Array[String]) -> Array[String]:
+	var out: Array[String] = []
+	if not ids.any(is_interrupt):
+		out.append(FALLBACK_INTERRUPT)
+	if not ids.any(is_stun):
+		out.append(FALLBACK_STUN)
+	return out

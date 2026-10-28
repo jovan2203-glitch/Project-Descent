@@ -142,7 +142,7 @@ func _apply_run_extra(extra: Dictionary, seed_value: int) -> void:
 	dungeon_level = maxi(int(extra.get("lvl", get_node("/root/PlayerData").level)), 1)
 	dungeon_modifiers.clear()
 	var r: Resource = DB.find(dungeon_id)
-	if r:
+	if r and Mods.ENABLED:
 		dungeon_modifiers.assign(Mods.roll(Array(r.modifier_pool), int(r.modifier_count), seed_value))
 
 # --- Difficulty ----------------------------------------------------------------------
@@ -152,22 +152,27 @@ func _apply_run_extra(extra: Dictionary, seed_value: int) -> void:
 # someone who isn't tanking them. Picked on the Play screen; in a party the
 # leader's choice counts (sent with the run).
 const DIFFICULTIES := ["solo", "party"]
-const PARTY_DAMAGE_MULT := 3.0
-const PARTY_HEALTH_MULT := 3.0
-const PARTY_OFF_TARGET_CHANCE := 0.3   # ranged enemies: share of shots at a random other player
 var difficulty := "solo"
 
 func is_party_mode() -> bool:
 	return difficulty == "party"
 
-func enemy_damage_mult() -> float:
-	return PARTY_DAMAGE_MULT if is_party_mode() else 1.0
+## Bosses have their own 5 Player numbers (balance.gd PARTY_BOSS_*).
+func enemy_damage_mult(boss := false) -> float:
+	if not is_party_mode():
+		return 1.0
+	return Balance.PARTY_BOSS_DAMAGE_MULT if boss else Balance.PARTY_DAMAGE_MULT
 
-func enemy_health_mult() -> float:
-	return PARTY_HEALTH_MULT if is_party_mode() else 1.0
+## `pack`: placed trash (tougher than adds that join a fight: boss summons, alarms, waves).
+func enemy_health_mult(boss := false, pack := false) -> float:
+	if not is_party_mode():
+		return 1.0
+	if boss:
+		return Balance.PARTY_BOSS_HEALTH_MULT
+	return Balance.PARTY_HEALTH_MULT if pack else Balance.PARTY_ADD_HEALTH_MULT
 
 func off_target_chance() -> float:
-	return PARTY_OFF_TARGET_CHANCE if is_party_mode() else 0.0
+	return Balance.PARTY_OFF_TARGET_CHANCE if is_party_mode() else 0.0
 
 static func difficulty_label(d: String) -> String:
 	return "5 Player" if d == "party" else "Singleplayer"

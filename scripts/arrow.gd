@@ -10,6 +10,8 @@ const ImpactFX = preload("res://scripts/core/impact_fx.gd")
 var target: Node3D
 var damage := 1.0   # coefficient (1.0 = a standard hit)
 var source: Node = null      # the player; damage goes through source.deal_damage()
+## Made by my free cast (Rune of the Wild Page): its hits are echoes too.
+var echo := false
 var ability_id := "auto_ranged"
 var speed := Balance.ARROW_SPEED
 var _done := false
@@ -167,7 +169,7 @@ func _physics_process(delta: float) -> void:
 	var step := speed * delta
 	if to_target.length() <= step + 0.2:
 		if alive and is_instance_valid(source) and source.has_method("deal_damage"):
-			source.deal_damage(target, damage, ability_id)   # impact comes with the hit
+			Combat.run_as(source, echo, func(): source.deal_damage(target, damage, ability_id))   # impact comes with the hit
 		else:
 			# Visual-only arrow (a party member's), or the target died on the way.
 			ImpactFX.spawn_color(get_tree().current_scene, aim, _impact_color(), false, false, true)
@@ -229,3 +231,6 @@ func _snake_tint(id: String) -> void:
 		var c: Color = SNAKE_COLORS[id]
 		_snake_mat.albedo_color = c
 		_snake_mat.emission = c
+
+func _enter_tree() -> void:
+	echo = Combat.echoing(source)   # (asked each time it is made: pooled ones come back)

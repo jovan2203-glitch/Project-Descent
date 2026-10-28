@@ -51,6 +51,7 @@ var modifiers: Array = []
 var layout := {}
 var rooms: Array = []
 var links: Array = []
+var _placing := false         # true while the trash packs are placed (5 Player: tougher than adds)
 var sections: Array = []      # per boss: {objective, done, active, rooms, total, killed, keys, ...}
 var bosses: Array = []        # boss nodes (null until spawned)
 var boss_started: Array = []
@@ -127,7 +128,9 @@ func _ready() -> void:
 	_build_boss_triggers()
 	_build_exit()
 	_build_objective_markers()
+	_placing = true
 	_populate()
+	_placing = false
 	_set_pieces = SET_PIECES.new()
 	_set_pieces.name = "SetPieces"
 	_set_pieces.dungeon = self
@@ -295,29 +298,49 @@ func _spawn_marker_pack(ri: int, pack: Dictionary, prefix: String, r: RandomNumb
 		if plan.size() < MAX_PACK:
 			plan.append([str(role), "normal"])
 	var at: Vector3 = pack["at"]
+	var form := str(pack.get("formation", "ring"))
+	var spread := float(pack.get("spread", 0.0))
+	var yaw := float(pack.get("yaw", 0.0))
 	var pts: Array = []
+	var faces: Array = []   # yaw per enemy, INF = any way
 	for i in plan.size():
+		if form == "line":
+			# Side by side across the marker's forward (-Z), all facing it.
+			var side := Vector3(cos(yaw), 0, -sin(yaw))
+			pts.append(at + side * (float(i) - (plan.size() - 1) * 0.5) * (spread if spread > 0.0 else 1.3))
+			faces.append(yaw)
+			continue
 		var a := TAU * float(i) / float(maxi(plan.size(), 1)) + r.randf_range(-0.3, 0.3)
-		var rad := 0.0 if plan.size() == 1 else 1.4 + 0.25 * plan.size()
-		pts.append(at + Vector3(cos(a), 0, sin(a)) * rad)
-	var out := _spawn_plan(ri, plan, pts, prefix, r, section)
+		var rad := 0.0 if plan.size() == 1 else (spread if spread > 0.0 else 1.4 + 0.25 * plan.size())
+		var p := at + Vector3(cos(a), 0, sin(a)) * rad
+		pts.append(p)
+		faces.append(atan2(p.x - at.x, p.z - at.z) if form == "around" else INF)   # around: facing the spot
+	var out := _spawn_plan(ri, plan, pts, prefix, r, section, faces)
+	var roam := float(pack.get("roam", 0.0))
+	if roam > 0.0:
+		for e in out:
+			e.roam_radius = roam
 	if pack.get("keybearer", false):
 		for e in out:
 			if e.rank == "elite":
 				_make_keybearer(e)
 	return out
 
-func _spawn_plan(ri: int, plan: Array, pts: Array, prefix: String, r: RandomNumberGenerator, section: int) -> Array:
+## `faces`: optional yaw per enemy (INF = a random way).
+func _spawn_plan(ri: int, plan: Array, pts: Array, prefix: String, r: RandomNumberGenerator, section: int, faces: Array = []) -> Array:
 	var room: Dictionary = rooms[ri]
 	var out: Array = []
 	for i in plan.size():
 		var e := _make_enemy(plan[i][0], plan[i][1], "%s_E%d" % [prefix, i], r, ri)
 		e.set_meta("section", section)
+		e.placed_pack = _placing
 		# A point is (x, z) on the room's floor, or a Vector3 (on a platform).
 		var p: Variant = pts[i]
 		var at: Vector3 = p if p is Vector3 else Vector3(p.x, room["center"].y, p.y)
 		e.position = enemies_root.to_local(at + Vector3(0, e.ground_offset(), 0))
 		e.rotation.y = r.randf() * TAU
+		if i < faces.size() and float(faces[i]) != INF:
+			e.rotation.y = float(faces[i])
 		enemies_root.add_child(e)
 		out.append(e)
 	return out

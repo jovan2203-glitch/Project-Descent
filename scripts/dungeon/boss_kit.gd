@@ -19,8 +19,11 @@ extends Node
 #   big_cast  long cast that hits EVERY player hard unless interrupted (time).
 #   heal      interruptible self-heal for `pct` of max health (time).
 #   enrage    passive: below `below` health, attacks faster and hits harder.
+#   berserk   passive, 5 Player only: `after` seconds into the fight, hits far
+#             harder and attacks faster (a hard timer: balance.gd BERSERK_*).
 #   soak      stack: a circle on a player; its damage (hit x up to `share_max`
 #             players) is split between everyone inside (radius, time, share_max).
+#             `need` n: the total is always hit x n, however many are alive.
 #   spread    `count` players get a circle that follows them, then bursts on
 #             everyone inside it (radius, time, count).
 #   hazard    stay out: pools under players + `extra` spots that hurt every
@@ -34,6 +37,7 @@ extends Node
 const Names = preload("res://scripts/dungeon/names.gd")
 const FX = preload("res://scripts/dungeon/boss_abilities.gd")
 const Look = preload("res://scripts/dungeon/mechanic_look.gd")
+const Balance = preload("res://scripts/balance.gd")
 
 var boss: Node3D
 var dungeon: Node
@@ -48,6 +52,9 @@ var _phase := 1
 var _phase_done := {}       # index of a phase entry -> true once it happened
 var _guards: Array = []     # alive guards keeping the boss immune
 var _pools := 0             # stay_out pools on the floor right now
+var _fight_time := 0.0      # seconds in combat (berserk)
+var _berserk := false
+var _berserk_warned := false
 
 const MAX_POOLS := 12
 
@@ -72,6 +79,7 @@ func _process(delta: float) -> void:
 	for i in _cd.size():
 		_cd[i] = maxf(float(_cd[i]) - delta, 0.0)
 	_check_enrage()
+	_check_berserk(delta)
 	_check_guards()
 	if not boss.is_in_combat():
 		return
@@ -90,7 +98,7 @@ func _process(delta: float) -> void:
 	for i in order:
 		var a: Dictionary = abilities[i]
 		var type := str(a.get("type", ""))
-		if type == "enrage" or type == "phase" or float(_cd[i]) > 0.0:
+		if type == "enrage" or type == "phase" or type == "berserk" or float(_cd[i]) > 0.0:
 			continue
 		if a.has("phase") and int(a["phase"]) != _phase:
 			continue
@@ -186,6 +194,59 @@ func _check_enrage() -> void:
 			if n and n.is_host():
 				n.enemy_fx(boss, "enrage", null, {})
 		return
+
+## Berserk (5 Player only): a hard timer. `after` seconds into the fight the boss
+## hits far harder and attacks faster; a warning comes BERSERK_WARNING s before.
+## Leaving combat (a wipe or a reset) starts the clock over and ends Berserk.
+func _check_berserk(delta: float) -> void:
+	if not _party_mode():
+		return
+	if not boss.is_in_combat():
+		if _fight_time > 0.0:
+			_berserk_timer(0.0, 0.0, false)   # a wipe or a reset: the timer stops
+		if _berserk:
+			_berserk = false
+			boss.attack_cooldown *= 1.0 + Balance.BERSERK_ATTACK_SPEED / 100.0
+			boss.contact_damage /= Balance.BERSERK_DAMAGE
+		_fight_time = 0.0
+		_berserk_warned = false
+		return
+	if _berserk:
+		return
+	var started := _fight_time == 0.0
+	_fight_time += delta
+	for a in abilities:
+		if str(a.get("type", "")) != "berserk":
+			continue
+		var after := float(a.get("after", 180.0))
+		if started:
+			_berserk_timer(after - _fight_time, after, false)
+		if not _berserk_warned and _fight_time >= after - Balance.BERSERK_WARNING:
+			_berserk_warned = true
+			_announce("%s will go berserk in %d sec!" % [boss.display_name, int(Balance.BERSERK_WARNING)], Color(1.0, 0.3, 0.2))
+		if _fight_time >= after:
+			_berserk = true
+			_berserk_timer(0.0, after, true)
+			boss.attack_cooldown /= 1.0 + Balance.BERSERK_ATTACK_SPEED / 100.0
+			boss.contact_damage *= Balance.BERSERK_DAMAGE
+			FX.apply_enrage_look(boss)
+			_announce("%s goes berserk!" % boss.display_name, Color(1.0, 0.15, 0.1))
+			var n := _net()
+			if n and n.is_host():
+				n.enemy_fx(boss, "enrage", null, {})
+		return
+
+## The boss's Berserk timer here and on every party member's machine (the Boss Timer).
+func _berserk_timer(left: float, total: float, on: bool) -> void:
+	if boss.has_method("set_berserk"):
+		boss.set_berserk(left, total, on)
+	var n := _net()
+	if n and n.is_host():
+		n.enemy_fx(boss, "berserk", null, {"left": left, "total": total, "on": on})
+
+func _party_mode() -> bool:
+	var gm := get_node_or_null("/root/GameManager")
+	return gm != null and gm.is_party_mode()
 
 # --- Area attacks ----------------------------------------------------------------------------
 
@@ -361,8 +422,10 @@ func _check_guards() -> void:
 ## What each player standing in a stack circle takes: the total (the hit x up to
 ## `share_max` players) split evenly between everyone in it. Nobody in it = every
 ## player takes the whole total. Never 0.
-static func soak_share(hit: float, alive: int, inside: int, share_max := 3) -> float:
-	var total := hit * float(clampi(alive, 1, maxi(share_max, 1)))
+## `need` > 0: the total is hit x `need`, or x everyone alive once fewer are
+## (a short group can't soak it; after a death the rest still can, all together).
+static func soak_share(hit: float, alive: int, inside: int, share_max := 3, need := 0) -> float:
+	var total := hit * float(clampi(need, 1, maxi(alive, 1)) if need > 0 else clampi(alive, 1, maxi(share_max, 1)))
 	return maxf(total / float(inside), 1.0) if inside > 0 else maxf(total, 1.0)
 
 ## Stack: a circle on a player (it moves with them); stand in it together.
@@ -380,7 +443,8 @@ func _soak(a: Dictionary, r: float, time: float) -> void:
 		var at := _floor(who.global_position) if is_instance_valid(who) else _floor(boss.global_position)
 		var bodies := _alive()
 		var inside: Array = bodies.filter(func(b): return _flat(b.global_position, at) <= r)
-		var share := soak_share(_hit(a), bodies.size(), inside.size(), int(a.get("share_max", 3)))
+		var need := int(a.get("need", 0)) if _party_mode() else 0
+		var share := soak_share(_hit(a), bodies.size(), inside.size(), int(a.get("share_max", 3)), need)
 		var id := "boss_" + str(a.get("name", ""))
 		for b in (inside if not inside.is_empty() else bodies):
 			boss.deal_melee_hit(b, share, id)

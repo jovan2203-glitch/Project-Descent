@@ -13,3 +13,11 @@ extends Marker3D
 @export var elites := 0
 ## Elites here carry a key (key_elites objective).
 @export var keybearer := false
+## How the pack stands: ring (around the spot, facing anywhere), around (in a
+## circle facing the spot: a campfire, a desk), line (side by side, facing the
+## marker's forward, -Z: a drill line, gate guards).
+@export_enum("ring", "around", "line") var formation := "ring"
+## Metres from the spot (0 = the default for the pack's size).
+@export var spread := 0.0
+## Idle wander radius in metres (0 = stand still).
+@export var roam := 0.0

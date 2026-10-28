@@ -12,6 +12,18 @@ static func _shape_node(body: Node) -> CollisionShape3D:
 	return null
 
 # Horizontal hitbox radius (how "wide" the body is on the ground).
+## Was `src` (the player) making a free cast (Rune of the Wild Page) just now? Things
+## it makes ask when they are made, so their later hits are echoes too (run_as).
+static func echoing(src: Node) -> bool:
+	return src != null and is_instance_valid(src) and src.has_method("echoing") and src.echoing()
+
+## Runs `fn` (a hit by `src`) as an echo when `echo` (see echoing).
+static func run_as(src: Node, echo: bool, fn: Callable) -> void:
+	if echo and is_instance_valid(src) and src.has_method("as_echo"):
+		src.as_echo(fn)
+	else:
+		fn.call()
+
 static func hitbox_radius(body: Node, fallback: float = 0.4) -> float:
 	var cs := _shape_node(body)
 	if cs == null:

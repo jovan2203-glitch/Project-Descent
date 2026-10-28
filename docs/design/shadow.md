@@ -46,7 +46,7 @@ Values in Frost Bolts (FB) are conversation shorthand; real numbers live in bala
 - Rare: Blight is instant, 15 s cooldown, opens the gate for 8 s.
 - Rare Everything Rots (capped at 3).
 - Epic: when 50% of the stacked damage would kill the target, it deals its damage instantly as real damage (mitigation or a heal can still save the target; never a forced kill).
-- Legendary Dusk till Dawn (the only Legendary): Shadow damage gives Dusk (12 s, +20% Shadow); when it ends, Dawn (12 s, +20% Holy). Never both at once.
+- Legendary Dusk till Dawn (the other Legendary is the Wild Page, systems.md): Shadow damage gives Dusk (12 s, +20% Shadow); when it ends, Dawn (12 s, +20% Holy). Never both at once.
 
 ## Healer: out-of-combat rez
 - Back on Your Feet (Strings Attached) - 8 s cast, 4 mana, 30 m, out of combat only. The demon's Strings lift a dead or downed ally where they fell with 50% health and mana. Code: scripts/player/rez.gd. Not Finished With You stays the combat revive.

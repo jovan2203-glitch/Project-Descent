@@ -51,7 +51,7 @@ func test_the_kit_is_in_the_holy_book() -> void:
 
 func test_numbers() -> void:
 	# id: [cooldown, mana, cast time]
-	var want := {"psalm": [0.0, 2, 2.0], "outpour": [0.0, 4, 3.0], "lift": [8.0, 1, 0.0], "refrain": [0.0, 2, 0.0],
+	var want := {"psalm": [0.0, 2, 2.0], "outpour": [0.0, 4, 3.0], "lift": [8.0, 1, 0.0], "refrain": [0.0, 1, 0.0],
 		"canticle": [12.0, 3, 2.5], "exultation": [0.0, 4, 2.0], "antiphon": [15.0, 2, 0.0], "shelter": [12.0, 2, 0.0],
 		"steadyvoice": [30.0, 2, 0.0], "highnote": [0.0, 2, 1.5], "swell": [60.0, 0, 0.0], "rest": [60.0, 0, 0.0],
 		"lastverse": [120.0, 0, 0.0]}

@@ -106,7 +106,7 @@ func test_parting_spark() -> void:
 	assert_eq(Balance.PARTING_SPARK_RADIUS, 4.0)
 	assert_eq(LightningCasterKit.PARTING_SPARK_ID, "parting_spark")
 	const Details = preload("res://scripts/core/details.gd")
-	assert_eq(Details.spell_name("parting_spark"), "Parting Spark", "named after the talent on the meter")
+	assert_eq(Details.line_name("parting_spark"), "Parting Spark", "named after the talent on the meter")
 	var d := Talents.description(Talents.id_for_key("lightning_parting_spark"))
 	assert_contains(d, Abilities.ability_name("flicker"))
 	assert_contains(d, "within 4 m")
@@ -144,7 +144,7 @@ func test_lightning_rod() -> void:
 	assert_eq(float(fx.duration), 8.0)
 	assert_eq(Balance.LIGHTNING_ROD_RADIUS, 4.0)
 	assert_eq(TextFill.leftover(TextFill.effect(fx)), "", "the effect's text is filled in")
-	assert_eq(Details.spell_name("lightning_rod"), "Grounded Arrow", "the arcs are named after the talent on the meter")
+	assert_eq(Details.line_name("lightning_rod"), "Grounded Arrow", "the arcs are named after the talent on the meter")
 	assert_eq(StormArrowKit.lightning_rod_damage(200, 20.0), 40.0, "20% of the bolt")
 	assert_eq(StormArrowKit.lightning_rod_damage(200, 40.0), 80.0)
 	assert_eq(StormArrowKit.lightning_rod_damage(200, 0.0), 0.0, "no talent, no arc")
@@ -280,7 +280,7 @@ func test_earth_return() -> void:
 	assert_eq(LightningCasterKit.earth_return_heal(2550, 1.0), 26, "rounded")
 	assert_eq(LightningCasterKit.earth_return_heal(1000, 0.0), 0, "no talent, nothing")
 	assert_contains(Talents.description(Talents.id_for_key("lightning_earth_return")), "0.3 / 0.7 / 1% of your maximum health")
-	assert_eq(preload("res://scripts/core/details.gd").spell_name("earth_return"), "Earth Return", "its own line on the healing meter")
+	assert_eq(preload("res://scripts/core/details.gd").line_name("earth_return"), "Earth Return", "its own line on the healing meter")
 
 func test_conductor() -> void:
 	var p := _player()

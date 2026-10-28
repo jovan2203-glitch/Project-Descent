@@ -105,6 +105,11 @@ static func schema() -> Dictionary:
 		_int("height", 6, 3, 24, "Height"),
 		_bool("show_text", true, "Text"),
 	])
+	s["boss_timer"] = _elem("Boss Timer", "Bars", true, [
+		_int("width", 260, 100, 600, "Width"),
+		_int("height", 16, 8, 32, "Height"),
+		_bool("show_name", true, "Boss name"),
+	])
 	s["messages"] = _elem("Messages", "Bars", true, [
 		_int("font_size", 18, 10, 32, "Font size"),
 	])
@@ -117,8 +122,6 @@ static func schema() -> Dictionary:
 		_bool("show_name", true, "Dungeon name"),
 		_bool("show_clock", true, "Clock"),
 	])
-	for k in [["venom", "Venom"], ["wheel", "Wheel"], ["chain", "Chain"], ["sharpshooter", "Sharpshooter"]]:
-		s[k[0]] = _elem(k[1], "Spec Bars", true, [])
 	_schema = s
 	return s
 
@@ -202,15 +205,29 @@ static func _base_layout() -> Dictionary:
 		"debuffs": _at(1, 0, -164, 86),
 		"party_frames": _at(0, 0.5, 6, -70),
 		"messages": _at(0.5, 0.5, 0, -110),
-		"venom": _at(0.5, 1, 0, -236),
-		"wheel": _at(0.5, 1, 0, -236),
-		"chain": _at(0.5, 1, 0, -236),
-		"sharpshooter": _at(0.5, 1, 0, -236),
+		"boss_timer": _at(0.5, 0, 0, 40),
 		"minimap": _at(1, 0, -6, 20),
 		"chat": _at(0, 1, 6, -6),
 		"meter": _at(1, 1, -6, -6),
 		"tracker:aura_bars": _at(0.5, 1, -190, -230),
 		"tracker:cooldowns": _at(0.5, 1, 0, -132),
+		# The spec displays (Trackers.spec_sets()), above the bars.
+		"tracker:spec_venom": _at(0.5, 1, 0, -236),
+		"tracker:spec_wheel": _at(0.5, 1, 0, -236),
+		"tracker:spec_chain": _at(0.5, 1, 0, -236),
+		"tracker:spec_sharp": _at(0.5, 1, 0, -236),
+		"tracker:spec_verses": _at(0.5, 1, -190, -236),
+		"tracker:spec_ice_shards": _at(0.5, 1, 0, -236),
+		"tracker:spec_bruise": _at(0.5, 1, 0, -272),   # (above the Chain)
+		"tracker:spec_glaze": _at(0.5, 1, 0, -236),
+		"tracker:spec_layers": _at(0.5, 1, 0, -236),
+		"tracker:spec_sap": _at(0.5, 1, 0, -236),
+		"tracker:spec_incense": _at(0.5, 1, 0, -236),
+		"tracker:spec_reflections": _at(0.5, 1, 0, -236),
+		"tracker:spec_traces": _at(0.5, 1, 0, -236),
+		"tracker:spec_heat": _at(0.5, 1, 0, -236),
+		"tracker:spec_slag": _at(0.5, 1, 0, -236),
+		"tracker:spec_flow": _at(0.5, 1, 0, -236),
 	}
 
 const PRESETS := {

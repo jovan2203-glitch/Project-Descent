@@ -30,6 +30,8 @@ var radius := 5.0
 var damage := 0.0
 var tags := PackedStringArray(["Lightning", "Spell", "AoE"])
 var source: Node = null   # the caster; damage and Energy are theirs
+## Made by my free cast (Rune of the Wild Page): its hits are echoes too.
+var echo := false
 ## Name of its zaps in logs and meters ("dot_<effect_id>").
 var effect_id := "balllightning"
 
@@ -177,7 +179,7 @@ func _zap() -> void:
 	for e in hit:
 		_arc_to(Combat.sight_point(e))
 		if live and cs:
-			cs.deal_dot(source, e, damage * share, "lightning", effect_id, tags)
+			Combat.run_as(source, echo, func(): cs.deal_dot(source, e, damage * share, "lightning", effect_id, tags))
 	if live and source.has_method("ball_lightning_zapped"):
 		source.ball_lightning_zapped(energy_zaps(hit.size()))
 
@@ -198,3 +200,6 @@ func _arc_to(to: Vector3) -> void:
 	var dir := (to - from) / dist
 	arc.look_at(to, Vector3.RIGHT if absf(dir.dot(Vector3.UP)) > 0.98 else Vector3.UP)
 	get_tree().create_timer(ARC_TIME).timeout.connect(arc.queue_free)
+
+func _enter_tree() -> void:
+	echo = Combat.echoing(source)   # (asked each time it is made: pooled ones come back)

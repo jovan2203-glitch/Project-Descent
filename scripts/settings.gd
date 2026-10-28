@@ -130,6 +130,8 @@ var last_seen_notes := ""    # What's new: a hash of the patch notes last opened
 var ui_installed := false
 ## Trackers (scripts/ui/trackers/): id -> tracker or group dictionary.
 var trackers := {}
+## Trackers given once (Trackers.spec_sets() ids, "role_defaults"): a deleted one stays deleted.
+var tracker_builtins: Array = []
 ## One element's options changed ("" = all of them, e.g. a new role layout).
 signal ui_config_changed(elem: String)
 ## The Move UI button (the game's UI opens edit mode; there is none in the main menu).
@@ -306,9 +308,13 @@ func _load() -> void:
 			ui_profile["party_frames"] = {"show_solo": true}
 	if cfg.has_section("trackers"):
 		for id in cfg.get_section_keys("trackers"):
-			var t: Variant = cfg.get_value("trackers", id)
-			if t is Dictionary:
+			var t := Trackers.clean(cfg.get_value("trackers", id))   # older saves get the newer fields
+			if not t.is_empty():
 				trackers[id] = t
+	var given: Variant = cfg.get_value("ui", "tracker_builtins", [])
+	tracker_builtins = (given as Array).map(func(x): return str(x)) if given is Array else []
+	if not cfg.has_section_key("ui", "tracker_builtins") and not trackers.is_empty():
+		tracker_builtins.append("role_defaults")   # trackers from before these were counted had them
 	if cfg.has_section("keybinds"):
 		for action in cfg.get_section_keys("keybinds"):
 			if InputMap.has_action(action):
@@ -342,6 +348,7 @@ func save() -> void:
 		cfg.set_value("ui_profile", elem, ui_profile[elem])
 	for id in trackers:
 		cfg.set_value("trackers", id, trackers[id])
+	cfg.set_value("ui", "tracker_builtins", tracker_builtins)
 	cfg.save(PATH)
 
 func apply() -> void:

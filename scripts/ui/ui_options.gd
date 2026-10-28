@@ -3,14 +3,14 @@ class_name UIOptions
 
 # UI Options: every option of the in-game UI (UIConfig.schema()), one page per
 # element, applied as you change it. Left: the elements by group (General, Unit
-# Frames, Action Bars, Auras, Cast Bars, Bars, Panels, Spec Bars). Right: the
+# Frames, Action Bars, Auras, Cast Bars, Bars, Panels). Right: the
 # page. Under them: the role layout, Move UI, Trackers, Reset all and Export /
 # Import of the whole UI as one line of text.
 # Opened from Settings > Interface, /ui in chat, Move UI's top bar, or a mover's
 # right-click panel (straight onto its element's page).
 
 const NODE := "UIOptions"
-const GROUP_ORDER := ["", "Unit Frames", "Action Bars", "Auras", "Cast Bars", "Bars", "Panels", "Spec Bars"]
+const GROUP_ORDER := ["", "Unit Frames", "Action Bars", "Auras", "Cast Bars", "Bars", "Panels"]
 
 var win: UIWindow
 var _tree: Tree

@@ -61,7 +61,7 @@ func _fire_ice_shards(dmg: float) -> void:
 	_shards_left = n
 	var tgt := player.target
 	for i in n:
-		player.get_tree().create_timer(Balance.ICE_SHARDS_INTERVAL * i).timeout.connect(func():
+		player.echo_timer(Balance.ICE_SHARDS_INTERVAL * i).timeout.connect(func():
 			_shards_left = maxi(_shards_left - 1, 0)
 			if not player.is_alive():
 				return
@@ -74,4 +74,5 @@ func _fire_ice_shards(dmg: float) -> void:
 
 
 func tracker_values() -> Dictionary:
-	return {"ice_shards": {"value": ice_shard_charges, "max": Balance.ICE_SHARDS_MAX_CHARGES}}
+	return {"ice_shards": {"value": ice_shard_charges, "max": Balance.ICE_SHARDS_MAX_CHARGES},
+		"ice_shards_recharge": {"value": snappedf(shard_recharge_left(), 0.1), "max": Balance.ICE_SHARDS_RECHARGE}}

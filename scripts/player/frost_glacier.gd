@@ -130,6 +130,8 @@ func _gain_layers(more: int) -> void:
 ## Returns how many there were.
 func _spend_layers() -> int:
 	var n := layers()
+	if player.echoing():
+		return n   # a free cast (Rune of the Wild Page) uses none up
 	if player.status != null and player.status.has(LAYERS_FX):
 		player.status.break_absorb(LAYERS_FX, true)
 		player.status.remove(LAYERS_FX)
@@ -324,3 +326,6 @@ func _rimequake(res: Resource) -> void:
 			player.deal_damage(e, coef, RIMEQUAKE_ID)
 	player._ring_effect(float(res.radius), Abilities.color_of(RIMEQUAKE_ID))
 	player._ring_effect(float(res.radius) * 0.5, Color(0.95, 0.97, 1.0))
+
+func tracker_values() -> Dictionary:
+	return {"ice_layers": {"value": layers(), "max": _cap(), "name": "Layers"}}

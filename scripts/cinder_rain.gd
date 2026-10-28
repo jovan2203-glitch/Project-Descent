@@ -15,6 +15,8 @@ var tick := 0.5
 var damage := 0.25
 var tags := PackedStringArray(["Ability", "Fire", "Ranged", "AoE"])
 var source: Node = null   # the archer; damage is theirs
+## Made by my free cast (Rune of the Wild Page): its hits are echoes too.
+var echo := false
 ## Name of its ticks in logs and meters ("dot_<effect_id>").
 var effect_id := "cinderrain"
 
@@ -148,4 +150,7 @@ func _burn() -> void:
 			hit.append(e)
 	var share: float = Balance.aoe_share(hit.size())
 	for e in hit:
-		cs.deal_dot(source, e, damage * share, "fire", effect_id, tags)
+		Combat.run_as(source, echo, func(): cs.deal_dot(source, e, damage * share, "fire", effect_id, tags))
+
+func _enter_tree() -> void:
+	echo = Combat.echoing(source)

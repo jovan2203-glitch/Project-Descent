@@ -265,7 +265,7 @@ func test_the_debuff_shows_the_amount_and_the_open_time() -> void:
 	assert_eq(StatusIcons.compact(1240), "1.2k")
 	assert_eq(StatusIcons.compact(34500), "34k")
 	assert_eq(StatusIcons.compact(1500000), "1.5m")
-	assert_eq(Details.spell_name(DecayKit.DECAY_HIT_ID), "Breach (Periodic)", "its ticks have their own line on the meter")
+	assert_eq(Details.line_name(DecayKit.DECAY_HIT_ID), "Breach (Periodic)", "its ticks have their own line on the meter")
 
 func test_decay_counts_as_my_damage_over_time() -> void:
 	var me: Node = track(Node.new())
@@ -391,7 +391,7 @@ func test_rune_of_the_long_fall() -> void:
 	# It is a hit, dealt like every other one (the enemy takes the damage and may
 	# survive it): a rune's, with its own line on the meter, and it feeds nothing.
 	assert_eq(DecayKit.LONG_FALL_HIT_ID, "rune_long_fall")
-	assert_eq(Details.spell_name(DecayKit.LONG_FALL_HIT_ID), "Rune of the Long Fall")
+	assert_eq(Details.line_name(DecayKit.LONG_FALL_HIT_ID), "Rune of the Long Fall")
 	assert_eq(DecayKit.decay_feed_pct(DecayKit.LONG_FALL_HIT_ID, SHADOW, true, false), 0.0)
 	var src := PlayerSource.text()
 	assert_contains(src, "_decay_hit(foe, all, LONG_FALL_HIT_ID, false, [], 0.0, true)")

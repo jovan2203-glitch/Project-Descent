@@ -574,4 +574,5 @@ func verses_text(id: String) -> String:
 
 
 func tracker_values() -> Dictionary:
-	return {"verses": {"value": verses.size(), "max": Balance.VERSE_MAX}}
+	return {"verses": {"value": verses.size(), "max": Balance.VERSE_MAX, "name": HYMN_NAMES.get(hymn, "No Hymn"),
+		"colors": verses.map(func(v): return Abilities.HYMN_COLORS.get(str(v), Color.WHITE))}}

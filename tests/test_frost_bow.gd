@@ -56,7 +56,7 @@ func test_the_abilities_are_registered() -> void:
 
 func test_shatter_shot() -> void:
 	var r := Abilities.get_resource("shattershot")
-	assert_eq(float(r.weapon_damage_multiplier), 1.4)
+	assert_eq(float(r.weapon_damage_multiplier), 2.8)
 	assert_eq(int(r.resource_cost), 30)
 	assert_eq(float(r.cooldown), 10.0)
 	assert_eq(float(r.radius), 4.0, "the burst reaches 4 m")
@@ -175,6 +175,14 @@ func test_icy_retreat() -> void:
 	assert_contains(tip, "for 4 sec")
 	assert_contains(tip, "within 4 m")
 	assert_contains(tip, Abilities.ability_name("frostarrow"))
+	assert_contains(tip, "costs no Energy")
+	# Icy Footing: the next Frost Arrow is free (Frost Arrow has no cooldown to reset: the filler).
+	assert_eq(float(Abilities.get_resource("frostarrow").cooldown), 0.0)
+	var src := PlayerSource.text()
+	assert_contains(src, "\t\treturn 0.0   # Icy Footing", "Icy Footing makes it free")
+	assert_contains(src, "status.remove(ICY_FOOTING_FX)", "and is used up when paid")
+	assert_false(src.contains("cooldowns.erase(\"frostarrow\")"), "no cooldown left to reset")
+	assert_contains(src, "Your next Frost Arrow costs no Energy.")
 
 # --- The bow talents ------------------------------------------------------------------
 

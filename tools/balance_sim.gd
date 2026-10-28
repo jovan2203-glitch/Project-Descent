@@ -225,7 +225,7 @@ static func button(id: String, w: Dictionary, stat_of: Callable, haste: float, m
 		res_name = "venom"
 		cost = float(SPECS_INFO.VENOM_COSTS[id])
 	return {"id": id, "dmg": dmg, "heal": healed, "self_heal": self_heal, "exec": maxf(maxf(cast, gcd), 0.1),
-		"cooldown": Abilities.cooldown_of(r), "res": res_name, "cost": cost,
+		"cooldown": maxf(Abilities.cooldown_of(r), float(o.get("every", 0.0))), "res": res_name, "cost": cost,
 		"gen": float(Abilities.generated_of(id)), "threat": float(r.threat_multiplier) if r.get("threat_multiplier") != null else 1.0, "dot_time": dot_time if dot > 0.0 and coef <= 0.0 else 0.0, "last": float(o.get("last", 1.0))}
 
 ## The ready, affordable button that does the most per second of casting (a pure DoT only when it's down).

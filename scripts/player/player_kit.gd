@@ -27,7 +27,17 @@ const SHIELDS = preload("res://scripts/core/shields.gd")
 var player: Player
 
 ## Values Trackers can show or test (scripts/ui/trackers/): name -> number, or
-## {"value", "max"} for something with a cap. Player.tracker_values() merges every
-## component's, so a new spec's values reach Trackers without tracker code.
+## {"value", "max"} for something with a cap (it may also carry "icon", "name" and
+## "colors", one per pip). Player.tracker_values() merges every component's, so a
+## new spec's values reach Trackers without tracker code.
 func tracker_values() -> Dictionary:
 	return {}
+
+## What clicking a tracker can do (a tracker's "On click"): id -> label.
+## Player.tracker_action(id) runs one through tracker_action() here.
+func tracker_actions() -> Dictionary:
+	return {}
+
+## Do action `id` (one of tracker_actions()); true if it was this component's.
+func tracker_action(_id: String) -> bool:
+	return false

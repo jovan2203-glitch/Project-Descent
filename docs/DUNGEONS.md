@@ -2,20 +2,21 @@
 
 Queue (Play screen) -> a random dungeon from the pool, or pick one under "Join a specific dungeon (testing)".
 Enemy level = party average pulled toward the highest level (Balance.DUNGEON_LEVEL_TOP_WEIGHT, 0.5: a 50 + a 1 fight level 38).
+Trash pacing (5 Player): a big pack ~30 s+, a pull every ~25-40 s, so ~30 s cooldowns are up every second pack and 1-2 min ones every third; elite/keybearer packs ~1 min. Placed packs use `Balance.PARTY_HEALTH_MULT`, adds that join a fight the lighter `PARTY_ADD_HEALTH_MULT`. Rule in CLAUDE.md "Balance targets".
 Lore: docs/design/lore.md. Reference dungeon: Downgate Fort (docs/design/dungeon_fort.md).
 
 ## Files
 - `data/dungeons/*.tres` - one RECIPE per dungeon (DungeonRecipe). New file = new dungeon, no code. Set `in_random_pool`.
 - `data/biomes/*.tres` - BIOME KITS (look): wall/floor colors and pattern, corner + doorway pieces, lights, fog, props, music tag, mechanic theme.
 - `scripts/dungeon/names.gd` - EVERY visible name (dungeons, rooms, enemies, bosses, abilities, modifiers, objectives).
-- `scripts/dungeon/roles.gd` - the fixed enemy ROLES: brute, swarmer, caster, archer, defender, support, summoner (+ elite / boss ranks).
+- `scripts/dungeon/roles.gd` - the fixed enemy ROLES: brute, swarmer, caster, archer, defender, support, summoner (+ elite / boss ranks). Defenders channel "Shield Up" in combat; an interrupt or stun drops the shield (no frontal block) for `Balance.DEFENDER_SHIELD_DOWN` s (`defender_shield.gd`).
 - `scripts/dungeon/layouts.gd` - layout styles: linear, hub, descent, cavern, arena, maze, or a hand-made map (`from_scene`).
-- `scripts/dungeon/authoring/` - the nodes hand-made maps are built from (DungeonLayout, DungeonRoom, PackMarker, SetPieceMarker).
+- `scripts/dungeon/authoring/` - the nodes hand-made maps are built from (DungeonLayout, DungeonRoom, PackMarker, SetPieceMarker, PropMarker).
 - `scripts/dungeon/boss_kit.gd` - boss ability types (below).
 - `scripts/dungeon/mechanic_look.gd` - how every boss mechanic looks (below).
 - `scripts/dungeon/set_pieces.gd` - alarm bells, ballistas, seal lights, platforms.
 - `scripts/dungeon/pieces/stairs.gd` + `scenes/dungeon/pieces/stairs.tscn` - every staircase.
-- `scripts/dungeon/modifiers.gd` - dungeon modifiers (frost_touched, volatile, bloodthirst, frenzy). Modifiers are gameplay affixes (Mythic+ style), never purely visual.
+- `scripts/dungeon/modifiers.gd` - dungeon modifiers (frost_touched, volatile, bloodthirst, frenzy). Modifiers are gameplay affixes (Mythic+ style), never purely visual. OFF for now (`Modifiers.ENABLED = false`): they get reworked later.
 - `scripts/dungeon/dungeon_run.gd` + `scenes/dungeon_run.tscn` - the generic runner.
 - `scenes/dungeon.tscn` - the OLD endless crypt, testing only (never random).
 
@@ -31,8 +32,9 @@ Lore: docs/design/lore.md. Reference dungeon: Downgate Fort (docs/design/dungeon
 ## Hand-made maps
 A `DungeonLayout` scene of nested `DungeonRoom` nodes. A child room is joined to its parent by a passage, or by stairs when their `floor_y` differs. Rooms sit on grid cells (`cell` x `cell_size`), and linked rooms must be neighbouring cells.
 - **Room**: kind (start, combat, side, junction, hub, boss), section, boss, room_name, roster, centerpiece ("none" = no centerpiece), big_props, no_random_packs.
-- **PackMarker** (in a room): exactly these roles + `elites`; `keybearer` marks its elites for key_elites. Its y can stand on a platform.
-- **SetPieceMarker** (in a room): alarm_bell, ballista, seal_light, defend_spot, platform (see set_pieces.gd).
+- **PackMarker** (in a room): exactly these roles + `elites`; `keybearer` marks its elites for key_elites. Its y can stand on a platform. `formation`: ring (default), around (a circle facing the spot: a campfire, a desk), line (side by side facing the marker's -Z: a drill line, gate guards); `spread` (metres), `roam` (idle wander radius). Stage packs so they look busy with something.
+- **SetPieceMarker** (in a room): alarm_bell, ballista, seal_light, defend_spot, platform (see set_pieces.gd), wall (a solid block inside the room: L-shapes, alcoves, aisles, pillars, merlons; params size, height).
+- **PropMarker** (in a room): a hand-placed prop (biome_builder.gd `BIG`, incl. the story props page_pile, loot_sacks, broken_gate, campfire, bunk, lectern, target_dummy, siege_cart, tent, ink_spill); front faces its yaw (0 = +Z). Give every room a small story; the biome kit's random props fill in around them. Keep wall blocks and blocking props out of doorway lanes (tests check the Fort).
 - **Art swap**: set the recipe's `art_scene`. It replaces the generated greybox and must carry its own collision and walkable floors. The navmesh bakes from its meshes, so nothing gameplay-related goes in it. The layout scene stays the source of rooms, packs and set pieces.
 
 ## Boss mechanics: one visual language
@@ -45,7 +47,7 @@ Each ability type belongs to a family. A family's shape means the same in every 
 | Stack | circle + arrow pointing down into it | soak |
 | Spread | circle on a player + arrows pointing out | spread |
 | Stay out | lasting pool with a striped rim | hazard |
-| Interrupt | cast bar | big_cast, heal, summon, Ring the Alarm |
+| Interrupt | cast bar | big_cast, heal, summon, Ring the Alarm, Shield Up (Defenders: interrupt or stun to drop the shield) |
 | Kill the guards | bubble on the boss + lines to its guards | phase with `guards` |
 
 New types: `soak` (radius, time, share_max: the hit x up to share_max players, split evenly), `spread` (radius, time, count), `hazard` (radius, time, duration, tick, extra), `phase` (below, to, guards {role, count}, summon {role, count}). Any ability with `"phase": n` runs only in that phase.

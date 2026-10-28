@@ -19,10 +19,10 @@ Code: player.gd, "Nature caster: the Weaver". Numbers: balance.gd (MULCH_*, THOR
 
 ### Kit (FB; mana in points)
 - Unlock levels (Skill Cards): Thornshot 2, Briar Tiger 4, Mossback 6, Thornwing 8, Choking Vipers 10, Greenwood Stag 12. Ranges 30 m.
-- Thornshot - 1.5 s cast, 1.0 FB, 1 mana. A spray of thorns from your hand; every 3rd that lands leaves a patch. Thornburst: when it lands, thorns also burst from every patch within 8 m of the target, dealing 0.4 FB to each enemy within 4 m of a patch (each enemy hit at most once per cast, split past the AoE cap, its own meter line "Thornburst").
+- Thornshot - 1.5 s cast, 0.85 FB, 1 mana. A spray of thorns from your hand; every 3rd that lands leaves a patch. Thornburst: when it lands, thorns also burst from every patch within 8 m of the target, dealing 0.4 FB to each enemy within 4 m of a patch (each enemy hit at most once per cast, split past the AoE cap, its own meter line "Thornburst").
 - Briar Tiger - 1.5 s cast, 6 s cooldown, 1.5 FB, 2 mana, 1 patch. Woven.
 - Thornwing - instant, 10 s cooldown, 1.0 FB, 2 mana, 1 patch. Woven hawk, dives from above (ignores line of sight), usable while moving.
-- Mossback - instant, 2 mana, uses nearby mulch: 0.6 FB + 0.6 FB per patch (3.6 FB at 5). Rooted bear, single target.
+- Mossback - instant, 2 mana, uses nearby mulch: 0.5 FB + 0.5 FB per patch (3.0 FB at 5). Rooted bear, single target.
 - Choking Vipers - instant, 3 mana, uses nearby mulch: vipers coil around every enemy within 8 m for 0.4 FB + 0.4 FB per patch over 3 s (2.4 FB at 5), split past the AoE cap, and hold each in place for 0.5 s (they can still cast and attack; never interrupts). A DoT: benefits from crit and haste.
 - Greenwood Stag - instant, 15 s cooldown, 0.5 FB, 1 mana. Grows from your mulch, bounds to your target and carries every patch there. Uses up nothing.
 - Finisher targeting: pressing Mossback or Choking Vipers with the mouse over a legal enemy (mouseover casting) uses the patches within 8 m of that enemy. Otherwise an 8 m circle appears; click to place it on the patches to use (Mossback still strikes your target; Choking Vipers hits the enemies inside the circle; no enemies inside = keep aiming). Pressing it again puts the circle away.
@@ -38,11 +38,11 @@ Code: player.gd, "Nature healer: the Shepherd". Numbers: balance.gd (BLOSSOM_*, 
 
 ### Kit (heals in old Heals: 1.0 = one Psalm; mana in points)
 - Unlock levels: Dewfall 2, Fawn 4, Rootguard 6, Owl 8, Heartwood Elk 10, Wild Herd 12. Range 40 m.
-- Dewfall - 1.5 s cast, 2 mana. Heals 1.0, +10% per Blossom on the target (uses none). Filler, not a creature.
-- Fawn - 1.5 s cast, 8 s cooldown, 3 mana. Woven chain heal: 1.0 on the target, then bounces 3 times, each to the lowest-health ally within 12 m not yet healed, each bounce x0.8. A Blossom on each.
-- Rootguard - instant, 15 s cooldown, 2 mana. Rooted: roots wrap the ally in a shield of 0.8 + 0.4 per Blossom (uses them) for 8 s. Fully used up: a Blossom on every ally within 8 m of them.
-- Owl - instant, 12 s cooldown, 2 mana. Woven: watches an ally for 15 s; the first hit they take, it dives: heals 1.0 (+ Blossoms) and strikes the attacker, or the nearest enemy within 10 m, for 0.5 FB (own meter line "Owl's Strike"). No hit: it lands and leaves a Blossom.
-- Heartwood Elk - instant, 15 s cooldown, 3 mana. Rooted: every ally within 10 m of you is healed 0.5 + 0.3 per Blossom (uses them), split past the AoE cap. Allies who had 3: Full Bloom (10% less damage taken, 6 s).
+- Dewfall - 1.5 s cast, 1 mana. Heals 0.73, +10% per Blossom on the target (uses none). Filler, not a creature.
+- Fawn - 1.5 s cast, 8 s cooldown, 3 mana. Woven chain heal: 0.73 on the target, then bounces 3 times, each to the lowest-health ally within 12 m not yet healed, each bounce x0.8. A Blossom on each.
+- Rootguard - instant, 15 s cooldown, 2 mana. Rooted: roots wrap the ally in a shield of 0.61 + 0.4 per Blossom (uses them) for 8 s. Fully used up: a Blossom on every ally within 8 m of them.
+- Owl - instant, 12 s cooldown, 2 mana. Woven: watches an ally for 15 s; the first hit they take, it dives: heals 0.73 (+ Blossoms) and strikes the attacker, or the nearest enemy within 10 m, for 0.5 FB (own meter line "Owl's Strike"). No hit: it lands and leaves a Blossom.
+- Heartwood Elk - instant, 15 s cooldown, 3 mana. Rooted: every ally within 10 m of you is healed 0.39 + 0.3 per Blossom (uses them), split past the AoE cap. Allies who had 3: Full Bloom (10% less damage taken, 6 s).
 - Wild Herd - instant, 120 s cooldown, 3 mana. A Fawn at each of the 5 lowest-health allies within 40 m, each a full Fawn (bounces, Blossoms, Running Herd).
 
 ## Tank (the Colossus) - spec "Colossus" - BUILT 2026-10-16
@@ -63,25 +63,25 @@ Code: player.gd, "Nature tank: the Colossus". Numbers: balance.gd (SAP_*, VINE_F
 - Awaken - 2 min cooldown. The whole giant stands behind you for 12 s: 15% less damage taken, Sap gains doubled, Vine Fist hits twice and slams the ground (0.4 FB to enemies within 6 m, split, own meter line "Giant's Slam"), Stomp reaches 12 m, Giant's Hands absorbs 50% more.
 
 ## Archer (Venomstring) - spec "Venomstring" - BUILT 2026-10-16
-Code: player.gd, "Nature archer: Venomstring". Numbers: balance.gd (VENOM_*, POISON_*, ADDER_*, ASP_*, KRAIT_*, BURST_*, BLOAT_*, COIL_*, SURGE_*). Snakes on the arrows: scripts/arrow.gd. Venom bar: scripts/hud.gd. Effects: data/effects/asp_venom.tres (slow), coiled.tres (hold). Tests: tests/test_nature.gd.
+Code: player.gd, "Nature archer: Venomstring". Numbers: balance.gd (VENOM_*, POISON_*, ADDER_*, ASP_*, KRAIT_*, BURST_*, BLOAT_*, COIL_*, SURGE_*). Snakes on the arrows: scripts/arrow.gd. Venom bar: a tracker (scripts/ui/trackers/trackers.gd, spec_sets()). Effects: data/effects/asp_venom.tres (slow), coiled.tres (hold). Tests: tests/test_nature.gd.
 - Bow, Nature damage, scales like abilities. No mana or energy: Venom (0-100) is the only cost. A woven snake coils around each arrow in flight (green Adder, yellow Asp, white Krait); nothing of it sits on enemies. Poisoned enemies show coloured drips on each tick.
 - Name: "Brood" is an enemy ability, so the big cooldown is Venom Surge.
 
 ### Venom
-- Venom Flow (a buff on you) while your Adder, Asp and Krait Venom are all on enemies somewhere: each poison tick gives 3 Venom. Otherwise no gain; out of combat it drains 5 per second.
+- Venom Flow (a buff on you) while your Adder, Asp and Krait Venom are all on enemies somewhere: each poison tick gives 2.5 Venom. Otherwise no gain; out of combat it drains 5 per second.
 - The bar sits just above the action bar and shows only while all three poison arrows are on your bars (macros count).
 
 ### Poisons (own tick lists: crit and haste, 12 s, no cooldowns)
-- Adder Arrow (1.5 s cast; instant after Fang Arrow): 2.4 FB over 12 s.
-- Asp Arrow (instant): 1.2 FB over 12 s, 20% slower movement.
-- Krait Arrow (instant): 0.8 FB over 12 s; your other poisons on that enemy tick 25% faster.
+- Adder Arrow (1.5 s cast; instant after Fang Arrow): 1.3 FB over 12 s.
+- Asp Arrow (instant): 0.65 FB over 12 s, 20% slower movement.
+- Krait Arrow (instant): 0.45 FB over 12 s; your other poisons on that enemy tick 25% faster.
 - Two different poisons of yours on an enemy: all of them deal 15% more; all three (Steeped): 30% more.
 - A poisoned enemy dies: each poison jumps to the nearest enemy within 10 m with its time left (unless that enemy has a longer one of yours).
 
 ### Kit (FB; unlock levels 2-18 in this order)
 - Fang Arrow - filler, 1.0 weapon hit. +2 s to every poison of yours on the target; your next Adder Arrow is instant.
 - Adder Arrow, Asp Arrow, Krait Arrow - above.
-- Venom Burst - 50 Venom. The target explodes: the damage left in your poisons on it, +20% per different poison, then they're removed; 50% of it to enemies within 6 m (split past the AoE cap; own meter line). Steeped target: 20 Venom back.
+- Venom Burst - 50 Venom. The target explodes: the damage left in your poisons on it, +5% per different poison, then they're removed; 50% of it to enemies within 6 m (split past the AoE cap; own meter line). Steeped target: 20 Venom back.
 - Spitting Volley - 30 Venom. Adder Venom on every enemy within 8 m of the target (split past the AoE cap).
 - Bloat Arrow - 40 Venom, 15 s cooldown. After 3 s the target bursts and your poisons on it are copied to every enemy within 8 m.
 - Coil Back - 20 s cooldown. Leap 10 m back; a thorn trap stays 8 s where you stood: the first enemy within 2 m is held 1 s and gets Asp Venom.

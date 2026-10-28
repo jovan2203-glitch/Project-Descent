@@ -68,7 +68,7 @@ func _echo_talent(info: RefCounted, id: String, amount: int) -> void:
 	var again := ArcaneCasterKit.echo_amount(amount, echo_share(arcane))
 	var damage_type := str(info.damage_type)
 	var tags: PackedStringArray = info.tags
-	player.get_tree().create_timer(Balance.ECHO_DELAY).timeout.connect(func():
+	player.echo_timer(Balance.ECHO_DELAY).timeout.connect(func():
 		if not player.is_alive() or not is_instance_valid(foe) or not foe.is_alive():
 			return
 		player.arcane_caster._exact_hit(foe, again, ECHO_ID, damage_type, tags)

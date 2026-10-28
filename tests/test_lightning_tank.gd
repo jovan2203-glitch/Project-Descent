@@ -104,9 +104,9 @@ func test_requirement_text() -> void:
 
 func test_stormbreak() -> void:
 	var r := Abilities.get_resource("stormshield")
-	assert_eq(float(r.cooldown), 6.0)
+	assert_eq(float(r.cooldown), 0.0, "the filler: no cooldown")
 	assert_eq(int(r.resource_cost), 0)
-	assert_eq(int(r.resource_generated), 25, "gives 25 Energy")
+	assert_eq(int(r.resource_generated), 15, "gives 15 Energy")
 	assert_eq(float(r.weapon_damage_multiplier), 1.0)
 	assert_eq(float(r.damage), 0.0)
 	assert_eq(float(r.threat_multiplier), 4.0, "high threat")

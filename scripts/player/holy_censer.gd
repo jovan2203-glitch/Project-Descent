@@ -169,6 +169,8 @@ func _spend_incense(n: int, near: Vector3, pct: float = Balance.MOTE_SPEND_PCT) 
 	var spent := mini(maxi(n, 0), incense())
 	if spent <= 0:
 		return 0
+	if player.echoing():
+		return spent   # a free cast (Rune of the Wild Page) uses none up
 	if censer_raised():
 		_incense_stash -= spent
 	else:
@@ -491,3 +493,5 @@ func _end_raise() -> void:
 		_gain_incense(back)
 	_sync_censer()
 
+func tracker_values() -> Dictionary:
+	return {"incense": {"value": incense(), "max": Balance.INCENSE_MAX}}

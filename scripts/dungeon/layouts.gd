@@ -158,15 +158,19 @@ static func _read_room(out: Dictionary, n: DungeonRoom, parent: int) -> void:
 	room["no_random"] = n.no_random_packs
 	room["packs"] = []
 	room["pieces"] = []
+	room["props"] = []
 	if parent >= 0:
 		out["links"].append([parent, idx])
 	for child in n.get_children():
 		if child is PackMarker:
 			room["packs"].append({"roles": Array(child.roles), "elites": child.elites,
-				"keybearer": child.keybearer, "at": center + child.position})
+				"keybearer": child.keybearer, "at": center + child.position, "yaw": child.rotation.y,
+				"formation": child.formation, "spread": child.spread, "roam": child.roam})
 		elif child is SetPieceMarker:
 			room["pieces"].append({"kind": child.kind, "at": center + child.position,
 				"yaw": child.rotation.y, "params": child.params.duplicate()})
+		elif child is PropMarker:
+			room["props"].append({"kind": child.kind, "at": center + child.position, "yaw": child.rotation.y})
 	for child in n.get_children():
 		if child is DungeonRoom:
 			_read_room(out, child, idx)

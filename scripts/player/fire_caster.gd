@@ -228,7 +228,8 @@ func _start_ember_volley() -> void:
 	if sight_err != "":
 		player._error(sight_err)
 		return
-	var instant := player.fire_cooldowns.concentrated_fire_ready(id)
+	var echo := player.echoing()   # a free cast (Rune of the Wild Page) never channels: a burst
+	var instant := echo or player.fire_cooldowns.concentrated_fire_ready(id)
 	if not player._pay(id):
 		return
 	player.cooldowns[id] = float(res.cooldown)
@@ -239,9 +240,9 @@ func _start_ember_volley() -> void:
 		player.status.spend_stacks(FireCooldownsKit.CONC_ID)
 		var tgt := player.target
 		for i in Balance.EMBER_VOLLEY_HITS:
-			player.get_tree().create_timer(Balance.EMBER_VOLLEY_BURST_GAP * i).timeout.connect(func():
+			player.echo_timer(Balance.EMBER_VOLLEY_BURST_GAP * i).timeout.connect(func():
 				if player.is_alive() and is_instance_valid(tgt) and tgt.is_alive():
-					_launch_ember(tgt))
+					_launch_ember(tgt))   # (a free cast's burst: its timers keep it an echo)
 		player._bus().cast_finished.emit(id)   # an instant: starts the global cooldown like one
 		return
 	player._begin_spell(id, str(res.display_name), float(res.cast_time), true)

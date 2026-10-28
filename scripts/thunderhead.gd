@@ -25,6 +25,8 @@ var tick := 1.0
 var damage := 0.0
 var tags := PackedStringArray(["Lightning", "Spell", "AoE"])
 var source: Node = null   # the caster; damage is theirs
+## Made by my free cast (Rune of the Wild Page): its hits are echoes too.
+var echo := false
 ## Name of its strikes in logs and meters ("dot_<effect_id>").
 var effect_id := "thunderhead"
 
@@ -151,7 +153,7 @@ func _strike() -> void:
 		return
 	var cs := get_node_or_null("/root/CombatSystem")
 	if cs:
-		cs.deal_dot(source, e, damage, "lightning", effect_id, tags)
+		Combat.run_as(source, echo, func(): cs.deal_dot(source, e, damage, "lightning", effect_id, tags))
 
 ## A short-lived bolt from the cloud straight down onto `at`.
 func _bolt_to(at: Vector3) -> void:
@@ -168,3 +170,6 @@ func _bolt_to(at: Vector3) -> void:
 	get_parent().add_child(bolt)
 	bolt.global_position = Vector3(at.x, at.y + length * 0.5, at.z)
 	get_tree().create_timer(BOLT_TIME).timeout.connect(bolt.queue_free)
+
+func _enter_tree() -> void:
+	echo = Combat.echoing(source)   # (asked each time it is made: pooled ones come back)

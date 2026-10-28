@@ -738,3 +738,6 @@ func _sync() -> void:
 func _tell() -> void:
 	_told = _now()
 	player._net_fx("rogue", player.global_position, null, {"f": _flow if _shown != "" else 0, "k": in_kill() and _shown != "", "dead": playing_dead()})
+
+func tracker_values() -> Dictionary:
+	return {"flow": {"value": _flow, "max": flow_max()}}

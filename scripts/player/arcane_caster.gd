@@ -229,7 +229,8 @@ func _start_sigil_darts() -> void:
 	if sight_err != "":
 		player._error(sight_err)
 		return
-	var instant := player.fire_cooldowns.concentrated_fire_ready(id)
+	var echo := player.echoing()   # a free cast (Rune of the Wild Page) never channels: a burst
+	var instant := echo or player.fire_cooldowns.concentrated_fire_ready(id)
 	if not player._pay(id):
 		return
 	if float(res.cooldown) > 0.0:
@@ -246,9 +247,9 @@ func _start_sigil_darts() -> void:
 		player.status.spend_stacks(FireCooldownsKit.CONC_ID)
 		var tgt := player.target
 		for i in _darts_total:
-			player.get_tree().create_timer(Balance.SIGIL_DARTS_BURST_GAP * i).timeout.connect(func():
+			player.echo_timer(Balance.SIGIL_DARTS_BURST_GAP * i).timeout.connect(func():
 				if player.is_alive() and is_instance_valid(tgt) and tgt.is_alive():
-					_launch_dart(tgt))
+					_launch_dart(tgt))   # (a free cast's burst: its timers keep it an echo)
 		player._bus().cast_finished.emit(id)   # an instant: starts the global cooldown like one
 		return
 	player._begin_spell(id, str(res.display_name), float(res.cast_time), true)
@@ -304,7 +305,7 @@ func _plant_countdown(tgt: Node3D) -> void:
 		if not is_instance_valid(tgt) or not tgt.is_alive():
 			return
 	_countdowns[key] = {"target": tgt, "dealt": 0, "base": float(Abilities.get_resource(COUNTDOWN_ID).damage),
-		"at": Time.get_ticks_msec() / 1000.0 + Balance.COUNTDOWN_TIME}
+		"at": Time.get_ticks_msec() / 1000.0 + Balance.COUNTDOWN_TIME, "echo": player.echoing()}   # (echo: planted by a free cast)
 	# The debuff shows the mark to the whole party (it only ever counts MY damage).
 	player.fire_caster._apply_effect_hit(tgt, preload("res://scripts/core/effects.gd").get_effect(COUNTDOWN_FX), COUNTDOWN_ID,
 		PackedStringArray(ARCANE_TAGS), "arcane")
@@ -331,6 +332,9 @@ func _tick_countdowns() -> void:
 
 func _detonate_countdown(key: int) -> void:
 	var c: Dictionary = _countdowns[key]
+	if bool(c.get("echo", false)) and not player.echoing():
+		player.as_echo(func(): _detonate_countdown(key))   # a free cast's mark goes off as an echo
+		return
 	_countdowns.erase(key)
 	var tgt: Variant = c["target"]
 	if not is_instance_valid(tgt) or not tgt.is_alive():
@@ -405,7 +409,7 @@ func _echo_hit(info: RefCounted, pct: float, id: String, from: Vector3) -> void:
 	var damage_type := str(info.damage_type)
 	var tags: PackedStringArray = info.tags
 	var wait := from.distance_to(foe.global_position) / maxf(Balance.BOLT_SPEED, 1.0)
-	player.get_tree().create_timer(maxf(wait, 0.02)).timeout.connect(func():
+	player.echo_timer(maxf(wait, 0.02)).timeout.connect(func():
 		if player.is_alive():
 			_exact_hit(foe, amount, id, damage_type, tags))
 
@@ -476,7 +480,7 @@ func _cast_collapse() -> void:
 	var r := float(res.radius)
 	var coef := float(res.damage)
 	_arcane_mark("collapse", at, r, Balance.COLLAPSE_DELAY)
-	player.get_tree().create_timer(Balance.COLLAPSE_DELAY).timeout.connect(func(): _collapse_implode(at, r, coef))
+	player.echo_timer(Balance.COLLAPSE_DELAY).timeout.connect(func(): _collapse_implode(at, r, coef))
 
 func _collapse_implode(at: Vector3, r: float, coef: float) -> void:
 	if player.is_dead():

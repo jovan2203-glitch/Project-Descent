@@ -170,6 +170,25 @@ func is_out() -> bool:
 			return true
 	return false
 
+## For Trackers, per engine shot: overcut_<shot> (its Overcut's damage bonus, %) and
+## cut_<shot> (what the shots ready now would take off it; max: its cooldown left,
+## so 100% or more means it would turn into Overcut).
+func tracker_values() -> Dictionary:
+	var out := {}
+	var incoming := {}
+	for src in Abilities.SHARP_ENGINE:
+		if player.cooldown_left(src) > 0.0:
+			continue
+		var cuts := cut_preview(src)
+		for t in cuts:
+			if t != src:
+				incoming[t] = float(incoming.get(t, 0.0)) + float(cuts[t])
+	for id in Abilities.SHARP_ENGINE:
+		var sec := overcut_of(id)
+		out["overcut_" + id] = snappedf(overcut_bonus(sec, overcut_per(), overcut_max()), 0.1) if sec > 0.0 else 0.0
+		out["cut_" + id] = {"value": snappedf(float(incoming.get(id, 0.0)), 0.1), "max": player.cooldown_left(id)}
+	return out
+
 ## Bar text: the Overcut on an engine shot ("+40%").
 func charges_text(id: String) -> String:
 	var sec := overcut_of(id)
@@ -225,7 +244,7 @@ func _sharp_use(id: String, res: Resource) -> void:
 				_follow_target = _last_engine
 				_shot(foe, coef, id)
 				for i in range(1, Balance.SHARP_FOLLOW_HITS):
-					player.get_tree().create_timer(Balance.SHARP_FOLLOW_GAP * i).timeout.connect(func():
+					player.echo_timer(Balance.SHARP_FOLLOW_GAP * i).timeout.connect(func():
 						if is_instance_valid(foe) and foe.is_alive() and is_instance_valid(player):
 							_shot(foe, coef, id))
 		BREATHE_ID:
@@ -290,6 +309,8 @@ func _spend_overcut(id: String) -> float:
 	var sec := overcut_of(id)
 	if sec <= 0.0:
 		return 1.0
+	if player.echoing():
+		return 1.0 + overcut_bonus(sec, overcut_per(), overcut_max()) / 100.0   # a free cast uses none up
 	_overcut.erase(id)
 	if sec >= Balance.CLEAN_RELEASE_OVERCUT:
 		_set_streak(_streak + int(round(player._talent("martial_clean_release"))))   # Clean Release

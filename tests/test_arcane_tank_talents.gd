@@ -177,7 +177,7 @@ func test_head_count() -> void:
 	assert_eq(ArcaneTankKit.head_count_heal(1000, 4.0, 1), 40)
 	assert_eq(ArcaneTankKit.head_count_heal(1000, 4.0, 0), 0, "already full: nothing made, nothing healed")
 	assert_eq(ArcaneTankKit.head_count_heal(1000, 0.0, 4), 0)
-	assert_eq(Details.spell_name("head_count"), "Head Count", "its own line on the meter")
+	assert_eq(Details.line_name("head_count"), "Head Count", "its own line on the meter")
 	assert_true(_has_method("res://scripts/player.gd", "_full_set"))
 	assert_contains(_desc("arcane_head_count"), "Each Reflection you create heals you for 0.5 / 1 / 1.5% of your maximum health")
 

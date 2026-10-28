@@ -2,13 +2,15 @@ extends Node
 class_name TrackerEditor
 
 # The Trackers editor (/trackers, Settings > Interface, UI Options): the list of
-# your trackers and groups on the left; on the right the picked one's pages:
-# Display (icon / bar / text / ring, size, colour, text with %name %stacks
-# %time %value %max %percent %target), Triggers (what makes it show), Conditions
-# (change colour / glow / opacity / text when a value passes a mark) and Load
-# (spec, role, combat, party, dungeon). New from a template, duplicate, delete,
-# and Import / Export one tracker or a whole group as a line of text. Changes
-# apply at once; the picked tracker shows with made-up values while you edit.
+# your trackers and groups on the left (Up / Down orders them); on the right the
+# picked one's pages: Display (icon / bar / text / ring / pips, size, colours, two
+# texts with %name %stacks %time %value %max %percent %target and %2.value for
+# trigger 2, on click), Triggers (what makes it show), Conditions (change colour /
+# glow / opacity / a text when a value of any trigger passes a mark) and Load
+# (spec, role, combat, party, dungeon, abilities on your bars). New from a
+# template or a spec set (the Venom bar, the Wheel...), duplicate, delete, and
+# Import / Export one tracker or a whole group as a line of text. Changes apply
+# at once; the picked tracker shows with made-up values while you edit.
 
 const NODE := "TrackerEditor"
 const AbilitiesScript = preload("res://scripts/abilities.gd")
@@ -19,6 +21,9 @@ var _right: VBoxContainer
 var _sel := ""
 
 static func open(tree: SceneTree, id := "") -> void:
+	var s := tree.root.get_node_or_null("Settings")
+	if s != null:
+		Trackers.give_builtins(s)   # the spec sets are in the list even before a dungeon
 	var w := UIWindow.make(tree, NODE, "Trackers", Vector2(940, 600))
 	var e: TrackerEditor
 	if w.is_new:
@@ -78,13 +83,20 @@ func _build() -> void:
 	var templates := OptionButton.new()
 	templates.focus_mode = Control.FOCUS_NONE
 	templates.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var n_templates := Trackers.templates().size()
 	for t in Trackers.templates():
 		templates.add_item(t[0])
 		templates.set_item_tooltip(templates.item_count - 1, t[1])
+	for sp in Trackers.spec_sets():
+		templates.add_item("Spec: " + str(sp[1]))
+		templates.set_item_tooltip(templates.item_count - 1, sp[2])
 	new_row.add_child(templates)
 	var add := UIWindow.button("New")
-	add.tooltip_text = "A new tracker from the picked template."
+	add.tooltip_text = "A new tracker from the picked template, or a whole spec set."
 	add.pressed.connect(func():
+		if templates.selected >= n_templates:
+			_add_spec_set(Trackers.spec_sets()[templates.selected - n_templates])
+			return
 		var t: Dictionary = (Trackers.templates()[templates.selected][2] as Callable).call()
 		var cur: Dictionary = _all().get(_sel, {})
 		if str(cur.get("kind")) == "group":
@@ -105,6 +117,14 @@ func _build() -> void:
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row2.add_child(b)
 		b.pressed.connect({"Group": _new_group, "Copy": _duplicate, "Delete": _delete}[spec[0]])
+	var order_row := HBoxContainer.new()
+	left.add_child(order_row)
+	for dir in [-1, 1]:
+		var b := UIWindow.button("Up" if dir < 0 else "Down")
+		b.tooltip_text = "Move the picked one %s the list (its place in a group sorted \"As listed\")." % ("up" if dir < 0 else "down")
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.pressed.connect(func(): _move(dir))
+		order_row.add_child(b)
 	var row3 := HBoxContainer.new()
 	left.add_child(row3)
 	var imp := UIWindow.button("Import")
@@ -172,16 +192,58 @@ func _new_group() -> void:
 	_changed(true)
 	select(g["id"])
 
+## Duplicate the picked tracker, or a group with its trackers.
 func _duplicate() -> void:
 	if not _all().has(_sel):
 		return
-	var t: Dictionary = _all()[_sel].duplicate(true)
-	t["id"] = Trackers.new_id("g" if t["kind"] == "group" else "t")
-	t["name"] = str(t["name"]) + " copy"
-	_all()[t["id"]] = t
-	_sel = t["id"]
+	var items := Trackers.fresh_copy(_export_set(_sel))
+	if items.is_empty():
+		return
+	items[0]["name"] = str(items[0]["name"]) + " copy"
+	if str(items[0]["kind"]) == "tracker":
+		items[0]["group"] = str(_all()[_sel].get("group", ""))
+	for it in items:
+		if _all().size() < Trackers.MAX_TRACKERS:
+			_all()[it["id"]] = it
+	_sel = items[0]["id"]
 	_changed(true)
-	select(t["id"])
+	select(_sel)
+
+## Add a spec set again (its own ids while they're free, so it goes to its spot).
+func _add_spec_set(sp: Array) -> void:
+	var items: Array = (sp[3] as Array).duplicate(true)
+	if items.any(func(it): return _all().has(it["id"])):
+		items = Trackers.fresh_copy(items)
+	for it in items:
+		if _all().size() < Trackers.MAX_TRACKERS:
+			_all()[it["id"]] = it
+	_sel = items[0]["id"]
+	_changed(true)
+	select(_sel)
+
+## Move the picked one past its neighbour (same group, or both ungrouped).
+func _move(dir: int) -> void:
+	var all := _all()
+	if not all.has(_sel):
+		return
+	var keys := all.keys()
+	var kind := str(all[_sel].get("kind"))
+	var grp := str(all[_sel].get("group", ""))
+	var same := func(k): return str(all[k].get("kind")) == kind and (kind == "group" or str(all[k].get("group", "")) == grp)
+	var i := keys.find(_sel)
+	var j := i + dir
+	while j >= 0 and j < keys.size() and not same.call(keys[j]):
+		j += dir
+	if j < 0 or j >= keys.size():
+		return
+	keys[i] = keys[j]
+	keys[j] = _sel
+	var ordered := {}
+	for k in keys:
+		ordered[k] = all[k]
+	all.clear()
+	all.merge(ordered)
+	_changed(true)
 
 func _delete() -> void:
 	var all := _all()
@@ -284,6 +346,9 @@ func _group_page(g: Dictionary) -> void:
 	_field(v, "Grow", _option(["Down", "Up", "Left", "Right"], ["down", "up", "left", "right"].find(str(g["grow"])), func(i):
 		g["grow"] = ["down", "up", "left", "right"][i]
 		_changed()))
+	_field(v, "Align", _option(["Start", "Centre", "End"], ["start", "center", "end"].find(str(g.get("align", "start"))), func(i):
+		g["align"] = ["start", "center", "end"][i]
+		_changed()))
 	_field(v, "Spacing", _spin(0, 40, 1, float(g["spacing"]), func(x):
 		g["spacing"] = int(x)
 		_changed()))
@@ -295,12 +360,10 @@ func _group_page(g: Dictionary) -> void:
 func _display_page(t: Dictionary) -> Control:
 	var v := _page("Display")
 	var d: Dictionary = t["display"]
-	_field(v, "Type", _option(["Icon", "Bar", "Text", "Ring"], Trackers.DISPLAY_TYPES.find(str(d["type"])), func(i):
-		var keep_color: Color = d["color"]
+	_field(v, "Type", _option(["Icon", "Bar", "Text", "Ring", "Pips"], Trackers.DISPLAY_TYPES.find(str(d["type"])), func(i):
 		var fresh := Trackers.default_display(Trackers.DISPLAY_TYPES[i])
-		fresh["color"] = keep_color
-		fresh["text"] = d["text"]
-		fresh["icon"] = d["icon"]
+		for k in ["color", "text", "text2", "text_color", "text2_color", "icon", "glow", "sound", "show_missing", "click"]:
+			fresh[k] = d[k]
 		t["display"] = fresh
 		_changed()
 		select(t["id"])))
@@ -317,10 +380,19 @@ func _display_page(t: Dictionary) -> Control:
 		d["color"] = cp.color
 		_changed())
 	_field(v, "Colour", cp)
-	_field(v, "Text", _line(str(d["text"]), "e.g. %name  %stacks", func(s):
-		d["text"] = s.left(80)
-		_changed()))
-	v.add_child(_wrap("Text: %name %stacks %time %value %max %percent %target", UISkin.DIM))
+	var spots: Array = {"icon": ["bottom right", "top"], "bar": ["left", "centre"], "text": ["centre", "right"],
+		"ring": ["centre", "under"], "pips": ["over the pips", "right of them"]}[str(d["type"])]
+	for k in [["text", "Text (%s)" % spots[0], "e.g. %name  %stacks"], ["text2", "Text 2 (%s)" % spots[1], "e.g. %time"]]:
+		var row := HBoxContainer.new()
+		row.add_child(_line(str(d[k[0]]), k[2], func(s):
+			d[k[0]] = s.left(80)
+			_changed()))
+		if str(d["type"]) != "text" or k[0] == "text2":
+			row.add_child(_color_button(d[k[0] + "_color"], func(c):
+				d[k[0] + "_color"] = c
+				_changed()))
+		_field(v, k[1], row)
+	v.add_child(_wrap("Texts: %name %stacks %time %value %max %percent %target. Another trigger's: %2.value, %3.time... Pips: one per point up to the max.", UISkin.DIM))
 	var icon_row := HBoxContainer.new()
 	var icon_e := _line(str(d["icon"]), "auto, none, or an ID", func(s):
 		d["icon"] = s.strip_edges()
@@ -341,6 +413,25 @@ func _display_page(t: Dictionary) -> Control:
 		_changed()))
 	_field(v, "Sound when it shows", _check("", bool(d["sound"]), func(on):
 		d["sound"] = on
+		_changed()))
+	_field(v, "Show while missing", _check("", bool(d.get("show_missing", false)), func(on):
+		d["show_missing"] = on
+		_changed()))
+	v.add_child(_wrap("Show while missing: it stays (dim) while its triggers are off, e.g. an empty cell; only while it's loaded.", UISkin.DIM))
+	# On click: a spec action (Player.tracker_actions(), e.g. turning the Wheel).
+	var acts: Array = [""]
+	var act_names: Array = ["Nothing"]
+	var player := get_tree().get_first_node_in_group("player")
+	if player and player.has_method("tracker_actions"):
+		var known: Dictionary = player.tracker_actions()
+		for k in known:
+			acts.append(k)
+			act_names.append(str(known[k]))
+	if not acts.has(str(d.get("click", ""))):
+		acts.append(str(d["click"]))
+		act_names.append(str(d["click"]))
+	_field(v, "On click", _option(act_names, acts.find(str(d.get("click", ""))), func(i):
+		d["click"] = acts[i]
 		_changed()))
 	return v
 
@@ -426,25 +517,25 @@ func _conditions_page(t: Dictionary) -> Control:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 6)
 		row.add_child(UISkin.label("If", 13))
-		row.add_child(_option(["Stacks", "Time left", "Value", "Percent"], Trackers.CHECKS.find(str(c["check"])), func(x):
+		var srcs := ["Shown"]
+		for n in (t["triggers"] as Array).size():
+			srcs.append("Trigger %d" % (n + 1))
+		row.add_child(_option(srcs, int(c.get("trigger", 0)), func(x): _setk(c, "trigger", x)))
+		row.add_child(_option(["Stacks", "Time left", "Value", "Percent", "Is on (1 / 0)"], Trackers.CHECKS.find(str(c["check"])), func(x):
 			c["check"] = Trackers.CHECKS[x]
 			_changed()))
 		row.add_child(_op_value(str(c["op"]), float(c["value"]), func(op): _setk(c, "op", op), func(x): _setk(c, "value", x)))
 		row.add_child(UISkin.label("set", 13))
-		row.add_child(_option(["Colour", "Glow", "Opacity", "Text"], Trackers.SETS.find(str(c["set"])), func(x):
+		row.add_child(_option(["Colour", "Glow", "Opacity", "Text", "Text 2", "Text colour", "Text 2 colour"], Trackers.SETS.find(str(c["set"])), func(x):
 			c["set"] = Trackers.SETS[x]
-			c["to"] = [Color(1, 0.3, 0.25), true, 0.5, "%name"][x]
+			c["to"] = [Color(1, 0.3, 0.25), true, 0.5, "%name", "%name", Color(1, 0.3, 0.25), Color(1, 0.3, 0.25)][x]
 			_changed()
 			select(t["id"])))
 		match str(c["set"]):
-			"color":
-				var cp := ColorPickerButton.new()
-				cp.color = c["to"] if c["to"] is Color else Color.RED
-				cp.custom_minimum_size = Vector2(50, 24)
-				cp.popup_closed.connect(func():
-					c["to"] = cp.color
-					_changed())
-				row.add_child(cp)
+			"color", "text_color", "text2_color":
+				row.add_child(_color_button(c["to"] if c["to"] is Color else Color.RED, func(col):
+					c["to"] = col
+					_changed()))
 			"glow":
 				row.add_child(_check("", bool(c["to"]) if c["to"] is bool else true, func(on):
 					c["to"] = on
@@ -453,7 +544,7 @@ func _conditions_page(t: Dictionary) -> Control:
 				row.add_child(_spin(0.0, 1.0, 0.05, float(c["to"]) if (c["to"] is float or c["to"] is int) else 0.5, func(x):
 					c["to"] = x
 					_changed()))
-			"text":
+			"text", "text2":
 				row.add_child(_line(str(c["to"]), "%name", func(s):
 					c["to"] = s.left(60)
 					_changed()))
@@ -498,6 +589,26 @@ func _load_page(t: Dictionary) -> Control:
 	_field(v, "Dungeon", _option(["Anywhere", "In a dungeon"], ["any", "yes"].find(str(l["dungeon"])), func(i):
 		l["dungeon"] = ["any", "yes"][i]
 		_changed()))
+	var bars_row := HBoxContainer.new()
+	var bars_e := _line(str(l.get("bars", "")), "ability IDs, comma-separated", func(s):
+		l["bars"] = s.strip_edges().left(200)
+		_changed())
+	bars_row.add_child(bars_e)
+	var pick := UIWindow.button("Add")
+	pick.tooltip_text = "Add an ability's ID."
+	pick.pressed.connect(func(): _pick_id(func(id):
+		var ids := Trackers.bar_ids(str(l.get("bars", "")))
+		if not ids.has(id):
+			ids.append(id)
+		l["bars"] = ", ".join(PackedStringArray(ids)).left(200)
+		bars_e.text = l["bars"]
+		_changed()))
+	bars_row.add_child(pick)
+	bars_row.add_child(_option(["All of them", "Any of them"], ["all", "any"].find(str(l.get("bars_mode", "all"))), func(i):
+		l["bars_mode"] = ["all", "any"][i]
+		_changed()))
+	_field(v, "On my bars", bars_row)
+	v.add_child(_wrap("On my bars: only while these abilities are on your action bars (macros count). Empty: always.", UISkin.DIM))
 	return v
 
 ## Set one field and save.
@@ -515,6 +626,13 @@ func _option(names: Array, selected: int, on_pick: Callable) -> OptionButton:
 	ob.selected = clampi(selected, 0, maxi(names.size() - 1, 0))
 	ob.item_selected.connect(func(i: int): on_pick.call(i))
 	return ob
+
+func _color_button(col: Color, on_pick: Callable) -> ColorPickerButton:
+	var cp := ColorPickerButton.new()
+	cp.color = col
+	cp.custom_minimum_size = Vector2(50, 24)
+	cp.popup_closed.connect(func(): on_pick.call(cp.color))
+	return cp
 
 func _check(text: String, on: bool, on_toggle: Callable) -> CheckBox:
 	var c := CheckBox.new()

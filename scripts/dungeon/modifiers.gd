@@ -16,6 +16,9 @@ const Names = preload("res://scripts/dungeon/names.gd")
 
 const ALL := ["frost_touched", "volatile", "bloodthirst", "frenzy"]
 
+## Off for now: the modifiers get reworked later. Runs roll none while this is false.
+const ENABLED := false
+
 const COLORS := {
 	"frost_touched": Color(0.55, 0.85, 1.0),
 	"volatile": Color(1.0, 0.55, 0.15),

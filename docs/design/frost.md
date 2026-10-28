@@ -20,7 +20,7 @@ Code: scripts/player/frost_healer.gd (FrostHealerKit). Numbers: balance.gd (RIME
 - Identity: a shield healer whose shells pay off when they end. A little damage through shatters (Break the Ice, Splinterheal).
 - Rime Shell's picture (scripts/rime_shell_fx.gd, visual only): a pale bubble of ice on you, party members and the training ally, cracking once a third of its shield is gone and again at two thirds, with a flash each time. Party members see it through the shell state sync (Net._sup_state).
 - Rime Shell on an ally: breaks -> Rime Shards heal every ally within 8 m for 30% of the shield (split past 5). Runs out unbroken -> Runoff heals them 50% of what was left over 4 s.
-- Meltwater - 1.5 s cast, 2 mana, heals 0.9 (old Heals); +30% on an ally with your Thawing. Filler. Card level 2.
+- Meltwater - 1.5 s cast, 1 mana, heals 0.9 (old Heals); +30% on an ally with your Thawing. Filler. Card level 2.
 - Rime Veil - instant, 2 mana: a 0.2 shield that forms again every 3 s for 12 s; no Thawing. Level 8.
 - Break the Ice - instant, 10 s cooldown, 1 mana: breaks your shell on an ally; 80% of what was left heals allies within 8 m (split past 5) and it shatters on enemies. Level 10.
 - Frost Lattice - instant, 30 s cooldown, 3 mana: links your target and the nearest allies with your shell (3 in all) for 20 s. A hit on a linked shell is taken from all the linked shells evenly. How: the hit shell soaks the whole hit at once and loses only 1/n of it (StatusContainer.set_share; it can soak up to n times its shield); the rest is billed to the healer's machine and drained evenly from the other linked shells, which can break from it. A shell that breaks or ends leaves the lattice. Level 14.
@@ -33,7 +33,7 @@ Code: scripts/player/frost_healer.gd (FrostHealerKit). Numbers: balance.gd (RIME
 ## Tank: Glacier Wall (one-handed melee weapon + shield, Fury) - BUILT 2026-10-21
 The absorb tank (Fire blocks, Lightning parries, Arcane dodges). Code: scripts/player/frost_glacier.gd.
 - Ice Layers: one absorb shield on you in layers, up to 5 (7 with the Rune of the Ice Shelf), each 4% of max health (Rime Ward, Deep Strata bigger), 20 s, refreshed by gaining one. A hit that breaks a Layer gives 8 Fury and Chills the attacker. Hardened Frost's armor and Ice Floe count for them. Tension: spending Layers buys threat and damage, keeping them buys defence (and Rimequake damage).
-- Rime Slash - builder, cone, 1.0 weapon, 3x threat, +20 Fury; 1 Layer, 2 if it hits 3+. No longer gives a Rime Shell.
+- Rime Slash - the filler: no cooldown, cone, 0.6 weapon, 3x threat, +10 Fury; 1 Layer, 2 if it hits 3+. No longer gives a Rime Shell.
 - Shattering Slam - shield hit, 1.9 weapon (was 1.5; tank rule pass), 6 s, 5x threat (was 3x), +20 Fury; shatters all Layers into the target (0.2 FB each). The old Rime Shell / Freeze shatter on the target stays.
 - Cold Shoulder - taunt, off GCD, 8 s, 25 m: 3 s forced attack, Chills, +1 Layer.
 - Rimequake - 25 Fury, 8 s, 0.65 FB within 6 m (was 0.5), 4x threat, Chills; +10% per Layer held.
@@ -53,11 +53,12 @@ Chill, Freeze, break. Code: scripts/player/frost_steel.gd (+ frost_runes_talents
 - Black Frost - 2 min: for 12 s every Winter's Bite Freezes (the 3-count is left alone).
 
 ## Archery
+- Frost Arrow - the filler: no cooldown, 10 Energy, 1.3 weapon, Chills.
 - Shatter Shot - finisher on a Frozen target.
 - Long Draw (Glacial Draw) - cast shot, instant on a rooted/Frozen target.
 - Rimefletch - auto-shot buff.
 - Coldmark - arrows on the marked target give Ice Shard charges.
-- Icy Retreat - backward leap leaving a chilling ice patch.
+- Icy Retreat - backward leap leaving a chilling ice patch; Icy Footing: the next Frost Arrow within 8 s costs no Energy.
 
 ## Utility (the book's "Utility" divider) - 2026-10-17
 - Rimelock (interrupt), Flash Freeze, Winter Hide, Ice Barrier, Snow Ward. Icepin (Frost's root) and Icy Retreat stay in Winter Hunt: they need a bow. Cold Comfort keeps Rime Shell and became the healer (above).

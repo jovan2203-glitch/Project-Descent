@@ -49,6 +49,9 @@ enum StackMode {
 @export var dot_can_crit: bool = true
 ## Attacker's Haste makes it tick faster (same duration, more ticks).
 @export var dot_hasted: bool = true
+## Snapshots: keeps the caster's haste from when it was applied instead of
+## following it live. Only for DoTs whose tooltip says so (Snapshot keyword).
+@export var dot_snapshot: bool = false
 ## Burst when the effect runs out on its own (not when removed): a coefficient
 ## like tick_damage (e.g. Hoarfrost's 2.5 Frost Bolts). 0 = none.
 @export var expire_damage: float = 0.0

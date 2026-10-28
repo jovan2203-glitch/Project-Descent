@@ -18,7 +18,7 @@ Values in Frost Bolts (FB) are conversation shorthand; real numbers live in bala
 - Capacitor - instant off GCD, 30 s cooldown, stores all energy up to 100; reuse within 20 s to take it back or it is lost.
 
 ## Parry tank (two-handed weapon, energy)
-- Stormbreak - builder, 6 s cooldown, +25 energy, 1.0 weapon damage, arcs to 3 enemies for 0.2 FB, high threat.
+- Stormbreak - builder and filler, no cooldown, +15 energy, 1.0 weapon damage, arcs to 3 enemies for 0.2 FB, high threat.
 - Humming Blade - 15 s stance on a 12 s cooldown: +10% Parry, Parry cap 45% instead of 30%, each parry gives 10 energy.
 - Return Stroke - within 4 s of a parry, off GCD, 15 energy, 1.0 weapon damage (was 1.2; tank rule pass), high threat.
 - Shock Ring - 8 s cooldown, 30 energy, 0.5 FB within 6 m, high threat.

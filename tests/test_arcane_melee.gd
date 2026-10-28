@@ -88,7 +88,7 @@ func test_the_kit() -> void:
 		orders[order] = id
 
 func test_numbers() -> void:
-	var want := {"swiftcut": [0.0, 1.0], "deepcut": [6.0, 1.8], "latecut": [10.0, 0.8], "widecut": [8.0, 0.7],
+	var want := {"swiftcut": [0.0, 0.8], "deepcut": [6.0, 1.8], "latecut": [10.0, 0.8], "widecut": [8.0, 0.7],
 		"encore": [0.0, 0.0], "doubletime": [90.0, 0.0]}   # (Encore has no cooldown: it needs Traces to replay)
 	for id in want:
 		var r := Abilities.get_resource(str(id))
@@ -123,7 +123,7 @@ func test_strikes_use_both_weapons() -> void:
 	var dagger := Items.get_item("dagger")
 	if Abilities.offhand_weapon().is_empty():
 		var both := float(sword["damage"]) + float(dagger["damage"])
-		assert_true(is_equal_approx(Abilities.hit_base("swiftcut", sword), both))
+		assert_true(is_equal_approx(Abilities.hit_base("swiftcut", sword), both * 0.8))
 		assert_true(is_equal_approx(Abilities.hit_base("deepcut", sword), both * 1.8))
 		assert_true(is_equal_approx(Abilities.hit_base("latecut", sword), both * 0.8))
 		assert_true(is_equal_approx(Abilities.hit_base("widecut", sword), both * 0.7))

@@ -95,7 +95,7 @@ func test_vent_flames() -> void:
 	assert_true(r != null, "Vent Flames exists")
 	assert_eq(int(r.cast_type), 0, "instant")
 	assert_eq(float(r.cooldown), 10.0, "10 s cooldown")
-	assert_eq(float(r.damage), 2.0, "2 Frost Bolts of damage")
+	assert_eq(float(r.damage), 1.8, "1.8 Frost Bolts of damage")
 	assert_eq(str(r.damage_type), "fire")
 	assert_true(r.tags.has("Fire") and r.tags.has("Spell"), "a Fire spell")
 	assert_eq(Abilities.category_of("ventflames"), "fire")

@@ -136,7 +136,7 @@ func test_echo() -> void:
 	assert_false(ArcaneOpenTalentsKit.echoes(PackedStringArray(["Fire", "Spell"]), false, true, true), "never damage over time")
 	assert_false(ArcaneOpenTalentsKit.echoes(PackedStringArray(["Fire", "Spell"]), false, false, false), "only spells and abilities you know by name")
 	assert_false(ArcaneOpenTalentsKit.echoes(PackedStringArray(["AutoAttack"]), false, false, true), "not auto-attacks")
-	assert_eq(Details.spell_name("echo"), "Echo", "its own line on the meter")
+	assert_eq(Details.line_name("echo"), "Echo", "its own line on the meter")
 	# Mirror Sigil does not repeat an echo.
 	assert_false(ArcaneCasterKit.mirror_echoes(PackedStringArray(["Arcane", "Spell"]), true, "echo"))
 	var text := _desc("arcane_echo")
@@ -146,7 +146,7 @@ func test_echo() -> void:
 	assert_contains(text, "15% of the damage")
 
 func test_mirror_finish() -> void:
-	assert_eq(Details.spell_name("mirror_finish"), "Mirror Finish", "its own line on the meter")
+	assert_eq(Details.line_name("mirror_finish"), "Mirror Finish", "its own line on the meter")
 	assert_true(_has_method("res://scripts/player.gd", "_mirror_finish"))
 	var text := _desc("arcane_mirror_finish")
 	assert_contains(text, "dodge, parry or block")

@@ -31,6 +31,7 @@ Spell Power, Attack Power (+ Max Health, Max Mana, Move Speed).
 - Spells crit with Critical Strike + Spell Critical Strike; everything else with Critical Strike.
 - Haste: faster casts, channels, auto-attacks and DoT ticks.
 - DoTs crit and are hasted unless the effect says otherwise (`dot_can_crit`, `dot_hasted`), and get `DOT_POWER_SHARE` of the power bonus of the spell/ability that applied them.
+- DoTs are dynamic: power, crit, buffs and Haste are read on every tick (`StatusContainer.tick_interval_of`), so a buff gained mid-DoT applies from the next tick. Only an effect marked `dot_snapshot` (Snapshot keyword in its tooltip) keeps the Haste it was applied with; none use it yet.
 - Old `damage` stat (old saves/gear) counts as that much SP and AP.
 
 ## 4. Registries
@@ -327,5 +328,5 @@ Rules in `scripts/player/martial_sharpshooter.gd` (`SharpshooterKit`), numbers i
 - Streak: +1 per engine shot used (`streak_after`), Loose halves it, `STREAK_HOLD` sec with no shot loses it; `damage_modify` adds it to all my damage. At `STREAK_MAX` Heavy Draw goes through `_use_drafted` (instant) and `adjust_crit` makes it a sure crit, so all its cuts are resets.
 - Breathe: the next non-reset cut within `BREATHE_TIME` becomes a reset. Fast Hands: cuts x`FAST_HANDS_MULT` (resets unchanged).
 - Pierce hits its line at once (`on_line`, split past the cap) and sends one picture arrow (no source, no damage). Spread: `spread_order` cycles its arrows over the enemies in its cone (a lone enemy takes them all). Follow Up's second arrow leaves `SHARP_FOLLOW_GAP` later.
-- HUD: the engine strip (`hud.gd`, `_refresh_sharp_strip` / `_update_sharp_strip`): each engine shot's cooldown or Overcut, and what the ready shots would take off it (`cut_preview`; blue = sooner, gold = Overcut). Party: the quiver (`scripts/sharpshooter_fx.gd`, Net "sharpshooter").
+- HUD: the Sharpshooter tracker group (`Trackers.spec_sets()`): each engine shot's cooldown, its Overcut (`overcut_<shot>`, gold) and what the ready shots would take off it (`cut_<shot>` from `cut_preview`; blue = sooner, gold = Overcut), all from `SharpshooterKit.tracker_values()`. Party: the quiver (`scripts/sharpshooter_fx.gd`, Net "sharpshooter").
 - Brought buttons (`Abilities.BROUGHT_BUTTONS`): Loose comes with Quick Shot (like Go In with Cut, Kick / Elbow / Fighting Style with Punch); `_use_ability_now` sends them to `_use_drafted`.

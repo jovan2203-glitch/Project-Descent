@@ -84,7 +84,7 @@ func test_chain_reaction() -> void:
 	assert_eq(ArcaneCasterKit.chain_reaction_damage(0, 30.0, 3), 0)
 	var crowd := Balance.AOE_TARGET_CAP * 2
 	assert_eq(ArcaneCasterKit.chain_reaction_damage(1000, 30.0, crowd), int(round(300.0 * Balance.aoe_share(crowd))), "a crowd shares it")
-	assert_eq(Details.spell_name("chain_reaction"), "Chain Reaction", "its own line on the meter")
+	assert_eq(Details.line_name("chain_reaction"), "Chain Reaction", "its own line on the meter")
 
 func test_polished_glass() -> void:
 	var id := _id("arcane_polished_glass")

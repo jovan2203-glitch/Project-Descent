@@ -259,7 +259,7 @@ func _late_cut(w: Dictionary, res: Resource) -> void:
 	if first <= 0:
 		return
 	var key := newest_trace_key(_traces, LATE_CUT_ID)
-	player.get_tree().create_timer(late_cut_delay(player._talent("arcane_no_loose_ends"))).timeout.connect(func():   # No Loose Ends: sooner
+	player.echo_timer(late_cut_delay(player._talent("arcane_no_loose_ends"))).timeout.connect(func():   # No Loose Ends: sooner
 		if player.is_dead() or not is_instance_valid(foe) or not foe.is_alive():
 			return
 		player.arcane_caster._exact_hit(foe, first, LATE_CUT_ID, "arcane", PackedStringArray(TRACE_TAGS))
@@ -325,7 +325,7 @@ func _encore() -> void:
 	for i in count:
 		var amount := encore_amount(int(held[i]["amount"]), pct)
 		var share := full_house_amount(amount)
-		player.get_tree().create_timer(maxf(ArcaneTankKit.TRACE_GHOST.hit_time(from, through, i, count), 0.02)).timeout.connect(func():
+		player.echo_timer(maxf(ArcaneTankKit.TRACE_GHOST.hit_time(from, through, i, count), 0.02)).timeout.connect(func():
 			if not player.is_alive():
 				return
 			if is_instance_valid(foe) and foe.is_alive():
@@ -364,3 +364,6 @@ func _start_double_time() -> void:
 	player._ring_effect(1.5, Abilities.color_of(DOUBLE_TIME_ID))
 	player._ring_effect(0.9, Color(0.95, 0.9, 1.0))
 
+func tracker_values() -> Dictionary:
+	var double: bool = player.status != null and player.status.has(DOUBLE_TIME_FX)
+	return {"traces": {"value": traces(), "max": trace_cap(player.frost_melee._capstone("arcane_standing_ovation"), double)}}

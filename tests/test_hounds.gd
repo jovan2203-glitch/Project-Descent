@@ -23,7 +23,7 @@ const NAMES := {"sic": "Sic", "openup": "Open Up", "bothatonce": "Both At Once",
 	"guarddogs": "Guard Dogs", "offthechain": "Off the Chain"}
 const LEVELS := {"sic": 6, "openup": 10, "bothatonce": 14, "runthemdown": 18, "guarddogs": 24, "offthechain": 40}
 # id: [cooldown, weapon damage, Fury cost, Fury gained]
-const NUMBERS := {"sic": [0.0, 1.0, 0, 15], "openup": [6.0, 1.4, 0, 25], "bothatonce": [4.0, 1.2, 40, 0],
+const NUMBERS := {"sic": [0.0, 1.4, 0, 15], "openup": [6.0, 1.4, 0, 25], "bothatonce": [4.0, 1.2, 40, 0],
 	"runthemdown": [8.0, 0.6, 30, 0], "guarddogs": [30.0, 0.0, 20, 0], "offthechain": [90.0, 0.0, 0, 0]}
 const SPENDERS := ["bothatonce", "runthemdown", "guarddogs", "shadowstrike"]
 
@@ -216,7 +216,7 @@ func test_roused_and_the_mark_add_to_a_bite() -> void:
 	assert_eq(int(rows[1][1]), 25)
 	assert_eq(str(rows[2][0]), "bonus:Laid Open")
 	assert_eq(int(rows[2][1]), 30)
-	assert_eq(Details.spell_name("bonus:Roused"), "Roused")
+	assert_eq(Details.line_name("bonus:Roused"), "Roused")
 
 ## Their hits are the player's own: they scale like an ability, and they are
 ## named after what they are.
@@ -224,9 +224,9 @@ func test_their_hits() -> void:
 	var p := _player()
 	assert_true(HoundsKit.HOUND_TAGS.has("Ability") and HoundsKit.HOUND_TAGS.has("Shadow") and not HoundsKit.HOUND_TAGS.has("Spell"))
 	assert_false(HoundsKit.HOUND_TAGS.has("Melee"), "not a melee swing of mine: Heat and the like do not count it")
-	assert_eq(Details.spell_name(HoundsKit.HOUND_BITE_ID), "Hound Bite")
-	assert_eq(Details.spell_name(HoundsKit.HOUND_LUNGE_ID), "Hound Lunge")
-	assert_eq(Details.spell_name(HoundsKit.HOUND_DRAG_ID), "Drag Down")
+	assert_eq(Details.line_name(HoundsKit.HOUND_BITE_ID), "Hound Bite")
+	assert_eq(Details.line_name(HoundsKit.HOUND_LUNGE_ID), "Hound Lunge")
+	assert_eq(Details.line_name(HoundsKit.HOUND_DRAG_ID), "Drag Down")
 	for id in [HoundsKit.HOUND_BITE_ID, HoundsKit.HOUND_LUNGE_ID, HoundsKit.HOUND_DRAG_ID]:
 		assert_false(Abilities.PATHS.has(id), "%s is no ability" % id)
 		assert_ne(Details.spell_color(id), Color(0.7, 0.7, 0.75), "%s has a colour on the meter" % id)
@@ -701,7 +701,7 @@ func test_talent_rules() -> void:
 	# Stand Over: a share of maximum health, with its own line on the healing meter.
 	assert_eq(HoundsKit.stand_over_heal(2000, 2.0), 40)
 	assert_eq(HoundsKit.stand_over_heal(2000, 0.0), 0)
-	assert_eq(Details.spell_name(HoundsKit.STAND_OVER_ID), "Stand Over")
+	assert_eq(Details.line_name(HoundsKit.STAND_OVER_ID), "Stand Over")
 	# Share the Kill: only while the Hounds are out.
 	assert_eq(HoundsKit.leech_heal_mult(true, 100.0), 2.0)
 	assert_eq(HoundsKit.leech_heal_mult(true, 50.0), 1.5)

@@ -54,7 +54,7 @@ func test_the_kit_is_a_holy_bow_spec() -> void:
 
 func test_numbers() -> void:
 	# id: [cooldown, energy, weapon multiplier]
-	var want := {"prismarrow": [12.0, 15, 0.0], "glimmershot": [0.0, 20, 1.0], "refractingshot": [8.0, 30, 2.0],
+	var want := {"prismarrow": [12.0, 15, 0.0], "glimmershot": [0.0, 20, 1.8], "refractingshot": [8.0, 30, 2.0],
 		"sunlitarrow": [12.0, 30, 1.2], "prismbreaker": [15.0, 25, 0.0], "stepoflight": [10.0, 0, 0.0],
 		"spectrumvolley": [120.0, 0, 0.0]}
 	for id in want:

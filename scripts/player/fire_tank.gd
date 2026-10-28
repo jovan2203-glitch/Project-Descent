@@ -301,3 +301,5 @@ func _fire_patch(at: Vector3, yaw: float, length: float, depth: float, time: flo
 const CINDER_GUARD_ID := "cinder_guard"
 const BRAND_FX_ID := "branded"
 
+func tracker_values() -> Dictionary:
+	return {"slag": {"value": slag_stacks(), "max": slag_cap()}}

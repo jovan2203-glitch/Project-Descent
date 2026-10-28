@@ -42,7 +42,7 @@ func test_snapping() -> void:
 func test_the_hud_registers_its_pieces() -> void:
 	var hud := HudSource.text()
 	for key in ["player_frame", "cast_bar", "target_frame", "target_cast", "party_frames", "buffs", "debuffs",
-			"action_bar", "extra_bar_%d", "xp_bar", "messages", "chat", "meter", "venom", "wheel", "chain", "sharpshooter"]:
+			"action_bar", "extra_bar_%d", "xp_bar", "boss_timer", "messages", "chat", "meter"]:
 		assert_true(hud.contains("\"%s\"" % key), "%s can be moved" % key)
 	var ui := FileAccess.get_file_as_string("res://scripts/game_ui.gd")
 	assert_true(ui.contains("\"minimap\""), "the minimap can be moved")

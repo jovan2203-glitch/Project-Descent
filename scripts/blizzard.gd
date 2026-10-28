@@ -13,6 +13,8 @@ const Balance = preload("res://scripts/balance.gd")
 @export var damage: float = 0.3   # coefficient per wave (1.0 = a standard hit)
 @export var icicles_per_wave: int = 7
 var source: Node = null   # the player; damage goes through source.deal_damage()
+## Made by my free cast (Rune of the Wild Page): its hits are echoes too.
+var echo := false
 
 const FALL_HEIGHT := 6.0
 const FALL_TIME := 0.3
@@ -132,6 +134,9 @@ func _damage_wave() -> void:
 		var d := Vector2(e.global_position.x - global_position.x, e.global_position.z - global_position.z)
 		if d.length() <= radius + Combat.hitbox_radius(e):
 			if is_instance_valid(source) and source.has_method("deal_damage"):
-				source.deal_damage(e, damage, "blizzard")
+				Combat.run_as(source, echo, func(): source.deal_damage(e, damage, "blizzard"))
 			else:
 				pass
+
+func _enter_tree() -> void:
+	echo = Combat.echoing(source)   # (asked each time it is made: pooled ones come back)

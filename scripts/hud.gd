@@ -3,7 +3,7 @@ extends CanvasLayer
 
 # The in-game HUD's shared core: the player, the SignalBus wiring, the per-frame
 # calls into its elements, messages and the death screen. Each element (player
-# and target frames, cast bars, action bars, auras, XP bar, spec bars, party
+# and target frames, cast bars, action bars, auras, XP bar, party
 # frames) is its own file in scripts/ui/hud/ (HudElement): a new one gets its own
 # file, never a section here. Their options are in UIConfig
 # (scripts/ui/ui_config.gd), their places in Move UI (scripts/ui/ui_layout.gd).
@@ -19,8 +19,8 @@ const HUD_DIR := "res://scripts/ui/hud/"
 const ActionBar = preload("res://scripts/ui/hud/action_bar.gd")
 const Auras = preload("res://scripts/ui/hud/auras.gd")
 ## The elements made from their own file, in drawing order.
-const ELEMENTS := ["party_frames", "player_frame", "target_frame", "target_cast", "cast_bar", "xp_bar",
-	"venom_bar", "wheel_strip", "chain_strip", "sharp_strip", "messages"]
+const ELEMENTS := ["party_frames", "player_frame", "target_frame", "target_cast", "cast_bar", "xp_bar", "boss_timer",
+	"messages"]
 
 var player: Node
 var trackers: Node                  # scripts/ui/trackers/tracker_engine.gd

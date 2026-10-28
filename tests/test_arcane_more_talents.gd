@@ -171,7 +171,7 @@ func test_full_house() -> void:
 	assert_eq(ArcaneMeleeKit.full_house_amount(600), 300)
 	assert_eq(ArcaneMeleeKit.full_house_amount(333), 167, "rounded")
 	assert_eq(ArcaneMeleeKit.full_house_amount(0), 0)
-	assert_eq(Details.spell_name(ArcaneMeleeKit.FULL_HOUSE_HIT_ID), "Full House", "its own line on the meter")
+	assert_eq(Details.line_name(ArcaneMeleeKit.FULL_HOUSE_HIT_ID), "Full House", "its own line on the meter")
 	assert_ne(Details.spell_color(ArcaneMeleeKit.FULL_HOUSE_HIT_ID), Color(0.7, 0.7, 0.75))
 	assert_false(Abilities.PATHS.has(ArcaneMeleeKit.FULL_HOUSE_HIT_ID), "no ability")
 	var fx: Resource = ArcaneMeleeKit.make_full_house_fx()
@@ -222,7 +222,7 @@ func test_silvered() -> void:
 	assert_eq(ArcaneTankKit.silvered_heal(1000, 0.3), 3)
 	assert_eq(ArcaneTankKit.silvered_heal(20000, 0.9), 180)
 	assert_eq(ArcaneTankKit.silvered_heal(1000, 0.0), 0)
-	assert_eq(Details.spell_name("silvered"), "Silvered", "its own line on the meter")
+	assert_eq(Details.line_name("silvered"), "Silvered", "its own line on the meter")
 	assert_contains(_desc("arcane_silvered"), "0.3 / 0.6 / 0.9 / 1.2 / 1.5% of your maximum health")
 
 func test_running_clock() -> void:

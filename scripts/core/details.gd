@@ -186,6 +186,9 @@ func _on_damage(info: RefCounted) -> void:
 # that are extra hits to begin with (Afterglow, Slag Shatter, rune and item
 # procs) already carry their own name.
 
+## Suffix of the line of an ability the Rune of the Wild Page cast for free ("fireball@wild_page").
+const ECHO_SUFFIX := "@wild_page"
+const ECHO_NAME := "Wild Page"
 ## Prefix of a meter line that holds damage ADDED to other hits ("bonus:Heat").
 const BONUS_PREFIX := "bonus:"
 ## Modifiers that are not something the player brought: they stay in the hit.
@@ -196,6 +199,8 @@ const BONUS_IGNORED := ["Shield", "Dungeon"]
 static func split_hit(info: RefCounted) -> Array:
 	var amount := int(info.amount)
 	var id := str(info.ability_id)
+	if bool(info.get("echo")):
+		id += ECHO_SUFFIX   # a free cast of the Rune of the Wild Page: "<name> (Wild Page)"
 	var parts: Variant = info.get("bonus_parts")
 	return split_amount(id, amount, bool(info.crit), parts if parts is Array else [])
 
@@ -568,6 +573,14 @@ const HIT_NAMES := {
 ## Display name for a combat log id ("fireball" -> "Firebolt", "dot_burning" -> "Burning (Periodic)").
 ## Also used by the Logs tab (GameLog), so both always agree.
 static func spell_name(id: String) -> String:
+	if id.ends_with(ECHO_SUFFIX):
+		return "%s (%s)" % [spell_name(id.trim_suffix(ECHO_SUFFIX)), ECHO_NAME]
+	var name := line_name(id)
+	var from := source_of(id, name)
+	return name if from == "" else "%s (%s)" % [name, from]
+
+## A line's own name, without where it came from.
+static func line_name(id: String) -> String:
 	if id == "heal_other":
 		return "Healing"
 	if HIT_NAMES.has(id):
@@ -606,8 +619,76 @@ static func item_effect_name(effect_id: String) -> String:
 				return str(eff.display_name)
 	return effect_id.capitalize()
 
+# --- Where added damage came from: in brackets after its line's name ---------------------
+# A line of damage a talent, rune, item or trinket brought shows its source:
+# "Splitting Arrow (Talent)" when the talent has the line's name, "Hoar Blade (Rune
+# of the Hoar Blade)", "Storm Charm (Brass Storm Charm)". A spec's own mechanics
+# (Frozen Shatter, Heat, the Hounds...) and abilities have none.
+
+## Bonus lines named after a buff that isn't called what its talent / rune is.
+const BONUS_SOURCES := {"Dusk": "rune:dusk_till_dawn", "Dawn": "rune:dusk_till_dawn", "Static": "rune:overload"}
+
+static var _talent_names := {}   # talent name -> true (built once)
+static var _rune_names := {}     # "Hoar Blade" / "Rune of the Hoar Blade" -> rune id
+
+## What brought line `id` (named `name`) in, for its brackets ("" = nothing to say).
+static func source_of(id: String, name: String) -> String:
+	if id.begins_with("rune_"):
+		return ""   # (already named "Rune of ...")
+	if id.begins_with("item_"):
+		var item := item_of_effect(id.trim_prefix("item_"))
+		var item_name := str(load("res://scripts/items.gd").item_name(item)) if item != "" else ""
+		if item_name != "" and item_name != name:
+			return item_name
+		return "Trinket" if item != "" and str(load("res://scripts/items.gd").get_item(item).get("slot", "")).begins_with("Trinket") else "Item"
+	var base := id.trim_prefix(BONUS_PREFIX)
+	for prefix in ["dot_", "burst_"]:
+		base = base.trim_prefix(prefix)
+	if Abilities.CATEGORY_OF.has(base) or id in ["auto_melee", "auto_ranged", "heal_other"]:
+		return ""   # an ability's own damage
+	var label := name.trim_suffix(" (Periodic)").trim_suffix(" (Burst)")
+	if id.begins_with(BONUS_PREFIX) and BONUS_SOURCES.has(label):
+		return _rune_or_talent(str(BONUS_SOURCES[label]), label)
+	_build_source_names()
+	if _talent_names.has(label):
+		return "Talent"
+	if _rune_names.has(label):
+		var full: String = load("res://scripts/runes.gd").rune_name(str(_rune_names[label]))
+		return "Rune" if full == label else full
+	if id == "lifesteal":
+		return "Item"   # (a stat that comes on gear)
+	return ""
+
+static func _rune_or_talent(src: String, label: String) -> String:
+	if src.begins_with("rune:"):
+		var full: String = load("res://scripts/runes.gd").rune_name(src.trim_prefix("rune:"))
+		return "Rune" if full == label else full
+	return "Talent"
+
+static func _build_source_names() -> void:
+	if not _talent_names.is_empty():
+		return
+	var Talents = load("res://scripts/talents.gd")
+	for tid in Talents.db():
+		var t: Dictionary = Talents.get_talent(tid)
+		if not bool(t.get("placeholder", false)):
+			_talent_names[str(t.get("name", ""))] = true
+	var Runes = load("res://scripts/runes.gd")
+	for rid in Runes.ALL:
+		_rune_names[Runes.rune_name(rid)] = rid
+		_rune_names[Runes.short_name(rid).trim_prefix("the ")] = rid
+
+## The item whose equip or use effect is `effect_id` ("" if none).
+static func item_of_effect(effect_id: String) -> String:
+	var Items = load("res://scripts/items.gd")
+	for item in Items.ALL:
+		for eff in [Items.equip_effect_of(item), Items.use_effect_of(item)]:
+			if eff != null and str(eff.id) == effect_id:
+				return str(item)
+	return ""
+
 static func spell_color(id: String) -> Color:
-	var base := id
+	var base := id.trim_suffix(ECHO_SUFFIX)
 	for prefix in ["dot_", "burst_"]:
 		if base.begins_with(prefix):
 			base = base.substr(prefix.length())

@@ -1,17 +1,14 @@
 extends HudElement
 
 # Your unit frame: name and health (+ shield, Bruise) in one bar, a thin bar per
-# resource the abilities on your bars use (mana / energy / fury), and the Holy
-# healer's Verses under them while a Sing ability is on a bar. A red edge while
-# you are in combat.
+# resource the abilities on your bars use (mana / energy / fury). A red edge while
+# you are in combat. (The Holy healer's Verses are a Tracker: Trackers.spec_sets().)
 
 const Categories = preload("res://scripts/categories.gd")
 const RES_ORDER := ["mana", "energy", "fury"]
-const SING_IDS := ["singmercy", "singchorus", "singvigil"]
 
 var _health: HudBar
 var _powers := {}           # res -> HudBar
-var _verses: VersePips
 var _glow: Panel
 var _book_color := UISkin.HEALTH
 
@@ -67,15 +64,6 @@ func refresh() -> void:
 			b.fill_color = UISkin.POWER[res]
 			add_child(b)
 			_powers[res] = b
-	var sing := false
-	for id in ids:
-		sing = sing or SING_IDS.has(id)
-	if sing and _verses == null:
-		_verses = VersePips.new()
-		add_child(_verses)
-	elif not sing and _verses != null:
-		_verses.queue_free()
-		_verses = null
 	layout()
 
 func layout() -> void:
@@ -97,10 +85,6 @@ func layout() -> void:
 				b.size = Vector2(w - 2, p)
 				b.font_size = UISkin.font(9)
 				y += p + 1
-	if _verses:
-		_verses.position = Vector2(1, y + 1)
-		_verses.size = Vector2(w - 2, maxf(p, 8.0) + 4.0)
-		y += _verses.size.y + 1
 	set_box(Vector2(w, y + 1))
 	for b in _powers.values():
 		(b as HudBar).queue_redraw()
@@ -131,40 +115,3 @@ func update(_delta: float) -> void:
 		var mx: int = int(player.resource_max(res))
 		b.set_fracs(float(pts) / maxf(mx, 1))
 		b.set_texts("", "%d / %d" % [pts, mx] if b.size.y >= 8 else "")
-	if _verses and "verses" in player:
-		_verses.show_verses(player.verses, str(player.hymn), str(player.HYMN_NAMES.get(player.hymn, "No Hymn")))
-
-## The Holy healer's Verses: one pip per Verse in its Hymn's colour, the Hymn's name.
-class VersePips extends Control:
-	var _key := "?"
-	var _verses: Array = []
-	var _name := ""
-	var _hymn := ""
-
-	func _init() -> void:
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	func show_verses(verses: Array, hymn: String, hymn_name: String) -> void:
-		var k := "%s|%s" % [hymn, ",".join(PackedStringArray(verses))]
-		if k == _key:
-			return
-		_key = k
-		_verses = verses.duplicate()
-		_hymn = hymn
-		_name = hymn_name
-		queue_redraw()
-
-	func _draw() -> void:
-		var Abilities = load("res://scripts/abilities.gd")
-		var n: int = load("res://scripts/balance.gd").VERSE_MAX
-		var text_w := size.x * 0.4
-		var cell := (size.x - text_w - (n - 1) * 2.0) / n
-		for i in n:
-			var c: Color = Abilities.HYMN_COLORS.get(str(_verses[i]), UISkin.BAR_BG) if i < _verses.size() else UISkin.BAR_BG
-			draw_rect(Rect2(i * (cell + 2.0), 1, cell, size.y - 2), c)
-		var f := get_theme_default_font()
-		var fs := UISkin.font(10)
-		var at := Vector2(size.x - text_w + 4, (size.y + fs * 0.72) / 2.0)
-		var col: Color = Abilities.HYMN_COLORS.get(_hymn, UISkin.DIM)
-		draw_string_outline(f, at, _name, HORIZONTAL_ALIGNMENT_LEFT, text_w - 4, fs, 3, Color.BLACK)
-		draw_string(f, at, _name, HORIZONTAL_ALIGNMENT_LEFT, text_w - 4, fs, col)

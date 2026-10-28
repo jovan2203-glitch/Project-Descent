@@ -4,7 +4,7 @@ Values in Frost Bolts (FB) are conversation shorthand; real numbers live in bala
 
 ## Caster (built around cooldowns) - done
 - Sigil Darts - channeled filler.
-- Unravel - 2 s cast, no cooldown, 1.1 FB; each cast takes 1 s off other Arcane cooldowns.
+- Unravel - 2 s cast, no cooldown, 1.3 FB; each cast takes 1 s off other Arcane cooldowns.
 - Countdown - 1.5 s cast, 12 s cooldown, own-only mark detonating after 5 s for 1.0 FB + 25% of the Arcane damage dealt to it.
 - Convergence - 2.5 s cast, 20 s cooldown, 2.0 FB, +15% per Arcane spell on cooldown, up to 5.
 - Rewind - instant off GCD, 45 s cooldown, resets the last Arcane spell cast with a cooldown under 15 s.
@@ -19,7 +19,7 @@ Values in Frost Bolts (FB) are conversation shorthand; real numbers live in bala
 ## Dodge tank (Reflections, requires dual wield)
 - Up to 4 Reflections, 30 s each, each +5% Dodge and +5% Dodge cap (30% to 50% at four). They stand left/right/front/back, close (~20% clipping), purplish and glassy-blurry.
 - A dodge makes one take the hit and shatter: 0.3 FB within 5 m, high threat, own meter line; each shatter takes 0.5 s off all Arcane cooldowns.
-- Double Up - 5 s cooldown, 1.0 weapon damage as Arcane with both weapons, high threat, creates 1.
+- Double Up - the filler: no cooldown, 0.45 weapon damage as Arcane with both weapons, high threat, creates 1.
 - Ripple - 8 s cooldown, 0.5 FB within 6 m, high threat, creates 1 if it hits 3+ enemies.
 - Full Set - 30 s cooldown, fills to 4.
 - Missed Beat - within 4 s of a shatter, off GCD, 3 s cooldown, 1.0 weapon damage with both weapons, high threat.

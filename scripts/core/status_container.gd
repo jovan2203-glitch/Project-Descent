@@ -152,6 +152,9 @@ func apply(res: Resource, source: Node = null, tags: PackedStringArray = PackedS
 	var id := key_for(res, source)
 	var now := _now()
 	var announce := false   # new effect or new stack -> event feed
+	# A free cast's (Rune of the Wild Page) effect is an echo, unless it only renewed a real one.
+	var echo: bool = source != null and is_instance_valid(source) and source.has_method("echoing") and source.echoing() \
+		and (not effects.has(id) or bool(effects[id].get("echo", false)))
 	# (My own untagged applications count too: a rune's poison has no spell tags.)
 	if not tags.is_empty() or (source != null and is_instance_valid(source) and source.is_in_group("player")):
 		_tag_hints[str(res.id)] = tags
@@ -193,6 +196,8 @@ func apply(res: Resource, source: Node = null, tags: PackedStringArray = PackedS
 		effects[id] = {"res": res, "stacks": 1, "expires": now + res.duration,
 			"next_tick": now + tick, "tick": tick, "source": source, "tags": tags, "unit": unit}
 		announce = true
+	if effects.has(id):
+		effects[id]["echo"] = echo
 	# Slows from a caster with slow talents (Deep Chill) are stronger.
 	if effects.has(id) and float(res.stat_modifiers.get("move_speed", 0.0)) < 0.0 \
 			and source != null and is_instance_valid(source) and source.has_method("slow_mult"):
@@ -510,8 +515,8 @@ func burst_now(id: String, source: Node = null) -> bool:
 		var er = e["res"].get("expire_damage")
 		if er == null or float(er) <= 0.0 or float(e.get("next_tick", 0.0)) == INF or owned_elsewhere(e):
 			continue
-		cs.deal_burst(e["source"], get_parent(), float(er) * int(e["stacks"]), str(e["res"].damage_type),
-			str(e["res"].id), e.get("tags", PackedStringArray()), float(e.get("unit", -1.0)))
+		_tick_as(e, func(): cs.deal_burst(e["source"], get_parent(), float(er) * int(e["stacks"]), str(e["res"].damage_type),
+			str(e["res"].id), e.get("tags", PackedStringArray()), float(e.get("unit", -1.0))))
 		did = true
 	return did
 
@@ -586,9 +591,14 @@ func remove_from(id: String, source: Node) -> bool:
 ## Seconds between ticks of DoT entry `e` on this target right now: its hasted
 ## interval, made shorter if its caster speeds up their own burns here
 ## (Pitch Arrow: caster.dot_speed_mult(target, effect) -> 1.25 = 25% faster).
+## Haste is read live (a haste buff speeds up DoTs already running from their
+## next tick); a dot_snapshot DoT keeps the haste it was applied with.
 func tick_interval_of(e: Dictionary) -> float:
-	var tick := maxf(float(e.get("tick", e["res"].tick_interval)), 0.05)
 	var src: Variant = e.get("source")
+	var res: Resource = e["res"]
+	var tick := maxf(float(e.get("tick", res.tick_interval)), 0.05)
+	if res.get("dot_snapshot") != true and src != null and is_instance_valid(src):
+		tick = tick_for(res, src)
 	if src != null and is_instance_valid(src) and src.has_method("dot_speed_mult"):
 		tick /= maxf(float(src.dot_speed_mult(get_parent(), e["res"])), 0.1)
 	return maxf(tick, 0.05)
@@ -618,8 +628,20 @@ func dot_left(id: String, source: Node) -> float:
 
 ## Take `n` stacks off effect `id`; it ends when none are left. Returns true
 ## if the effect was active.
+## A tick or burst of effect `e`: one my free cast put there (Rune of the Wild Page)
+## is dealt as an echo (its own meter line).
+func _tick_as(e: Dictionary, fn: Callable) -> void:
+	var src: Variant = e.get("source")
+	if bool(e.get("echo", false)) and is_instance_valid(src) and src.has_method("as_echo"):
+		src.as_echo(fn)
+	else:
+		fn.call()
+
 func spend_stacks(id: String, n: int = 1) -> bool:
 	var keys := _keys_of(id)
+	var host := get_parent()
+	if host and host.has_method("echoing") and host.echoing():
+		return not keys.is_empty()   # my free cast (Rune of the Wild Page) uses no stacks up
 	for k in keys:
 		var left := int(effects[k]["stacks"]) - n
 		if left <= 0:
@@ -793,8 +815,8 @@ func _process(_delta: float) -> void:
 			e["next_tick"] = now + tick_interval_of(e)
 			var cs := get_node_or_null("/root/CombatSystem")
 			if cs and not owned_elsewhere(e):   # a party member's DoT ticks on their machine
-				cs.deal_dot(e["source"], get_parent(), float(res.tick_damage) * int(e["stacks"]), str(res.damage_type),
-					str(res.id), e.get("tags", PackedStringArray()), res, float(e.get("unit", -1.0)))
+				_tick_as(e, func(): cs.deal_dot(e["source"], get_parent(), float(res.tick_damage) * int(e["stacks"]), str(res.damage_type),
+					str(res.id), e.get("tags", PackedStringArray()), res, float(e.get("unit", -1.0))))
 		if now >= float(e["expires"]):
 			expired.append(id)
 	var bursts: Array = []
@@ -837,15 +859,15 @@ func _process(_delta: float) -> void:
 			continue
 		var cs := get_node_or_null("/root/CombatSystem")
 		if cs:
-			cs.deal_burst(e["source"], get_parent(), float(b[1]) * int(e["stacks"]), str(e["res"].damage_type),
-				str(e["res"].id), e.get("tags", PackedStringArray()), float(e.get("unit", -1.0)))
+			_tick_as(e, func(): cs.deal_burst(e["source"], get_parent(), float(b[1]) * int(e["stacks"]), str(e["res"].damage_type),
+				str(e["res"].id), e.get("tags", PackedStringArray()), float(e.get("unit", -1.0))))
 	for t in last_ticks:
 		var e: Dictionary = t[0]
 		var cs := get_node_or_null("/root/CombatSystem")
 		if cs and is_instance_valid(e.get("source")):
-			cs.deal_dot(e["source"], get_parent(), float(e["res"].tick_damage) * int(e["stacks"]) * float(t[1]) / 100.0,
+			_tick_as(e, func(): cs.deal_dot(e["source"], get_parent(), float(e["res"].tick_damage) * int(e["stacks"]) * float(t[1]) / 100.0,
 				str(e["res"].damage_type), str(e["res"].id), e.get("tags", PackedStringArray()), e["res"],
-				float(e.get("unit", -1.0)))
+				float(e.get("unit", -1.0))))
 	for r in roots_ended:
 		if is_instance_valid(r[0]):
 			r[0].root_ended(get_parent(), r[1])

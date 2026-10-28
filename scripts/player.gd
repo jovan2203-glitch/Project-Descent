@@ -29,6 +29,7 @@ var glacier: GlacierKit = _kit(GlacierKit) as GlacierKit
 var frost_steel: FrostSteelKit = _kit(FrostSteelKit) as FrostSteelKit
 var pacts_kit: PactsKit = _kit(PactsKit) as PactsKit
 var dusk_till_dawn: DuskTillDawnKit = _kit(DuskTillDawnKit) as DuskTillDawnKit
+var wild_page: WildPageKit = _kit(WildPageKit) as WildPageKit
 var frost_runes: FrostRunesKit = _kit(FrostRunesKit) as FrostRunesKit
 var frost_more: FrostMoreKit = _kit(FrostMoreKit) as FrostMoreKit
 var frost_bow: FrostBowKit = _kit(FrostBowKit) as FrostBowKit
@@ -92,6 +93,20 @@ func tracker_values() -> Dictionary:
 		if c is PlayerKit:
 			out.merge(c.tracker_values(), true)
 	return out
+
+## Every component's tracker click actions (PlayerKit.tracker_actions): id -> label.
+func tracker_actions() -> Dictionary:
+	var out := {}
+	for c in get_children():
+		if c is PlayerKit:
+			out.merge(c.tracker_actions(), true)
+	return out
+
+## Run a tracker click action (a tracker's "On click").
+func tracker_action(id: String) -> void:
+	for c in get_children():
+		if c is PlayerKit and c.tracker_action(id):
+			return
 
 # Forwards to VenomstringKit (called from other scripts).
 func venom() -> float:
@@ -650,6 +665,7 @@ func _ready() -> void:
 	_bus().heal_done.connect(holy_talents._on_heal_done_holy)   # Candlelight
 	_bus().damage_dealt.connect(hymns._on_damage_dealt_holy)  # High Note's heal
 	_bus().cast_finished.connect(pacts_kit._pact_on_ability)     # Pact of the Purist: an ability of mine went off
+	_bus().cast_finished.connect(wild_page._on_cast_finished)   # Rune of the Wild Page: a random page of its book
 	_bus().dungeon_cleared.connect(func(_summary): pacts_kit._pact_cleared = true)   # Pact of the Restless: nothing left to fight
 	_bus().cast_finished.connect(arcane_caster._on_cast_for_arcane)
 	_bus().cast_finished.connect(fire_lightning_talents._change_of_pace)
@@ -1291,6 +1307,8 @@ func resource_points(res: String) -> int:
 	return int(floor(float(resources.get(res, 0.0)) + 0.0001))
 
 func can_afford(id: String, report: bool = false) -> bool:
+	if echoing():
+		return true   # a free cast (Rune of the Wild Page) needs nothing
 	# The Rogue (Martial DPS): Go In needs Flow, Kill forms and Close It Out a Kill window.
 	if not rogue.usable_now(id):
 		if report:
@@ -1371,6 +1389,8 @@ func resource_cost(id: String, with_storm_cycle: bool = true) -> float:
 		return 0.0   # Frozen Instinct: free
 	if id == FireCooldownsKit.CRUCIBLE_ID and fire_cooldowns._crucible_standing():
 		return 0.0   # moving a Crucible that still stands is free
+	if frost_bow.icy_footing_free(id):
+		return 0.0   # Icy Footing
 	var cost := float(Abilities.cost_of(id))
 	if id == LightningTankKit.RETURN_STROKE_ID:   # Rune of Resonance: dearer without a parry behind it
 		cost = LightningTankKit.return_stroke_cost(cost, status != null and status.has(LightningTankKit.RETURN_STROKE_FX), frost_melee._has_rune(LightningTankKit.RESONANCE_RUNE))
@@ -1412,8 +1432,33 @@ func resource_cost(id: String, with_storm_cycle: bool = true) -> float:
 func mana_unit() -> float:
 	return Stats.mana_unit(combat_level())
 
+# --- Free casts (Rune of the Wild Page) -----------------------------------------------
+# While a free cast runs (WildPageKit.echo), nothing is paid: no mana, Energy, Fury
+# or stacks are used, no requirement is checked, no error is shown. Its hits, and
+# whatever it leaves behind that hits later, are echoes (DamageInfo.echo).
+var _echo_depth := 0
+
+func echoing() -> bool:
+	return _echo_depth > 0
+
+## A one-shot timer (`timeout` like get_tree().create_timer's). One a free cast sets
+## goes off as part of it (EchoTimer).
+func echo_timer(seconds: float) -> RefCounted:
+	return EchoTimer.make(get_tree(), seconds, self, echoing())
+
+const EchoTimer = preload("res://scripts/core/echo_timer.gd")
+
+## Runs `fn` as part of a free cast (things a free cast left behind hit through this).
+func as_echo(fn: Callable) -> Variant:
+	_echo_depth += 1
+	var out: Variant = fn.call()
+	_echo_depth -= 1
+	return out
+
 # Spend an ability's cost. Returns false (and reports) if it can't be paid.
 func _pay(id: String) -> bool:
+	if echoing():
+		return true   # a free cast (Rune of the Wild Page)
 	if not can_afford(id, true):
 		return false
 	var res := Abilities.resource_of(id)
@@ -1423,6 +1468,8 @@ func _pay(id: String) -> bool:
 		var free_cycle: bool = res == "energy" and bottled_kit.storm_cycle_ready() and resource_cost(id, false) > 0.0
 		var cost := resource_cost(id)
 		resources[res] = float(resources[res]) - cost
+		if frost_bow.icy_footing_free(id):
+			status.remove(FrostBowKit.ICY_FOOTING_FX)   # Icy Footing: used up
 		if free_cycle:
 			status.remove(BottledLightningKit.STORM_CYCLE_FX)
 		if res == "energy" and cost > 0.0:
@@ -2130,6 +2177,8 @@ func _target_error(node: Node3D) -> String:
 signal action_error(message: String)
 
 func _error(msg: String) -> void:
+	if echoing():
+		return   # a free cast that can't go off just doesn't
 	if _macro_quiet:
 		_macro_errors.append(msg)   # a macro reports one error at most, when nothing in it worked
 		return
@@ -2404,6 +2453,11 @@ func _release_cast() -> void:
 	if FrostBowKit.instinct_applies(spell) and (frost_bow._instinct_cast or frost_bow.frozen_instinct_ready()):
 		status.remove(FrostBowKit.INSTINCT_ID)   # Frozen Instinct used up (this spell was free)
 	frost_bow._instinct_cast = false
+	_land_spell(spell)
+
+## A cast spell lands: what it does once it is cast and paid for (the Rune of the
+## Wild Page's free casts land here too, without casting).
+func _land_spell(spell: String) -> void:
 	if spell in RezKit.IDS:
 		rez_kit.finish(spell)
 		return
@@ -2562,6 +2616,7 @@ func _process(_delta: float) -> void:
 	decay._tick_decay()
 	overload_kit._tick_grounded()
 	dusk_till_dawn._tick_dusk()
+	wild_page._tick_wild_page()   # Rune of the Wild Page: the page torn last frame
 	hounds._tick_hounds()
 	strings._tick_strings()
 	hymns._tick_hymns()
@@ -2778,6 +2833,9 @@ func _use_drafted(id: String) -> void:
 		return
 	var res := Abilities.get_resource(id)
 	var w := _weapon()
+	if echoing():
+		_use_drafted_now(id, res, w)   # a free cast: no requirement, range or cost
+		return
 	if int(res.weapon_requirement) == 1 and w.get("weapon", "") != "melee":
 		_error("Requires a melee weapon")
 		return
@@ -2816,6 +2874,10 @@ func _use_drafted(id: String) -> void:
 				and global_position.distance_to(target.global_position) > res.cast_range:
 			_error("Target out of range")
 			return
+	_use_drafted_now(id, res, w)
+
+## An instant ability goes off, its requirements met (a free cast skips straight here).
+func _use_drafted_now(id: String, res: Resource, w: Dictionary) -> void:
 	var err := _drafted_precheck(id, res, w)
 	if err != "":
 		_error(err)

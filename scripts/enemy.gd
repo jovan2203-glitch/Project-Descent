@@ -121,6 +121,9 @@ const ItemDB = preload("res://scripts/core/item_db.gd")
 
 # --- Dungeon role (scripts/dungeon/roles.gd sets these) ---------------------------
 var role := ""
+## Placed when the dungeon is built (a trash pack), not an add that joins a fight later.
+## 5 Player: placed trash is tougher than adds (balance.gd PARTY_HEALTH_MULT).
+var placed_pack := false
 ## Defender: share of damage blocked from hits coming from the front (0..1).
 var frontal_block := 0.0
 ## Archer: backs away when a target gets this close (0 = never).
@@ -189,7 +192,7 @@ func _ready() -> void:
 		_stats_scaled = true
 		max_health = maxi(int(round(max_health * Stats.enemy_health_unit(level))), 1)
 	# 5 Player difficulty: tougher enemies (training dummies always run on Singleplayer).
-	max_health = maxi(int(round(max_health * _gm_mult("enemy_health_mult"))), 1)
+	max_health = maxi(int(round(max_health * _gm_mult("enemy_health_mult", [rank == "boss", placed_pack]))), 1)
 	health = max_health
 	spawn_position = global_position
 
@@ -518,12 +521,12 @@ func _add_glow(color: Color, energy: float) -> void:
 
 ## Real damage of a 1.0 coefficient for this enemy (CombatSystem).
 func damage_unit() -> float:
-	return Stats.enemy_hit(level) * _gm_mult("enemy_damage_mult") * (FRENZY_DAMAGE if _frenzied else 1.0)
+	return Stats.enemy_hit(level) * _gm_mult("enemy_damage_mult", [rank == "boss"]) * (FRENZY_DAMAGE if _frenzied else 1.0)
 
 ## Difficulty multiplier from GameManager (1.0 in Singleplayer / without it).
-func _gm_mult(fn: String) -> float:
+func _gm_mult(fn: String, args: Array = []) -> float:
 	var gm := get_node_or_null("/root/GameManager")
-	return float(gm.call(fn)) if gm and gm.has_method(fn) else 1.0
+	return float(gm.callv(fn, args)) if gm and gm.has_method(fn) else 1.0
 
 func combat_level() -> int:
 	return level
@@ -878,6 +881,18 @@ var _cast_label: Label3D
 ## Seconds of casting lockout left after an interrupt (Counterspell, Kick, Pummel).
 var _silenced_until := 0.0
 var busy_until := 0.0        # boss abilities: stands still, no auto-attacks until then
+## Berserk (5 Player boss timer, boss_kit.gd): when it hits (_now_s() time, 0 = no
+## timer running), its full length, and whether it has hit. Set on every machine,
+## for the Boss Timer (scripts/ui/hud/boss_timer.gd).
+var berserk_at := 0.0
+var berserk_total := 0.0
+var berserk_on := false
+
+## Starts (`left` > 0), stops (`left` <= 0 and not `on`) or sets off the Berserk timer.
+func set_berserk(left: float, total: float, on: bool) -> void:
+	berserk_on = on
+	berserk_total = total
+	berserk_at = _now_s() + left if left > 0.0 or on else 0.0
 ## Name shown above the enemy while it casts (so players know what to interrupt).
 @export var cast_name: String = ""
 
@@ -979,18 +994,18 @@ func _build_cast_bar() -> void:
 		_cast_bar_mat = _flat_mat(Color(1.0, 0.72, 0.15), 12)
 	_cast_bar = Node3D.new()
 	_cast_bar.name = "CastBar"
-	_cast_bar.position = Vector3(0, 0.15, 0)
+	_cast_bar.position = Vector3(0, 0.18, 0)
 	_health_bar.add_child(_cast_bar)
 	var bg := MeshInstance3D.new()
 	var bg_mesh := QuadMesh.new()
-	bg_mesh.size = Vector2(_bar_w, 0.09)
+	bg_mesh.size = Vector2(_bar_w, 0.12)
 	bg.mesh = bg_mesh
 	bg.material_override = _shared_bar_mats[0] if not _shared_bar_mats.is_empty() else _flat_mat(Color(0.05, 0.05, 0.05), 10)
 	bg.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_cast_bar.add_child(bg)
 	_cast_bar_fill = MeshInstance3D.new()
 	var fill_mesh := QuadMesh.new()
-	fill_mesh.size = Vector2(_bar_w - BAR_PAD * 2.0, 0.05)
+	fill_mesh.size = Vector2(_bar_w - BAR_PAD * 2.0, 0.08)
 	_cast_bar_fill.mesh = fill_mesh
 	_cast_bar_fill.material_override = _cast_bar_mat
 	_cast_bar_fill.position.z = 0.001
@@ -1003,7 +1018,7 @@ func _build_cast_bar() -> void:
 		_cast_fail_mat = _flat_mat(Color(0.95, 0.2, 0.15), 12)
 	_cast_spark = MeshInstance3D.new()
 	var spark_mesh := QuadMesh.new()
-	spark_mesh.size = Vector2(0.035, 0.1)
+	spark_mesh.size = Vector2(0.035, 0.13)
 	_cast_spark.mesh = spark_mesh
 	_cast_spark.material_override = _cast_spark_mat
 	_cast_spark.position.z = 0.002
@@ -1060,6 +1075,7 @@ func _show_cast(on: bool, duration: float = 0.0) -> void:
 			_cast_ending = false
 			_cast_bar_fill.material_override = _cast_bar_mat
 			_cast_bar.visible = true
+			_health_bar.visible = true   # its parent: shown while casting even out of a fight
 			_update_cast_bar()
 		elif state == State.DEAD:
 			_cast_ending = false
@@ -1118,6 +1134,8 @@ func net_fx(kind: String, tgt: Node3D, extra: Dictionary) -> void:
 				scene._announce(str(extra.get("t", "")), extra.get("c", Color(1.0, 0.45, 0.35)))
 		"enrage":
 			BOSS_ABILITIES.apply_enrage_look(self)
+		"berserk":
+			set_berserk(float(extra.get("left", 0.0)), float(extra.get("total", 0.0)), bool(extra.get("on", false)))
 		"elite_shield":
 			var comp := get_node_or_null("EliteTrait")
 			if comp:
@@ -1132,6 +1150,10 @@ func net_fx(kind: String, tgt: Node3D, extra: Dictionary) -> void:
 					_show_cast(false))
 		"interrupted":
 			show_interrupted()
+		"shield":
+			var guard := get_node_or_null("ShieldGuard")
+			if guard:
+				guard.set_up(bool(extra.get("on", true)))
 		"swing":
 			if tgt != null:
 				_show_tell(tgt, float(extra.get("d", melee_tell)))
@@ -1599,7 +1621,7 @@ var _name_label: Label3D
 ## player has aggro, yellow if they're within 90% of taking it.
 func _update_bar_state() -> void:
 	var fighting := is_in_combat()
-	var show := fighting or _is_targeted or health < max_health
+	var show := fighting or _is_targeted or health < max_health or cast_progress() >= 0.0   # (a cast bar needs its health bar)
 	_health_bar.visible = show
 	if _name_label:
 		_name_label.visible = show or rank == "boss"

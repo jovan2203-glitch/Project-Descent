@@ -27,7 +27,7 @@ const NAMES := {"puppetstring": "String", "patchup": "Patch Up", "hoist": "Hoist
 const LEVELS := [4, 6, 8, 12, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 42, 44, 46]
 # id: [cooldown, mana cost (in units), cast time, range, radius]
 const NUMBERS := {
-	"puppetstring": [0.0, 0, 0.0, 40.0, 0.0], "patchup": [0.0, 2, 2.0, 40.0, 0.0], "hoist": [0.0, 3, 2.0, 40.0, 0.0],
+	"puppetstring": [0.0, 0, 0.0, 40.0, 0.0], "patchup": [0.0, 1, 2.0, 40.0, 0.0], "hoist": [0.0, 3, 2.0, 40.0, 0.0],
 	"tug": [6.0, 1, 0.0, 40.0, 0.0], "catscradle": [20.0, 4, 0.0, 0.0, 30.0], "wrench": [8.0, 1, 0.0, 40.0, 0.0],
 	"pulltaut": [15.0, 0, 0.0, 40.0, 0.0], "cuppedhands": [25.0, 2, 0.0, 40.0, 0.0], "stringup": [30.0, 2, 0.0, 30.0, 0.0],
 	"restring": [20.0, 0, 0.0, 40.0, 0.0], "knot": [30.0, 0, 0.0, 40.0, 0.0], "tangle": [25.0, 2, 0.0, 30.0, 5.0],
@@ -131,10 +131,10 @@ func test_numbers() -> void:
 		if float(want[4]) > 0.0:
 			assert_eq(float(r.radius), float(want[4]), "%s: radius" % id)
 	assert_eq(float(Abilities.get_resource("wrench").damage), 1.0)
-	assert_eq(float(Abilities.HEALS["hoist"]), 2.8)
-	assert_eq(float(Abilities.HEALS["patchup"]), 1.8)
+	assert_eq(float(Abilities.HEALS["hoist"]), 3.5)
+	assert_eq(float(Abilities.HEALS["patchup"]), 2.25)
 	assert_true(float(Abilities.HEALS["patchup"]) < float(Abilities.HEALS["hoist"]), "the heal that needs no String is the worse one")
-	assert_eq(float(Abilities.HEALS["tug"]), 0.6)
+	assert_eq(float(Abilities.HEALS["tug"]), 0.75)
 	assert_eq(float(Abilities.HEALS["catscradle"]), 1.0)
 	# The Strings.
 	assert_eq(Balance.STRING_MAX, 6)
@@ -287,8 +287,8 @@ func test_crossed_strings_move_damage_to_the_enemy() -> void:
 	assert_eq(StringsKit.cross_redirect(0.0, -25.0, 25.0), 0.0)
 	assert_eq(StringsKit.cross_redirect(10.0, -100.0, 25.0), 0.0)
 	assert_eq(StringsKit.CROSSED_ID, "crossed_strings")
-	assert_eq(Details.spell_name(StringsKit.CROSSED_ID), "Crossed Strings", "its own line on the meter")
-	assert_eq(Details.spell_name(StringsKit.STRING_SHARE_ID), "Shared along the Strings")
+	assert_eq(Details.line_name(StringsKit.CROSSED_ID), "Crossed Strings", "its own line on the meter")
+	assert_eq(Details.line_name(StringsKit.STRING_SHARE_ID), "Shared along the Strings")
 	for id in [StringsKit.CROSSED_ID, StringsKit.STRING_SHARE_ID]:
 		assert_true(Details.spell_color(id) != Color(0.7, 0.7, 0.75), "%s has a colour" % id)
 	assert_true(Balance.STRING_CROSS_RANGE < Balance.STRING_LEASH, "a crossing breaks long before a String does")
@@ -404,7 +404,7 @@ func test_talents_of_the_strings_themselves() -> void:
 	assert_true(_near(StringsKit.first_stitch_coef(2.0), 0.14))
 	assert_true(_near(StringsKit.first_stitch_coef(4.0), 0.28))
 	assert_eq(StringsKit.first_stitch_coef(0.0), 0.0)
-	assert_eq(Details.spell_name(StringsKit.FIRST_STITCH_ID), "First Stitch", "its own line on the meter")
+	assert_eq(Details.line_name(StringsKit.FIRST_STITCH_ID), "First Stitch", "its own line on the meter")
 	assert_false(StringsKit.shares_heal(StringsKit.FIRST_STITCH_ID, Abilities.PATHS.has(StringsKit.FIRST_STITCH_ID)), "and it is not shared along the Strings")
 	# Steady Hands: every String heal.
 	assert_eq(StringsKit.steady_heal(0.07, 0.0), 0.07)
@@ -439,7 +439,7 @@ func test_talents_of_one_ability_each() -> void:
 	assert_eq(StringsKit.slack_time(3.0), 1.0)
 	assert_eq(StringsKit.slack_time(9.0), 0.0)
 	# Long Drop: a hit of its own when String Up lets go.
-	assert_eq(Details.spell_name(StringsKit.LONG_DROP_ID), "Long Drop")
+	assert_eq(Details.line_name(StringsKit.LONG_DROP_ID), "Long Drop")
 	assert_true(Details.spell_color(StringsKit.LONG_DROP_ID) != Color(0.7, 0.7, 0.75))
 	for m in ["_tick_long_drops", "_lean_on_me", "_others_heal_mult", "string_time", "_cross_pct", "_steady"]:
 		assert_true(_has_method(m), "player.gd has %s" % m)

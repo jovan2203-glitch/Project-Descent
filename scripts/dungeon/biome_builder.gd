@@ -41,6 +41,17 @@ const BIG := {
 	"ice_block": {"w": 1.3, "d": 1.0, "block": true},
 	"bone_pile": {"w": 1.3, "d": 1.0, "block": false},
 	"urn_group": {"w": 1.2, "d": 0.6, "block": false},
+	# Story props, mostly hand-placed (PropMarker), any dungeon may use them.
+	"page_pile": {"w": 1.2, "d": 0.9, "block": false},
+	"loot_sacks": {"w": 1.4, "d": 0.9, "block": true},
+	"broken_gate": {"w": 3.2, "d": 1.6, "block": false},
+	"campfire": {"w": 1.4, "d": 1.4, "block": true},
+	"bunk": {"w": 2.0, "d": 0.9, "block": true},
+	"lectern": {"w": 0.7, "d": 0.6, "block": true},
+	"target_dummy": {"w": 0.7, "d": 0.7, "block": true},
+	"siege_cart": {"w": 2.4, "d": 1.4, "block": true},
+	"tent": {"w": 2.4, "d": 2.0, "block": true},
+	"ink_spill": {"w": 1.6, "d": 1.2, "block": false},
 }
 
 var kit: Resource
@@ -267,6 +278,8 @@ func _wall_slots(i: int) -> Array:
 			off += SLOT_SPACING
 			if doors.has(s) and absf(o) < corridor * 0.5 + 1.0:
 				continue
+			if blocked_in_room(i, r["center"] + d * (half - 0.8) + across * o, 0.3):
+				continue   # a wall block or placed prop stands here
 			out.append({"at": r["center"] + d * half + across * o, "inward": -d, "along": across, "side": s})
 	return out
 
@@ -389,7 +402,50 @@ func build_rock(level_root: Node3D) -> CSGCombiner3D:
 			_prop_blocker(rock, str(bp[0]), bp[1])
 	_corridor_chunks(rock)
 	_centerpiece_blockers(rock)
+	# Hand-made maps: wall blocks and the collision of hand-placed props.
+	for i in rooms.size():
+		for pc in rooms[i].get("pieces", []):
+			if str(pc["kind"]) != "wall":
+				continue
+			var s: Vector2 = pc["params"].get("size", Vector2(2, 2))
+			var h := float(pc["params"].get("height", WALL_TOP))
+			_box(rock, Vector3(s.x, h + 1.0, s.y), pc["at"] + Vector3(0, (h - 1.0) * 0.5, 0), wall)
+		for pp in rooms[i].get("props", []):
+			_prop_blocker(rock, str(pp["kind"]), _prop_slot(pp))
 	return rock
+
+# --- Hand-made rooms: wall blocks and placed props (layouts.gd from_scene) ------------------------
+
+## Room i's wall blocks (SetPieceMarker kind "wall") as rects on the floor (world x/z).
+func wall_blocks(i: int) -> Array:
+	var out: Array = []
+	for pc in rooms[i].get("pieces", []):
+		if str(pc["kind"]) == "wall":
+			var s: Vector2 = pc["params"].get("size", Vector2(2, 2))
+			var at: Vector3 = pc["at"]
+			out.append(Rect2(at.x - s.x * 0.5, at.z - s.y * 0.5, s.x, s.y))
+	return out
+
+## Is `p` inside (or within `margin` of) one of room i's wall blocks or blocking placed props?
+func blocked_in_room(i: int, p: Vector3, margin: float) -> bool:
+	var q := Vector2(p.x, p.z)
+	for rc: Rect2 in wall_blocks(i):
+		if rc.grow(margin).has_point(q):
+			return true
+	for pp in rooms[i].get("props", []):
+		var info: Dictionary = BIG.get(str(pp["kind"]), {"w": 1.0, "d": 1.0})
+		var r := maxf(float(info["w"]), float(info["d"])) * 0.5
+		if q.distance_to(Vector2(pp["at"].x, pp["at"].z)) < r + margin:
+			return true
+	return false
+
+## A placed prop as a wall-style slot, so _big_prop and _prop_blocker build it
+## centred on its marker. Its front faces the marker's yaw (0 = +Z).
+func _prop_slot(pp: Dictionary) -> Dictionary:
+	var yaw := float(pp["yaw"])
+	var inward := Vector3(sin(yaw), 0, cos(yaw))
+	var d := float(BIG.get(str(pp["kind"]), {"d": 1.0})["d"])
+	return {"at": pp["at"] - inward * (d * 0.5 + 0.1), "inward": inward, "along": Vector3(inward.z, 0, -inward.x), "side": Vector2i.ZERO}
 
 func _box(rock: CSGCombiner3D, size: Vector3, center: Vector3, mat: Material) -> CSGBox3D:
 	var box := CSGBox3D.new()
@@ -843,6 +899,8 @@ func dress(root: Node3D, _unused: Callable = Callable()) -> void:
 		_clutter(root, i)
 		if _room_cp(i) != "":
 			_centerpiece(root, i)
+		for pp in r.get("props", []):
+			_big_prop(root, str(pp["kind"]), _prop_slot(pp))
 	_corridor_dressing(root)
 	_optimize(root)
 
@@ -1211,6 +1269,98 @@ func _big_prop(root: Node3D, kind: String, slot: Dictionary) -> void:
 			for k in rng.randi_range(2, 4):
 				var h := rng.randf_range(0.35, 0.6)
 				_mesh_cyl(n, 0.12, 0.18, h, Vector3(-0.45 + k * 0.3, h * 0.5, rng.randf_range(-0.1, 0.1)), _flat("urn", Color(0.45, 0.3, 0.2), 0.7), 10)
+		"page_pile":
+			for k in rng.randi_range(3, 5):
+				var h := rng.randf_range(0.08, 0.3)
+				var p := _mesh_box(n, Vector3(0.42, h, 0.32), Vector3(rng.randf_range(-0.4, 0.4), h * 0.5, rng.randf_range(-0.3, 0.3)), _paper())
+				p.rotation.y = rng.randf() * TAU
+			_loose_pages(n, 7, 0.8)
+		"loot_sacks":
+			for k in 3:
+				var s := _mesh_sphere(n, 0.34, Vector3(-0.45 + k * 0.45, 0.3, rng.randf_range(-0.1, 0.1)), _flat("sack", Color(0.55, 0.45, 0.3), 1.0), 1.1)
+				s.scale = Vector3(1.0, 1.2, 0.9)
+			_loose_pages(n, 5, 0.7)
+		"broken_gate":
+			# Two smashed door leaves on the floor, iron bands still on.
+			for side: float in [-1.0, 1.0]:
+				var leaf := Node3D.new()
+				n.add_child(leaf)
+				leaf.position = Vector3(side * 0.8, 0.08, rng.randf_range(-0.2, 0.2))
+				leaf.rotation = Vector3(0, side * 0.25 + rng.randf_range(-0.1, 0.1), side * 0.06)
+				_mesh_box(leaf, Vector3(1.5, 0.14, 1.3), Vector3.ZERO, dark_wood_mat())
+				for b: float in [-0.4, 0.4]:
+					_mesh_box(leaf, Vector3(1.52, 0.16, 0.1), Vector3(0, 0.01, b), iron_mat())
+			for k in 4:
+				var plank := _mesh_box(n, Vector3(0.18, 0.08, rng.randf_range(0.6, 1.1)),
+					Vector3(rng.randf_range(-1.4, 1.4), 0.04, rng.randf_range(-0.7, 0.7)), wood_mat())
+				plank.rotation.y = rng.randf() * TAU
+		"campfire":
+			for k in 8:
+				var a := TAU * k / 8.0
+				_mesh_sphere(n, 0.16, Vector3(cos(a) * 0.55, 0.08, sin(a) * 0.55), wall_mat(), 0.7)
+			for k in 3:
+				var lg := _mesh_cyl(n, 0.07, 0.07, 0.8, Vector3(0, 0.12, 0), wood_mat(), 6)
+				lg.rotation = Vector3(PI / 2.0, TAU * k / 3.0, 0)
+			var fire: Color = kit.torch_color
+			var e := _mesh_sphere(n, 0.28, Vector3(0, 0.22, 0), _flat("embers_%s" % fire.to_html(false), fire, 1.0, fire, 4.0), 0.6)
+			e.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			# (glow only, no light: performance)
+		"bunk":
+			for lvl in 2:
+				var y := 0.35 + lvl * 0.9
+				_mesh_box(n, Vector3(w, 0.1, d), Vector3(0, y, 0), wood_mat())
+				_mesh_box(n, Vector3(w * 0.9, 0.12, d * 0.8), Vector3(0, y + 0.1, 0), _flat("bedroll", Color(0.5, 0.3, 0.22), 1.0))
+			for sx: float in [-1.0, 1.0]:
+				for sz: float in [-1.0, 1.0]:
+					_mesh_box(n, Vector3(0.08, 1.4, 0.08), Vector3(sx * (w * 0.5 - 0.05), 0.7, sz * (d * 0.5 - 0.05)), wood_mat())
+		"lectern":
+			_mesh_box(n, Vector3(0.35, 0.9, 0.3), Vector3(0, 0.45, 0), dark_wood_mat())
+			var top := _mesh_box(n, Vector3(0.65, 0.06, 0.5), Vector3(0, 0.95, 0.02), dark_wood_mat())
+			top.rotation.x = -0.35
+			var book := _mesh_box(n, Vector3(0.5, 0.05, 0.36), Vector3(0, 1.0, 0.04), _paper())
+			book.rotation.x = -0.35
+			_candle(n, Vector3(0.28, 0.98, -0.15), true)
+		"target_dummy":
+			_mesh_cyl(n, 0.05, 0.05, 1.5, Vector3(0, 0.75, 0), wood_mat(), 6)
+			_mesh_box(n, Vector3(0.7, 0.08, 0.08), Vector3(0, 1.2, 0), wood_mat())
+			_mesh_sphere(n, 0.3, Vector3(0, 1.05, 0), _flat("hay", Color(0.75, 0.62, 0.3), 1.0), 1.3)
+			_mesh_sphere(n, 0.17, Vector3(0, 1.5, 0), _flat("hay", Color(0.75, 0.62, 0.3), 1.0))
+			var tgt := _mesh_cyl(n, 0.2, 0.2, 0.03, Vector3(0, 1.05, 0.29), _flat("target", kit.boss_fill_color, 0.8), 12)
+			tgt.rotation.x = PI / 2.0
+		"siege_cart":
+			_mesh_box(n, Vector3(w, 0.12, d), Vector3(0, 0.6, 0), wood_mat())
+			for sx: float in [-1.0, 1.0]:
+				_mesh_box(n, Vector3(w, 0.35, 0.08), Vector3(0, 0.82, sx * (d * 0.5 - 0.04)), wood_mat())
+				for wx: float in [-0.75, 0.75]:
+					var wh := _mesh_cyl(n, 0.4, 0.4, 0.1, Vector3(wx, 0.4, sx * (d * 0.5 + 0.05)), dark_wood_mat(), 12)
+					wh.rotation.x = PI / 2.0
+			for k in 4:   # fire pots
+				var pot: Color = kit.torch_color
+				_mesh_cyl(n, 0.14, 0.2, 0.32, Vector3(-0.7 + k * 0.45, 0.83, rng.randf_range(-0.2, 0.2)), _flat("firepot", Color(0.5, 0.25, 0.12), 0.7), 8)
+				_mesh_sphere(n, 0.08, Vector3(-0.7 + k * 0.45, 1.02, 0), _flat("potglow_%s" % pot.to_html(false), pot, 1.0, pot, 3.0))
+			var shaft := _mesh_box(n, Vector3(0.08, 0.08, 1.4), Vector3(w * 0.5 + 0.5, 0.45, 0), wood_mat())
+			shaft.rotation.y = PI / 2.0
+		"tent":
+			for side: float in [-1.0, 1.0]:
+				var cloth := _mesh_box(n, Vector3(w, 0.05, d * 0.62), Vector3(0, 0.62, side * d * 0.25), _flat("tent", Color(0.45, 0.38, 0.28), 1.0))
+				cloth.rotation.x = side * 0.9
+			_mesh_box(n, Vector3(0.08, 1.3, 0.08), Vector3(-w * 0.5, 0.65, 0), wood_mat())
+			_mesh_box(n, Vector3(0.08, 1.3, 0.08), Vector3(w * 0.5, 0.65, 0), wood_mat())
+			_mesh_box(n, Vector3(w + 0.1, 0.08, 0.08), Vector3(0, 1.28, 0), wood_mat())
+		"ink_spill":
+			var ink := _mesh_cyl(n, 0.6, 0.6, 0.015, Vector3(0, 0.01, 0), _flat("ink", Color(0.12, 0.08, 0.22), 0.2), 14)
+			ink.scale = Vector3(1.3, 1.0, 0.9)
+			_mesh_cyl(n, 0.08, 0.1, 0.16, Vector3(0.55, 0.08, -0.3), _flat("inkpot", Color(0.2, 0.18, 0.25), 0.4), 8)
+			_loose_pages(n, 3, 0.7)
+
+func _paper() -> StandardMaterial3D:
+	return _flat("paper", Color(0.93, 0.88, 0.74), 0.9, Color(1.0, 0.9, 0.7), 0.15)
+
+## Single pages strewn on the floor around a prop.
+func _loose_pages(root: Node3D, count: int, reach: float) -> void:
+	for k in count:
+		var p := _mesh_box(root, Vector3(0.22, 0.01, 0.3), Vector3(rng.randf_range(-reach, reach), 0.01, rng.randf_range(-reach, reach)), _paper())
+		p.rotation = Vector3(rng.randf_range(-0.05, 0.05), rng.randf() * TAU, 0)
 
 func _mushrooms(root: Node3D, at: Vector3) -> void:
 	var glow: Color = kit.glow_color
@@ -1344,6 +1494,8 @@ func _clutter(root: Node3D, i: int) -> void:
 			at = Vector3(rng.randf_range(-h.x + 2.0, h.x - 2.0), 0, rng.randf_range(-h.y + 2.0, h.y - 2.0))
 			if Vector2(at.x, at.z).length() < minf(h.x, h.y) * 0.35:
 				continue
+		if blocked_in_room(i, r["center"] + at, 0.4):
+			continue
 		_small_prop(root, kind, r["center"] + at)
 
 func _small_prop(root: Node3D, kind: String, at: Vector3) -> void:

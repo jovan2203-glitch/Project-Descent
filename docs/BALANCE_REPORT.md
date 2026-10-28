@@ -6,35 +6,35 @@ Idle = time with nothing to press: "waiting on cooldowns" when every button was 
 
 | Book | Spec | Role | Avg use (no gear) | No gear | Geared | Top sources (geared) | Flags | Not simulated |
 |---|---|---|---|---|---|---|---|---|
-| Fire | Steady Flame | dps | 914 | 498 DPS | 2650 DPS | Firebolt 56%, Vent Flames 23%, Blaze 21% | geared DPS high, hits big | Cool Head, Crucible, Cooling Slag, Bellows |
+| Fire | Steady Flame | dps | 806 | 443 DPS | 2423 DPS | Firebolt 42%, Vent Flames 24%, Blaze 24% | hits big | Cool Head, Crucible, Cooling Slag, Bellows |
 | Fire | Slagforged | tank | 155 | 138 DPS, 616 TPS, 0 self-HPS | 702 DPS, 3058 TPS, 0 self-HPS | Auto Attack 34%, Brand 31%, Forge Blow 15% |  | Red-Hot Rivet, Molten Shell, Cooling Slag, Bellows |
 | Fire | Forge Heat | dps | 360 | 373 DPS | 2169 DPS | Auto Attack 32%, Flare 25%, Fold Steel 22% |  | Blast Furnace, Cooling Slag, Bellows |
-| Fire | Pitch and Cinder | dps | 229 | 261 DPS | 1469 DPS | Auto Attack 47%, Coal Shot 27%, Flaming Arrow 12% | geared DPS low, hits small | Brushfire, Cooling Slag, Bellows |
+| Fire | Pitch and Cinder | dps | 346 | 339 DPS | 1860 DPS | Coal Shot 58%, Auto Attack 37%, Flaming Arrow 3% |  | Brushfire, Cooling Slag, Bellows |
 | Frost | Hard Winter | dps | 466 | 272 DPS | 1932 DPS | Frost Bolt 48%, Coldspike 40%, Hoarfrost 5% |  | Deepwinter, Rimelock, Flash Freeze, Winter Hide, Glacial Plate, Snow Ward |
-| Frost | Cold Comfort | healer | 0 | 272 HPS | 1419 HPS | Meltwater 74%, Rimefall 15%, Break the Ice 11% | idle 38% (resource-starved) | Frost Lattice, Frost Tide, Spring Thaw, Rimelock, Flash Freeze, Winter Hide, Glacial Plate, Snow Ward |
+| Frost | Cold Comfort | healer | 0 | 493 HPS | 2412 HPS | Meltwater 78%, Rimefall 22% |  | Frost Lattice, Frost Tide, Spring Thaw, Rimelock, Flash Freeze, Winter Hide, Glacial Plate, Snow Ward |
 | Frost | Frostbitten Steel | dps | 285 | 312 DPS | 1880 DPS | Auto Attack 36%, Icebreaker 20%, Winter's Bite 18% |  | Black Frost, Rimelock, Flash Freeze, Winter Hide, Glacial Plate, Snow Ward |
-| Frost | Glacier Wall | tank | 156 | 107 DPS, 479 TPS, 0 self-HPS | 648 DPS, 2851 TPS, 0 self-HPS | Auto Attack 37%, Shattering Slam 36%, Rimequake 16% | idle 35% (waiting on cooldowns) | Cold Shoulder, Hailcoat, Hard Rime, Glacial Bulwark, Rimelock, Flash Freeze, Winter Hide, Glacial Plate, Snow Ward |
-| Frost | Winter Hunt | dps | 278 | 216 DPS | 1319 DPS | Auto Attack 52%, Frost Arrow 18%, Shatter Shot 13% | geared DPS low, idle 40% (resource-starved) | Rimefletch, Coldmark, Icy Retreat, Rimelock, Flash Freeze, Winter Hide, Glacial Plate, Snow Ward |
+| Frost | Glacier Wall | tank | 111 | 112 DPS, 503 TPS, 0 self-HPS | 652 DPS, 2765 TPS, 0 self-HPS | Auto Attack 37%, Shattering Slam 31%, Rime Slash 18% |  | Cold Shoulder, Hailcoat, Hard Rime, Glacial Bulwark, Rimelock, Flash Freeze, Winter Hide, Glacial Plate, Snow Ward |
+| Frost | Winter Hunt | dps | 348 | 333 DPS | 2038 DPS | Frost Arrow 42%, Auto Attack 33%, Shatter Shot 16% |  | Rimefletch, Coldmark, Icy Retreat, Rimelock, Flash Freeze, Winter Hide, Glacial Plate, Snow Ward |
 | Lightning | Live Current | dps | 637 | 393 DPS | 2402 DPS | Lightning Bolt 48%, Leaping Arc 29%, Live Wire 23% |  | Discharge, Grounding Surge, Capacitor, Static Snare, Jolt, Storm Front, Flicker, Static Step, Thunder Strike, Faraday Guard, Ground Out, Recharge |
-| Lightning | Stormdancer | dps | 199 | 240 DPS | 1488 DPS | Auto Attack 46%, Charged Edge 24%, Thunder Strike 8% | geared DPS low, hits small | Twin Current, Split Second, Static Snare, Jolt, Storm Front, Flicker, Static Step, Faraday Guard, Ground Out, Recharge |
-| Lightning | Lightning Rod | tank | 76 | 125 DPS, 540 TPS, 0 self-HPS | 752 DPS, 3210 TPS, 0 self-HPS | Return Stroke 58%, Auto Attack 32%, Stormbreak 10% | idle 65% (resource-starved) | Humming Blade, Crossguard, Draw the Storm, Reel In, Static Snare, Jolt, Storm Front, Flicker, Static Step, Faraday Guard, Ground Out, Recharge |
+| Lightning | Stormdancer | dps | 307 | 313 DPS | 1936 DPS | Charged Edge 42%, Auto Attack 35%, Thunder Strike 6% |  | Twin Current, Split Second, Static Snare, Jolt, Storm Front, Flicker, Static Step, Faraday Guard, Ground Out, Recharge |
+| Lightning | Lightning Rod | tank | 78 | 115 DPS, 461 TPS, 0 self-HPS | 704 DPS, 2799 TPS, 0 self-HPS | Auto Attack 34%, Stormbreak 32%, Return Stroke 21% |  | Humming Blade, Crossguard, Draw the Storm, Reel In, Static Snare, Jolt, Storm Front, Flicker, Static Step, Faraday Guard, Ground Out, Recharge |
 | Lightning | Stormstring | dps | 217 | 161 DPS | 989 DPS | Auto Attack 69%, Storm Arrow 19%, Thunder Strike 12% | INCOMPLETE (1 ability, not in averages), geared DPS low, hits small, idle 65% (waiting on cooldowns) | Static Snare, Jolt, Storm Front, Flicker, Static Step, Faraday Guard, Ground Out, Recharge |
-| Arcane | Clockwork | dps | 538 | 272 DPS | 1713 DPS | Unravel 70%, Aether Burst 12%, Collapse 8% |  | Scatter, Mirror Sigil, Rewind, Lapse, Fixed Point, Unweave, Phase Step |
-| Arcane | Hall of Mirrors | tank | 120 | 114 DPS, 483 TPS, 0 self-HPS | 691 DPS, 2870 TPS, 0 self-HPS | Missed Beat 35%, Auto Attack 34%, Double Up 21% | idle 49% (waiting on cooldowns) | Full Set, Stand-In, Trade Places, Crowd of One, Fixed Point, Unweave, Phase Step |
-| Arcane | Second Act | dps | 528 | 460 DPS | 2707 DPS | Swift Cut 33%, Auto Attack 25%, Arcane Strike 21% | geared DPS high | Encore, Double Time, Fixed Point, Unweave, Phase Step |
+| Arcane | Clockwork | dps | 631 | 319 DPS | 1926 DPS | Unravel 75%, Aether Burst 12%, Collapse 7% |  | Scatter, Mirror Sigil, Rewind, Lapse, Fixed Point, Unweave, Phase Step |
+| Arcane | Hall of Mirrors | tank | 85 | 121 DPS, 523 TPS, 0 self-HPS | 744 DPS, 3162 TPS, 0 self-HPS | Missed Beat 34%, Auto Attack 32%, Double Up 25% |  | Full Set, Stand-In, Trade Places, Crowd of One, Fixed Point, Unweave, Phase Step |
+| Arcane | Second Act | dps | 456 | 412 DPS | 2412 DPS | Swift Cut 30%, Auto Attack 28%, Deep Cut 23% |  | Encore, Double Time, Fixed Point, Unweave, Phase Step |
 | Arcane | Aetherstring | dps | 700 | 287 DPS | 1712 DPS | Aether Arrow 60%, Auto Attack 40% | INCOMPLETE (1 ability, not in averages), idle 63% (waiting on cooldowns) | Fixed Point, Unweave, Phase Step |
 | Shadow | The Breach | dps | 519 | 265 DPS | 1905 DPS | Beckon 64%, Wither 36% |  | Call Due, Widen, Take It Back, Bottomless, Tangle, Climb the String, String Up |
-| Shadow | Pack of Two | dps | 260 | 281 DPS | 1709 DPS | Auto Attack 40%, Sic 20%, Open Up 15% |  | Guard Dogs, Bring It Down, Off the Chain, Tangle, Climb the String, String Up |
-| Shadow | Strings Attached | healer | 0 | 206 HPS | 1157 HPS | Hoist 55%, Patch Up 34%, Tug 11% | idle 33% (resource-starved) | String, Pull Taut, Cupped Hands, Restring, Knot, Yank, Double Thread, Behind Its Back, Slack, Still Standing, Cut the Strings, Not Finished With You, Back on Your Feet, Tangle, Climb the String, String Up |
+| Shadow | Pack of Two | dps | 304 | 310 DPS | 1919 DPS | Sic 64%, Auto Attack 36% |  | Guard Dogs, Bring It Down, Off the Chain, Tangle, Climb the String, String Up |
+| Shadow | Strings Attached | healer | 0 | 530 HPS | 2303 HPS | Patch Up 64%, Hoist 35%, String 2% |  | Pull Taut, Cupped Hands, Restring, Knot, Yank, Double Thread, Behind Its Back, Slack, Still Standing, Cut the Strings, Not Finished With You, Back on Your Feet, Tangle, Climb the String, String Up |
 | Shadow | Nightstring | dps | 196 | 143 DPS | 868 DPS | Auto Attack 79%, Shadow Arrow 19%, Hush 2% | INCOMPLETE (1 ability, not in averages), geared DPS low, hits small, idle 74% (waiting on cooldowns) | Tangle, Climb the String, String Up |
-| Nature | Thornweaver | dps | 712 | 368 DPS | 2782 DPS | Mossback 53%, Thornshot 47% | geared DPS high | Rootsnare, Deep Roots, Spore Sleep, Leaf Cloak |
-| Nature | Shepherd | healer | 0 | 420 HPS | 2281 HPS | Dewfall 42%, Rootguard 16%, Heartwood Elk 15% | idle 46% (resource-starved) | Return to Bloom, Rootsnare, Deep Roots, Spore Sleep, Leaf Cloak |
+| Nature | Thornweaver | dps | 631 | 326 DPS | 2396 DPS | Mossback 51%, Thornshot 49% |  | Rootsnare, Deep Roots, Spore Sleep, Leaf Cloak |
+| Nature | Shepherd | healer | 0 | 472 HPS | 2587 HPS | Dewfall 50%, Heartwood Elk 20%, Fawn 16% |  | Return to Bloom, Rootsnare, Deep Roots, Spore Sleep, Leaf Cloak |
 | Nature | Colossus | tank | 181 | 127 DPS, 571 TPS, 34 self-HPS | 740 DPS, 3251 TPS, 93 self-HPS | Vine Fist 40%, Auto Attack 32%, Stomp 23% |  | Grasp, Awaken, Rootsnare, Deep Roots, Spore Sleep, Leaf Cloak |
-| Nature | Venomstring | dps | 786 | 632 DPS | 4565 DPS | Venom Burst 44%, Auto Attack 15%, Adder Arrow 12% | geared DPS high | Bloat Arrow, Coil Back, Venom Surge, Rootsnare, Deep Roots, Spore Sleep, Leaf Cloak |
-| Holy | Choir of One | healer | 0 | 327 HPS | 1733 HPS | Refrain 92%, Lift 8% | idle 37% (resource-starved) | Sing Mercy, Sing Chorus, Sing Vigil, Reprise, Swell, Last Verse, Hymn of Waking, Binding Ring, Circle of Silence, Steady Voice, Rest, Unfallen |
+| Nature | Venomstring | dps | 280 | 295 DPS | 2468 DPS | Auto Attack 28%, Venom Burst 23%, Fang Arrow 16% |  | Bloat Arrow, Coil Back, Venom Surge, Rootsnare, Deep Roots, Spore Sleep, Leaf Cloak |
+| Holy | Choir of One | healer | 0 | 542 HPS | 2391 HPS | Refrain 61%, Outpour 27%, Shelter 6% |  | Sing Mercy, Sing Chorus, Sing Vigil, Reprise, Swell, Last Verse, Hymn of Waking, Binding Ring, Circle of Silence, Steady Voice, Rest, Unfallen |
 | Holy | Censer Bearer | tank | 137 | 129 DPS, 496 TPS, 0 self-HPS | 776 DPS, 2917 TPS, 0 self-HPS | Censer Swing 39%, Auto Attack 31%, Pour Out 30% |  | Aureole, Gather the Light, Raise the Censer, Binding Ring, Circle of Silence, Steady Voice, Rest, Unfallen |
 | Holy | Line of Light | healer | 0 | 281 HPS | 1508 HPS | Bright Lance 47%, Gleam 46%, Prism Ward 7% |  | Set Prism, Move Prism, Realign, Shatter Prism, Shatter All, Infuse, Kaleidoscope, Relight, Binding Ring, Circle of Silence, Steady Voice, Rest, Unfallen |
-| Holy | Lightstring | dps | 222 | 223 DPS | 1358 DPS | Auto Attack 50%, Glimmer Shot 47%, Refracting Shot 2% | geared DPS low, hits small | Prism Arrow, Prism Breaker, Step of Light, Spectrum Volley, Binding Ring, Circle of Silence, Steady Voice, Rest, Unfallen |
+| Holy | Lightstring | dps | 391 | 315 DPS | 1888 DPS | Glimmer Shot 64%, Auto Attack 36% |  | Prism Arrow, Prism Breaker, Step of Light, Spectrum Volley, Binding Ring, Circle of Silence, Steady Voice, Rest, Unfallen |
 | Martial | The Wheel | dps | 394 | 370 DPS | 2283 DPS | Auto Attack 30%, Lunge 26%, Hook 24% |  | Filler, Heavy Filler, Weapon Art, Finisher, Greataxe, Greatsword, Halberd, Maul, Rush, Blade Guard, Drag In, Earthshake, Pin the Shadow, Over the Shoulder, Play Dead |
 | Martial | Brawler | tank | 131 | 125 DPS, 542 TPS, 0 self-HPS | 771 DPS, 3315 TPS, 0 self-HPS | Punch 69%, Auto Attack 31% |  | Catch, Come On, Tough It Out, Fighting Style, Rapid Fists, Haymaker, Sweep, Roundhouse, Clinch, Shake Off, Turn It Around, Throw, Takedown, Pin the Shadow, Over the Shoulder, Play Dead |
 | Martial | Rogue | dps | 444 | 370 DPS | 2222 DPS | Cut 33%, Auto Attack 31%, Kick Off 13% |  | Go In, Close It Out, Hit Your Stride, Roll With It, Gut, Through and Through, Red Whirl, Back Flip, Drive Through, Pin the Shadow, Over the Shoulder, Play Dead |
@@ -42,6 +42,6 @@ Idle = time with nothing to press: "waiting on cooldowns" when every button was 
 
 ## Averages (geared, complete specs only)
 
-- DPS: average 2154 DPS, median 2051 (18 specs; 3 incomplete left out)
-- Tanks: average 726 DPS, median 740 (7 specs; 0 incomplete left out), average 3067 TPS
-- Healers: average 1620 HPS, median 1508 (5 specs; 0 incomplete left out)
+- DPS: average 2127 DPS, median 2104 (18 specs; 3 incomplete left out)
+- Tanks: average 727 DPS, median 740 (7 specs; 0 incomplete left out), average 3038 TPS
+- Healers: average 2240 HPS, median 2391 (5 specs; 0 incomplete left out)

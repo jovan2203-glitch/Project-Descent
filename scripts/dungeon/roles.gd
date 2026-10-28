@@ -9,7 +9,8 @@ extends RefCounted
 #   Swarmer   weak, comes in packs
 #   Caster    ranged spells with casts you can interrupt
 #   Archer    ranged physical, backs away (kites) when you close in
-#   Defender  shield: takes far less damage from the front (flank it)
+#   Defender  shield: takes far less damage from the front (flank it); channels
+#             "Shield Up" - an interrupt or stun drops it for a while (defender_shield.gd)
 #   Support   heals its allies (interruptible "Mend") - a priority kill
 #   Summoner  calls in more enemies (interruptible "Summon")
 #   Elite / Boss are RANKS on top of a role (see enemy.gd apply_rank).
@@ -20,6 +21,7 @@ extends RefCounted
 
 const Names = preload("res://scripts/dungeon/names.gd")
 const BEHAVIOR = preload("res://scripts/dungeon/role_behavior.gd")
+const SHIELD_GUARD = preload("res://scripts/dungeon/defender_shield.gd")
 
 const ALL := ["brute", "swarmer", "caster", "archer", "defender", "support", "summoner"]
 
@@ -97,6 +99,10 @@ static func apply(e: Node, role: String, skin: Dictionary) -> void:
 		e.make_bigger(s)
 	if role == "defender":
 		_add_shield(e)
+		var g := Node.new()
+		g.name = "ShieldGuard"
+		g.set_script(SHIELD_GUARD)
+		e.add_child(g)
 	if r.has("glow"):
 		e.show_name = true
 		e._add_glow(r["glow"], 0.8)

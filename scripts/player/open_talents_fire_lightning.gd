@@ -110,7 +110,7 @@ func _spillover_talent(info: RefCounted, id: String, amount: int) -> void:
 	var damage_type := str(info.damage_type)
 	var tags: PackedStringArray = info.tags
 	var wait := from.distance_to(foe.global_position) / maxf(Balance.BOLT_SPEED, 1.0)
-	player.get_tree().create_timer(maxf(wait, 0.02)).timeout.connect(func():
+	player.echo_timer(maxf(wait, 0.02)).timeout.connect(func():
 		if player.is_alive():
 			player.arcane_caster._exact_hit(foe, spill, SPILLOVER_ID, damage_type, tags))
 

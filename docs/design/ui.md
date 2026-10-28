@@ -26,9 +26,18 @@ more room at the sides, Interface size scales it all).
   don't fit beside the buttons are left out, last first).
 - Training room: a small Reset / Leave panel on the left (movable in Move UI).
 - Bottom-right: the meter panel with the damage meter docked in it, and an info strip.
+  Meter lines name what brought their damage in brackets (`Details.source_of`):
+  "Splitting Arrow (Talent)" when the talent has the line's name, "Hoar Blade (Rune of
+  the Hoar Blade)", an item effect "(<item name>)", "(Trinket)" / "(Item)"; a Rune of the
+  Wild Page free cast "Fireball (Wild Page)". Abilities and a spec's own mechanics
+  (Frozen Shatter, Heat, the Hounds) have none; "Rune of ..." lines need none.
 - Top-right: the square minimap (dungeon name above, clock under), buffs and
   debuffs left of it.
 - Party frames on the left (healer layout: a row above the bars).
+- Top centre: the Boss Timer (`scripts/ui/hud/boss_timer.gd`), only during a 5 Player
+  boss fight: a draining bar with the boss's name and the time left before it goes
+  Berserk, red for the last 10 s, then "BERSERK". The host sends the timer to the
+  party (`enemy_fx` "berserk"; `Enemy.set_berserk`).
 
 ## Role layouts and setup
 
@@ -69,6 +78,33 @@ Templates, duplicate, and Import / Export of a tracker or group.
   and guests. Own-only: a target effect counts only when it is yours (by default).
 - Each role starts with empty "Aura Bars" and "Cooldowns" groups (tanks and
   healers also get a low-health warning).
+- Displays: icon, bar, text, ring, pips (one per point up to the max, in the
+  value's own colours when it gives them). Two texts each (icon: bottom right /
+  top; bar: left / centre, time on the right; others: centre / right), each with
+  its colour; `%2.value`, `%3.time`... read another trigger. "Show while missing"
+  keeps it, dim, while its triggers are off (an empty cell). "On click" runs a
+  spec action: components may implement `tracker_actions()` / `tracker_action()`,
+  merged by `Player.tracker_actions()` like the spec values.
+- Spec values may carry `icon`, `name` and `colors` besides value / max.
+- Conditions look at the shown state or any one trigger (also "is on"), and set
+  colour, glow, opacity, either text or either text's colour.
+- Load "On my bars": abilities that must be on the action bars (all or any;
+  macros count).
+- Groups: grow direction, alignment across (start / centre / end), spacing, sort;
+  Up / Down in the editor sets the "As listed" order. Copying a group copies its
+  trackers. A tracker nobody placed starts above the screen centre.
+- Spec displays are trackers too (`Trackers.spec_sets()`): Venom (bar), Wheel
+  (group: held weapon large, clicking it turns the Wheel out of combat, the next
+  weapons, uses and Cracks), Chain (group of empty / filled cells), Sharpshooter
+  (group: each shot's cooldown, Overcut and incoming cut), Verses (pips in the
+  Hymns' colours, the Hymn's name), Ice Shards (pips, recharge time), Bruise (bar
+  of max health, above the Chain), Incense (bar), Heat (pips in band colours),
+  Flow (pips, gold with the Kill window's time) and pips for Glaze, Ice Layers,
+  Sap, Reflections, Traces and Slag. Each loads with its abilities on the bars. They
+  are given once (`Settings.tracker_builtins`; the HUD and the editor, also from
+  the main menu, both give them) and are then the player's: edit, delete, export
+  like anything built by hand. The editor's New list has them as "Spec: ..." to
+  add one again. A new spec's display is a new entry there, not a HUD element.
 
 ## Main menu
 

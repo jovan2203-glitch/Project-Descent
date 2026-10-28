@@ -25,6 +25,7 @@ const RED_EDGE_HIT_ID := "red_edge"   # meter / log id of Red Edge's extra Fire 
 const OVERHEAT_ID := "overheat"   # meter / log id of the Overheat talent's burn
 const MELEE_IDS := ["searingstrike", "quench", "flare", FOLD_STEEL_ID, RED_EDGE_ID, BLAST_FURNACE_ID]
 enum Band { NONE, RED, ORANGE, WHITE }
+const HEAT_BAND_COLORS := [Color(0.5, 0.5, 0.5), Color(1.0, 0.3, 0.2), Color(1.0, 0.6, 0.15), Color(1.0, 0.95, 0.75)]   # (trackers: one per Band)
 var _heat_fx: Resource
 var _heat_last := ""   # "<ability>@<frame>" of the last swing that built Heat
 var last_heat_spent := 0   # Heat the Quench or Flare being dealt right now spent (Hard Quench)
@@ -270,7 +271,7 @@ func _fold_steel(w: Dictionary, res: Resource) -> void:
 		if i == 0:
 			_fold_hit(tgt, coef, b == Band.WHITE)
 		else:
-			player.get_tree().create_timer(Balance.FOLD_STEEL_GAP * i).timeout.connect(_fold_hit.bind(tgt, coef, b == Band.WHITE))
+			player.echo_timer(Balance.FOLD_STEEL_GAP * i).timeout.connect(_fold_hit.bind(tgt, coef, b == Band.WHITE))
 
 func _fold_hit(tgt: Node3D, coef: float, splash: bool) -> void:
 	if player.is_dead() or tgt == null or not is_instance_valid(tgt) or not tgt.is_alive():
@@ -416,3 +417,10 @@ func _afterglow_on_hit(info: RefCounted) -> void:
 	extra.tags = PackedStringArray(["Fire", "Melee"])
 	player._combat().deal(extra)
 
+## Heat as pips, each in its band's colour (all white during Blast Furnace).
+func tracker_values() -> Dictionary:
+	var white := band() == Band.WHITE
+	var colors: Array = []
+	for i in range(1, Balance.HEAT_MAX_STACKS + 1):
+		colors.append(HEAT_BAND_COLORS[Band.WHITE if white else band_of(i)])
+	return {"heat": {"value": heat_stacks(), "max": Balance.HEAT_MAX_STACKS, "colors": colors}}

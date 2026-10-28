@@ -79,7 +79,7 @@ func test_the_kit_is_arcane_and_needs_a_weapon_in_each_hand() -> void:
 		assert_eq(int(r.resource_type), 0, "%s has no resource: cooldowns alone" % id)
 		assert_eq(int(r.resource_cost), 0)
 		assert_eq(int(r.cast_type), 0, "%s is instant" % id)
-		assert_true(float(Abilities.get_resource(id).cooldown) > 0.0, "%s has a cooldown" % id)
+		assert_true(id == "doubleup" or float(Abilities.get_resource(id).cooldown) > 0.0, "%s has a cooldown (Double Up is the filler)" % id)
 		assert_true(r.tags.has("Ability") and r.tags.has("Arcane") and not r.tags.has("Spell"), "%s is an Arcane ability" % id)
 		assert_eq(str(r.damage_type), "arcane")
 		assert_true(r.get("on_hit_effect") == null, "%s applies no effect" % id)
@@ -110,8 +110,8 @@ func test_the_kit_is_arcane_and_needs_a_weapon_in_each_hand() -> void:
 
 func test_double_up() -> void:
 	var r := Abilities.get_resource("doubleup")
-	assert_eq(float(r.cooldown), 5.0)
-	assert_eq(float(r.weapon_damage_multiplier), 1.0, "1.0 weapon damage")
+	assert_eq(float(r.cooldown), 0.0, "the filler: no cooldown")
+	assert_eq(float(r.weapon_damage_multiplier), 0.45, "0.45 weapon damage")
 	assert_eq(float(r.damage), 0.0)
 	assert_eq(float(r.threat_multiplier), 4.0, "high threat")
 	assert_true(bool(r.requires_target))
@@ -136,7 +136,7 @@ func test_strikes_use_both_weapons() -> void:
 	if Abilities.offhand_weapon().is_empty():
 		var both := float(sword["damage"]) + float(dagger["damage"])
 		for id in ["doubleup", "missedbeat"]:
-			assert_true(is_equal_approx(Abilities.hit_base(id, sword), both), "%s: both weapons" % id)
+			assert_true(is_equal_approx(Abilities.hit_base(id, sword), both * float(Abilities.get_resource(id).weapon_damage_multiplier)), "%s: both weapons" % id)
 		assert_true(is_equal_approx(Abilities.dual_wield_damage(sword), both))
 	# The kit's other abilities do not count weapon damage.
 	assert_true(is_equal_approx(Abilities.hit_base("ripple", sword), float(Abilities.get_resource("ripple").damage)))

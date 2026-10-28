@@ -16,6 +16,8 @@ const ImpactFX = preload("res://scripts/core/impact_fx.gd")
 
 var target: Node3D
 var source: Node = null      # the caster; damage goes through source.deal_damage()
+## Made by my free cast (Rune of the Wild Page): its hits are echoes too.
+var echo := false
 var is_proc := false         # fired by a rune
 var ability_id := "frostbolt"
 ## A note for the caster about THIS bolt, set after spawn() (a Scattered Sigil
@@ -189,7 +191,7 @@ func _physics_process(delta: float) -> void:
 			var tagged := tag != "" and source.has_method("bolt_tag")
 			if tagged:
 				source.bolt_tag(tag)
-			source.deal_damage(target, damage, ability_id, is_proc)   # impact comes with the hit
+			Combat.run_as(source, echo, func(): source.deal_damage(target, damage, ability_id, is_proc))   # impact comes with the hit
 			if tagged and is_instance_valid(source):
 				source.bolt_tag("")
 		else:
@@ -210,3 +212,6 @@ func _physics_process(delta: float) -> void:
 	_core.rotation.z = _age * 14.0
 	_core.position = Vector3(sin(_age * 23.0) * 0.035, cos(_age * 19.0) * 0.035, 0)
 	_core.rotation.x = PI / 2.0   # the gem points along the flight
+
+func _enter_tree() -> void:
+	echo = Combat.echoing(source)   # (asked each time it is made: pooled ones come back)

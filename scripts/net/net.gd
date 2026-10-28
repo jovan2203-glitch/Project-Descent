@@ -70,7 +70,9 @@ const Abilities = preload("res://scripts/abilities.gd")
 const BuildInfo = preload("res://scripts/core/build_info.gd")
 
 const PLAYER_RATE := 15.0         # own character updates per second
-const ENEMY_RATE := 10.0          # host enemy snapshots per second
+const ENEMY_RATE := 10.0          # host enemy snapshots per second (only enemies that changed)
+const ENEMY_FULL_EVERY := 10      # every Nth snapshot has every enemy (repairs lost packets, removes missing ones)
+const ENEMY_RESEND := 3           # a changed enemy keeps being sent this many snapshots after it settles
 const META_INTERVAL := 2.0        # host re-sends party info (roster, order, run)
 const CONNECT_TIMEOUT := 7.0
 const MIGRATE_WAIT := 6.0         # new host waits this long for the others to reconnect
@@ -96,6 +98,8 @@ var _join_deadline := 0.0
 var _connect_addr := ""
 var _player_t := 0.0
 var _enemy_t := 0.0
+var _enemy_n := 0
+var _enemy_last := {}             # host: enemy -> [last sent row, snapshots it has stayed the same]
 var _meta_t := 0.0
 var _wipe_t := 0.0
 var _mig_candidates: Array = []
@@ -738,7 +742,9 @@ func _process(delta: float) -> void:
 		_enemy_t -= delta
 		if _enemy_t <= 0.0:
 			_enemy_t = 1.0 / ENEMY_RATE
-			_out("_esnap", token, _enemy_snapshot())
+			_enemy_n += 1
+			var full := _enemy_n % ENEMY_FULL_EVERY == 0
+			_out("_esnap", token, _enemy_snapshot(full), full)
 		_check_wipe(delta)
 
 # --- Network stats (F3 overlay, game.log) ------------------------------------------
@@ -869,14 +875,27 @@ func _free_puppets() -> void:
 
 # Enemy snapshot rows: [id, pos, yaw, health, max_health, state, moving, top-threat member,
 #   status rows, threat rows, shield (absorb) health]
-func _enemy_snapshot() -> Array:
+# Bandwidth: a dungeon holds ~50 enemies, most standing still in rooms nobody has
+# reached. Only enemies whose row changed (and a few snapshots after, in case one
+# was lost) are sent; a `full` snapshot with all of them goes out once a second.
+func _enemy_snapshot(full: bool) -> Array:
 	var rows: Array = []
+	var last := {}
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if not e.is_alive():
 			continue
+		var prev: Array = _enemy_last.get(e, [])
+		if not full and not prev.is_empty() and e.get("_dormant") == true:
+			last[e] = prev   # idle and far from everyone: nothing changes
+			continue
 		var moving: bool = Vector2(e.velocity.x, e.velocity.z).length() > 0.1
-		rows.append([enemy_id(e), e.global_position, e.rotation.y, int(e.health), int(e.max_health),
-			int(e.state), moving, member_of(e.top_threat()), _status_rows(e), _threat_rows(e), _absorb_of(e)])
+		var row := [enemy_id(e), e.global_position, e.rotation.y, int(e.health), int(e.max_health),
+			int(e.state), moving, member_of(e.top_threat()), _status_rows(e), _threat_rows(e), _absorb_of(e)]
+		var quiet := int(prev[1]) + 1 if not prev.is_empty() and prev[0] == row else 0
+		last[e] = [row, quiet]
+		if full or quiet <= ENEMY_RESEND:
+			rows.append(row)
+	_enemy_last = last
 	return rows
 
 ## Shield health on an enemy (Shielded elites, a Rime Shell): clients show it on
@@ -914,7 +933,7 @@ func _status_rows(e: Node) -> Array:
 	return out
 
 @rpc("authority", "call_remote", "unreliable_ordered", 2)
-func _esnap(t: int, rows: Array) -> void:
+func _esnap(t: int, rows: Array, full: bool = true) -> void:
 	if t != token or not is_client():
 		return
 	var w := _world()
@@ -933,13 +952,16 @@ func _esnap(t: int, rows: Array) -> void:
 				e.net_apply_absorb(int(row[10]))
 			seen[e] = true
 	# Enemies the host doesn't have any more (killed before we got here): remove quietly.
+	# Only a full snapshot lists every enemy.
+	if not full:
+		return
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if seen.has(e):
 			e.set_meta("net_missing", 0)
 			continue
 		var miss := int(e.get_meta("net_missing", 0)) + 1
 		e.set_meta("net_missing", miss)
-		if miss >= 5 and e.has_method("net_remove"):
+		if miss >= 2 and e.has_method("net_remove"):
 			e.net_remove()
 
 # --- World events -----------------------------------------------------------------------

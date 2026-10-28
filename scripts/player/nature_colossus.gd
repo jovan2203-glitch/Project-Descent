@@ -352,3 +352,5 @@ func _awaken() -> void:
 		player._net_fx("creature", behind, null, {"k": "giant", "to": ahead})
 	player._ring_effect(2.0, SAP_COLOR)
 
+func tracker_values() -> Dictionary:
+	return {"sap": {"value": sap(), "max": Balance.SAP_MAX}}

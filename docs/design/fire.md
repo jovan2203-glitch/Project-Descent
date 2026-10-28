@@ -57,7 +57,7 @@ Code: scripts/player/fire_bow.gd.
 - Pitch: your own coat on a target, up to 5 layers, 15 s (refreshed by each layer). Each layer: your Burning and Blaze on it tick 8% faster. +1 layer per arrow of yours that doesn't crit (abilities and auto-shots).
 - Ignite: an arrow crit on a coated target Ignites it: 0.15 FB per layer to it and every enemy within 6 m (split past the cap), Burning on every enemy hit without it, layers gone; its own meter line. Low crit = single target, high crit = packs.
 - Flaming Arrow - 30 Energy, 6 s: hit + Burning.
-- Coal Shot - 15 Energy, no cooldown: the filler, 0.7 weapon.
+- Coal Shot - 15 Energy, no cooldown: the filler, 1.3 weapon.
 - Pitch Arrow - 20 Energy, 12 s: +2 layers, even when it crits.
 - Cinder Rain - 40 Energy, 15 s, placed: its ticks coat each enemy (a layer a second at most), a crit tick Ignites.
 - Touch Off - 30 Energy, 10 s: Ignites on purpose at +50%, can't crit, needs Pitch on the target.

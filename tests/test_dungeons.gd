@@ -146,11 +146,77 @@ func test_fort_packs_and_pieces_are_valid() -> void:
 			if pc["kind"] in ["ballista", "seal_light"]:
 				var b := int(pc["params"].get("boss", -1))
 				assert_true(b >= 0 and b < r.bosses.size(), "%s points at a real boss" % pc["kind"])
-	assert_eq(bells, 2, "a bell in the Gatehouse and one in the Courtyard")
+	assert_eq(bells, 4, "bells in the Gatehouse, Courtyard, Archive and Siege Yard")
 	for key in r.rosters:
 		for role in r.rosters[key]:
 			assert_true(Roles.ROLES.has(str(role)), "%s: %s is a real role" % [key, role])
 			assert_true(Names.has(str(r.rosters[key][role]["name"])), "%s: skin name" % key)
+
+func _fort_builder(l: Dictionary) -> RefCounted:
+	return load("res://scripts/dungeon/biome_builder.gd").new(DB.find("fort").biome, l, 1)
+
+## Points every half metre over a rect (x/z), for door-lane checks.
+func _rect_points(c: Vector3, size: Vector2) -> Array:
+	var out: Array = []
+	var x := -size.x * 0.5
+	while x <= size.x * 0.5 + 0.01:
+		var z := -size.y * 0.5
+		while z <= size.y * 0.5 + 0.01:
+			out.append(c + Vector3(x, 0, z))
+			z += 0.5
+		x += 0.5
+	return out
+
+func test_fort_markers_stand_on_open_floor() -> void:
+	var l := _fort()
+	var b := _fort_builder(l)
+	var rooms: Array = l["rooms"]
+	for i in rooms.size():
+		var r: Dictionary = rooms[i]
+		var half: Vector2 = r["size"] * 0.5
+		var spots: Array = []
+		for p in r["packs"]:
+			spots.append(["pack", p["at"]])
+		for p in r["props"]:
+			spots.append(["prop " + str(p["kind"]), p["at"]])
+		for p in r["pieces"]:
+			if p["kind"] != "wall":
+				spots.append([str(p["kind"]), p["at"]])
+		for s in spots:
+			var at: Vector3 = s[1]
+			var rel := Vector2(at.x - r["center"].x, at.z - r["center"].z)
+			assert_true(absf(rel.x) <= half.x - 0.4 and absf(rel.y) <= half.y - 0.4, "%s: %s is inside the room" % [r["name"], s[0]])
+			for rc: Rect2 in b.wall_blocks(i):
+				assert_false(rc.has_point(Vector2(at.x, at.z)), "%s: %s is not inside a wall block" % [r["name"], s[0]])
+
+func test_fort_walls_and_blocking_props_leave_doorways_clear() -> void:
+	var l := _fort()
+	var b := _fort_builder(l)
+	var rooms: Array = l["rooms"]
+	for i in rooms.size():
+		var r: Dictionary = rooms[i]
+		var areas: Array = []   # [what, center, size]
+		for p in r["pieces"]:
+			if p["kind"] == "wall":
+				areas.append(["wall", p["at"], p["params"].get("size", Vector2(2, 2))])
+		for p in r["props"]:
+			assert_true(b.BIG.has(str(p["kind"])), "%s: prop kind %s exists" % [r["name"], p["kind"]])
+			var info: Dictionary = b.BIG.get(str(p["kind"]), {})
+			if info.get("block", false):
+				var across_x := absf(sin(float(p["yaw"]))) > 0.5
+				var size := Vector2(info["d"], info["w"]) if across_x else Vector2(info["w"], info["d"])
+				areas.append([str(p["kind"]), p["at"], size])
+		for a in areas:
+			var bad := false
+			for q in _rect_points(a[1], a[2]):
+				if b.in_door_lane(i, q, 0.0):
+					bad = true
+			assert_false(bad, "%s: %s stays out of the doorway lanes" % [r["name"], a[0]])
+
+func test_fort_pack_formations_are_known() -> void:
+	for r in _fort()["rooms"]:
+		for p in r["packs"]:
+			assert_true(str(p["formation"]) in ["ring", "around", "line"], "%s: formation %s" % [r["name"], p["formation"]])
 
 func test_fort_has_stairs_down_from_the_bindery() -> void:
 	var rooms: Array = _fort()["rooms"]
@@ -177,7 +243,23 @@ func test_stack_damage_is_shared_evenly_and_never_zero() -> void:
 	assert_eq(BossKit.soak_share(100.0, 5, 5), 60.0, "everyone stacks: 300 split five ways")
 	assert_eq(BossKit.soak_share(100.0, 5, 1), 300.0, "alone in it: you take all of it")
 	assert_eq(BossKit.soak_share(100.0, 5, 0), 300.0, "nobody in it: everyone takes all of it")
+	assert_eq(BossKit.soak_share(100.0, 3, 3, 3, 4), 100.0, "need 4, only 3 alive: all three split 300")
+	assert_eq(BossKit.soak_share(100.0, 5, 3, 3, 4), 400.0 / 3.0, "need 4: three of five inside still split 400")
+	assert_eq(BossKit.soak_share(100.0, 5, 5, 3, 4), 80.0, "need 4: five inside split 400")
 	assert_gt(BossKit.soak_share(0.1, 5, 5), 0.0, "never 0")
+
+func test_berserk_timer_starts_stops_and_hits() -> void:
+	var e: Node3D = track(load("res://scripts/enemy.gd").new())
+	e.set_berserk(160.0, 160.0, false)
+	assert_gt(float(e.berserk_at), Time.get_ticks_msec() / 1000.0 + 150.0, "running: hits in ~160 s")
+	assert_false(e.berserk_on)
+	e.set_berserk(0.0, 160.0, true)
+	assert_true(e.berserk_on, "it hit")
+	assert_gt(float(e.berserk_at), 0.0, "still shown once it hit")
+	e.set_berserk(0.0, 0.0, false)
+	assert_eq(float(e.berserk_at), 0.0, "a wipe or reset stops it")
+	var hud := HudSource.text()
+	assert_true(hud.contains("\"boss_timer\""), "the Boss Timer is a HUD element")
 
 func test_stairs_steps_follow_the_slope() -> void:
 	for h: float in [2.0, 3.0, 4.0]:

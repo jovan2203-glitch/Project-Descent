@@ -171,7 +171,7 @@ func test_spillover() -> void:
 	assert_eq(FireLightningTalentsKit.spillover_amount(1000, 15.0), 150)
 	assert_eq(FireLightningTalentsKit.spillover_amount(1000, 5.0), 50)
 	assert_eq(FireLightningTalentsKit.spillover_amount(333, 10.0), 33)
-	assert_eq(Details.spell_name("spillover"), "Spillover", "its own line on the meter")
+	assert_eq(Details.line_name("spillover"), "Spillover", "its own line on the meter")
 	assert_contains(_desc("lightning_spillover"), "5 / 10 / 15% of its damage jumps to another enemy within 6 m")
 
 func test_dig_in() -> void:

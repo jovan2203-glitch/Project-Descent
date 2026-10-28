@@ -25,7 +25,7 @@ const FAMILY := {
 	"cone": "avoid", "charge": "avoid", "donut": "avoid",
 	"soak": "stack", "spread": "spread", "hazard": "stay_out",
 	"big_cast": "interrupt", "heal": "interrupt", "summon": "interrupt",
-	"phase": "guards", "enrage": "none",
+	"phase": "guards", "enrage": "none", "berserk": "none",
 }
 
 ## Default rim color per family.

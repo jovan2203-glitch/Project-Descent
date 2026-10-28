@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/rune_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = &"wild_page"
+display_name = "Rune of the Wild Page"
+description = "Your spells and abilities have a {b:WILD_PAGE_CHANCE}% chance to tear a random page from their book: you also cast a random damaging spell or ability of that book at your target, learned or not, with everything it does. It costs nothing, uses up nothing, is cast instantly (a channel goes out at once) and puts nothing on cooldown. Cannot happen more than once every {b:WILD_PAGE_COOLDOWN} sec."
+color = Color(0.95, 0.78, 0.4, 1)
+rarity = 3
+unlock_level = 20
+trigger = 6

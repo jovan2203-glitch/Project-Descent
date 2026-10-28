@@ -14,6 +14,13 @@ const COLDMARK_ID := "coldmark"
 ## The mark Coldmark leaves on its target (data/effects).
 const COLDMARK_FX := "coldmarked"
 const ICY_RETREAT_ID := "icyretreat"
+## Icy Footing (from Icy Retreat): the next Frost Arrow is free.
+const ICY_FOOTING_FX := "icy_footing"
+const FROST_ARROW_ID := "frostarrow"
+
+## Does Icy Footing make `id` free right now?
+func icy_footing_free(id: String) -> bool:
+	return id == FROST_ARROW_ID and player.status != null and player.status.has(ICY_FOOTING_FX)
 const ICE_PATCH = preload("res://scripts/ice_patch.gd")
 var _shatter_shot_frozen := false   # the Shatter Shot being worked out hit a target I had Frozen
 var _ice_patch_seen := {}           # enemies (instance ids) my current ice has Chilled already (Black Ice rolls once each)
@@ -206,7 +213,11 @@ func _icy_retreat(res: Resource) -> void:
 	_ice_patch_seen.clear()   # a new sheet of ice: Black Ice rolls again for everyone
 	ICE_PATCH.spawn(player.get_tree().current_scene, from, r, Balance.ICY_RETREAT_TIME, Balance.ICY_RETREAT_TICK, _ice_patch_chill)
 	player._net_fx("icepatch", from, null, {"r": r, "time": Balance.ICY_RETREAT_TIME})   # the party sees the ice
-	player.cooldowns.erase("frostarrow")
+	var fx := StatusContainer.make_buff(ICY_FOOTING_FX, "Icy Footing", ICY_RETREAT_ID, 0.0,
+		Balance.ICY_FOOTING_TIME, 1, Color(0.6, 0.9, 1.0))
+	fx.stat_modifiers = {}
+	fx.description = "Your next Frost Arrow costs no Energy."
+	player.status.apply(fx, player)
 	player._ring_effect(0.8, col, from)
 	player._ring_effect(0.8, col)
 

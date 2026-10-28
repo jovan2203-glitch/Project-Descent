@@ -16,10 +16,17 @@ class FakeStatus extends Node:
 		return rows
 
 class FakePlayer extends Node:
+	var acted := ""
+	func tracker_actions() -> Dictionary:
+		return {"poke": "Poke"}
+	func tracker_action(id: String) -> void:
+		acted = id
 	var health := 300
 	var max_health := 1000
 	var cds := {"frostbolt": 4.0}
-	var values := {"venom": {"value": 40.0, "max": 100.0}}
+	var values := {"venom": {"value": 40.0, "max": 100.0}, "flowing": true,
+		"held": {"value": 1, "max": 1, "icon": "frostbolt", "name": "Frost Bolt"},
+		"pips": {"value": 2, "max": 6, "name": "Mercy", "colors": [Color.RED, Color.BLUE]}}
 	func cooldown_left(id: String) -> float:
 		return float(cds.get(id, 0.0))
 	func cooldown_total(_id: String) -> float:
@@ -148,11 +155,128 @@ func test_default_groups_and_templates_are_clean() -> void:
 		var t: Dictionary = (tpl[2] as Callable).call()
 		assert_eq(Trackers.clean(t)["display"]["type"], t["display"]["type"], "template %s" % tpl[0])
 
+func test_spec_values_carry_icon_name_and_colors() -> void:
+	var ctx := {"player": _player()}
+	var st := Trackers.eval_trigger(_res("held", 1.0), ctx)
+	assert_true(st["active"])
+	assert_eq(str(st["icon"]), "frostbolt", "a spec value can give the icon (the held weapon)")
+	assert_eq(str(st["name"]), "Frost Bolt")
+	st = Trackers.eval_trigger(_res("pips", 0.0), ctx)
+	assert_eq((st["colors"] as Array).size(), 2, "and a colour per pip")
+	assert_true(Trackers.eval_trigger(_res("flowing", 1.0), ctx)["active"], "a true / false value is 1 / 0")
+	# A precomputed values dictionary (the engine's, once a sweep) wins over asking the player.
+	assert_false(Trackers.eval_trigger(_res("flowing", 1.0), {"player": _player(), "values": {}})["active"])
+
+func _res(res: String, at: float) -> Dictionary:
+	var tr := Trackers.default_trigger("resource")
+	tr["res"] = res
+	tr["op"] = ">="
+	tr["value"] = at
+	tr["percent"] = false
+	return tr
+
+func test_texts_read_any_trigger() -> void:
+	var ctx := {"player": _player()}
+	var t := Trackers.make_tracker("x", "icon", [_res("venom", 0.0), _res("pips", 0.0)])
+	var st := Trackers.eval_tracker(t, ctx)
+	assert_eq(Trackers.format_text("%value / %2.value of %2.max (%2.name)", st), "40 / 2 of 6 (Mercy)")
+	assert_eq(Trackers.num_text(1.5), "1.5", "small numbers keep a decimal")
+	assert_eq(Trackers.num_text(40.7), "40")
+
+func test_conditions_on_another_trigger() -> void:
+	var ctx := {"player": _player()}
+	var t := Trackers.make_tracker("x", "bar", [_res("venom", 0.0), _res("flowing", 1.0)])
+	t["conditions"] = [{"trigger": 2, "check": "active", "op": ">=", "value": 1.0, "set": "text2_color", "to": Color.GREEN},
+		{"trigger": 1, "check": "value", "op": ">", "value": 50.0, "set": "text", "to": "full"}]
+	var mods := Trackers.apply_conditions(t, Trackers.eval_tracker(t, ctx))
+	assert_eq(mods.get("text2_color"), Color.GREEN, "trigger 2 is on")
+	assert_false(mods.has("text"), "40 Venom isn't past 50")
+	assert_eq(int(Trackers.clean(t)["conditions"][0]["trigger"]), 2, "the trigger number is kept")
+
+func test_load_by_abilities_on_bars() -> void:
+	var t := Trackers.make_tracker("x", "icon", [])
+	t["load"]["bars"] = "adderarrow, asparrow"
+	assert_false(Trackers.loaded(t, {"bars": ["adderarrow"]}), "all: both needed")
+	assert_true(Trackers.loaded(t, {"bars": ["asparrow", "adderarrow", "x"]}))
+	t["load"]["bars_mode"] = "any"
+	assert_true(Trackers.loaded(t, {"bars": ["adderarrow"]}))
+	assert_false(Trackers.loaded(t, {"bars": []}))
+
+func test_new_display_fields_survive_clean() -> void:
+	var t := Trackers.make_tracker("x", "pips", [])
+	t["display"]["text2"] = "%name"
+	t["display"]["text2_color"] = Color.RED
+	t["display"]["show_missing"] = true
+	t["display"]["click"] = "poke"
+	var c := Trackers.clean(t)
+	assert_eq(str(c["display"]["type"]), "pips")
+	assert_eq(str(c["display"]["text2"]), "%name")
+	assert_eq(c["display"]["text2_color"], Color.RED)
+	assert_true(bool(c["display"]["show_missing"]))
+	assert_eq(str(c["display"]["click"]), "poke")
+	var g := Trackers.make_group("g")
+	g["align"] = "center"
+	assert_eq(str(Trackers.clean(g)["align"]), "center")
+	# An old save without the new fields gets their defaults.
+	var old := {"id": "t_old", "kind": "tracker", "name": "Old", "display": {"type": "icon"}, "load": {"spec": ""}}
+	var co := Trackers.clean(old)
+	assert_eq(str(co["display"]["text2"]), "")
+	assert_eq(str(co["load"]["bars_mode"]), "all")
+
+func test_spec_sets_are_plain_trackers() -> void:
+	# The spec displays are ordinary trackers: clean as-is, export and import, unique ids.
+	var ids := {}
+	for sp in Trackers.spec_sets():
+		var items: Array = sp[3]
+		assert_false(items.is_empty(), sp[1])
+		for it in items:
+			assert_false(ids.has(it["id"]), "unique id %s" % it["id"])
+			ids[it["id"]] = true
+			var c := Trackers.clean(it)
+			assert_eq(var_to_str(c), var_to_str(it), "%s / %s is clean as it is" % [sp[1], it["name"]])
+			if str(it["kind"]) == "tracker":
+				assert_true(str(it["load"]["bars"]) != "", "%s loads only with its abilities on the bars" % it["name"])
+				for f in ["text", "text2"]:
+					assert_false(str(it["display"][f]).contains("%%%d." % ((it["triggers"] as Array).size() + 1)), "no text reads a missing trigger")
+		assert_eq(Trackers.parse_export(Trackers.export_items(items)).size(), items.size(), "%s exports whole" % sp[1])
+		assert_true(UIConfig.preset_spot("tracker:" + str(sp[0])).size() > 0, "%s has a spot" % sp[1])
+	# Every spec value they read is one a component gives.
+	var player_src := PlayerSource.text()
+	for k in ["\"venom_flow\"", "\"wheel_%d\"", "\"chain_%d\"", "\"overcut_\"", "\"cut_\"", "\"colors\"", "\"ice_shards_recharge\"",
+			"\"bruise\"", "\"glaze\"", "\"ice_layers\"", "\"sap\"", "\"incense\"", "\"reflections\"", "\"traces\"", "\"heat\"",
+			"\"slag\"", "\"flow\""]:
+		assert_contains(player_src, k)
+
+func test_builtins_are_given_once() -> void:
+	var s := FakeSettings.new()
+	track(s)
+	assert_true(Trackers.give_builtins(s))
+	for sp in Trackers.spec_sets():
+		assert_true(s.trackers.has(sp[0]), "%s is in the list like any tracker" % sp[1])
+	assert_false(s.trackers.has("aura_bars"), "the role's groups wait for the UI setup")
+	s.trackers.erase("spec_venom")
+	s.ui_installed = true
+	assert_true(Trackers.give_builtins(s))
+	assert_true(s.trackers.has("aura_bars"), "after the setup: the role's groups")
+	assert_false(s.trackers.has("spec_venom"), "a deleted spec set stays deleted")
+	assert_false(Trackers.give_builtins(s), "nothing new the next time")
+
+class FakeSettings extends Node:
+	var trackers := {}
+	var tracker_builtins: Array = []
+	var ui_installed := false
+	var saves := 0
+	func save() -> void:
+		saves += 1
+
 func test_spec_values_come_from_components() -> void:
 	var src := PlayerSource.text()
 	assert_contains(src, "func tracker_values() -> Dictionary:")
 	assert_contains(src, "out.merge(c.tracker_values(), true)")
 	assert_contains(FileAccess.get_file_as_string("res://scripts/player/player_kit.gd"), "func tracker_values() -> Dictionary:")
+	assert_contains(src, "func tracker_actions() -> Dictionary:")
+	assert_contains(src, "out.merge(c.tracker_actions(), true)")
+	assert_contains(src, "if c is PlayerKit and c.tracker_action(id):")
 
 func test_ids_show_in_tooltips() -> void:
 	var tip := FileAccess.get_file_as_string("res://scripts/ui/item_tooltip.gd")

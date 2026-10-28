@@ -265,7 +265,7 @@ func _after(delay: float, strike: Callable) -> void:
 	if not player.is_inside_tree():
 		strike.call()
 		return
-	player.get_tree().create_timer(delay).timeout.connect(strike)
+	player.echo_timer(delay).timeout.connect(strike)
 
 ## A woven creature (`kind`) strikes `enemy` for `coef`, then leaves a patch where it struck.
 func _woven_strike(kind: String, enemy: Node3D, coef: float, id: String, is_proc: bool = false) -> void:

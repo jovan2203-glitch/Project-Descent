@@ -402,7 +402,7 @@ func _start_decoy(point: Vector3) -> void:
 	else:
 		DECOY.spawn(player.get_tree().current_scene, player, at, player.rotation.y, time, float(res.radius))
 	player._ring_effect(float(res.radius), Abilities.color_of(DECOY_ID), at)
-	player.get_tree().create_timer(time).timeout.connect(func(): _decoy_burst(at))
+	player.echo_timer(time).timeout.connect(func(): _decoy_burst(at))
 	if Player.on_gcd(DECOY_ID):
 		player._start_gcd()
 	player._bus().cast_finished.emit(DECOY_ID)
@@ -421,3 +421,5 @@ func _decoy_burst(at: Vector3) -> void:
 	player._ring_effect(Balance.DECOY_BURST_RADIUS, Abilities.color_of(DECOY_ID), at)
 	player._ring_effect(Balance.DECOY_BURST_RADIUS * 0.5, Color(0.95, 0.9, 1.0), at)
 
+func tracker_values() -> Dictionary:
+	return {"reflections": {"value": reflections(), "max": Balance.REFLECTION_MAX}}

@@ -6,7 +6,7 @@
 script = ExtResource("1_s")
 id = &"icyretreat"
 display_name = "Icy Retreat"
-description = "Leap up to {b:ICY_RETREAT_DISTANCE} m backward, stopping short of walls. The ground you left stays iced over for {b:ICY_RETREAT_TIME} sec, Chilling enemies within {radius} m of it. Resets the cooldown of {n:frostarrow}."
+description = "Leap up to {b:ICY_RETREAT_DISTANCE} m backward, stopping short of walls. The ground you left stays iced over for {b:ICY_RETREAT_TIME} sec, Chilling enemies within {radius} m of it. Your next {n:frostarrow} within {b:ICY_FOOTING_TIME} sec costs no Energy."
 tags = PackedStringArray("Ability", "Frost", "Movement")
 cast_type = 0
 cast_time = 0.0

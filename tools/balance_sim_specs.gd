@@ -9,6 +9,7 @@ extends RefCounted
 ## "Utility" divider: no damage or healing to simulate, left out of the report).
 ## The game's own table: Abilities.SPEC_ROLES.
 const ROLES := preload("res://scripts/abilities.gd").SPEC_ROLES
+const B = preload("res://scripts/balance.gd")
 
 ## Spec name -> how it fights, where its abilities' tags say otherwise:
 ##   "kind": "caster" / "physical" (which gear profile), "weapon": "melee" / "ranged" / "" (auto-attacks).
@@ -19,6 +20,7 @@ const FIGHTS := {}
 ##   "heal": heal (old Heal x REFERENCE_HEAL units, like Balance.HEALS),
 ##   "self_heal_pct": % of max health healed on yourself, "skip": not a damage / heal button.
 ##   "last": usable only in this last share of the fight (an execute below 20% health).
+##   "every": at most once per this many seconds (a limit the data doesn't hold: a parry, one per ally).
 const PAYOFF := {
 	# Frost DPS: Frostbitten Steel (the sim's sword, 0.45). ~3 Glaze on each finisher; about
 	# 2 Icebreakers in 5 land on a target Frozen by the 3rd Winter's Bite; Bitter Edge only
@@ -42,15 +44,15 @@ const PAYOFF := {
 	"forgeblow": {"coef": 0.25 * 5.0},
 	"redhotrivet": {"skip": true}, "moltenshell": {"skip": true},
 	# Nature caster: finishers at an average of 3 patches; Thornburst on the target once.
-	"mossback": {"coef": 0.6 + 0.6 * 3},
+	"mossback": {"coef": B.ABILITIES["mossback"]["damage"] + B.MOSSBACK_PER_PATCH * 3},
 	"chokingvipers": {"coef": 0.0, "dot": 0.4 + 0.4 * 3, "dot_time": 3.0},
-	"thornshot": {"coef": 1.0 + 0.4},   # (Thornburst hits each enemy once)
+	"thornshot": {"coef": B.ABILITIES["thornshot"]["damage"] + 0.4},   # (Thornburst hits each enemy once)
 	# Nature healer: rooted creatures with ~2 Blossoms; Fawn with its bounces.
-	"fawn": {"heal": 2.2 * (1.0 + 0.8 + 0.64 + 0.512)},
-	"rootguard": {"heal": 1.76 + 0.88 * 2},
-	"heartwoodelk": {"heal": (1.1 + 0.66 * 2) * 5.0},
-	"wildherd": {"heal": 2.2 * (1.0 + 0.8 + 0.64 + 0.512) * 5.0},
-	"owl": {"coef": 0.5, "heal": 2.2},
+	"fawn": {"heal": B.HEALS["fawn"] * (1.0 + 0.8 + 0.64 + 0.512)},
+	"rootguard": {"heal": B.HEALS["rootguard"] + 0.88 * 2},
+	"heartwoodelk": {"heal": (B.HEALS["heartwoodelk"] + 0.66 * 2) * 5.0},
+	"wildherd": {"heal": B.HEALS["fawn"] * (1.0 + 0.8 + 0.64 + 0.512) * 5.0},
+	"owl": {"coef": 0.5, "heal": B.HEALS["owl"]},
 	# Frost healer (Cold Comfort): Rime Veil refills four times over its time (counted as half used up);
 	# Rimefall on 5 allies with 2 shells out; Break the Ice on 3 allies from a half-used shell;
 	# Stillwater about 30% of a 2.5-Heal-sized health bar; Rime Shell's own shield plus its Rime Shards on 3.
@@ -65,11 +67,11 @@ const PAYOFF := {
 	"stomp": {"coef": 0.8, "dot": 0.6, "dot_time": 6.0},
 	"awaken": {"skip": true},
 	# Nature archer: the poisons, and Venom Burst on a Steeped target with ~8 s of each left.
-	"adderarrow": {"coef": 0.0, "dot": 2.4, "dot_time": 12.0},
-	"asparrow": {"coef": 0.0, "dot": 1.2, "dot_time": 12.0},
-	"kraitarrow": {"coef": 0.0, "dot": 0.8, "dot_time": 12.0},
-	"venomburst": {"coef": (2.4 + 1.2 + 0.8) * (8.0 / 12.0) * 1.3 * 1.6},
-	"spittingvolley": {"coef": 0.0, "dot": 2.4, "dot_time": 12.0},
+	"adderarrow": {"coef": 0.0, "dot": B.ADDER_DAMAGE, "dot_time": 12.0},
+	"asparrow": {"coef": 0.0, "dot": B.ASP_DAMAGE, "dot_time": 12.0},
+	"kraitarrow": {"coef": 0.0, "dot": B.KRAIT_DAMAGE, "dot_time": 12.0},
+	"venomburst": {"coef": (B.ADDER_DAMAGE + B.ASP_DAMAGE + B.KRAIT_DAMAGE) * (8.0 / 12.0) * 1.3 * (1.0 + B.BURST_PER_POISON / 100.0 * 3.0)},
+	"spittingvolley": {"coef": 0.0, "dot": B.ADDER_DAMAGE, "dot_time": 12.0},
 	"bloatarrow": {"skip": true},
 	"coilback": {"skip": true},
 	"venomsurge": {"skip": true},
@@ -107,6 +109,14 @@ const PAYOFF := {
 	"followup": {"coef": 0.22 * 2.0 * 1.85},
 	"loose": {"coef": 0.25 * 1.12},
 	"breathe": {"skip": true}, "fasthands": {"skip": true},
+	# Holy healer (Choir of One): one Refrain running per ally, 5 allies.
+	"refrain": {"every": B.REFRAIN_TIME / 5.0},
+	# Shadow healer (Strings Attached): a String heals its whole time on an ally and is back
+	# STRING_RECHARGE later, so all of them go out once per (time + recharge).
+	"puppetstring": {"heal": B.STRING_HEAL * B.STRING_TIME / B.STRING_TICK,
+		"every": (B.STRING_TIME + B.STRING_RECHARGE) / B.STRING_MAX},
+	# Lightning tank: Return Stroke opens on a parry (about one every 3 s against one boss).
+	"returnstroke": {"every": 3.0},
 	# Holy tank: Pour Out at 100 Incense; Absolve at 40.
 	"pourout": {"coef": 0.03 * 100.0},
 	"absolve": {"heal": 0.05 * 40.0 * 2.2},

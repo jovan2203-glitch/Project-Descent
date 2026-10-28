@@ -51,6 +51,8 @@ const PATHS := {
 	"overload": "res://data/runes/overload.tres",
 	# Legendary rune (PASSIVE: Shadow damage starts Dusk, Dawn follows it, in player.gd)
 	"dusk_till_dawn": "res://data/runes/dusk_till_dawn.tres",
+	# Legendary rune (PASSIVE: my spells and abilities can echo a random one of their book, scripts/player/rune_wild_page.gd)
+	"wild_page": "res://data/runes/wild_page.tres",
 	# Menace: +30% threat from one damage type (PASSIVE, threat_bonus_pct)
 	"menace_physical": "res://data/runes/menace_physical.tres",
 	"menace_fire": "res://data/runes/menace_fire.tres",
@@ -70,7 +72,7 @@ const PATHS := {
 }
 const ALL := ["frost", "fury", "swiftness", "warding", "stormfire", "frostbound_insight",
 	"permafrost", "cold_precision", "frozen_aegis", "everlasting_rime", "ice_shelf", "hoar_blade", "lone_floe",
-	"dull_edge", "dull_mind", "hair_trigger", "sealed_kiln", "level_head", "frostfire_bolt", "polarity", "resonance", "bottled_lightning", "afterimage", "momentum", "carried_sigil", "two_way_mirror", "open_wound", "rot", "long_fall", "overload", "dusk_till_dawn", "resounding", "overture", "bright_burst", "fourth_facet",
+	"dull_edge", "dull_mind", "hair_trigger", "sealed_kiln", "level_head", "frostfire_bolt", "polarity", "resonance", "bottled_lightning", "afterimage", "momentum", "carried_sigil", "two_way_mirror", "open_wound", "rot", "long_fall", "overload", "dusk_till_dawn", "wild_page", "resounding", "overture", "bright_burst", "fourth_facet",
 	"menace_physical", "menace_fire", "menace_frost", "menace_lightning", "menace_arcane",
 	"menace_shadow", "menace_nature", "menace_holy"]
 
@@ -435,6 +437,16 @@ static func draw_glyph(c: CanvasItem, center: Vector2, r: float, id: String) -> 
 			for i in 3:
 				var ray := Vector2.from_angle(PI * (1.25 + i * 0.25))
 				c.draw_line(rise + ray * r * 0.23, rise + ray * r * 0.35, sun, w)
+		"wild_page":
+			# An open book with one page torn loose and flying off
+			var page := Color(1.0, 0.95, 0.8)
+			c.draw_line(center + Vector2(0, -r * 0.3), center + Vector2(0, r * 0.4), col, w)
+			c.draw_polyline(PackedVector2Array([center + Vector2(0, -r * 0.3), center + Vector2(-r * 0.42, -r * 0.4),
+				center + Vector2(-r * 0.42, r * 0.3), center + Vector2(0, r * 0.4)]), col, w)
+			c.draw_polyline(PackedVector2Array([center + Vector2(0, r * 0.4), center + Vector2(r * 0.42, r * 0.3),
+				center + Vector2(r * 0.42, r * 0.05)]), col, w)
+			c.draw_polyline(PackedVector2Array([center + Vector2(r * 0.12, -r * 0.2), center + Vector2(r * 0.3, -r * 0.62),
+				center + Vector2(r * 0.6, -r * 0.45), center + Vector2(r * 0.42, -r * 0.05), center + Vector2(r * 0.12, -r * 0.2)]), page, w)
 		"everlasting_rime":
 			# Closed ring with an inner ring (a shell that never breaks)
 			c.draw_arc(center, r * 0.42, 0, TAU, 14, col, w)

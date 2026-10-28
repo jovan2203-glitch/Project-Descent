@@ -166,7 +166,7 @@ Numbers are drafts (balance.gd); names agreed. Spec name "The Wheel" is a workin
 - The equipped weapon gives only stats; any melee weapon works.
 - The front weapon is held in your hands. Each held weapon takes **4 uses**: every ability that goes off counts, from any book, cast or instant, except off-GCD abilities and trinkets. After the 4th use the weapon breaks and the next one flies into your hands. Break (the finisher) breaks it on purpose, early or as the 4th use.
 - A broken weapon reforms at the back of the line.
-- Leaving combat makes the held weapon whole again (Cracks cleared, 4 uses). Out of combat, clicking the Wheel strip above the action bar turns it to the next weapon, so you choose your opening weapon. In combat the order never changes.
+- Leaving combat makes the held weapon whole again (Cracks cleared, 4 uses). Out of combat, clicking the held weapon in the Wheel tracker above the action bar turns it to the next weapon, so you choose your opening weapon. In combat the order never changes.
 - Visuals: the held weapon at your hands, the other three in an arc behind your shoulders, each with its own bright colour (axe red, greatsword white-blue, halberd green, maul amber); the next one glows brightest. Cracks show as glowing fissures on the held weapon; Break bursts it apart. The party sees it. Swap-ready: each weapon model is built in one place.
 
 ### Cracks and Break
@@ -191,7 +191,7 @@ Each weapon has a rider that works while it is held, for every ability (any book
 ### Spellbook and learning
 - The spec lists the 4 weapons; each has a dropdown showing its 4 moves. The spec also lists four placeholders, Filler, Heavy Filler, Weapon Art and Finisher: they do nothing themselves; on the bar each becomes the held weapon's move of that kind. Dragging a move from a dropdown places its placeholder.
 - Weapons are learned whole (Skill Cards): Greataxe 2, Greatsword 4, Halberd 6, Maul 8. The Wheel holds the learned ones, in order.
-- Readability: a Cracks buff (one stack per Crack), the Wheel strip (weapons in order, the held one large with its uses left and Cracks) and the Crack count on the Break button.
+- Readability: a Cracks buff (one stack per Crack), the Wheel tracker group (weapons in order, the held one large, its uses left and Cracks) and the Crack count on the Break button.
 
 ## Talents (Martial tree) - REBUILT 2026-10-22, on ribbons 2026-10-26
 The first book rebuilt for spec groups (docs/design/systems.md, "Talents", "Ribbon layout"). Numbers are drafts (talents.gd, balance.gd).

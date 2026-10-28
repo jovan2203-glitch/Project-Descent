@@ -35,7 +35,7 @@ Code: player.gd, "Holy healer: the Hymns". Numbers: balance.gd (VERSE_*, MERCY_*
 - Psalm - 2 s cast, 1.0, 2 mana, 1 Mercy. The starter heal every character has (default bar slot 4).
 - Outpour - 3 s cast, 2.2, 4 mana, 2 Mercy.
 - Lift - instant, 8 s cooldown, 0.5, 1 mana, 1 Mercy.
-- Refrain - instant, 1.2 over 12 s (ticks every second, faster with Haste), 2 mana, 1 Mercy.
+- Refrain - instant, 1.2 over 12 s (ticks every second, faster with Haste), 1 mana, 1 Mercy.
 - Canticle - 2.5 s cast, 12 s cooldown, up to 5 injured allies within 30 m (lowest first) for 0.6, 3 mana, 2 Chorus.
 - Exultation - 2 s cast, no cooldown, every ally within 20 m for 0.45, 4 mana (the most of any cast), 1 Chorus. The spammable group heal.
 - Antiphon - instant, 15 s cooldown, target 0.8 then you 50% of that, 2 mana, 1 Chorus.
@@ -79,7 +79,7 @@ Code: player.gd, "Holy archer: Lightstring". Numbers: balance.gd (REFRACT_*, GOL
 
 ### Kit (weapon multipliers on the bow; Energy)
 - Prism Arrow - off GCD, 30 m ground target, 2 charges (12 s recharge): plants a gold prism. 15.
-- Glimmer Shot - instant filler, 1.0x weapon. 20.
+- Glimmer Shot - instant filler, 1.8x weapon. 20.
 - Refracting Shot - 2 s cast, 8 s cd, 2.0x weapon; its refracted arrows hit for 60%. 30.
 - Sunlit Arrow - 12 s cd, 1.2x weapon plus the light it drains from the gold prisms on its line (0.03 per point of light; three full prisms about +0.6, so ~1000 on a crit at level 50). 30.
 - Prism Breaker - 15 s cd: shoots a gold prism (mouseover, clicked, closest); it shatters for 0.6 FB + 0.06 per point of light within 8 m (split past the AoE cap). Heals nothing. 25.

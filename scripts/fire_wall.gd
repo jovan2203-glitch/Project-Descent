@@ -15,6 +15,8 @@ var tick := 0.5
 var damage := 0.25
 var tags := PackedStringArray(["Fire", "Spell", "AoE"])
 var source: Node = null   # the caster; damage is theirs
+## Made by my free cast (Rune of the Wild Page): its hits are echoes too.
+var echo := false
 ## Name of its ticks in logs and meters ("dot_<effect_id>"): Wall of Fire, the
 ## line Cinder Step leaves, a Smoldering Debris patch.
 var effect_id := "walloffire"
@@ -120,4 +122,7 @@ func _burn() -> void:
 		if not (e is Node3D) or not e.is_alive():
 			continue
 		if in_wall(to_local(e.global_position), length, depth, Combat.hitbox_radius(e)):
-			cs.deal_dot(source, e, damage, "fire", effect_id, tags, null, -1.0, 1.0, passive)
+			Combat.run_as(source, echo, func(): cs.deal_dot(source, e, damage, "fire", effect_id, tags, null, -1.0, 1.0, passive))
+
+func _enter_tree() -> void:
+	echo = Combat.echoing(source)

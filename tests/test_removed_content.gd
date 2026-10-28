@@ -20,11 +20,11 @@ func _walk(dir: String, out: Array) -> void:
 ## Every hit is named after what caused it (see Details.HIT_NAMES).
 func test_hit_names() -> void:
 	const Details = preload("res://scripts/core/details.gd")
-	assert_eq(Details.spell_name("frozen_shatter"), "Frozen Shatter")
-	assert_eq(Details.spell_name("rimeshell"), "Rime Shell")
-	assert_eq(Details.spell_name("item_frost_shard"), "Shattering Cold", "item effects use the effect's name")
-	assert_eq(Details.spell_name("burst_hoarfrost"), "Hoarfrost (Burst)")
-	assert_eq(Details.spell_name("icefloe"), "Ice Floe")
+	assert_eq(Details.line_name("frozen_shatter"), "Frozen Shatter")
+	assert_eq(Details.line_name("rimeshell"), "Rime Shell")
+	assert_eq(Details.line_name("item_frost_shard"), "Shattering Cold", "item effects use the effect's name")
+	assert_eq(Details.line_name("burst_hoarfrost"), "Hoarfrost (Burst)")
+	assert_eq(Details.line_name("icefloe"), "Ice Floe")
 
 func test_no_ray_of_frost() -> void:
 	var files := []

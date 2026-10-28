@@ -524,4 +524,9 @@ func _tell() -> void:
 	player._net_fx("brawler", player.global_position, null, {"i": _chain if _shown != "" else [], "b": bare_hands(), "o": _shown != ""})
 
 func tracker_values() -> Dictionary:
-	return {"chain": {"value": _chain.size(), "max": Balance.CHAIN_LENGTH}, "bruise": _bruise}
+	var out := {"chain": {"value": _chain.size(), "max": Balance.CHAIN_LENGTH}, "bruise": {"value": _bruise, "max": float(player.max_health)}}
+	for i in Balance.CHAIN_LENGTH:   # each input so far, its strike's icon
+		var id := _chain[i] if i < _chain.size() else ""
+		out["chain_%d" % (i + 1)] = {"value": 1 if id != "" else 0, "max": 1, "icon": id,
+			"name": Abilities.ability_name(id) if id != "" else ""}
+	return out

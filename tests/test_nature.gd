@@ -63,9 +63,9 @@ func test_numbers() -> void:
 	assert_eq(Balance.MULCH_MAX, 5)
 	assert_eq(Balance.VIPERS_HOLD, 0.5)
 	var p := _p()
-	# Mossback: 0.6 + 0.6 per patch (3.6 at 5); Vipers: 0.4 + 0.4 per patch (2.4 at 5).
-	_near(WeaverKit.rooted_coef(float(Abilities.get_resource("mossback").damage), Balance.MOSSBACK_PER_PATCH, 0), 0.6)
-	_near(WeaverKit.rooted_coef(float(Abilities.get_resource("mossback").damage), Balance.MOSSBACK_PER_PATCH, 5), 3.6)
+	# Mossback: 0.5 + 0.5 per patch (3.0 at 5); Vipers: 0.4 + 0.4 per patch (2.4 at 5).
+	_near(WeaverKit.rooted_coef(float(Abilities.get_resource("mossback").damage), Balance.MOSSBACK_PER_PATCH, 0), 0.5)
+	_near(WeaverKit.rooted_coef(float(Abilities.get_resource("mossback").damage), Balance.MOSSBACK_PER_PATCH, 5), 3.0)
 	_near(WeaverKit.rooted_coef(float(Abilities.get_resource("chokingvipers").damage), Balance.VIPERS_PER_PATCH, 5), 2.4)
 
 # --- Mulch -------------------------------------------------------------------------------
@@ -193,8 +193,8 @@ func test_fawn_bounces_to_the_lowest_once() -> void:
 
 func test_rooted_heals_grow_with_blossoms() -> void:
 	var p := _p()
-	_near(WeaverKit.rooted_coef(float(Balance.HEALS["rootguard"]), Balance.ROOTGUARD_PER_BLOSSOM, 3), 1.76 + 3.0 * 0.88)
-	_near(WeaverKit.rooted_coef(float(Balance.HEALS["heartwoodelk"]), Balance.ELK_PER_BLOSSOM, 0), 1.1)
+	_near(WeaverKit.rooted_coef(float(Balance.HEALS["rootguard"]), Balance.ROOTGUARD_PER_BLOSSOM, 3), 1.35 + 3.0 * 0.88)
+	_near(WeaverKit.rooted_coef(float(Balance.HEALS["heartwoodelk"]), Balance.ELK_PER_BLOSSOM, 0), 0.85)
 
 func test_shepherd_hooks_and_talent() -> void:
 	var src := _src()
@@ -307,7 +307,9 @@ func test_venomstring_hooks_and_talent() -> void:
 	assert_contains(src, "_fang_landed(enemy)")
 	assert_contains(src, "\t_tick_venom(_delta)\n")
 	assert_contains(src, "_start_adder_arrow()")
-	assert_contains(FileAccess.get_file_as_string("res://scripts/ui/hud/venom_bar.gd"), "VENOM_ARROWS.all(")
+	var venom: Dictionary = Trackers.spec_sets()[0][3][0]   # the Venom bar: a tracker, all three arrows on the bars
+	assert_eq(str(venom["load"]["bars_mode"]), "all")
+	assert_eq(Trackers.bar_ids(str(venom["load"]["bars"])), VenomstringKit.POISON_ARROWS)
 	assert_contains(FileAccess.get_file_as_string("res://scripts/arrow.gd"), "_snake_tint(id)")
 	var id := Talents.id_for_key("nature_lingering_venom")
 	assert_true(id != "", "Lingering Venom exists")

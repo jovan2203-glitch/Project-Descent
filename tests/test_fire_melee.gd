@@ -193,7 +193,7 @@ func test_afterglow_damage() -> void:
 	assert_eq(FireMeleeKit.afterglow_damage(200, 20.0), 40.0)
 	assert_eq(FireMeleeKit.afterglow_damage(0, 20.0), 0.0)
 	assert_eq(Balance.AFTERGLOW_TIME, 4.0)
-	assert_eq(Details.spell_name("afterglow"), "Afterglow", "its hits are named after it in the meter")
+	assert_eq(Details.line_name("afterglow"), "Afterglow", "its hits are named after it in the meter")
 
 func test_melee_talents() -> void:
 	var want := {

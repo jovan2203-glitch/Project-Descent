@@ -165,7 +165,7 @@ func takes_last_use(id: String) -> bool:
 		return false
 	return BREAKS.has(id) or _uses >= Balance.WHEEL_USES - 1
 
-## Out of combat: the HUD's Wheel strip turns it to the next weapon.
+## Out of combat: clicking the held weapon's tracker turns it to the next weapon.
 func turn_out_of_combat() -> bool:
 	if player.is_in_combat() or weapons().size() < 2:
 		return false
@@ -529,4 +529,22 @@ func stagger_on(e: Node) -> float:
 	return float(_stagger[key][0]) if _stagger.has(key) else 0.0
 
 func tracker_values() -> Dictionary:
-	return {"wheel_uses": {"value": uses_left(), "max": Balance.WHEEL_USES}, "wheel_cracks": _cracks}
+	var out := {"wheel_uses": {"value": uses_left(), "max": Balance.WHEEL_USES}, "wheel_cracks": _cracks}
+	# wheel_1 is the held weapon, then the rest in the order they will come.
+	var ws := weapons()
+	var start := maxi(ws.find(held_weapon()), 0)
+	for i in Abilities.WHEEL_ORDER.size():
+		var w := str(ws[(start + i) % ws.size()]) if i < ws.size() else ""
+		out["wheel_%d" % (i + 1)] = {"value": 1 if w != "" else 0, "max": 1, "icon": w,
+			"name": Abilities.ability_name(w) if w != "" else ""}
+	return out
+
+func tracker_actions() -> Dictionary:
+	return {"turn_wheel": "Turn the Wheel (out of combat)"}
+
+func tracker_action(id: String) -> bool:
+	if id != "turn_wheel":
+		return false
+	if not turn_out_of_combat():
+		player._error("The Wheel only turns out of combat")
+	return true

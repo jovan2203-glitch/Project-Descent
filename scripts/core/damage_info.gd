@@ -16,6 +16,8 @@ var tags: PackedStringArray = PackedStringArray()
 var ability_id: String = ""      # e.g. "frostbolt", "auto_melee", "zombie_melee"
 var is_proc := false             # caused by an rune (runes ignore these)
 var is_dot := false              # damage-over-time tick
+## Part of a free cast (Rune of the Wild Page): its meter line is "<name> (Wild Page)".
+var echo := false
 ## A hit split over two schools (Frostfire Bolt): 1 = its first half, 2 = its
 ## second. Things that count "a hit" (procs, talents) skip the second half;
 ## things that react to a school see whichever half is theirs. 0 = a whole hit.
@@ -62,6 +64,8 @@ static func make(src: Node, tgt: Node, dmg: float, id: String = "") -> RefCounte
 	d.target = tgt
 	d.base = dmg
 	d.ability_id = id
+	# Dealt during my free cast (Rune of the Wild Page), or by something it left behind.
+	d.echo = src != null and is_instance_valid(src) and src.has_method("echoing") and src.echoing()
 	return d
 
 ## Did the hit do nothing because its target dodged, parried or blocked it (or a

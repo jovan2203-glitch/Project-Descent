@@ -72,7 +72,7 @@ func test_unravel() -> void:
 	assert_eq(int(r.cast_type), 1)
 	assert_eq(float(r.cast_time), 2.0)
 	assert_eq(float(r.cooldown), 0.0, "no cooldown")
-	assert_eq(float(r.damage), 1.1)
+	assert_eq(float(r.damage), 1.3)
 	assert_eq(Balance.UNRAVEL_SECONDS, 1.0)
 	var p := _player()
 	assert_true(p.ENEMY_BOLTS.has("unravel"))
@@ -200,7 +200,7 @@ func test_mirror_sigil() -> void:
 	assert_false(ArcaneCasterKit.mirror_echoes(ARCANE, true, "afterimage"), "nor the image's")
 	assert_false(ArcaneCasterKit.mirror_echoes(PackedStringArray(["Frost", "Spell"]), false, "frostbolt"), "Arcane only")
 	assert_false(ArcaneCasterKit.mirror_echoes(PackedStringArray(["Arcane", "Melee"]), false, "arcanestrike"), "spells only")
-	assert_eq(Details.spell_name("mirrorsigil"), "Mirror Sigil", "its own line on the meter")
+	assert_eq(Details.line_name("mirrorsigil"), "Mirror Sigil", "its own line on the meter")
 
 func test_collapse() -> void:
 	var r := Abilities.get_resource("collapse")
@@ -284,7 +284,7 @@ func test_rune_of_the_afterimage() -> void:
 	assert_eq(TextFill.leftover(text), "", "every placeholder is filled")
 	assert_contains(text, Abilities.ability_name("blink"))
 	assert_contains(text, Abilities.ability_name("flicker"))
-	assert_eq(Details.spell_name("afterimage"), "Afterimage", "its own line on the meter")
+	assert_eq(Details.line_name("afterimage"), "Afterimage", "its own line on the meter")
 	var p := _player()
 	assert_eq(ArcaneCasterKit.echo_amount(801, 50.0), 401)
 	assert_eq(ArcaneCasterKit.afterimage_window(0.0, 0), Balance.AFTERIMAGE_BURST, "one spell: a moment")

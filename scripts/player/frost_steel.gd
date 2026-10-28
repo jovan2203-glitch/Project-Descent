@@ -94,6 +94,8 @@ func _gain_glaze(more: int) -> void:
 ## each; Thaw Strike's cheaper finisher is spent).
 func _spend_glaze() -> int:
 	var n := glaze()
+	if player.echoing():
+		return n   # a free cast (Rune of the Wild Page) uses none up
 	if n > 0:
 		player.status.remove(GLAZE_FX)
 		player._gain("fury", player._talent("frost_hard_glaze") * n)
@@ -249,3 +251,6 @@ func _hoar_blade_on_hit(info: RefCounted) -> void:
 	if foe == null or not is_instance_valid(foe) or not foe.is_alive():
 		return
 	player.deal_damage(foe, Balance.HOAR_BLADE_DAMAGE, HOAR_BLADE_ID, true, "frost", PackedStringArray(FROST_MELEE_TAGS))
+
+func tracker_values() -> Dictionary:
+	return {"glaze": {"value": glaze(), "max": Balance.GLAZE_MAX}}
