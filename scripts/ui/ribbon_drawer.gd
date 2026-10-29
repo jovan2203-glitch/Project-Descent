@@ -36,12 +36,14 @@ const EMBROIDERY := {
 }
 
 ## How many rows a group's ribbon reaches: one past the deepest row it has points in
-## (at least the first row; all ROWS once its capstone has points).
+## (at least the first row; all ROWS once its capstone has points). A talent opened
+## only by a link doesn't count: its row isn't open, so the ribbon doesn't reach it.
 static func depth(pd: Object, category: String, group: String) -> int:
 	var deepest := 0
 	for id in Talents.in_group(category, group):
-		if pd != null and int(pd.talent_rank(id)) > 0:
-			deepest = maxi(deepest, Talents.tier_of(id) + 1)
+		var tier := Talents.tier_of(id)
+		if pd != null and int(pd.talent_rank(id)) > 0 and bool(pd.tier_unlocked(tier)):
+			deepest = maxi(deepest, tier + 1)
 	return clampi(deepest + 1, 1, Talents.ROWS)
 
 ## Colour of a spec's ribbon: a darker shade of the book's colour, a little different per spec.

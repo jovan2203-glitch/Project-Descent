@@ -84,7 +84,7 @@ func test_the_gate_opens_at_25_points() -> void:
 	assert_eq(pd.can_invest(cap), "Requires %d points in Rogue (%d / %d)" % [Balance.CAPSTONE_GATE, Balance.CAPSTONE_GATE - 1, Balance.CAPSTONE_GATE])
 	var enough := _ranks_with("Rogue", Balance.CAPSTONE_GATE)
 	pd.talents = enough
-	assert_eq(pd.can_invest(cap), "", "25 points in the Rogue: the capstone opens")
+	assert_eq(pd.can_invest(cap), "", "%d points in the Rogue: the capstone opens" % Balance.CAPSTONE_GATE)
 	pd.free()
 
 func test_refunds_keep_the_gate() -> void:
@@ -118,3 +118,29 @@ func test_capstone_points_dont_count_for_its_own_gate() -> void:
 	var cap := Talents.id_for_key("martial_turning_wheel")
 	var ranks := {cap: 5}
 	assert_eq(PlayerDataScript.gate_points(ranks, "martial", "The Wheel"), 0)
+
+## A stand-in PlayerData for the ribbon: its ranks, and rows opened by points.
+class RibbonPD:
+	var ranks := {}
+	var open_rows := 1
+	func talent_rank(id: String) -> int:
+		return int(ranks.get(id, 0))
+	func tier_unlocked(tier: int) -> bool:
+		return tier < open_rows
+
+## A talent opened only by a link doesn't unroll its ribbon to its row: the rows
+## above it aren't open, and the ribbon would look like they were.
+func test_a_link_does_not_unroll_the_ribbon() -> void:
+	var RibbonDrawer = load("res://scripts/ui/ribbon_drawer.gd")
+	var to := ""
+	for l in Talents.links_in_tree("martial"):
+		if Talents.tier_of(str(l[1])) >= 2 and Talents.group_of(str(l[1])) != Talents.OPEN_GROUP:
+			to = str(l[1])
+			break
+	assert_true(to != "", "the Martial book has a link to row 3 or deeper")
+	var group := Talents.group_of(to)
+	var pd := RibbonPD.new()
+	pd.ranks = {to: 1}
+	assert_eq(RibbonDrawer.depth(pd, "martial", group), 1, "linked only: the ribbon stays rolled up")
+	pd.open_rows = Talents.tier_of(to) + 1
+	assert_eq(RibbonDrawer.depth(pd, "martial", group), mini(Talents.tier_of(to) + 2, Talents.ROWS), "its row open: it reaches it")

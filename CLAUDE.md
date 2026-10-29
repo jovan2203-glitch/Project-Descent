@@ -60,7 +60,7 @@ The code and balance.gd are the source of truth for numbers. Design docs record 
 - Talent redesign (docs/design/systems.md "Talents"; Martial is done):
   - About 65 of the 80 points build one pure spec, so a spec gets ~19 talents and ~50 ranks of its own.
   - At most ~25% of talents are "Requires X"; the rest key off a resource, keyword or damage type (the keyword list is in systems.md).
-  - Specs sit side by side as 3-wide ribbons (`Talents.GROUPS`), the open talents on a spine column between them, and a spec's row-10 capstone needs 25 points in it.
+  - Specs sit side by side as 3-wide ribbons (`Talents.GROUPS`), the open talents on a spine column between them, and a spec's row-10 capstone needs 15 points in it.
   - Talents never reference another book's content.
 - Open talents are themed to their book but useful to anyone, and never tell the player what to combine.
 - Spellbooks never change position.

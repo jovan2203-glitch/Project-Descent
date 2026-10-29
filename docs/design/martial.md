@@ -197,7 +197,7 @@ Each weapon has a rider that works while it is held, for every ability (any book
 ## Talents (Martial tree) - REBUILT 2026-10-22, on ribbons 2026-10-26
 The first book rebuilt for spec groups (docs/design/systems.md, "Talents", "Ribbon layout"). Numbers are drafts (talents.gd, balance.gd).
 - **Layout:** 10 rows × 13 columns. The Wheel takes columns 1-3, the Rogue 4-6, the open talents 7 (the spine), the Brawler 8-10 and the Sharpshooter 11-13.
-- **Ribbons:** each spec's 18 talents in rows 1-9 form its shape. Row 10 holds each spec's 5-rank capstone, which needs 25 points in that spec.
+- **Ribbons:** each spec's 18 talents in rows 1-9 form its shape. Row 10 holds each spec's 5-rank capstone, which needs 15 points in that spec.
 - **Size:** 84 talents. Each spec has 19 (50-55 ranks); the open column has 8. Only 15 need one ability (18%).
 - **Links:** Twice Over -> Gather Pace, Steady Pace -> Deep Flow, Mix It Up -> Hot Start, Get Up -> Back Up, Clean Release -> Run It Back.
 - **Code:** each spec's component, plus scripts/player/martial_talents_open.gd for the open talents and the damage-line bonuses. Every damage bonus has its own meter line.

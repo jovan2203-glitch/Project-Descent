@@ -65,7 +65,7 @@ Code: scripts/player/fire_bow.gd.
 
 ## Talents - REBUILT 2026-10-23, on ribbons 2026-10-26
 Like Martial (docs/design/systems.md, "Talents", "Ribbon layout"). Numbers are drafts (talents.gd, balance.gd).
-- Layout: 10 rows x 13 columns. Steady Flame columns 1-3, Slagforged 4-6, open talents 7 (the spine, rows 1-8), Forge Heat 8-10, Pitch and Cinder 11-13. Row 10: each spec's 5-rank capstone, gated at 25 points in the spec.
+- Layout: 10 rows x 13 columns. Steady Flame columns 1-3, Slagforged 4-6, open talents 7 (the spine, rows 1-8), Forge Heat 8-10, Pitch and Cinder 11-13. Row 10: each spec's 5-rank capstone, gated at 15 points in the spec.
 - Links: Stoked Breath -> Lean Fuel, Clean Burn -> Stay Lit, Fuel the Forge -> Heavy Hammer, Banked Fire -> Overheat, Spreading Fire -> Fuel Run.
 - Size: 19 talents per spec (56-57 ranks), 8 open. 18 of 85 talents need one ability (21%).
 - Code: each spec's component, plus scripts/player/fire_talents.gd for the hit bonuses (each its own meter line).
