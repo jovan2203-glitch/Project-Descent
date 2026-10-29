@@ -55,21 +55,66 @@ static func spawn(scene: Node, kind_: String, start: Vector3, end: Vector3, fain
 	scene.add_child(n)
 	return n
 
+## The bark of every creature.
+static func bark_mat(alpha: float) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(BARK, alpha)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.emission_enabled = true
+	m.emission = BARK.lightened(0.2)
+	m.emission_energy_multiplier = 0.4   # bright enough in a dark dungeon
+	return m
+
+## Its glowing veins.
+static func vein_mat(alpha: float) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(VEIN, alpha)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.emission_enabled = true
+	m.emission = VEIN
+	m.emission_energy_multiplier = 2.0
+	return m
+
+## The leaves a woven creature falls apart into.
+static func leaf_mat(alpha: float) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(LEAF, alpha)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return m
+
+## Performance: the first time a creature is drawn, its materials' shaders are
+## compiled, which freezes the game for a moment (Vine Fist's first use). Drawing
+## each one once, nearly invisible in front of `camera`, when a player spawns does
+## that up front. Every machine does it: party members' creatures are drawn too.
+static func warm_up(camera: Camera3D) -> void:
+	if camera == null or not is_instance_valid(camera) or not camera.is_inside_tree():
+		return
+	var q := QuadMesh.new()
+	q.size = Vector2(0.01, 0.01)
+	var holder := Node3D.new()
+	camera.add_child(holder)
+	holder.position = Vector3(0, 0, -1.0)
+	var i := 0
+	for m: StandardMaterial3D in [bark_mat(0.02), vein_mat(0.02), leaf_mat(0.02)]:
+		var p := MeshInstance3D.new()
+		p.mesh = q
+		p.material_override = m
+		p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		p.position = Vector3(0.02 * i, 0, 0)
+		holder.add_child(p)
+		i += 1
+	# A few frames on screen, then gone.
+	holder.get_tree().create_timer(0.2).timeout.connect(func():
+		if is_instance_valid(holder):
+			holder.queue_free())
+
 func _ready() -> void:
 	var alpha := 0.45 if faint else 1.0
-	_bark = StandardMaterial3D.new()
-	_bark.albedo_color = Color(BARK, alpha)
-	_bark.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_bark.emission_enabled = true
-	_bark.emission = BARK.lightened(0.2)
-	_bark.emission_energy_multiplier = 0.4   # bright enough in a dark dungeon
-	_vein = StandardMaterial3D.new()
-	_vein.albedo_color = Color(VEIN, alpha)
-	_vein.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_vein.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_vein.emission_enabled = true
-	_vein.emission = VEIN
-	_vein.emission_energy_multiplier = 2.0
+	_bark = bark_mat(alpha)
+	_vein = vein_mat(alpha)
 	_body = Node3D.new()
 	add_child(_body)
 	match kind:
@@ -259,14 +304,10 @@ func _spawn_roots(at: Vector3, time: float) -> void:
 ## The woven creature unravels into leaves that drift down and fade.
 func _leaves_fall() -> void:
 	var scene := get_tree().current_scene
-	var leaf_mat := StandardMaterial3D.new()
-	leaf_mat.albedo_color = Color(LEAF, 0.45 if faint else 1.0)
-	leaf_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	leaf_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	leaf_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var leaves := leaf_mat(0.45 if faint else 1.0)
 	var q := QuadMesh.new()
 	q.size = Vector2(0.14, 0.08)
-	q.material = leaf_mat
+	q.material = leaves
 	for i in LEAVES:
 		var leaf := MeshInstance3D.new()
 		leaf.mesh = q
@@ -279,7 +320,7 @@ func _leaves_fall() -> void:
 		t.set_parallel(true)
 		t.tween_property(leaf, "global_position", land, 0.7).set_ease(Tween.EASE_OUT)
 		t.tween_property(leaf, "rotation", Vector3(a, a * 2.0, a), 0.7)
-		t.tween_property(leaf_mat, "albedo_color:a", 0.0, 0.9)
+		t.tween_property(leaves, "albedo_color:a", 0.0, 0.9)
 		t.set_parallel(false)
 		t.tween_callback(leaf.queue_free)
 

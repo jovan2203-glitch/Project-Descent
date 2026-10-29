@@ -242,6 +242,11 @@ func test_sap() -> void:
 	_near(ColossusKit.heartsap_pct(0, 0.0), Balance.HEARTSAP_BASE_PCT)
 	_near(ColossusKit.heartsap_pct(5, 0.0), Balance.HEARTSAP_BASE_PCT + 5.0 * Balance.HEARTSAP_PER_SAP)
 	_near(ColossusKit.heartsap_pct(5, 10.0), (Balance.HEARTSAP_BASE_PCT + 5.0 * Balance.HEARTSAP_PER_SAP) * 1.1, "Thick Sap")
+	# Both are exact health, never a coefficient (Player.heal would scale them by the level's heal: ~1.2M a tick).
+	var src := PlayerSource.text()
+	assert_contains(src, "SAP_HEAL_ID, true)   # + Green Thumb", "Sap heals exact health")
+	assert_contains(src, "HEARTSAP_ID, true)   # + Thick Sap (exact health)", "Heartsap heals exact health")
+	assert_false(src.contains("heal(sap_heal("), "never through Player.heal")
 	assert_eq(ColossusKit.stomp_sap(0), 0)
 	assert_eq(ColossusKit.stomp_sap(1), Balance.STOMP_SAP)
 	assert_eq(ColossusKit.stomp_sap(Balance.STOMP_SAP_HITS), Balance.STOMP_SAP_MANY)

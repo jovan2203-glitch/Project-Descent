@@ -626,6 +626,7 @@ func _ready() -> void:
 	_build_aoe_indicator()
 	_build_target_ring()
 	_build_friendly_ring()
+	weaver._warm_up()   # the woven creatures' shaders, compiled now instead of on their first use
 	# Stats from gear/talents (max health etc.) + the rune listener.
 	max_health = int(get_stat("max_health"))
 	health = max_health

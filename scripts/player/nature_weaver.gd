@@ -260,6 +260,15 @@ func _creature(kind: String, start: Vector3, end: Vector3) -> void:
 	NATURE_CREATURE.spawn(player.get_tree().current_scene, kind, start, end)
 	player._net_fx("creature", start, null, {"k": kind, "to": end})
 
+## Compile the creatures' materials soon after I spawn (NatureCreature.warm_up), once
+## the camera is up: their first use would hitch otherwise. Mine and party members'.
+func _warm_up() -> void:
+	if not player.is_inside_tree():
+		return
+	player.get_tree().create_timer(0.5).timeout.connect(func():
+		if is_instance_valid(player) and player.is_inside_tree():
+			NATURE_CREATURE.warm_up(player.get_viewport().get_camera_3d()))
+
 ## After `delay` sec, `strike` runs (a creature's hit lands when its picture strikes).
 func _after(delay: float, strike: Callable) -> void:
 	if not player.is_inside_tree():
