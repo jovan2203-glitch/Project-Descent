@@ -1680,6 +1680,27 @@ func threat_state_for(p: Node) -> int:
 	var mine_v := float(threat.get(p.get_instance_id(), {"value": 0.0})["value"])
 	return 1 if top_v > 0.0 and mine_v >= top_v * THREAT_WARN else 0
 
+## Everyone's threat on me, biggest first (the meter's threat bars, host and clients):
+## [{"member": member id (0 offline), "me": the local player, "value": threat,
+##   "aggro": the one I'm attacking}].
+func threat_rows() -> Array:
+	var out: Array = []
+	if _replica():
+		var me := int(_net.my_id())
+		for m in _net_threat_vals:
+			out.append({"member": int(m), "me": int(m) == me, "value": float(_net_threat_vals[m]),
+				"aggro": int(m) == _net_threat})
+	else:
+		var top: Node = top_threat()
+		for row in get_threat_list():
+			var n: Node = row["node"]
+			if not is_instance_valid(n) or _is_dead(n):
+				continue
+			out.append({"member": int(_net.member_of(n)) if _net and _net.online else 0,
+				"me": n.is_in_group("player"), "value": float(row["value"]), "aggro": n == top})
+	out.sort_custom(func(a, b): return float(a["value"]) > float(b["value"]))
+	return out
+
 ## Host snapshot: [[member, threat], ...] (so party members see the yellow warning).
 var _net_threat_vals := {}
 

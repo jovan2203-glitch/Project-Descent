@@ -39,3 +39,23 @@ func test_item_lines_name_the_item() -> void:
 	var n := Details.spell_name("item_frost_shard")
 	assert_true(n.begins_with("Shattering Cold ("), n)
 	assert_false(n.ends_with("()"), n)
+
+## The meter's threat bars read an enemy's threat table: biggest first, who it attacks marked.
+func test_threat_rows_for_the_meter() -> void:
+	var e: Node3D = track(load("res://scripts/enemy.gd").new())
+	var me := Node3D.new()
+	var mate := Node3D.new()
+	track(me)
+	track(mate)
+	me.add_to_group("player")
+	mate.add_to_group("remote_player")
+	e.threat[mate.get_instance_id()] = {"node": mate, "value": 40.0}
+	e.threat[me.get_instance_id()] = {"node": me, "value": 100.0}
+	var rows: Array = e.threat_rows()
+	assert_eq(rows.size(), 2)
+	assert_true(bool(rows[0]["me"]) and bool(rows[0]["aggro"]), "I'm on top and it attacks me")
+	assert_eq(float(rows[0]["value"]), 100.0)
+	assert_false(bool(rows[1]["me"]) or bool(rows[1]["aggro"]))
+	assert_eq(float(rows[1]["value"]), 40.0)
+	var src := FileAccess.get_file_as_string("res://scripts/core/details.gd")
+	assert_contains(src, "rows = tgt.threat_rows()", "the meter shows them for my target")
