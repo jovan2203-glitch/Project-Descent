@@ -183,6 +183,10 @@ func receive_support(kind: String, from: Node, data: Dictionary) -> void:
 func hounds_out() -> bool:
 	return hounds.hounds_out()
 
+# Forwards to BrawlerKit: what my own hit of `info` is multiplied by (Put 'Em Up: less non-Physical damage).
+func outgoing_mult(info: RefCounted) -> float:
+	return brawler.outgoing_mult(info)
+
 # Forwards to ShadowTalentsKit (called from other scripts).
 func crit_hit_bonus(info: RefCounted) -> Array:
 	# [pct, label, pct, label, ...]: each its own damage-meter line.
@@ -2931,7 +2935,7 @@ func _use_drafted_now(id: String, res: Resource, w: Dictionary) -> void:
 		"hack", "chop", "rush", "shrapnel", "slash", "lunge", "bladeguard", "shardlance", \
 				"jab", "hook", "dragin", "flyinghead", "thud", "crush", "earthshake", "faultline":
 			wheel._wheel_use(id, res)   # Martial warrior: the Wheel
-		"punch", "brawlkick", "elbow", "catch", "onemore", "toughitout", "comeon", "fightingstyle":
+		"punch", "brawlkick", "elbow", "catch", "onemore", "toughitout", "comeon", "fightingstyle", "putemup":
 			brawler._brawler_use(id, res)   # Martial tank: the Brawler
 		"cut", "whirl", "dartin", "kickoff", "twinstab", "goin", "closeitout", "hityourstride", "rollwithit", "snatch", \
 				"gut", "throughandthrough", "redwhirl", "backflip", "drivethrough", "pintheshadow", "overtheshoulder", "playdead", "stonethrow":

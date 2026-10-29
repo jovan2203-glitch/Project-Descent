@@ -15,7 +15,7 @@ const Details = preload("res://scripts/core/details.gd")
 const Keywords = preload("res://scripts/core/keywords.gd")
 
 const STRIKES := ["punch", "brawlkick", "elbow"]
-const BUTTONS := ["punch", "brawlkick", "elbow", "catch", "onemore", "toughitout", "comeon", "fightingstyle"]
+const BUTTONS := ["punch", "brawlkick", "elbow", "catch", "onemore", "toughitout", "comeon", "fightingstyle", "putemup"]
 const MOVES := ["rapidfists", "haymaker", "sweep", "roundhouse", "clinch", "shakeoff", "turnitaround", "throw", "takedown"]
 const LEVELS := {"punch": 2, "catch": 4, "comeon": 6, "toughitout": 8, "onemore": 10}
 
@@ -84,6 +84,22 @@ func test_bruise_takes_part_of_each_hit_and_spreads_it() -> void:
 	assert_true(absf(BrawlerKit.bruise_per_tick(120.0, Balance.BRUISE_TIME) - 10.0) < 0.001)
 	assert_true(absf(BrawlerKit.bruise_per_tick(10.0, 0.1) - 10.0) < 0.001, "the last tick takes what is left")
 
+func test_put_em_up_cuts_only_non_physical_damage() -> void:
+	assert_eq(Balance.PUT_EM_UP_PCT, 60.0)
+	assert_true(Abilities.OFF_GCD.has("putemup"), "Put 'Em Up is off the GCD")
+	assert_true(Abilities.BRAWLER_IDS.has("putemup"), "only the Brawler has it")
+	assert_eq(BrawlerKit.stance_mult("physical", true), 1.0, "Physical damage stays whole")
+	for school in ["fire", "frost", "lightning", "arcane", "shadow", "holy", "nature"]:
+		assert_true(absf(BrawlerKit.stance_mult(school, true) - 0.4) < 0.001, "%s: 60%% less" % school)
+		assert_eq(BrawlerKit.stance_mult(school, false), 1.0, "%s: nothing out of the stance" % school)
+
+func test_bruise_needs_the_stance() -> void:
+	var src := PlayerSource.text()
+	assert_contains(src, "if _ticking or amount <= 0 or not in_stance():", "no Bruise outside Put 'Em Up")
+	assert_contains(src, "return pd != null and bool(pd.put_em_up) and is_out()", "the stance counts only while the Brawler is out")
+	var cs := FileAccess.get_file_as_string("res://scripts/core/combat_system.gd")
+	assert_contains(cs, "om *= float(src.outgoing_mult(info))", "the cut scales the hit itself (not an additive bonus)")
+
 func test_bruise_ticks_give_fury_and_tough_it_out_doubles_it() -> void:
 	assert_true(absf(BrawlerKit.bruise_fury(50.0, 5000.0, false) - 1.0) < 0.001, "1 Fury per 1% of max health")
 	assert_true(absf(BrawlerKit.bruise_fury(50.0, 5000.0, true) - Balance.TOUGH_IT_OUT_FURY) < 0.001)
@@ -93,7 +109,7 @@ func test_bruise_is_hooked_into_damage_taken_before_the_caps() -> void:
 	var at := src.find("amount = bruise_take(amount)")
 	assert_true(at > 0, "take_damage sends hits through Bruise")
 	assert_true(at < src.find("amount = _still_standing_limit(amount)"), "before Still Standing and Unfallen, so its ticks still respect them")
-	assert_contains(src, "if _ticking or amount <= 0 or not is_out():", "Bruise's own ticks don't go into Bruise")
+	assert_contains(src, "if _ticking or amount <= 0 or not in_stance():", "Bruise's own ticks don't go into Bruise")
 
 # --- Catch ------------------------------------------------------------------------------
 
@@ -149,7 +165,7 @@ func test_moves_have_no_buttons() -> void:
 
 func test_names_and_learning() -> void:
 	var names := {"punch": "Punch", "brawlkick": "Kick", "elbow": "Elbow", "catch": "Catch", "onemore": "One More",
-		"toughitout": "Tough It Out", "comeon": "Come On", "fightingstyle": "Fighting Style",
+		"toughitout": "Tough It Out", "comeon": "Come On", "fightingstyle": "Fighting Style", "putemup": "Put 'Em Up",
 		"rapidfists": "Rapid Fists", "haymaker": "Haymaker", "sweep": "Sweep", "roundhouse": "Roundhouse",
 		"clinch": "Clinch", "shakeoff": "Shake Off", "turnitaround": "Turn It Around", "throw": "Throw", "takedown": "Takedown"}
 	for id in names:
@@ -159,7 +175,8 @@ func test_names_and_learning() -> void:
 		assert_eq(SkillCards.level_of(id), LEVELS[id], "%s from level %d" % [id, LEVELS[id]])
 		assert_true(Abilities.DRAFT_POOL.has(id))
 	var pd_src := FileAccess.get_file_as_string("res://scripts/player_data.gd")
-	assert_contains(pd_src, "return learned_abilities.has(\"punch\")", "Punch brings Kick, Elbow, Fighting Style and the moves")
+	assert_contains(pd_src, "return learned_abilities.has(\"punch\")", "Punch brings Kick, Elbow, Fighting Style, Put 'Em Up and the moves")
+	assert_eq(str(Abilities.BROUGHT_BUTTONS.get("putemup", "")), "punch", "Put 'Em Up comes with Punch")
 	assert_contains(pd_src, "return learned_abilities.has(\"catch\")", "Catch brings the Catch moves")
 
 func test_numbers_are_in_balance() -> void:

@@ -364,6 +364,7 @@ const PATHS := {
 	"toughitout": "res://data/abilities/toughitout.tres",
 	"comeon": "res://data/abilities/comeon.tres",
 	"fightingstyle": "res://data/abilities/fightingstyle.tres",
+	"putemup": "res://data/abilities/putemup.tres",
 	# Martial DPS: the Rogue (the builders, the Kill, the Kill forms) and Martial Utility
 	"cut": "res://data/abilities/cut.tres",
 	"whirl": "res://data/abilities/whirl.tres",
@@ -494,7 +495,7 @@ const ALL := ["frostbolt", "blizzard", "frostnova", "icebarrier",
 	"wheelgreataxe", "wheelgreatsword", "wheelhalberd", "wheelmaul", "quickswing", "fullswing", "weaponart", "wheelbreak",
 	"hack", "chop", "rush", "shrapnel", "slash", "lunge", "bladeguard", "shardlance",
 	"jab", "hook", "dragin", "flyinghead", "thud", "crush", "earthshake", "faultline",
-	"punch", "brawlkick", "elbow", "catch", "onemore", "toughitout", "comeon", "fightingstyle",
+	"punch", "brawlkick", "elbow", "catch", "onemore", "toughitout", "comeon", "fightingstyle", "putemup",
 	"rapidfists", "haymaker", "sweep", "roundhouse", "clinch", "shakeoff", "turnitaround", "throw", "takedown",
 	"cut", "whirl", "dartin", "kickoff", "twinstab", "goin", "closeitout", "hityourstride", "rollwithit", "snatch",
 	"gut", "throughandthrough", "redwhirl", "backflip", "drivethrough",
@@ -573,7 +574,7 @@ const CATEGORY_OF := {
 	"jab": "martial", "hook": "martial", "dragin": "martial", "flyinghead": "martial",
 	"thud": "martial", "crush": "martial", "earthshake": "martial", "faultline": "martial",
 	"punch": "martial", "brawlkick": "martial", "elbow": "martial", "catch": "martial", "onemore": "martial",
-	"toughitout": "martial", "comeon": "martial", "fightingstyle": "martial",
+	"toughitout": "martial", "comeon": "martial", "fightingstyle": "martial", "putemup": "martial",
 	"rapidfists": "martial", "haymaker": "martial", "sweep": "martial", "roundhouse": "martial", "clinch": "martial",
 	"shakeoff": "martial", "turnitaround": "martial", "throw": "martial", "takedown": "martial",
 	"cut": "martial", "whirl": "martial", "dartin": "martial", "kickoff": "martial", "twinstab": "martial",
@@ -789,7 +790,7 @@ const SPECS := {
 		["The Wheel", ["quickswing", "fullswing", "weaponart", "wheelbreak", "wheelgreataxe", "wheelgreatsword", "wheelhalberd", "wheelmaul",
 			"hack", "chop", "rush", "shrapnel", "slash", "lunge", "bladeguard", "shardlance",
 			"jab", "hook", "dragin", "flyinghead", "thud", "crush", "earthshake", "faultline"]],
-		["Brawler", ["punch", "brawlkick", "elbow", "catch", "comeon", "toughitout", "onemore", "fightingstyle",
+		["Brawler", ["punch", "brawlkick", "elbow", "catch", "comeon", "toughitout", "onemore", "fightingstyle", "putemup",
 			"rapidfists", "haymaker", "sweep", "roundhouse", "clinch", "shakeoff", "turnitaround", "throw", "takedown"]],
 		["Rogue", ["cut", "whirl", "dartin", "kickoff", "twinstab", "goin", "closeitout", "hityourstride", "rollwithit", "snatch",
 			"gut", "throughandthrough", "redwhirl", "backflip", "drivethrough"]],
@@ -853,7 +854,7 @@ const BRAWLER_STRIKES := ["punch", "brawlkick", "elbow"]
 const BRAWLER_MOVES := {"punch": ["rapidfists", "haymaker"], "brawlkick": ["sweep", "roundhouse"], "elbow": ["clinch", "shakeoff"]}
 const BRAWLER_CATCH_MOVES := {"punch": "turnitaround", "brawlkick": "throw", "elbow": "takedown"}
 ## Every Brawler ability (buttons and moves): none of them works with a shield.
-const BRAWLER_IDS := ["punch", "brawlkick", "elbow", "catch", "onemore", "toughitout", "comeon", "fightingstyle",
+const BRAWLER_IDS := ["punch", "brawlkick", "elbow", "catch", "onemore", "toughitout", "comeon", "fightingstyle", "putemup",
 	"rapidfists", "haymaker", "sweep", "roundhouse", "clinch", "shakeoff", "turnitaround", "throw", "takedown"]
 
 ## The Chain's moves as the spellbooks show them: [[heading, [ids]], ...]; the first
@@ -912,7 +913,7 @@ const SHARP_LINKS := {"quickshot": ["pierce"], "pierce": ["spread"], "spread": [
 
 ## Buttons that come with another ability's Skill Card instead of their own card
 ## (PlayerData.has_ability), and are used like drafted ones.
-const BROUGHT_BUTTONS := {"goin": "cut", "brawlkick": "punch", "elbow": "punch", "fightingstyle": "punch",
+const BROUGHT_BUTTONS := {"goin": "cut", "brawlkick": "punch", "elbow": "punch", "fightingstyle": "punch", "putemup": "punch",
 	"loose": "quickshot"}
 
 ## A book's specs holding only the abilities `keep` accepts (all if not given),
@@ -944,7 +945,7 @@ const SPENDS_ALL := ["discharge", "groundout", "recharge", "ventflames"]
 const OFF_GCD := ["groundingsurge", "capacitor", "returnstroke", "rimefletch", "rewind", "lapse", "scatter",
 	"missedbeat", "tradeplaces", "doubletime", "offthechain", "doublethread", "restring", "behinditsback", "swell",
 	"aureole", "gatherthelight", "unfallen", "setprism", "moveprism", "shatterall", "prismarrow", "stepoflight",
-	"fightingstyle", "goin", "hityourstride", "rollwithit", "playdead", "breathe", "fasthands",
+	"fightingstyle", "putemup", "goin", "hityourstride", "rollwithit", "playdead", "breathe", "fasthands",
 	"coldshoulder", "glacialbulwark", "bitteredge", "redhotrivet", "moltenshell", "rededge", "blastfurnace"]
 ## Melee-weapon abilities used from their own range (cast_range) instead of the
 ## weapon's reach: Static Step dashes in, Whiplash lashes from afar.
@@ -4268,7 +4269,7 @@ static func _draw_unique(c: Control, id: String, col: Color, mid: Vector2, k: fl
 		"jab", "hook", "dragin", "flyinghead", "thud", "crush", "earthshake", "faultline":
 			WheelIcons.draw(c, id, mid, k)
 		# --- Martial tank: the Brawler (drawn in scripts/ui/brawler_icons.gd) ---
-		"punch", "brawlkick", "elbow", "catch", "onemore", "toughitout", "comeon", "fightingstyle":
+		"punch", "brawlkick", "elbow", "catch", "onemore", "toughitout", "comeon", "fightingstyle", "putemup":
 			BrawlerIcons.draw(c, id, mid, k)
 		"rapidfists", "haymaker", "sweep", "roundhouse", "clinch", "shakeoff", "turnitaround", "throw", "takedown":
 			BrawlerIcons.draw(c, id, mid, k)
