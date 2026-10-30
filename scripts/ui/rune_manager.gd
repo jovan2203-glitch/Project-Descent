@@ -1,6 +1,7 @@
 extends Control
 
-# Rune Management (main menu, Character tab): one window, ~80% of the screen.
+# Rune Management (main menu, Character tab; in game, the Spellbook's Runes tab):
+# one window, ~80% of the screen.
 #   Left (70%): every rune in the game, known or not, with a filter and your
 #     Rune Shards. Unknown runes show whether you can craft them; craft them
 #     right on their card.
@@ -9,6 +10,8 @@ extends Control
 #     left, click an item slot, then Engrave. Replacing a rune is free.
 # Usage: const RuneManager = preload("res://scripts/ui/rune_manager.gd")
 #        RuneManager.open(host)   # host = a CanvasLayer / Control to add it to
+#        RuneManager.embed(parent, on_message)   # inside another window (the in-game
+#            Spellbook's Runes tab): no shade, title or close; fills `parent`.
 
 const UI = preload("res://scripts/ui_kit.gd")
 const Runes = preload("res://scripts/runes.gd")
@@ -51,10 +54,25 @@ static func open(host: Node) -> Control:
 	host.add_child(w)
 	return w
 
+## The same, as a page of another window. `on_message(msg, ok)` shows its messages
+## (in a dungeon there is no main menu to toast them).
+static func embed(parent: Control, on_message: Callable) -> Control:
+	var w: Control = load("res://scripts/ui/rune_manager.gd").new()
+	w.embedded = true
+	w.on_message = on_message
+	parent.add_child(w)
+	return w
+
+var embedded := false
+var on_message: Callable
+
 func _pd() -> Node:
 	return get_node("/root/PlayerData")
 
 func _ready() -> void:
+	if embedded:
+		_build_embedded()
+		return
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var shade := ColorRect.new()
@@ -104,17 +122,40 @@ func _ready() -> void:
 	_pd().changed_late.connect(_refresh)
 	_refresh()
 
+## Embedded: just the two columns, filling the parent window's page.
+func _build_embedded() -> void:
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)   # (its parent page sets the size)
+	var body := HBoxContainer.new()
+	body.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	body.add_theme_constant_override("separation", 12)
+	add_child(body)
+	var left := _build_left()
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.size_flags_stretch_ratio = 7.0
+	body.add_child(left)
+	var right := _build_right()
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right.size_flags_stretch_ratio = 3.0
+	body.add_child(right)
+	_pd().changed_late.connect(_refresh)
+	_refresh()
+
 func _exit_tree() -> void:
 	var pd := get_node_or_null("/root/PlayerData")
 	if pd and pd.changed_late.is_connected(_refresh):
 		pd.changed_late.disconnect(_refresh)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if embedded:
+		return   # (its window handles Esc)
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		get_viewport().set_input_as_handled()
 		queue_free()
 
 func _toast(msg: String, ok := false) -> void:
+	if msg != "" and on_message.is_valid():
+		on_message.call(msg, ok)
+		return
 	var s := get_tree().current_scene
 	if msg == "" or s == null:
 		return

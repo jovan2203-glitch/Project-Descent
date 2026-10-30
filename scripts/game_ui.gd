@@ -393,7 +393,9 @@ func _open_window(name: String) -> void:
 # Every ability you know, grouped by book (spells taught by runes have their own
 # "Rune Spells" section). Drag one onto the action bar to put it there; drag a
 # bar button onto the spellbook to take it off. Locked in combat.
-# Next to the abilities: your talents, to read only (TALENT_VIEW). Skill Cards
+# Next to the abilities: your talents (TALENT_VIEW; Reset and changes in the training
+# area only). A search bar frames matching abilities and talents. Tabs at the bottom:
+# Abilities & Talents, Runes (see below). Skill Cards
 # and talents are changed in the main menu.
 
 const Abilities = preload("res://scripts/abilities.gd")
@@ -404,6 +406,9 @@ var _book_status: Label
 var _book_dirty := true
 var _talent_view: VBoxContainer
 var _book_note: Label   # where Skill Cards / talents are changed
+var _book_query := ""   # the search bar: matching abilities and talents framed, the rest dimmed
+const Keywords = preload("res://scripts/core/keywords.gd")
+const BOOK_SEARCH_COL := Color(0.4, 1.0, 0.6)   # (the main menu book's search colour)
 const SPELLBOOK_SLOT := 48.0   # ability buttons in the Spellbook
 const InspectWindow = preload("res://scripts/ui/inspect_window.gd")
 
@@ -419,6 +424,7 @@ func _build_spellbook(width: float, list_height: float) -> PanelContainer:
 	var columns := HBoxContainer.new()
 	columns.add_theme_constant_override("separation", 10)
 	win.get_meta("content").add_child(columns)
+	_book_pages["book"] = columns
 	var content := VBoxContainer.new()   # left: abilities
 	content.add_theme_constant_override("separation", 10)
 	columns.add_child(content)
@@ -427,6 +433,16 @@ func _build_spellbook(width: float, list_height: float) -> PanelContainer:
 	_talent_view.tree_height = tree_height
 	_talent_view.message.connect(_report)
 	columns.add_child(_talent_view)
+	# Search (as in the main menu's book): name or keyword, e.g. "chill".
+	var search := LineEdit.new()
+	search.placeholder_text = "Search abilities and talents  (name or keyword, e.g. chill)"
+	search.clear_button_enabled = true
+	search.custom_minimum_size = Vector2(width - 24.0, 28)
+	search.text_changed.connect(func(t: String):
+		_book_query = t.strip_edges()
+		_talent_view.set_search(_book_query)
+		_book_dirty = true)
+	content.add_child(search)
 	_book_status = UI.label("", 14, UI.TEXT_DIM)
 	_book_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_book_status.custom_minimum_size = Vector2(width - 24.0, 0)
@@ -450,8 +466,64 @@ func _build_spellbook(width: float, list_height: float) -> PanelContainer:
 			func(_p, data): return data is Dictionary and data.get("type") == "hud_bar" and not _in_combat(),
 			func(_p, data): _pd().clear_action_slot(int(data["slot"]) - 1))
 	_pd().changed_late.connect(func(): _book_dirty = true)
-	get_node("/root/SignalBus").combat_state_changed.connect(func(_c): _book_dirty = true)
+	get_node("/root/SignalBus").combat_state_changed.connect(func(_c):
+		_book_dirty = true
+		_update_rune_lock())
+	_build_book_tabs(win.get_meta("content"), width + TALENT_VIEW.width_for(tree_height) + 10.0, tree_height + 90.0)
 	return win
+
+# --- Spellbook tabs (bottom): Abilities & Talents, Runes ----------------------------
+# Runes: the main menu's Rune Management in the window (RuneManager.embed): every
+# rune, crafting, engraving onto your gear and moving runes. Locked in combat.
+
+const RuneManager = preload("res://scripts/ui/rune_manager.gd")
+var _book_pages := {}      # "book" / "runes" -> page
+var _book_tab_buttons := {}
+var _rune_lock: Control    # covers the Runes page in combat
+
+func _build_book_tabs(content: Control, width: float, height: float) -> void:
+	var runes := Control.new()
+	runes.custom_minimum_size = Vector2(width, height)
+	runes.visible = false
+	content.add_child(runes)
+	_book_pages["runes"] = runes
+	RuneManager.embed(runes, func(msg: String, ok: bool):
+		if ok:
+			_report_ok(msg)
+		else:
+			_report(msg))
+	_rune_lock = ColorRect.new()
+	(_rune_lock as ColorRect).color = Color(0, 0, 0, 0.6)
+	_rune_lock.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_rune_lock.mouse_filter = Control.MOUSE_FILTER_STOP
+	var why := UI.label("In combat: runes can't be changed until the fight ends.", 16, Color(1.0, 0.5, 0.4))
+	why.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	why.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	why.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_rune_lock.add_child(why)
+	runes.add_child(_rune_lock)
+	_update_rune_lock()
+	var tabs := HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", 4)
+	content.add_child(tabs)
+	for t in [["book", "Abilities & Talents"], ["runes", "Runes"]]:
+		var b := UI.button(str(t[1]), 13, Vector2(170, 28))
+		b.toggle_mode = true
+		b.focus_mode = Control.FOCUS_NONE
+		b.pressed.connect(_show_book_page.bind(str(t[0])))
+		tabs.add_child(b)
+		_book_tab_buttons[t[0]] = b
+	_show_book_page("book")
+
+func _show_book_page(page: String) -> void:
+	for k in _book_pages:
+		(_book_pages[k] as Control).visible = k == page
+	for k in _book_tab_buttons:
+		(_book_tab_buttons[k] as Button).set_pressed_no_signal(k == page)
+
+func _update_rune_lock() -> void:
+	if _rune_lock:
+		_rune_lock.visible = _in_combat()
 
 func _in_combat() -> bool:
 	var p := get_tree().get_first_node_in_group("player")
@@ -543,6 +615,11 @@ func _spellbook_slot(id: String, locked: bool, on_bar: bool) -> Button:
 		s.add_theme_stylebox_override("normal", UI.box(Color(0.06, 0.065, 0.085, 0.9), UI.ACCENT.darkened(0.2), 2, 6))
 	if locked:
 		s.get_node("AbilityIcon").modulate.a = 0.45
+	if _book_query != "":
+		if Keywords.matches("a:" + id, _book_query):
+			s.add_theme_stylebox_override("normal", UI.box(Color(BOOK_SEARCH_COL, 0.1), BOOK_SEARCH_COL, 2, 6))
+		else:
+			s.modulate.a = 0.3
 	s.set_drag_forwarding(
 		func(_p):
 			if _in_combat():
