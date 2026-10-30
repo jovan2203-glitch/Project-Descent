@@ -25,6 +25,7 @@ The code and balance.gd are the source of truth for numbers. Design docs record 
 - "Frost Bolts" (FB) is a conversation-only damage unit (1.0 FB = one Frost Bolt's damage). Everything shown in game uses real numbers.
 - Patch notes: clean, proper wording (never the user's rough phrasing), no filler, no missing details. A new talent is written as "New talent", its name, then what it does.
 - Use plan mode for anything bigger than a single ability or talent.
+- Commits and PRs: no Claude attribution (no Co-Authored-By, Claude-Session or "Generated with Claude Code" lines).
 - Adding or changing abilities, talents or runes: follow the descent-add-content skill.
 - Changing talents (adding, moving, removing or changing one): bump `Talents.TREE_VERSION`. Every player's talent points are then refunded on their next load. Don't write save migrations to keep talent points in place.
 
