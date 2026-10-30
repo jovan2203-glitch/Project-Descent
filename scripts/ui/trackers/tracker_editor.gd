@@ -19,6 +19,7 @@ var win: UIWindow
 var _list: Tree
 var _right: VBoxContainer
 var _sel := ""
+var _open_on := ""   # (a new window: the tracker to pick once it is built)
 
 static func open(tree: SceneTree, id := "") -> void:
 	var s := tree.root.get_node_or_null("Settings")
@@ -30,19 +31,26 @@ static func open(tree: SceneTree, id := "") -> void:
 		e = TrackerEditor.new()
 		e.name = "Editor"
 		e.win = w
-		w.add_child(e)
-		e._build()
+		e._open_on = id
+		w.add_child(e)   # (built in _ready: the window joins the tree a frame later)
 		w.tree_exiting.connect(func():
 			var engine := TrackerEngine.of(tree)
 			if engine:
 				engine.set_preview("", false))
-	else:
-		e = w.get_node("Editor")
+		return
+	e = w.get_node("Editor")
 	if id != "":
 		e.select(id)
 
+## Built once in the tree: before that, /root/Settings can't be reached and the
+## list would come up empty ("No trackers yet") while the trackers are there.
+func _ready() -> void:
+	_build()
+	if _open_on != "":
+		select(_open_on)
+
 func _settings() -> Node:
-	return get_node_or_null("/root/Settings")
+	return UIConfig.settings()   # (from the main loop: works before this joins the tree too)
 
 func _all() -> Dictionary:
 	var s := _settings()

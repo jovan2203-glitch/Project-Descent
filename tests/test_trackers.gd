@@ -268,6 +268,9 @@ func test_builtins_are_given_once() -> void:
 	assert_true(s.trackers.has("spec_heat"), "a lost spec set is given again")
 	var src := FileAccess.get_file_as_string("res://scripts/ui/trackers/tracker_editor.gd")
 	assert_contains(src, "Trackers.forget_builtin(_settings(), _sel)", "Delete remembers it")
+	# The list is filled once the window is in the tree (it used to read no trackers at all).
+	assert_contains(src, "func _ready() -> void:\n\t_build()")
+	assert_false(src.contains("e._build()"), "never built before the window is in the tree")
 
 class FakeSettings extends Node:
 	var trackers := {}
