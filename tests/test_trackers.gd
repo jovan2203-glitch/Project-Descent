@@ -255,15 +255,24 @@ func test_builtins_are_given_once() -> void:
 		assert_true(s.trackers.has(sp[0]), "%s is in the list like any tracker" % sp[1])
 	assert_false(s.trackers.has("aura_bars"), "the role's groups wait for the UI setup")
 	s.trackers.erase("spec_venom")
+	Trackers.forget_builtin(s, "spec_venom")   # (what the editor's Delete does)
 	s.ui_installed = true
 	assert_true(Trackers.give_builtins(s))
 	assert_true(s.trackers.has("aura_bars"), "after the setup: the role's groups")
 	assert_false(s.trackers.has("spec_venom"), "a deleted spec set stays deleted")
 	assert_false(Trackers.give_builtins(s), "nothing new the next time")
+	# One that went missing without being deleted (an older save marked it given) comes back.
+	s.tracker_builtins.append("spec_heat")
+	s.trackers.erase("spec_heat")
+	assert_true(Trackers.give_builtins(s))
+	assert_true(s.trackers.has("spec_heat"), "a lost spec set is given again")
+	var src := FileAccess.get_file_as_string("res://scripts/ui/trackers/tracker_editor.gd")
+	assert_contains(src, "Trackers.forget_builtin(_settings(), _sel)", "Delete remembers it")
 
 class FakeSettings extends Node:
 	var trackers := {}
 	var tracker_builtins: Array = []
+	var tracker_deleted: Array = []
 	var ui_installed := false
 	var saves := 0
 	func save() -> void:

@@ -7,7 +7,7 @@ class_name TrackerEngine
 # tracker shows; events (SignalBus) are remembered with when they happened, for
 # Event triggers. Trackers whose load rules don't match are hidden and cost nothing.
 # Gives the role's starting groups and the spec displays (Trackers.spec_sets())
-# once each (Settings.tracker_builtins); after that they are the player's.
+# while missing (unless the player deleted them: Settings.tracker_deleted); they are the player's.
 
 const GROUP := "tracker_engine"
 const Macros = preload("res://scripts/core/macros.gd")

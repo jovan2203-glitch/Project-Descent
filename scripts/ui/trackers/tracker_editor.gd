@@ -138,6 +138,16 @@ func _build() -> void:
 		if _sel != "":
 			_text_popup("Export", Trackers.export_items(_export_set(_sel)), false))
 	row3.add_child(export_b)
+	# Place them on screen: Move UI, where every tracker has a box to drag (right-click it:
+	# exact spot, and Options brings you back here).
+	var move := UIWindow.button("Move on screen")
+	move.tooltip_text = "Close this and drag your trackers where you want them (Move UI). In the game only, out of combat."
+	move.pressed.connect(func():
+		var s := _settings()
+		if s:
+			s.move_ui_requested.emit()
+		win.queue_free())
+	left.add_child(move)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -254,6 +264,8 @@ func _delete() -> void:
 			if str(all[k].get("group", "")) == _sel:
 				all[k]["group"] = ""
 	all.erase(_sel)
+	if _settings():
+		Trackers.forget_builtin(_settings(), _sel)   # a spec set's one stays deleted
 	_sel = ""
 	_changed(true)
 	if all.is_empty():

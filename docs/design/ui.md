@@ -101,9 +101,11 @@ Templates, duplicate, and Import / Export of a tracker or group.
   of max health, above the Chain), Incense (bar), Heat (pips in band colours),
   Flow (pips, gold with the Kill window's time) and pips for Glaze, Ice Layers,
   Sap, Reflections, Traces and Slag. Each loads with its abilities on the bars. They
-  are given once (`Settings.tracker_builtins`; the HUD and the editor, also from
-  the main menu, both give them) and are then the player's: edit, delete, export
-  like anything built by hand. The editor's New list has them as "Spec: ..." to
+  are given whenever one is missing and the player didn't delete it
+  (`Settings.tracker_deleted`, filled by the editor's Delete; the HUD and the
+  editor, also from the main menu, both give them) and are the player's: edit,
+  delete, export like anything built by hand. The editor's "Move on screen" opens
+  Move UI to drag them. The editor's New list has them as "Spec: ..." to
   add one again. A new spec's display is a new entry there, not a HUD element.
 
 ## Main menu
