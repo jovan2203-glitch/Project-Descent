@@ -74,6 +74,10 @@ func test_numbers() -> void:
 		assert_true(is_equal_approx(float(r.resource_cost), float(want[id][1])), "%s mana" % id)
 	assert_eq(Balance.INCENSE_MAX, 100)
 	assert_eq(Balance.INCENSE_TIME, 30.0)
+	assert_eq(Balance.INCENSE_DECAY_EVERY, 2.0, "Incense drains a stack every 2 s")
+	var src := PlayerSource.text()
+	assert_contains(src, "_tick_incense_decay(now)")
+	assert_contains(src, "if censer_raised() or status == null or not status.has(INCENSE_FX):", "not while the censer is raised")
 	assert_eq(Balance.MOTE_VALUE, 10)
 	assert_eq(Balance.MOTE_MAX, 12)
 	# Fractional mana costs reach the game (not rounded to whole points).

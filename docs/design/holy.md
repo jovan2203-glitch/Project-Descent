@@ -93,7 +93,7 @@ Code: player.gd, "Holy tank: the Censer". Numbers: balance.gd (INCENSE_*, MOTE_*
 - Mana: every ability costs a little (fractions of a mana point allowed). Nonstop tanking runs dry in ~5-7 minutes.
 
 ### Incense (the censer's fullness)
-- A buff, 0-100 stacks, 30 s; any gain refreshes it, spending doesn't. The censer glows brighter with more.
+- A buff, 0-100 stacks, 30 s; any gain refreshes it, spending doesn't. It also drains 1 stack every 2 s (2026-10-30: it was too easy to keep up), except while the censer is raised. The censer glows brighter with more.
 - Each stack: +0.15% Block (+15% at 100), shown as a faint barrier of light that flashes on a block. Enemies within 5 m take up to 0.06 FB Holy per second (at 100), 4x threat, own meter line "Incense".
 - Small direct gains: +1 per hit taken, +2 per hit blocked, a few from builders.
 
