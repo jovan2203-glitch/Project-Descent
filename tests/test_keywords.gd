@@ -104,6 +104,18 @@ func test_related_goes_both_ways() -> void:
 	assert_true(Keywords.related("a:embervolley").has(damped))
 	assert_false(Keywords.related("a:ventflames").has("a:ventflames"), "never itself")
 
+## Hover: a talent about a mechanic glows on the abilities of its spec that make it,
+## even when it names none of them.
+func test_related_through_keywords() -> void:
+	var thick := "t:" + Talents.id_for_key("fire_thick_slag")   # "Each stack of Slag gives more Armor."
+	assert_true(Keywords.related("a:slagskin").has(thick), "Slag Skin makes Slag")
+	assert_true(Keywords.related(thick).has("a:slagskin"))
+	assert_true(Keywords.related("a:forgeblow").has(thick), "the Slag keyword names Forge Blow")
+	assert_false(Keywords.related("a:fireball").has(thick), "another spec: no glow")
+	for t in Keywords.related("a:slagskin"):
+		if str(t).begins_with("t:"):
+			assert_eq(Talents.category_of(str(t).substr(2)), "fire", "%s: only its own book" % t)
+
 ## A talent that only works with one ability says so, and takes no points
 ## until that ability is learned.
 func test_single_ability_talents_need_the_ability() -> void:

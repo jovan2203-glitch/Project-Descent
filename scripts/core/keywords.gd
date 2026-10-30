@@ -154,6 +154,7 @@ static var _mention_cache := {}
 static var _texts := {}        # entity key -> lower-case searchable text
 static var _titles := {}       # entity key -> display name
 static var _related := {}      # entity key -> Array of entity keys
+static var _said := {}         # (while building _related) entity key -> what its text mentions
 static var _level := -1
 
 static func _abilities() -> GDScript:
@@ -517,17 +518,65 @@ static func _build_related() -> void:
 				if req != "" and links.has("a:" + req):
 					links[k]["a:" + req] = true
 					links["a:" + req][k] = true
-		for other in mentions(text):
+		var said := mentions(text)
+		_said[k] = said
+		for other in said:
 			var o := str(other)
 			if o == k or not links.has(o):
 				continue
 			links[k][o] = true
 			links[o][k] = true
+	_link_through_keywords(keys, links)
+	_said.clear()
 	for key in links:
 		_related[key] = (links[key] as Dictionary).keys()
 
-## Abilities and talents that mention `key`, or that `key` mentions (by name, or
-## as the ability a talent requires).
+## Keywords too common to tie an ability to every talent of its spec that mentions them.
+const UNLINKED := ["fury", "melee_tell"]
+
+## A talent about a mechanic (Slag, Bruise, Heat...) goes with the abilities that
+## make or use it, even when it names none of them: the ability's text names the
+## keyword, or the keyword's text names the ability. Only within one book, and
+## only the ability's own spec's talents and the book's open talents.
+static func _link_through_keywords(keys: Array, links: Dictionary) -> void:
+	var A := _abilities()
+	var T := _talents()
+	var users := {}   # "k:id" -> {ability key: true}
+	for kid in KEYWORDS:
+		if UNLINKED.has(kid):
+			continue
+		for o in mentions(keyword_text(str(kid))):
+			if str(o).begins_with("a:"):
+				if not users.has("k:" + str(kid)):
+					users["k:" + str(kid)] = {}
+				users["k:" + str(kid)][str(o)] = true
+	for key in keys:
+		var k := str(key)
+		if not k.begins_with("a:"):
+			continue
+		for o in _said.get(k, []):
+			var kk := str(o)
+			if kk.begins_with("k:") and not UNLINKED.has(kk.substr(2)):
+				if not users.has(kk):
+					users[kk] = {}
+				users[kk][k] = true
+	for key in keys:
+		var k := str(key)
+		if not k.begins_with("t:"):
+			continue
+		var tid := k.substr(2)
+		var book := str(T.category_of(tid))
+		var group := str(T.group_of(tid))
+		for o in _said.get(k, []):
+			for a in (users.get(str(o), {}) as Dictionary):
+				var aid := str(a).substr(2)
+				if str(A.category_of(aid)) != book or (group != "Open" and group != str(A.spec_of(aid))):
+					continue
+				links[k][a] = true
+				links[a][k] = true
+
+## Abilities and talents that mention `key`, or that `key` mentions (by name, as
+## the ability a talent requires, or through a keyword: _link_through_keywords).
 static func related(key: String) -> Array:
 	_build_related()
 	return _related.get(key, [])

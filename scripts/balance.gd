@@ -118,7 +118,7 @@ const TANK_THREAT_MULT := 1.4
 
 ## Talents on the column-group layout (Talents.GROUPS): a spec's bottom-row talent (its
 ## capstone) needs this many points spent in that spec's group.
-const CAPSTONE_GATE := 25
+const CAPSTONE_GATE := 15
 const AUTO_ATTACK_FURY := 10.0 # Fury per auto-attack (with a fury spender on the bar)
 ## Auto-attacks and auto-shots deal this share of the weapon's damage (weapon
 ## abilities still use all of it).
