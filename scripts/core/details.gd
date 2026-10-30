@@ -809,6 +809,13 @@ var _hps_btn: Button
 var _meter_pick: OptionButton
 var _meter_summary: Label
 var _bar_rows: Array[Control] = []
+var _threat_box: VBoxContainer       # threat on my current target, under the bars
+var _threat_title: Label
+var _threat_bars: Array[Control] = []
+const THREAT_AGGRO_COL := Color(0.85, 0.28, 0.24)   # who the enemy is attacking
+const THREAT_CLOSE_COL := Color(0.95, 0.62, 0.2)    # close to taking it ...
+const THREAT_CLOSE_PCT := 90.0                       # ... at this % of their threat (= Enemy.THREAT_WARN)
+const THREAT_COL := Color(0.45, 0.55, 0.7)
 
 func _set_mode(m: String) -> void:
 	mode = m
@@ -890,6 +897,21 @@ func _build_meter() -> void:
 
 	_meter_summary = UI.label("", 12, UI.TEXT_DIM)
 	v.add_child(_meter_summary)
+
+	# Threat on my target: everyone in its threat table, the one it attacks first.
+	_threat_box = VBoxContainer.new()
+	_threat_box.add_theme_constant_override("separation", 2)
+	_threat_box.visible = false
+	v.add_child(_threat_box)
+	_threat_title = UI.label("Threat", 13, UI.ACCENT)
+	_threat_box.add_child(_threat_title)
+	for i in METER_BARS:
+		var row := Control.new()
+		row.custom_minimum_size = Vector2(0, 18)
+		row.mouse_filter = Control.MOUSE_FILTER_PASS
+		row.draw.connect(_draw_bar.bind(row))
+		_threat_box.add_child(row)
+		_threat_bars.append(row)
 	get_node("/root/Settings").register_hud(_meter)
 
 ## The in-game UI's meter panel holds the meter (scripts/ui/hud/meter_panel.gd):
@@ -996,10 +1018,58 @@ func _refresh_meter() -> void:
 			row.visible = false
 			row.remove_meta("row")
 		row.queue_redraw()
+	_refresh_threat()
 	# Docked, the panel sets its size: shrinking it here would make it jump
 	# for a frame every refresh (_follow_dock puts it back the next one).
 	if _dock == null:
 		_meter.reset_size()
+
+## The threat bars: everyone's threat on my current target (Enemy.threat_rows), as a
+## share of the one it is attacking. Hidden without a target that has a threat table.
+func _refresh_threat() -> void:
+	var p := _player()
+	var tgt: Node = p.get("target") if p else null
+	var rows: Array = []
+	if tgt != null and is_instance_valid(tgt) and tgt.has_method("threat_rows") \
+			and (not tgt.has_method("is_alive") or tgt.is_alive()):
+		rows = tgt.threat_rows()
+	if _threat_box.visible != not rows.is_empty():
+		_threat_box.visible = not rows.is_empty()
+	if rows.is_empty():
+		return
+	var nm := str(tgt.get("display_name")) if tgt.get("display_name") != null else str(tgt.name)
+	_threat_title.text = "Threat on %s" % nm
+	var lead := 0.0   # the one it attacks (a taunt can put someone lower on top)
+	for r in rows:
+		if bool(r["aggro"]):
+			lead = float(r["value"])
+	if lead <= 0.0:
+		lead = float(rows[0]["value"])
+	var top := float(rows[0]["value"])
+	for i in _threat_bars.size():
+		var row := _threat_bars[i]
+		if i >= rows.size():
+			row.visible = false
+			row.remove_meta("row")
+			continue
+		var r: Dictionary = rows[i]
+		var v := float(r["value"])
+		var pct := 100.0 * v / maxf(lead, 1.0)
+		var col := THREAT_COL
+		if bool(r["aggro"]):
+			col = THREAT_AGGRO_COL
+		elif pct >= THREAT_CLOSE_PCT:
+			col = THREAT_CLOSE_COL
+		var who := player_name(my_key()) if bool(r["me"]) else player_name(int(r["member"]))
+		row.visible = true
+		row.set_meta("row", r)
+		row.set_meta("frac", v / maxf(top, 1.0))
+		row.set_meta("color", col)
+		row.set_meta("left", ("%s  (aggro)" % who) if bool(r["aggro"]) else who)
+		row.set_meta("right", "%s  %d%%" % [fmt(v), int(round(pct))])
+		row.tooltip_text = "%s: %s threat on %s" % [who, fmt(v), nm] + (
+			"\nIt is attacking them" if bool(r["aggro"]) else "\n%d%% of the threat of the one it is attacking" % int(round(pct)))
+		row.queue_redraw()
 
 # --- Segment pickers (meter + window) --------------------------------------------------
 
