@@ -71,7 +71,13 @@ func show_message(text: String, col: Color = ERROR) -> void:
 	_label.text = text
 	_label.add_theme_color_override("font_color", col)
 	_style(col)
-	reset_size()   # shrink to the new text (it stays centered: grows both ways)
+	# Shrink to the new text, centred on the anchor again: from the old offsets it
+	# would shrink toward its left edge and drift off-centre with every message.
+	offset_left = 0.0
+	offset_right = 0.0
+	offset_top = bottom
+	offset_bottom = bottom
+	reset_size()
 	visible = true
 	modulate.a = 1.0
 	move_to_front()
