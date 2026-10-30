@@ -822,6 +822,7 @@ const OVERTURE_TIME := 3.0                # Rune of the Overture (Epic): after a
 ## ranges and radii are in ABILITIES; heal sizes are coefficients like HEALS.)
 const INCENSE_MAX := 100                  # Incense: the most stacks (a full censer)
 const INCENSE_TIME := 30.0                # ... seconds it lasts; any gain makes it last this long again (spending doesn't)
+const INCENSE_DECAY_EVERY := 2.0          # ... and it loses a stack every this many seconds (not while the censer is raised)
 const INCENSE_BLOCK := 0.15               # ... % Block each stack gives (the barrier of light)
 const INCENSE_AURA_FULL := 0.06          # ... damage (coefficient) at a full censer (less with fewer stacks), every tick, to enemies around you ...
 const INCENSE_AURA_RADIUS := 5.0          # ... within this many metres ...

@@ -61,6 +61,7 @@ var _raised_until := 0.0
 var _raise_at := Vector3.ZERO
 var _raise_next_shed := 0.0
 var _aura_next := 0.0
+var _decay_next := 0.0            # when Incense next loses a stack
 var _motes: Array = []            # my motes: {"key": String, "pos": Vector3, "until": float, "value": int}
 var _mote_seq := 0
 var _unfallen_taken := 0          # damage taken during Unfallen
@@ -147,6 +148,21 @@ func _censer_appear() -> void:
 		player._ring_effect(0.9, CENSER.LIGHT)
 	_censer_off_at = 0.0
 	_sync_censer()
+
+## Incense drains: a stack every INCENSE_DECAY_EVERY sec, so it has to be fed.
+## (Held while the censer is raised: that Incense is stashed and gives nothing.)
+func _tick_incense_decay(now: float) -> void:
+	if censer_raised() or player.status == null or not player.status.has(INCENSE_FX):
+		_decay_next = now + Balance.INCENSE_DECAY_EVERY
+		return
+	if now < _decay_next:
+		return
+	_decay_next = now + Balance.INCENSE_DECAY_EVERY
+	var left := incense() - 1
+	if left <= 0:
+		player.status.remove(INCENSE_FX)
+	else:
+		player.status.set_stacks(INCENSE_FX, left)
 
 ## Gain `more` Incense (never more than INCENSE_MAX). Any gain makes it last its
 ## full time again. While the censer is raised it is kept for when it comes back.
@@ -261,6 +277,7 @@ func _tick_censer() -> void:
 		if back > 0 and not player.is_dead():
 			player._combat().heal(player, player, float(back), UNFALLEN_ID, true)
 	_unfallen_was = unfallen_now
+	_tick_incense_decay(now)
 	_tick_hold_the_line()
 	if not _censer_on:
 		return
