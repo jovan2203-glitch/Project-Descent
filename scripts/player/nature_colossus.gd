@@ -142,9 +142,10 @@ func _tick_colossus() -> void:
 		_sap_next = now + 1.0
 		if not player.is_dead() and player.health < player.max_health:
 			var low := NatureTalentsOpenKit.below(float(player.health), float(player.max_health), Balance.OLD_OAK_HEALTH_PCT)
-			player.heal(sap_heal(player.max_health, sap(), player._talent("nature_rising_sap"))   # + Rising Sap
+			# (Exact health, not a coefficient: player.heal would scale it by my level's heal again.)
+			player._combat().heal(player, player, sap_heal(player.max_health, sap(), player._talent("nature_rising_sap"))   # + Rising Sap
 				* sap_heal_mult(sap(), low, player._talent("nature_brimming"), player._talent("nature_old_oak"))   # + Brimming, Old Oak
-				* NatureTalentsOpenKit.green_thumb_mult(SAP_HEAL_ID, player._talent("nature_green_thumb")), SAP_HEAL_ID)   # + Green Thumb
+				* NatureTalentsOpenKit.green_thumb_mult(SAP_HEAL_ID, player._talent("nature_green_thumb")), SAP_HEAL_ID, true)   # + Green Thumb
 	# Giant's Hands went (used up or ran out): they burst open.
 	if _hands_on and (player.status == null or not player.status.has(GIANTS_HANDS_FX)):
 		_hands_on = false
@@ -325,7 +326,7 @@ func _colossus_hit_taken(info: RefCounted) -> void:
 func _heartsap() -> void:
 	var n := sap()
 	player.status.remove(SAP_FX)
-	player.heal(float(player.max_health) * heartsap_pct(n, player._talent("nature_thick_sap")) / 100.0, HEARTSAP_ID)   # + Thick Sap
+	player._combat().heal(player, player, float(player.max_health) * heartsap_pct(n, player._talent("nature_thick_sap")) / 100.0, HEARTSAP_ID, true)   # + Thick Sap (exact health)
 	player._gain("fury", float(n) * player._talent("nature_taproot"))   # Taproot: Fury for the Sap used up
 	if player.frost_melee._capstone("nature_thick_sap"):
 		_gain_sap(Balance.THICK_SAP_KEEP, false)   # Thick Sap's capstone: some stays

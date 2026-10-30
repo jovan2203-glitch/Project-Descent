@@ -358,13 +358,15 @@ static func _flow_set() -> Array:
 		_cond(2, "active", ">=", 1.0, "text2", "Kill %2.time")]
 	return [t]
 
-## Put what hasn't been given yet into `settings` (Settings): the role layout's
-## starting groups (once the UI setup picked a role) and every spec set, each only
-## once (Settings.tracker_builtins), so a deleted one stays deleted. They land in
-## Settings.trackers as plain trackers, the same as ones the player built. The HUD
-## and the editor (also from the main menu) both call it. True if it added any.
+## Put what's missing into `settings` (Settings): the role layout's starting groups
+## (once, after the UI setup picked a role: Settings.tracker_builtins) and every
+## spec set's trackers, unless the player deleted them (Settings.tracker_deleted,
+## forget_builtin), so a deleted one stays deleted and a lost one comes back. They
+## land in Settings.trackers as plain trackers, the same as ones the player built.
+## The HUD and the editor (also from the main menu) both call it. True if it added any.
 static func give_builtins(settings: Node) -> bool:
 	var given: Array = settings.tracker_builtins
+	var deleted: Array = settings.tracker_deleted
 	var all: Dictionary = settings.trackers
 	var added := false
 	if not given.has("role_defaults") and bool(settings.ui_installed):
@@ -374,16 +376,24 @@ static func give_builtins(settings: Node) -> bool:
 		given.append("role_defaults")
 		added = true
 	for sp in spec_sets():
-		if given.has(sp[0]):
-			continue
 		for t in sp[3]:
-			if not all.has(t["id"]) and all.size() < MAX_TRACKERS:
+			if not all.has(t["id"]) and not deleted.has(t["id"]) and all.size() < MAX_TRACKERS:
 				all[t["id"]] = t
-		given.append(sp[0])
-		added = true
+				added = true
 	if added:
 		settings.save()
 	return added
+
+## The player deleted tracker / group `id`: a spec set's one stays deleted (give_builtins).
+static func forget_builtin(settings: Node, id: String) -> void:
+	var deleted: Array = settings.tracker_deleted
+	if deleted.has(id):
+		return
+	for sp in spec_sets():
+		for t in sp[3]:
+			if str(t["id"]) == id:
+				deleted.append(id)
+				return
 
 ## A spec set's items with fresh ids (adding it again from the editor while a copy is there).
 static func fresh_copy(items: Array) -> Array:

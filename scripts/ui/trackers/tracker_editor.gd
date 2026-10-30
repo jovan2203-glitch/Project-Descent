@@ -19,6 +19,7 @@ var win: UIWindow
 var _list: Tree
 var _right: VBoxContainer
 var _sel := ""
+var _open_on := ""   # (a new window: the tracker to pick once it is built)
 
 static func open(tree: SceneTree, id := "") -> void:
 	var s := tree.root.get_node_or_null("Settings")
@@ -30,19 +31,26 @@ static func open(tree: SceneTree, id := "") -> void:
 		e = TrackerEditor.new()
 		e.name = "Editor"
 		e.win = w
-		w.add_child(e)
-		e._build()
+		e._open_on = id
+		w.add_child(e)   # (built in _ready: the window joins the tree a frame later)
 		w.tree_exiting.connect(func():
 			var engine := TrackerEngine.of(tree)
 			if engine:
 				engine.set_preview("", false))
-	else:
-		e = w.get_node("Editor")
+		return
+	e = w.get_node("Editor")
 	if id != "":
 		e.select(id)
 
+## Built once in the tree: before that, /root/Settings can't be reached and the
+## list would come up empty ("No trackers yet") while the trackers are there.
+func _ready() -> void:
+	_build()
+	if _open_on != "":
+		select(_open_on)
+
 func _settings() -> Node:
-	return get_node_or_null("/root/Settings")
+	return UIConfig.settings()   # (from the main loop: works before this joins the tree too)
 
 func _all() -> Dictionary:
 	var s := _settings()
@@ -138,6 +146,16 @@ func _build() -> void:
 		if _sel != "":
 			_text_popup("Export", Trackers.export_items(_export_set(_sel)), false))
 	row3.add_child(export_b)
+	# Place them on screen: Move UI, where every tracker has a box to drag (right-click it:
+	# exact spot, and Options brings you back here).
+	var move := UIWindow.button("Move on screen")
+	move.tooltip_text = "Close this and drag your trackers where you want them (Move UI). In the game only, out of combat."
+	move.pressed.connect(func():
+		var s := _settings()
+		if s:
+			s.move_ui_requested.emit()
+		win.queue_free())
+	left.add_child(move)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -254,6 +272,8 @@ func _delete() -> void:
 			if str(all[k].get("group", "")) == _sel:
 				all[k]["group"] = ""
 	all.erase(_sel)
+	if _settings():
+		Trackers.forget_builtin(_settings(), _sel)   # a spec set's one stays deleted
 	_sel = ""
 	_changed(true)
 	if all.is_empty():

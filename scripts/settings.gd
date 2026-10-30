@@ -130,8 +130,10 @@ var last_seen_notes := ""    # What's new: a hash of the patch notes last opened
 var ui_installed := false
 ## Trackers (scripts/ui/trackers/): id -> tracker or group dictionary.
 var trackers := {}
-## Trackers given once (Trackers.spec_sets() ids, "role_defaults"): a deleted one stays deleted.
+## Trackers given once ("role_defaults"; older saves also list spec set ids).
 var tracker_builtins: Array = []
+## Spec set trackers the player deleted (Trackers.forget_builtin): never given again.
+var tracker_deleted: Array = []
 ## One element's options changed ("" = all of them, e.g. a new role layout).
 signal ui_config_changed(elem: String)
 ## The Move UI button (the game's UI opens edit mode; there is none in the main menu).
@@ -315,6 +317,8 @@ func _load() -> void:
 	tracker_builtins = (given as Array).map(func(x): return str(x)) if given is Array else []
 	if not cfg.has_section_key("ui", "tracker_builtins") and not trackers.is_empty():
 		tracker_builtins.append("role_defaults")   # trackers from before these were counted had them
+	var gone: Variant = cfg.get_value("ui", "tracker_deleted", [])
+	tracker_deleted = (gone as Array).map(func(x): return str(x)) if gone is Array else []
 	if cfg.has_section("keybinds"):
 		for action in cfg.get_section_keys("keybinds"):
 			if InputMap.has_action(action):
@@ -349,6 +353,7 @@ func save() -> void:
 	for id in trackers:
 		cfg.set_value("trackers", id, trackers[id])
 	cfg.set_value("ui", "tracker_builtins", tracker_builtins)
+	cfg.set_value("ui", "tracker_deleted", tracker_deleted)
 	cfg.save(PATH)
 
 func apply() -> void:
