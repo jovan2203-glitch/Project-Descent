@@ -16,6 +16,7 @@ extends "res://scripts/enemy.gd"
 ## Seconds without being hit before a DPS dummy resets (full health, out of combat).
 const RESET_AFTER := 5.0
 var _last_hit := 0.0
+var _spot := Vector3.INF   # where it was placed: it never leaves it
 
 func _init() -> void:
 	display_name = "Training Dummy"
@@ -87,7 +88,16 @@ static func _part(parent: Node3D, mesh: Mesh, mat: Material, pos: Vector3) -> vo
 	parent.add_child(m)
 
 func _physics_process(delta: float) -> void:
+	if _spot == Vector3.INF:
+		_spot = global_position
 	super._physics_process(delta)
+	# Pinned: while it is fighting (an Incense aura keeps it so) the enemy movement
+	# runs, and someone standing inside it slid it along; it stays put instead.
+	# A pull or drag (busy_until) still moves it, and it stays where it lands.
+	if _now_s() < busy_until:
+		_spot = global_position
+	elif global_position.x != _spot.x or global_position.z != _spot.z:
+		global_position = Vector3(_spot.x, global_position.y, _spot.z)
 	if state == State.RETURN:
 		change_state(State.IDLE)   # stands where it is: "home" instantly (and heals)
 	if state != State.CHASE and state != State.ATTACK:
