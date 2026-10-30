@@ -100,6 +100,7 @@ func rebuild() -> void:
 			_layer.add_child(g)
 			_start_spot(g)
 			_displays[id] = g
+			g.set_picking(picking)
 			UILayout.register(get_tree(), g, "tracker:" + str(id), str(t["name"]), true)
 	for id in s.trackers:
 		var t: Dictionary = s.trackers[id]
@@ -116,6 +117,7 @@ func rebuild() -> void:
 			_start_spot(d)
 			UILayout.register(get_tree(), d, "tracker:" + str(id), str(t["name"]), true)
 		_displays[id] = d
+		d.set_picking(picking)
 	_t = 0.0
 
 ## Where a tracker nobody placed yet starts (Move UI keeps it where it's put): a
@@ -205,6 +207,14 @@ func sweep() -> void:
 					kids.append(c)
 			g.layout_group(kids)
 			g.visible = bool(g.data.get("enabled", true))
+
+## The editor is open: every display can be clicked to open it there (TrackerDisplay.picking).
+var picking := false
+
+func set_picking(on: bool) -> void:
+	picking = on
+	for d in _displays.values():
+		(d as TrackerDisplay).set_picking(on)
 
 ## Editor preview: show a tracker with made-up values while you edit it.
 func set_preview(id: String, on: bool) -> void:

@@ -296,3 +296,21 @@ func test_ids_show_in_tooltips() -> void:
 	assert_contains(tip, "id_line(Items.base_id(item))")
 	assert_contains(FileAccess.get_file_as_string("res://scripts/ui/status_icons.gd"), "\"\\nID: %s\" % e[\"id\"]")
 	assert_true(Trackers.all_ids().size() > 50, "the ID picker lists abilities, items and effects")
+
+## While the editor is open, a tracker on screen takes a click and opens itself there.
+func test_click_a_tracker_to_edit_it() -> void:
+	var d := TrackerDisplay.new()
+	track(d)
+	d.setup(Trackers.make_tracker("Test", "icon", []))
+	assert_eq(d.mouse_filter, Control.MOUSE_FILTER_IGNORE, "clicks go through while the editor is closed")
+	d.set_picking(true)
+	assert_eq(d.mouse_filter, Control.MOUSE_FILTER_STOP, "the editor is open: it takes the click")
+	d.set_picking(false)
+	assert_eq(d.mouse_filter, Control.MOUSE_FILTER_IGNORE)
+	var src := FileAccess.get_file_as_string("res://scripts/ui/trackers/tracker_display.gd")
+	assert_contains(src, "TrackerEditor.open(get_tree(), str(data.get(\"id\", \"\")))")
+	var ed := FileAccess.get_file_as_string("res://scripts/ui/trackers/tracker_editor.gd")
+	assert_contains(ed, "engine.set_picking(true)")
+	assert_contains(ed, "engine.set_picking(false)")
+	assert_contains(ed, "win.enable_resize(")
+	assert_contains(ed, "win.enable_minimize()")
