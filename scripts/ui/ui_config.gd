@@ -204,7 +204,7 @@ static func _base_layout() -> Dictionary:
 		"buffs": _at(1, 0, -164, 4),
 		"debuffs": _at(1, 0, -164, 86),
 		"party_frames": _at(0, 0.5, 6, -70),
-		"messages": _at(0.5, 0.5, 0, -110),
+		"messages": _at(0.5, 0, 0, 80),   # top centre, under the boss timer
 		"boss_timer": _at(0.5, 0, 0, 40),
 		"minimap": _at(1, 0, -6, 20),
 		"chat": _at(0, 1, 6, -6),

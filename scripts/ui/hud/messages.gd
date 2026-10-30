@@ -24,6 +24,10 @@ func layout() -> void:
 	set_box(Vector2(W, H))
 	if banner:
 		banner.font_size = UISkin.font(int(cfg("font_size")))
+		# Centred in the element's box both ways (the box is what Move UI places).
+		banner.anchor_top = 0.5
+		banner.anchor_bottom = 0.5
+		banner.grow_vertical = Control.GROW_DIRECTION_BOTH
 		banner.bottom = 0.0
 
 func show_message(msg: String, color: Color) -> void:

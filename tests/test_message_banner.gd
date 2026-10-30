@@ -25,3 +25,16 @@ func test_used_for_every_error() -> void:
 	assert_contains(menu, "_banner().show_message(msg, MessageBanner.ERROR)")
 	assert_contains(menu, "action_error.connect(_toast_if)", "errors raised elsewhere show in the menu too")
 	assert_contains(FileAccess.get_file_as_string("res://scripts/hud.gd"), "_error_label.show_message(msg, color)")
+
+## A long message then a short one: the short one is still centred on the anchor.
+func test_stays_centred() -> void:
+	var b: Control = track(MessageBanner.new())
+	b.show_message("Target out of range, and a much longer message than that")
+	b.show_message("Rune of Warding!")
+	assert_true(absf(b.offset_left + b.offset_right) < 1.0, "centred: left %s, right %s" % [b.offset_left, b.offset_right])
+
+## In game they show at the top centre.
+func test_messages_at_the_top() -> void:
+	var spot: Dictionary = UIConfig.preset_spot("messages")
+	assert_eq(float(spot["ay"]), 0.0, "anchored to the top of the screen")
+	assert_eq(float(spot["ax"]), 0.5, "centred")
