@@ -25,3 +25,26 @@ func test_editable_only_in_the_training_area() -> void:
 
 func test_readable_size() -> void:
 	assert_true(TalentView.MIN_RIBBON_CELL >= 34.0, "ribbon columns wide enough to read")
+
+## Reset works only where talents can be changed; the Inspect window (someone else's) has none.
+func test_reset_only_where_talents_change() -> void:
+	var src := FileAccess.get_file_as_string("res://scripts/ui/talent_tree_view.gd")
+	assert_contains(src, "if data_source == null:", "only on your own talents")
+	assert_contains(src, "if editable and _pd():\n\t\t\t\t_pd().reset_talents()")
+	assert_contains(src, "_reset.disabled = not editable")
+
+## The search bar frames matches on both sides, with the main menu's matching.
+func test_spellbook_search() -> void:
+	var ui := FileAccess.get_file_as_string("res://scripts/game_ui.gd")
+	assert_contains(ui, "_talent_view.set_search(_book_query)")
+	assert_contains(ui, "Keywords.matches(\"a:\" + id, _book_query)")
+	var src := FileAccess.get_file_as_string("res://scripts/ui/talent_tree_view.gd")
+	assert_contains(src, "Keywords.matches(\"t:\" + str(id), _query)")
+
+## Runes tab at the bottom: Rune Management inside the window, locked in combat.
+func test_runes_tab() -> void:
+	var ui := FileAccess.get_file_as_string("res://scripts/game_ui.gd")
+	assert_contains(ui, "RuneManager.embed(runes,")
+	assert_contains(ui, "_rune_lock.visible = _in_combat()")
+	var rm: Control = track(load("res://scripts/ui/rune_manager.gd").new())
+	assert_false(rm.embedded, "the main menu's stays a full window")

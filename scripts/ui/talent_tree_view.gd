@@ -14,6 +14,8 @@ const Talents = preload("res://scripts/talents.gd")
 const TalentIcons = preload("res://scripts/talent_icons.gd")
 const Categories = preload("res://scripts/categories.gd")
 const RibbonDrawer = preload("res://scripts/ui/ribbon_drawer.gd")
+const Keywords = preload("res://scripts/core/keywords.gd")
+const SEARCH_COL := Color(0.4, 1.0, 0.6)   # a talent matching the search (as in the main menu's book)
 
 const CELL_BG := Color(0.16, 0.14, 0.11, 0.95)
 const CELL_BG_EMPTY := Color(0.08, 0.07, 0.06, 0.95)
@@ -38,6 +40,8 @@ var _cells := {}      # talent id -> Panel (a seal's Control on the ribbon layou
 var _cell := 34.0
 var _bc := 34.0       # the open book's cell (smaller in a wider book)
 var _ribbon := {}     # the ribbon layout's metrics for RibbonDrawer ({} = the old grid)
+var _reset: Button    # Reset all talents (yours only; works where talents can be changed)
+var _query := ""      # the Spellbook's search: matching talents framed, the rest dimmed
 ## Narrowest a ribbon book's column may get, in px.
 const MIN_RIBBON_CELL := 34.0
 
@@ -81,6 +85,17 @@ func _ready() -> void:
 	ro.tooltip_text = READ_ONLY_NOTE
 	ro.mouse_filter = Control.MOUSE_FILTER_STOP
 	head.add_child(ro)
+	if data_source == null:
+		var gap := Control.new()
+		gap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		head.add_child(gap)
+		_reset = UI.button("Reset", 11, Vector2(56, 22))
+		_reset.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		_reset.pressed.connect(func():
+			if editable and _pd():
+				_pd().reset_talents())
+		head.add_child(_reset)
+		_update_reset()
 
 	var tabs := HFlowContainer.new()
 	tabs.custom_minimum_size = Vector2(width_for(tree_height), 0)
@@ -134,6 +149,7 @@ func show_book(cat: String) -> void:
 	if not Talents.groups_of(cat).is_empty():
 		_build_seals(cat, width)
 		refresh()
+		_mark_search()
 		return
 	_canvas.custom_minimum_size = Vector2(width, _cell * Talents.ROWS)
 	_bc = _cell * Talents.COLUMNS / maxf(Talents.columns_of(cat), Talents.COLUMNS)
@@ -163,6 +179,7 @@ func show_book(cat: String) -> void:
 			_cells[id] = cell
 			_wire_cell(cell, id)
 	refresh()
+	_mark_search()
 
 ## The ribbon layout: one seal per talent over the ribbons RibbonDrawer draws.
 func _build_seals(cat: String, width: float) -> void:
@@ -267,6 +284,7 @@ func set_editable(on: bool) -> void:
 	if on == editable:
 		return
 	editable = on
+	_update_reset()
 	if _mode_label:
 		_mode_label.text = "click to change" if on else "view only"
 		_mode_label.add_theme_color_override("font_color", UI.ACCENT if on else UI.TEXT_DIM)
@@ -274,6 +292,48 @@ func set_editable(on: bool) -> void:
 	for id in _cells:
 		if _cells[id].has_meta("hot"):
 			_cells[id].tooltip_text = _tip(id)
+
+func _update_reset() -> void:
+	if _reset == null:
+		return
+	_reset.disabled = not editable
+	_reset.tooltip_text = "Reset all talents" if editable else "Reset all talents: in the main menu or the training area"
+
+## The Spellbook's search (Keywords.matches, as the main menu's): frame the talents
+## that match, dim the rest. "" = no search.
+func set_search(query: String) -> void:
+	_query = query.strip_edges()
+	_mark_search()
+
+func _mark_search() -> void:
+	for id in _cells:
+		var cell: Control = _cells[id]
+		var hit := _query != "" and (Keywords.matches("t:" + str(id), _query) \
+			or Talents.options_of(str(id)).any(func(o): return Keywords.matches("t:" + str(o), _query)))
+		cell.modulate = Color(1, 1, 1, 0.3) if _query != "" and not hit else Color.WHITE
+		var mark: Panel = cell.get_node_or_null("SearchMark")
+		if hit and mark == null:
+			mark = Panel.new()
+			mark.name = "SearchMark"
+			mark.set_anchors_preset(Control.PRESET_FULL_RECT)
+			mark.offset_left = -2
+			mark.offset_top = -2
+			mark.offset_right = 2
+			mark.offset_bottom = 2
+			mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			mark.add_theme_stylebox_override("panel", UI.box(Color(SEARCH_COL, 0.1), SEARCH_COL, 2, 7))
+			cell.add_child(mark)
+		elif mark != null:
+			mark.visible = hit
+	# A book without matches dims its tab.
+	for c in _tabs:
+		var any := _query == ""
+		if not any:
+			for id in Talents.in_tree(str(c)):
+				if Keywords.matches("t:" + str(id), _query):
+					any = true
+					break
+		(_tabs[c] as Button).modulate = Color.WHITE if any else Color(1, 1, 1, 0.35)
 
 func _tip(id: String) -> String:
 	var pd := _pd()
