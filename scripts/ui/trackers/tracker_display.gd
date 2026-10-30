@@ -24,9 +24,16 @@ var preview := false                # the editor's preview: always shown, made-u
 var _bar: HudBar
 var _glow_t := 0.0
 var _was_active := false
+## The Trackers editor is open: hovering frames this one, a click opens it there.
+var picking := false
+var _pick_mark: Panel
+const PICK_COL := Color(0.4, 0.8, 1.0)
 
 func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	gui_input.connect(_on_pick)
+	mouse_entered.connect(func(): _show_pick_mark(true))
+	mouse_exited.connect(func(): _show_pick_mark(false))
 
 func setup(t: Dictionary) -> void:
 	data = t
@@ -50,13 +57,61 @@ func setup(t: Dictionary) -> void:
 		_bar.spark = true
 		add_child(_bar)
 	var click := str(d.get("click", ""))
-	mouse_filter = Control.MOUSE_FILTER_STOP if click != "" else Control.MOUSE_FILTER_IGNORE
 	if click != "" and not gui_input.is_connected(_on_click):
 		gui_input.connect(_on_click)
+	_update_mouse()
 	_make_layers()
 	queue_redraw()
 
+## Takes clicks while it has an "On click" action, or while the editor is open.
+func _update_mouse() -> void:
+	var click := str(data.get("display", {}).get("click", "")) if not is_group else ""
+	mouse_filter = Control.MOUSE_FILTER_STOP if (picking or click != "") else Control.MOUSE_FILTER_IGNORE
+	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if picking else Control.CURSOR_ARROW
+
+## Editor open or closed (TrackerEngine.set_picking).
+func set_picking(on: bool) -> void:
+	picking = on
+	_update_mouse()
+	if not on:
+		_show_pick_mark(false)
+		tooltip_text = ""   # (an "On click" tracker builds its own again)
+
+func _show_pick_mark(on: bool) -> void:
+	if on and not picking:
+		return
+	if _pick_mark == null:
+		if not on:
+			return
+		_pick_mark = Panel.new()
+		_pick_mark.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_pick_mark.offset_left = -3
+		_pick_mark.offset_top = -3
+		_pick_mark.offset_right = 3
+		_pick_mark.offset_bottom = 3
+		_pick_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(PICK_COL, 0.12)
+		sb.border_color = PICK_COL
+		sb.set_border_width_all(2)
+		sb.set_corner_radius_all(4)
+		_pick_mark.add_theme_stylebox_override("panel", sb)
+		add_child(_pick_mark)
+	_pick_mark.visible = on
+	if on:
+		_pick_mark.move_to_front()
+		tooltip_text = "Click to edit %s" % str(data.get("name", ""))
+
+## Editor open: a click opens this tracker (or group) in it.
+func _on_pick(ev: InputEvent) -> void:
+	if not picking or not (ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT):
+		return
+	TrackerEditor.open(get_tree(), str(data.get("id", "")))
+	accept_event()
+
 func _on_click(ev: InputEvent) -> void:
+	if picking:
+		return   # (the editor is open: a click picks it instead)
 	if not (ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT):
 		return
 	var engine := TrackerEngine.of(get_tree())

@@ -10,7 +10,9 @@ class_name TrackerEditor
 # (spec, role, combat, party, dungeon, abilities on your bars). New from a
 # template or a spec set (the Venom bar, the Wheel...), duplicate, delete, and
 # Import / Export one tracker or a whole group as a line of text. Changes apply
-# at once; the picked tracker shows with made-up values while you edit.
+# at once; the picked tracker shows with made-up values while you edit. While it
+# is open, clicking a tracker on screen opens it here (TrackerDisplay.picking).
+# The window can be resized (corner grip) and minimized to its title bar.
 
 const NODE := "TrackerEditor"
 const AbilitiesScript = preload("res://scripts/abilities.gd")
@@ -36,7 +38,8 @@ static func open(tree: SceneTree, id := "") -> void:
 		w.tree_exiting.connect(func():
 			var engine := TrackerEngine.of(tree)
 			if engine:
-				engine.set_preview("", false))
+				engine.set_preview("", false)
+				engine.set_picking(false))
 		return
 	e = w.get_node("Editor")
 	if id != "":
@@ -48,6 +51,12 @@ func _ready() -> void:
 	_build()
 	if _open_on != "":
 		select(_open_on)
+	# While it is open, click a tracker on screen to open it here.
+	var engine := TrackerEngine.of(get_tree())
+	if engine:
+		engine.set_picking(true)
+	win.enable_resize(Vector2(620, 380))
+	win.enable_minimize()
 
 func _settings() -> Node:
 	return UIConfig.settings()   # (from the main loop: works before this joins the tree too)
