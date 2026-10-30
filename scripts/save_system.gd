@@ -97,6 +97,7 @@ func _build_config() -> ConfigFile:
 	cfg.set_value("progress", "pact", pd.pact)             # the Pact held (scripts/pacts.gd)
 	cfg.set_value("progress", "pact_book", pd.pact_book)   # ... and the Purist's book
 	cfg.set_value("progress", "bare_hands", pd.bare_hands)   # the Brawler's Fighting Style (Martial tank)
+	cfg.set_value("progress", "put_em_up", pd.put_em_up)     # ... and its stance
 
 	cfg.set_value("abilities", "action_bar", Array(pd.action_bar))
 
@@ -233,6 +234,7 @@ func load_profile() -> bool:
 	pd.pending_drafts = pending
 	pd.card_reoffer = bool(cfg.get_value("progress", "card_reoffer", false))
 	pd.bare_hands = bool(cfg.get_value("progress", "bare_hands", false))
+	pd.put_em_up = bool(cfg.get_value("progress", "put_em_up", false))
 	# The Pact held: one that no longer exists, or a Purist without a real book, is dropped.
 	var saved_pact := str(cfg.get_value("progress", "pact", ""))
 	var saved_book := str(cfg.get_value("progress", "pact_book", ""))

@@ -54,6 +54,12 @@ static func draw(c: Control, id: String, mid: Vector2, k: float) -> void:
 			c.draw_line(mid + Vector2(4, 14) * k, mid + Vector2(12, -14) * k, Color(0.75, 0.78, 0.85), 3.0 * k, true)
 			c.draw_line(mid + Vector2(2, 6) * k, mid + Vector2(12, 9) * k, Color(0.55, 0.4, 0.28), 2.6 * k, true)
 			c.draw_arc(mid, 16.0 * k, PI * 0.15, PI * 0.85, 10, Color(GOLD, 0.7), 1.6 * k, true)
+		"putemup":   # two fists raised in a guard over a purple bruise
+			_glow(c, mid, k, Color(0.6, 0.35, 0.7))
+			c.draw_circle(mid + Vector2(0, 9) * k, 6.0 * k, Color(0.6, 0.35, 0.7, 0.85))
+			_fist(c, mid + Vector2(-7, -4) * k, k * 0.75, PUNCH)
+			_fist(c, mid + Vector2(7, -4) * k, k * 0.75, ELBOW)
+			c.draw_arc(mid + Vector2(0, -2) * k, 16.0 * k, -PI * 0.85, -PI * 0.15, 12, Color(GOLD, 0.8), 1.8 * k, true)
 		# Chains that end with Punch.
 		"rapidfists":
 			for i in 3:

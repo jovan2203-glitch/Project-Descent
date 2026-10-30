@@ -118,6 +118,9 @@ func deal(info: RefCounted) -> RefCounted:
 	if src_ok and not src.is_in_group("enemies"):   # (players and their puppets)
 		if not info.exact:
 			var om := Abilities.hit_damage_mult(info.ability_id)
+			# The attacker may scale its own hits (outgoing_mult(info); Put 'Em Up: less non-Physical).
+			if src.has_method("outgoing_mult"):
+				om *= float(src.outgoing_mult(info))
 			unit *= om
 			power *= om
 		info.threat_multiplier *= Abilities.hit_threat_mult(info.ability_id)

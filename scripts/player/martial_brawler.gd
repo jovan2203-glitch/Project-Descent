@@ -4,8 +4,10 @@ class_name BrawlerKit
 # Hooked up from player.gd through its var "brawler".
 # --- Martial tank: the Brawler --------------------------------------------------------
 # A pugilist. Two systems:
-#   Bruise   part of every hit I take (BRUISE_PCT) is not dealt now but over
-#            BRUISE_TIME (Player.take_damage -> bruise_take); its ticks give Fury.
+#   Bruise   while I am in Put 'Em Up (the stance), part of every hit I take
+#            (BRUISE_PCT) is not dealt now but over BRUISE_TIME
+#            (Player.take_damage -> bruise_take); its ticks give Fury. The stance
+#            costs PUT_EM_UP_PCT of all my non-Physical damage (outgoing_mult).
 #   Chain    Punch, Kick and Elbow (Abilities.BRAWLER_STRIKES, a short GCD) go into a
 #            chain of CHAIN_LENGTH; when the last lands, a move goes off on top of it
 #            (chain_move: the last strike picks it, three different make the strong
@@ -13,7 +15,8 @@ class_name BrawlerKit
 #            a melee tell at me (enemy.gd "Melee tells"), the hit it catches lands in
 #            full (no Bruise), and the chain it starts ends in a Catch move.
 # One More repeats my last move; Tough It Out pauses Bruise; Come On taunts;
-# Fighting Style only changes how my strikes look (PlayerData.bare_hands).
+# Fighting Style only changes how my strikes look (PlayerData.bare_hands);
+# Put 'Em Up is saved too (PlayerData.put_em_up).
 # None of it works with a shield (AbilityData.forbids_shield).
 # The kit is out while one of its buttons is on my bars. Everything runs on my
 # machine; the party sees the orbs ("brawler" fx, scripts/brawler_orbs.gd).
@@ -25,6 +28,7 @@ const Effects = preload("res://scripts/core/effects.gd")
 const BRUISE_FX := "bruise"
 const CLINCH_FX := "clinch"
 const TOUGH_FX := "toughitout"
+const STANCE_FX := "putemup"
 const KICKED_DOWN_FX := "kicked_down"
 const TAKEN_DOWN_FX := "taken_down"
 const REVERSAL_ID := "reversal"          # Throw on a boss (its own meter line: Details.HIT_NAMES)
@@ -32,7 +36,7 @@ const CATCH_ID := "catch"
 const GET_UP_ID := "getup"               # Get Up's heal (its own meter line: Details.HIT_NAMES)
 const BRAWLER_TAGS := ["Ability", "Physical", "Melee"]
 ## The buttons (the moves have none).
-const BUTTONS := ["punch", "brawlkick", "elbow", "catch", "onemore", "toughitout", "comeon", "fightingstyle"]
+const BUTTONS := ["punch", "brawlkick", "elbow", "catch", "onemore", "toughitout", "comeon", "fightingstyle", "putemup"]
 const TELL_EVERY := 3.0                  # seconds between telling the party what my orbs show
 
 var _chain: Array[String] = []
@@ -112,6 +116,12 @@ static func scarred(amount: float, pct: float) -> float:
 static func bruise_per_tick(total: float, left: float) -> float:
 	return total * Balance.BRUISE_TICK / maxf(left, Balance.BRUISE_TICK)
 
+## Put 'Em Up: what my damage of `damage_type` is multiplied by (`on`: in the stance).
+static func stance_mult(damage_type: String, on: bool) -> float:
+	if not on or damage_type == "physical":
+		return 1.0
+	return clampf(1.0 - Balance.PUT_EM_UP_PCT / 100.0, 0.0, 1.0)
+
 ## Fury a Bruise tick of `amount` gives, with `max_health` (`tough`: Tough It Out).
 static func bruise_fury(amount: float, max_health: float, tough: bool) -> float:
 	var f := amount / maxf(max_health / 100.0, 1.0) * Balance.BRUISE_FURY
@@ -147,6 +157,15 @@ func chain() -> Array[String]:
 
 func bruise() -> float:
 	return _bruise
+
+## Am I in Put 'Em Up? (Saved on PlayerData; counts only while the Brawler is out.)
+func in_stance() -> bool:
+	var pd := player.get_node_or_null("/root/PlayerData")
+	return pd != null and bool(pd.put_em_up) and is_out()
+
+## CombatSystem: what my outgoing hit of `info` is multiplied by (Put 'Em Up).
+func outgoing_mult(info: RefCounted) -> float:
+	return stance_mult(str(info.damage_type), in_stance())
 
 func bare_hands() -> bool:
 	var pd := player.get_node_or_null("/root/PlayerData")
@@ -218,6 +237,11 @@ func _brawler_use(id: String, res: Resource) -> void:
 				pd.bare_hands = not bool(pd.bare_hands)
 			_shown = "?"   # (shows again)
 			_sync()
+		"putemup":
+			var pd := player.get_node_or_null("/root/PlayerData")
+			if pd:
+				pd.put_em_up = not bool(pd.put_em_up)
+			_show_stance()
 
 ## A strike's look: Armed swings the weapon, Bare Hands throws a wrapped fist.
 func _strike_look(id: String) -> void:
@@ -426,7 +450,7 @@ func incoming_bonus(info: RefCounted) -> Array:
 ## take_damage: what of `amount` lands now; the rest goes into Bruise. The caught hit
 ## lands in full, and so do Bruise's own ticks.
 func bruise_take(amount: int) -> int:
-	if _ticking or amount <= 0 or not is_out():
+	if _ticking or amount <= 0 or not in_stance():
 		_landing_caught = false
 		return amount
 	var pct := Balance.BRUISE_PCT + player._talent("martial_soak_it_up")   # + Soak It Up
@@ -462,6 +486,21 @@ func _show_bruise() -> void:
 	if player.status.stacks_of(BRUISE_FX) != n:
 		player.status.set_stacks(BRUISE_FX, n)
 
+## The stance's buff: shown while I am in it.
+func _show_stance() -> void:
+	var on := in_stance() and not player.is_dead()
+	if player.status == null or on == player.status.has(STANCE_FX):
+		return
+	if not on:
+		player.status.remove(STANCE_FX)
+		return
+	var fx := StatusContainer.make_buff(STANCE_FX, Abilities.ability_name("putemup"), STANCE_FX, 0.0, 3600.0, 1, BrawlerIcons.WRAP)
+	fx.stat_modifiers = {}
+	fx.tags = PackedStringArray(["Physical", "Defensive"])
+	fx.description = "You take hits with Bruise. Your damage that is not Physical is %s%% lower." % Stats.num(Balance.PUT_EM_UP_PCT)
+	player.status.apply(fx, player)
+	player.status.set_remaining(STANCE_FX, 3600.0)
+
 # --- Every frame ----------------------------------------------------------------------
 
 func _tick_brawler(delta: float) -> void:
@@ -483,6 +522,7 @@ func _tick_brawler(delta: float) -> void:
 			_bruise_tick += Balance.BRUISE_TICK
 			_tick_bruise()
 		_show_bruise()
+	_show_stance()
 	_sync()
 	if now - _told >= TELL_EVERY and _shown != "":
 		_tell()

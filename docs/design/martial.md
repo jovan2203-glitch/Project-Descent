@@ -108,6 +108,7 @@ Cooldowns only, no cost (the Warrior and the Brawler spend Fury, the Rogue Energ
 Numbers are drafts (balance.gd). Built with: strikes 0.27 FB and +10 Fury each (the Fury scale's minimum gain), Rapid Fists 0.45, Haymaker 1.1, Sweep 0.4, Roundhouse 0.5, Throw 0.6, Reversal 1.0, Come On 8 s cooldown / 3 s taunt; balance sim ~2200 geared DPS (tank range). Fighting Style changes the strike visuals only for now (no unarmed animation set on the placeholder body yet). A pugilist / mixed martial artist: wraps, footwork, clinches, takedowns, haymakers. Not a monk and not a copy of WoW's Brewmaster (legal reasons): no chi, robes, meditation, palms, brews, drunken or animal stances, and the delayed-damage pool has its own name and its own way of clearing it.
 
 ### Bruise (takes the hit, pays it later)
+- Needs the stance **Put 'Em Up** (2026-10-29; comes with Punch, off the GCD, 1 s cooldown, a toggle, saved). In it, Bruise works and all your damage that is not Physical is 60% lower (a straight multiplier on the hit, so mixing in other books' spells costs a lot). Out of it, no Bruise. Brawler only.
 - 40% of every hit you take is not dealt now: it goes into **Bruise**, dealt to you evenly over 6 s. New damage adds to it and restarts the 6 s with the total left.
 - Readability: a Bruise buff with the amount; the health bar shows Bruise as a darker segment.
 - Each Bruise tick gives Fury, so the damage you soak feeds the kit.

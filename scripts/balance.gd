@@ -1355,6 +1355,7 @@ const CATCH_GRACE := 0.3                  # Catch: seconds after the tell ends t
 const TOUGH_IT_OUT_TIME := 5.0            # Tough It Out: seconds your Bruise ticks deal nothing ...
 const TOUGH_IT_OUT_FURY := 2.0            # ... and give this many times the Fury
 const COME_ON_TAUNT := 3.0                # Come On: seconds the target must attack you
+const PUT_EM_UP_PCT := 60.0               # Put 'Em Up (the stance Bruise needs): % less non-Physical damage you deal
 
 # Martial DPS: the Rogue (scripts/player/martial_rogue.gd). Rogue hits build Flow; a range
 # switch builds more; Go In spends it on a Kill window where the builders take their Kill forms.
@@ -1798,6 +1799,7 @@ const ABILITIES := {
 	"onemore": {"cooldown": 9.0, "cost": 25},
 	"toughitout": {"cooldown": 30.0, "cost": 40},
 	"comeon": {"cooldown": 8.0, "range": 25.0, "threat": 6.0},
+	"putemup": {"cooldown": 1.0},
 	# Martial DPS: the Rogue (FLOW_*, KILL_*, DAGGER_* and the rest above). Kill forms
 	# (gut ... drivethrough) are what the builders become in a Kill window.
 	"cut": {"damage": 0.62, "cost": 20, "range": THROW_RANGE},

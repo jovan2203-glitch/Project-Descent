@@ -110,7 +110,7 @@ const KEYWORDS := {
 		"text": "Built on an enemy by your ability hits while you hold the {n:wheelmaul}: {b:STAGGER_PER_HIT} per hit, up to {b:STAGGER_MAX}. At {b:STAGGER_MAX} the enemy is Knocked Down for {b:STAGGER_KNOCKDOWN} sec and its Stagger starts over. It fades after {b:STAGGER_FADE} sec without a hit from you. Bosses never build Stagger."},
 	"knocked_down": {"forms": ["Knocked Down"], "effect": "knocked_down"},
 	"bruise": {"forms": ["Bruise"],
-		"text": "While your Brawler strikes are on your bars, {b:BRUISE_PCT}% of every hit you take is not dealt at once: it goes into your Bruise and hurts you over {b:BRUISE_TIME} sec instead. More damage adds to it and starts the time over with the total left. Each tick gives you {b:BRUISE_FURY} Fury for every 1% of your maximum health it deals."},
+		"text": "While you are in {n:putemup}, {b:BRUISE_PCT}% of every hit you take is not dealt at once: it goes into your Bruise and hurts you over {b:BRUISE_TIME} sec instead. More damage adds to it and starts the time over with the total left. Each tick gives you {b:BRUISE_FURY} Fury for every 1% of your maximum health it deals."},
 	"chain": {"forms": ["Chain"],
 		"text": "Your last strikes, shown as orbs on your back: {n:punch} red, {n:brawlkick} green, {n:elbow} blue, {n:catch} white. When its last strike lands ({b:CHAIN_LENGTH} in all), a move goes off and the Chain starts over; {b:CHAIN_TIMEOUT} sec without a strike clears it. The strike that ends it picks the move, and three different strikes make the strong one."},
 	"caught_hit": {"forms": ["caught hit"],

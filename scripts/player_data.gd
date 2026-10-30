@@ -362,6 +362,7 @@ const Pacts = preload("res://scripts/pacts.gd")
 var pact := ""          # the Pact held ("" = none); saved
 var pact_book := ""     # Pact of the Purist: the one book it allows; saved
 var bare_hands := false  # the Brawler's Fighting Style: Bare Hands (true) or Armed; saved
+var put_em_up := false   # the Brawler's stance (Put 'Em Up) is on; saved
 ## The vow was broken in this dungeon: the Pact works against you until the run
 ## ends. Not saved; GameManager clears it when a run starts from the menu.
 var pact_broken := false
@@ -416,11 +417,11 @@ func has_ability(id: String) -> bool:
 		return learned_abilities.has(weapon)
 	if Abilities.WHEEL_SLOTS.has(id):
 		return wheel_weapons().size() > 0
-	# The Brawler (Martial tank): Punch brings Kick, Elbow, Fighting Style and the
+	# The Brawler (Martial tank): Punch brings Kick, Elbow, Fighting Style, Put 'Em Up and the
 	# chain's moves; Catch brings the moves a Catch chain makes.
 	if Abilities.BRAWLER_CATCH_MOVES.values().has(id):
 		return learned_abilities.has("catch")
-	if Abilities.is_chain_move(id) or ["brawlkick", "elbow", "fightingstyle"].has(id):
+	if Abilities.is_chain_move(id) or ["brawlkick", "elbow", "fightingstyle", "putemup"].has(id):
 		return learned_abilities.has("punch")
 	# The Rogue (Martial DPS): Cut brings Go In and the Kill forms.
 	if id == "goin" or Abilities.is_kill_form(id):
