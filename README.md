@@ -1,9 +1,5 @@
 # Project: Descent
 
-A co-op action-RPG for parties of up to 5: dungeons, ability books, talents, runes and Pacts.
-
-This repository only holds the game's builds. The source code is not public.
-
 ## Playing
 
 1. Download **ProjectDescentLauncher.zip** from the [Launcher release](../../releases/tag/launcher-v2.0) and unzip it into a folder you own.
